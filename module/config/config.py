@@ -12,7 +12,6 @@ from cached_property import cached_property
 from threading import Lock
 
 from module.base.filter import Filter
-from module.config.config_updater import ConfigUpdater
 from module.config.config_manual import ConfigManual
 from module.config.config_watcher import ConfigWatcher
 from module.config.config_menu import ConfigMenu

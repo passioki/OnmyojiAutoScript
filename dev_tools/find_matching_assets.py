@@ -21,18 +21,20 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+# 读图复用仓库既有实现(内部 BGR2RGB), 与 RuleImage 的模板同颜色空间。
+# 自写 cv2.imdecode(..., IMREAD_COLOR) 会得到 BGR, 与 RGB 模板错配,
+# 使所有分数被系统性压低且不报错(实测 1.0000 会被压到 0.8151)。
+from dev_tools.assets_test import load_image  # noqa: E402
+
 
 def load_shot(path: str):
-    import cv2
-    import numpy as np
-    data = np.fromfile(path, dtype=np.uint8)
-    img = cv2.imdecode(data, cv2.IMREAD_COLOR)
+    """读取截图, 复用 assets_test.load_image 以保证颜色空间一致。"""
+    img = load_image(str(path), strict_size=False)
     if img is None:
         raise SystemExit(f'无法解码: {path}')
-    if img.shape[0] > img.shape[1]:
-        img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
     if img.shape[:2] != (720, 1280):
-        img = cv2.resize(img, (1280, 720))
+        print(f'提示: {path} 尺寸为 {img.shape[1]}x{img.shape[0]}, '
+              f'而非 OAS 坐标系 1280x720, 结果可能不可比', file=sys.stderr)
     return img
 
 

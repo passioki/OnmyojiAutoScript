@@ -36,6 +36,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+# 读图与单规则匹配一律复用仓库既有实现, 不自行重写:
+#   assets_test.load_image        内部做 cvtColor(BGR2RGB), 与 RuleImage 的模板同空间
+#   assets_test.detect_image_detail  即标注器"测试"按钮走的判定路径
+# 自行用 cv2.imdecode(..., IMREAD_COLOR) 会拿到 BGR, 与 RGB 模板错配, 分数被系统性
+# 压低(实测同一张战斗截图: 正确口径 1.0000, 错配后 0.8151)且不报错, 极易误导。
+from dev_tools.assets_test import load_image, detect_image_detail  # noqa: E402
+
 ADB = REPO_ROOT / 'toolkit' / 'Lib' / 'site-packages' / 'adbutils' / 'binaries' / 'adb.exe'
 SHOT_DIR = REPO_ROOT / 'log' / 'probe'
 
@@ -64,20 +71,19 @@ def capture(serial: str, save: Path) -> Path:
 
 def load_shot(path: str):
     """
-    读图并旋转/缩放到 OAS 的 1280x720 坐标系。
+    读图, 直接复用 dev_tools/assets_test.load_image。
 
-    adb screencap 在竖屏模拟器上得到 720x1280, 旋转后才是 OAS 认的 1280x720。
+    它内部执行 cv2.cvtColor(BGR2RGB), 与 RuleImage 的模板处于同一颜色空间,
+    因此产出的分数与 appear() / 标注器"测试"按钮一致。
+    本仓库的截图(adb screencap 与标注器 capture)均已统一为 1280x720,
+    无需再做旋转或缩放。
     """
-    import cv2
-    import numpy as np
-    data = np.fromfile(path, dtype=np.uint8)
-    img = cv2.imdecode(data, cv2.IMREAD_COLOR)
+    img = load_image(str(path), strict_size=False)
     if img is None:
         raise SystemExit(f'无法解码图片: {path}')
-    if img.shape[0] > img.shape[1]:
-        img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
     if img.shape[:2] != (720, 1280):
-        img = cv2.resize(img, (1280, 720))
+        print(f'提示: {path} 尺寸为 {img.shape[1]}x{img.shape[0]}, '
+              f'而非 OAS 坐标系 1280x720, 匹配结果可能不可比', file=sys.stderr)
     return img
 
 
@@ -110,36 +116,26 @@ def resolve_rule(dotted: str):
     return None
 
 
-def match_rule(img, rule) -> dict:
-    """对单条 RuleImage 做匹配, 返回分数等细节。"""
-    import cv2
+def match_rule(path_or_img, rule) -> dict:
+    """
+    对单条 RuleImage 做匹配, 直接委托给仓库的 assets_test.detect_image_detail
+    (即标注器"测试"按钮走的同一条路径), 避免自写比较逻辑引入偏差。
+
+    detect_image_detail 会在命中时改写 rule.roi_front, 因此这里先浅拷贝一份,
+    避免污染调用方持有的规则对象。
+    """
+    import copy as _copy
     from module.atom.image import RuleImage
     if not isinstance(rule, RuleImage):
         return {'error': f'不是 RuleImage: {type(rule).__name__}'}
-    try:
-        source = rule.corp(img)
-        mat = rule.image
-    except Exception as exc:
-        return {'error': f'{type(exc).__name__}: {exc}'}
-    th, tw = mat.shape[:2]
-    sh, sw = source.shape[:2]
-    if sh < th or sw < tw:
-        return {
-            'roi_back': tuple(int(v) for v in rule.roi_back),
-            'template': (tw, th),
-            'error': f'搜索区 {sw}x{sh} 装不下模板 {tw}x{th} -> 永不命中',
-        }
-    res = cv2.matchTemplate(source, mat, cv2.TM_CCOEFF_NORMED)
-    _, max_val, _, max_loc = cv2.minMaxLoc(res)
-    score = float(max_val)
-    thres = float(rule.threshold)
+    detail = detect_image_detail(str(path_or_img), _copy.copy(rule))
     return {
-        'roi_back': tuple(int(v) for v in rule.roi_back),
-        'template': (tw, th),
-        'threshold': thres,
-        'score': round(score, 4),
-        'matched': score >= thres,
-        'hit_xy': (int(max_loc[0] + rule.roi_back[0]), int(max_loc[1] + rule.roi_back[1])),
+        'roi_back': detail.get('roiBack'),
+        'roi_front': detail.get('roiFront'),
+        'threshold': float(rule.threshold),
+        'score': float(detail.get('similarity', 0.0)),
+        'matched': bool(detail.get('matched', False)),
+        'message': detail.get('message', ''),
     }
 
 
@@ -147,7 +143,12 @@ def match_rule(img, rule) -> dict:
 # OCR
 # ---------------------------------------------------------------------------
 def run_ocr(img, min_score: float = 0.5) -> list:
-    """整屏 OCR, 返回 [(文本, x, y, w, h, score)]。"""
+    """
+    整屏 OCR, 返回 [(文本, x, y, w, h, score)]。
+
+    通道处理与仓库 assets_test.detect_ocr 一致: 直接把 load_image 产出的图交给
+    OCR, 不额外转换(仓库自身在该路径上也不做 cvtColor)。
+    """
     import numpy as np
     from module.ocr.ppocr import TextSystem
     ocr = TextSystem()
@@ -173,6 +174,9 @@ def analyze_roi(img, box, ascii_w: int = 60) -> dict:
 
     ASCII 预览用亮度分档映射到字符, 可在纯文本环境里看出大致结构(按钮轮廓、
     血条、图标位置), 这是没有图像输入能力时唯一能"看到"形状的办法。
+
+    入参 img 是 RGB(见 load_shot); 灰度与 BGR 均值都按正确的通道顺序换算,
+    否则 R/B 会被调换、灰度的通道权重也会反。
     """
     import cv2
     import numpy as np
@@ -181,8 +185,8 @@ def analyze_roi(img, box, ascii_w: int = 60) -> dict:
     if sub.size == 0:
         return {'error': f'ROI 越界: {box}'}
 
-    gray = cv2.cvtColor(sub, cv2.COLOR_BGR2GRAY)
-    b, g, r = (float(sub[:, :, i].mean()) for i in range(3))
+    gray = cv2.cvtColor(sub, cv2.COLOR_RGB2GRAY)
+    r, g, b = (float(sub[:, :, i].mean()) for i in range(3))  # RGB 顺序
     edges = cv2.Canny(gray, 60, 180)
     edge_density = float((edges > 0).mean())
 
@@ -199,7 +203,7 @@ def analyze_roi(img, box, ascii_w: int = 60) -> dict:
 
     return {
         'box': box,
-        'mean_bgr': (round(b, 1), round(g, 1), round(r, 1)),
+        'mean_rgb': (round(r, 1), round(g, 1), round(b, 1)),
         'brightness': round(float(gray.mean()), 1),
         'std': round(float(gray.std()), 1),
         'edge_density': round(edge_density, 4),
@@ -230,24 +234,23 @@ def cmd_ocr(args) -> int:
 
 
 def cmd_match(args) -> int:
-    img = load_shot(args.image)
-    print(f'图片: {args.image}  尺寸 {img.shape[1]}x{img.shape[0]}')
-    print('%-40s %8s %7s %-6s %-16s %s' % ('规则', 'score', '阈值', '命中', 'hit_xy', '备注'))
+    print(f'图片: {args.image}')
+    print('%-40s %9s %7s %-6s %-16s %s' % ('规则', 'score', '阈值', '命中', 'roi_front', '备注'))
     print('-' * 112)
     for dotted in args.rules:
         rule = resolve_rule(dotted)
         if rule is None:
             print('%-40s %s' % (dotted, '找不到该规则'))
             continue
-        info = match_rule(img, rule)
+        info = match_rule(args.image, rule)
         if 'score' not in info:
             print('%-40s %s' % (dotted, info.get('error', '未知错误')))
             continue
-        print('%-40s %8.4f %7.2f %-6s %-16s %s' % (
+        print('%-40s %9.4f %7.2f %-6s %-16s %s' % (
             dotted, info['score'], info['threshold'],
             'YES' if info['matched'] else 'no',
-            str(info['hit_xy']),
-            '' if info['matched'] else '低于阈值'))
+            str(info.get('roi_front')),
+            info.get('message', '')))
     return 0
 
 
@@ -258,7 +261,7 @@ def cmd_roi(args) -> int:
     if 'error' in info:
         print(info['error'])
         return 1
-    print(f"ROI {info['box']}  平均BGR={info['mean_bgr']}  亮度={info['brightness']} "
+    print(f"ROI {info['box']}  平均RGB={info['mean_rgb']}  亮度={info['brightness']} "
           f"标准差={info['std']}  边缘密度={info['edge_density']}")
     print('ASCII 预览(暗 -> 亮: " .:-=+*#%@")')
     for line in info['ascii']:

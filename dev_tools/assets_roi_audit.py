@@ -90,12 +90,104 @@ class AuditResult:
     critical: list = field(default_factory=list)   # roi_back < template, 永不命中
     degenerate: list = field(default_factory=list)  # roi_back == template, 无容差
     healthy: int = 0
+    # 模板文件不存在, 但只被不读图的 click() 使用 => 无害
+    missing_benign: list = field(default_factory=list)
+    # 模板文件不存在, 且被 appear()/match() 调用 => 一旦执行即 FileNotFoundError
+    missing_risky: list = field(default_factory=list)
+    # 模板文件不存在且无任何引用 => 死规则
+    missing_dead: list = field(default_factory=list)
 
     def by_task(self, findings: list) -> dict:
         out: dict[str, int] = {}
         for f in findings:
             out[f.task] = out.get(f.task, 0) + 1
         return dict(sorted(out.items(), key=lambda kv: -kv[1]))
+
+
+def _iter_py_sources():
+    """
+    遍历仓库内参与检索的 .py 源码(排除 assets.py 与 __pycache__)。
+
+    判定"是否读图"必须区分调用方法: click() 只取 coord() 数值, 不触发 load_image;
+    只有 appear()/appear_then_click()/match()/test_match() 才会真正读取模板文件。
+
+    同时剔除整行注释, 否则被注释掉的调用会被误判为有效调用。
+
+    :return: 生成 (相对路径, 参与检索的代码文本)
+    """
+    for base in ('tasks', 'module'):
+        for py in (REPO_ROOT / base).rglob('*.py'):
+            if '__pycache__' in py.parts or py.name == 'assets.py':
+                continue
+            try:
+                raw = py.read_text(encoding='utf-8', errors='ignore')
+            except Exception:
+                continue
+            lines = []
+            for line in raw.splitlines():
+                stripped = line.lstrip()
+                if stripped.startswith('#'):
+                    continue
+                # 去掉行尾注释(够用即可, 不做完整词法分析)
+                if '#' in line:
+                    line = line.split('#', 1)[0]
+                lines.append(line)
+            yield py.relative_to(REPO_ROOT).as_posix(), '\n'.join(lines)
+
+
+def classify_missing(rule_names: set[str]) -> dict[str, str]:
+    """
+    判断给定规则名在代码中的使用方式。
+
+    :param rule_names: 待判定的规则名集合
+    :return: {规则名: 'risky' | 'benign' | 'dead'}
+    """
+    risky: set[str] = set()
+    benign: set[str] = set()
+
+    # 会触发 load_image() 的调用形态
+    read_patterns = (
+        r'appear_then_click\s*\(\s*(?:self\.)?{n}\b',
+        r'appear\s*\(\s*(?:self\.)?{n}\b',
+        r'match\s*\(\s*(?:self\.)?{n}\b',
+        r'test_match\s*\(\s*(?:self\.)?{n}\b',
+        r'wait_until_appear\w*\s*\(\s*(?:self\.)?{n}\b',
+    )
+    # 不读图的调用形态
+    benign_patterns = (
+        r'click\s*\(\s*(?:self\.)?{n}\b',
+        r'coord\s*\(\s*(?:self\.)?{n}\b',
+    )
+
+    for name in rule_names:
+        state = 'dead'
+        for _, text in _iter_py_sources():
+            if name not in text:
+                continue
+            for pat in read_patterns:
+                if re.search(pat.format(n=re.escape(name)), text):
+                    risky.add(name)
+                    state = 'risky'
+                    break
+            if state == 'risky':
+                break
+            for pat in benign_patterns:
+                if re.search(pat.format(n=re.escape(name)), text):
+                    benign.add(name)
+                    if state == 'dead':
+                        state = 'benign'
+        if state == 'dead':
+            continue
+    # 汇总: risky 优先于 benign
+    out: dict[str, str] = {}
+    for name in rule_names:
+        if name in risky:
+            out[name] = 'risky'
+        elif name in benign:
+            out[name] = 'benign'
+        else:
+            out[name] = 'dead'
+    return out
 
 
 def iter_assets_modules():
@@ -159,6 +251,7 @@ def audit() -> AuditResult:
     :return: AuditResult
     """
     result = AuditResult()
+    missing_names: dict[str, Finding] = {}
 
     for task_name, module_name in iter_assets_modules():
         try:
@@ -181,6 +274,16 @@ def audit() -> AuditResult:
             size = image_size(template_path)
             if size is None:
                 result.skipped_missing_template += 1
+                missing_names[attr_name] = Finding(
+                    rule=attr_name,
+                    task=task_name,
+                    roi_back=tuple(int(v) for v in rule.roi_back),
+                    template=(0, 0),
+                    method=method,
+                    threshold=float(getattr(rule, 'threshold', 0.0)),
+                    file=str(file_attr),
+                    level='MISSING',
+                )
                 continue
 
             roi_back = tuple(int(v) for v in rule.roi_back)
@@ -205,6 +308,19 @@ def audit() -> AuditResult:
             else:
                 result.healthy += 1
 
+    # 按调用方式给"模板缺失"分级, 避免把只用于 click() 的纯点击区域误判为崩溃风险
+    if missing_names:
+        verdict = classify_missing(set(missing_names))
+        for name, entry in missing_names.items():
+            kind = verdict.get(name, 'dead')
+            entry.level = kind.upper()
+            if kind == 'risky':
+                result.missing_risky.append(entry)
+            elif kind == 'benign':
+                result.missing_benign.append(entry)
+            else:
+                result.missing_dead.append(entry)
+
     return result
 
 
@@ -222,7 +338,9 @@ def print_report(res: AuditResult) -> None:
     print(f'  搜索区 = 模板 (退化为定点比对): {len(res.degenerate)}'
           f'  ({100.0 * len(res.degenerate) / max(res.total, 1):.1f}%)')
     print(f'  搜索区 < 模板 (永不命中)     : {len(res.critical)}')
-    print(f'  模板文件缺失/不可读          : {res.skipped_missing_template}')
+    print(f'  模板文件缺失/不可读          : {res.skipped_missing_template}'
+          f'  (risky {len(res.missing_risky)} / benign {len(res.missing_benign)}'
+          f' / dead {len(res.missing_dead)})')
     print()
 
     if res.critical:
@@ -234,6 +352,35 @@ def print_report(res: AuditResult) -> None:
                   f'roi_back={f.roi_back[2]}x{f.roi_back[3]} '
                   f'< template={f.template[0]}x{f.template[1]} '
                   f'(缺 {-f.margin_w}x{-f.margin_h})')
+        print()
+
+    if res.missing_risky:
+        print('-' * 78)
+        print(f'[MISSING-RISKY] 模板文件不存在, 且被 appear()/match() 调用'
+              f' ({len(res.missing_risky)} 条)')
+        print('一旦该代码路径被执行, load_image() 会抛 FileNotFoundError 硬崩溃。')
+        print('-' * 78)
+        for f in sorted(res.missing_risky, key=lambda x: (x.task, x.rule)):
+            print(f'  {f.task:<24} {f.rule:<34} {f.file}')
+        print()
+
+    if res.missing_dead:
+        print('-' * 78)
+        print(f'[MISSING-DEAD] 模板文件不存在且无任何代码引用 ({len(res.missing_dead)} 条)')
+        print('仅污染 assets.py, 建议删除对应数据源以防后续被误用。')
+        print('-' * 78)
+        for f in sorted(res.missing_dead, key=lambda x: (x.task, x.rule)):
+            print(f'  {f.task:<24} {f.rule}')
+        print()
+
+    if res.missing_benign:
+        print('-' * 78)
+        print(f'[MISSING-BENIGN] 模板文件不存在, 但仅被不读图的 click() 使用'
+              f' ({len(res.missing_benign)} 条)')
+        print('click() 只取 coord() 数值, 不触发 load_image, 因此无害。')
+        print('-' * 78)
+        for f in sorted(res.missing_benign, key=lambda x: (x.task, x.rule)):
+            print(f'  {f.task:<24} {f.rule}')
         print()
 
     if res.degenerate:

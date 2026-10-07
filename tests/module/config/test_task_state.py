@@ -234,12 +234,56 @@ class TestSchedulerConfig:
         assert s.server_update == time(hour=9)
 
     def test_i18n_has_text_for_new_fields(self):
-        """新字段要有中文文案, 否则 UI 显示英文键名。"""
+        """
+        新字段要有中文文案, 否则 UI 显示英文键名。
+
+        注意: module/config/i18n/zh-CN.json 被 .gitignore 忽略(它是本机缓存 +
+        用户自定义译文的落地处), 因此这里以**被跟踪的** zh_CN.xml 为准,
+        这样新克隆的仓库也能验证。若本地存在 zh-CN.json 则一并核对。
+        """
         import io
+        import xml.etree.ElementTree as ET
         from pathlib import Path
+
         repo = Path(__file__).resolve().parents[3]
-        d = json.load(io.open(repo / 'module' / 'config' / 'i18n' / 'zh-CN.json',
-                              encoding='utf-8'))
-        for key in ('period', 'period_help', 'reset_at', 'reset_at_help'):
-            assert key in d, f'i18n 缺少 {key}'
-            assert d[key], f'i18n 中 {key} 为空'
+        xml_path = repo / 'module' / 'config' / 'i18n' / 'zh_CN.xml'
+        assert xml_path.exists(), 'zh_CN.xml 应随仓库发布'
+
+        root = ET.parse(xml_path).getroot()
+        sources = {m.findtext('source'): (m.findtext('translation') or '')
+                   for m in root.iter('message')}
+
+        for key in ('Period', 'Reset At', 'period_help', 'reset_at_help'):
+            assert key in sources, f'zh_CN.xml 缺少 {key}'
+            assert sources[key].strip(), f'zh_CN.xml 中 {key} 的译文为空'
+
+        # 本地若有 json 缓存, 也应包含(否则界面会退化为显示英文键名)
+        json_path = repo / 'module' / 'config' / 'i18n' / 'zh-CN.json'
+        if json_path.exists():
+            d = json.load(io.open(json_path, encoding='utf-8'))
+            for key in ('period', 'period_help', 'reset_at', 'reset_at_help'):
+                assert key in d, f'本地 zh-CN.json 缺少 {key}'
+
+    def test_compiled_qm_contains_new_keys(self):
+        """
+        编译产物 zh_CN.qm 必须包含新键 —— 否则 Fluent GUI 会显示英文键名。
+        (该文件随仓库提交, 修改 zh_CN.xml 后需用 lrelease 重新编译。)
+        """
+        from pathlib import Path
+
+        repo = Path(__file__).resolve().parents[3]
+        qm = repo / 'module' / 'config' / 'i18n' / 'zh_CN.qm'
+        assert qm.exists(), 'zh_CN.qm 应随仓库发布'
+
+        try:
+            from PySide6.QtCore import QTranslator, QCoreApplication
+        except ImportError:
+            pytest.skip('未安装 PySide6, 跳过 .qm 校验')
+
+        app = QCoreApplication.instance() or QCoreApplication([])
+        tr = QTranslator()
+        assert tr.load(str(qm)), f'无法加载 {qm}'
+
+        for key in ('Period', 'Reset At', 'period_help', 'reset_at_help'):
+            val = tr.translate('Args', key)
+            assert val, f'zh_CN.qm 中 {key} 没有译文(可能忘记重新编译 lrelease)'

@@ -356,6 +356,13 @@ window_background >>> DroidCast_raw >  ADB_nc >> DroidCast > uiautomator2 ~= ADB
 	<message><source>failure_interval_help</source><translation>一般默认即可，时间格式同上，不按照格式输入会无法正确设置</translation></message>
 	<message><source>server_update_help</source><translation>如果设定不是默认的 "09:00:00",该任务每次执行完毕后会强制设定下次运行时间为第二天的设定值
 格式 hh:mm:ss </translation></message>
+	<message><source>Period</source><translation>完成记忆</translation></message>
+	<message><source>Reset At</source><translation>重置时间</translation></message>
+	<message><source>period_help</source><translation>不启用：与原来一致，靠下面的间隔天数控制
+每日：本游戏日成功完成后就不再执行，跨日自动重置
+每周：本游戏周成功完成后就不再执行，跨周自动重置
+（周期按下面的“重置时间”划分，而不是自然日）</translation></message>
+	<message><source>reset_at_help</source><translation>游戏每日的重置时刻，默认 05:00。用于划分“每日/每周”的周期边界：例如设为 05:00 时，次日 04:00 仍算作前一天</translation></message>
 </context>
 <context>
     <name>Args</name>

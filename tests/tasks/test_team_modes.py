@@ -71,21 +71,83 @@ def test_task_config_reuses_shared_enum(name, mod_name, cls_name, task_mod):
 # --------------------------------------------------------------------------
 # 配置字段与向后兼容
 # --------------------------------------------------------------------------
+# 每个任务里"装 user_status 的那个分组"的字段名
+TASK_GROUP = {
+    'Tako': 'tako_config',
+    'ExperienceYoukai': 'experience_youkai',
+    'GoldYoukai': 'gold_youkai',
+}
+
+
 @pytest.mark.parametrize('name,mod_name,cls_name,task_mod', TEAM_TASKS)
 def test_config_has_team_fields(name, mod_name, cls_name, task_mod):
+    """
+    user_status 必须放在任务的分组内部, invite_config 作为独立分组存在。
+
+    为什么 user_status 不能放在顶层: module/config/config_model.py 的 script_task()
+    要求任务模型的顶层字段都是**嵌套模型(分组)**, 它会为每个顶层字段取
+    schema["$defs"][...] 再读 ["properties"]。顶层若是标量(如枚举), 取到的是
+    枚举定义(没有 properties), 于是抛 KeyError: 'properties', 导致该任务在
+    GUI 中整个界面无法渲染。原 Orochi 就是把 user_status 放在 OrochiConfig 内的。
+    """
     from tasks.Component.GeneralInvite.config_invite import InviteConfig, TeamUserStatus
 
     cls = getattr(__import__(mod_name, fromlist=[cls_name]), cls_name)
     obj = cls()
     fields = cls.model_fields
 
-    assert 'user_status' in fields, f'{name} 缺少 user_status'
+    group = TASK_GROUP[name]
+    assert group in fields, f'{name} 缺少分组 {group}'
+    group_obj = getattr(obj, group)
+    assert 'user_status' in type(group_obj).model_fields, \
+        f'{name}.{group} 缺少 user_status'
+
     assert 'invite_config' in fields, f'{name} 缺少 invite_config'
+    assert isinstance(obj.invite_config, InviteConfig)
 
     # 默认必须是 ALONE —— 否则会改变既有用户的行为
-    assert obj.user_status == TeamUserStatus.ALONE, \
+    assert group_obj.user_status == TeamUserStatus.ALONE, \
         f'{name} 的 user_status 默认值应为 alone(向后兼容)'
-    assert isinstance(obj.invite_config, InviteConfig)
+
+
+@pytest.mark.parametrize('name,mod_name,cls_name,task_mod', TEAM_TASKS)
+def test_all_top_level_fields_are_groups(name, mod_name, cls_name, task_mod):
+    """
+    GUI 兼容性回归护栏: 任务模型的所有顶层字段都必须是嵌套模型(分组)。
+
+    这条测试直接覆盖曾经导致 OASX 无法显示"石距/经验妖怪/金币妖怪"界面的问题
+    (把 user_status 这个标量放在了顶层 -> script_task() 抛 KeyError: 'properties')。
+    """
+    from pydantic import BaseModel
+
+    cls = getattr(__import__(mod_name, fromlist=[cls_name]), cls_name)
+    for fname, f in cls.model_fields.items():
+        ann = f.annotation
+        assert isinstance(ann, type) and issubclass(ann, BaseModel), (
+            f'{name} 的顶层字段 `{fname}` 是 {ann}, 不是嵌套模型; '
+            f'标量字段必须放进某个分组(如 {TASK_GROUP[name]}), 否则 GUI 无法渲染')
+
+
+@pytest.mark.parametrize('name,mod_name,cls_name,task_mod', TEAM_TASKS)
+def test_gui_args_generation_works(name, mod_name, cls_name, task_mod):
+    """
+    端到端护栏: 真正调用 GUI 用到的 script_task(), 确保能生成参数而不抛异常。
+    """
+    from module.config.config_model import ConfigModel
+
+    try:
+        model = ConfigModel()
+        result = model.script_task(name)
+    except Exception as exc:
+        pytest.fail(f'script_task({name}) 抛异常, GUI 将无法显示该任务: '
+                    f'{type(exc).__name__}: {exc}')
+
+    assert result, f'script_task({name}) 返回空, GUI 无字段可显示'
+    # user_status 应出现在正确的分组里
+    group = TASK_GROUP[name]
+    assert group in result, f'script_task({name}) 结果里缺少分组 {group}'
+    names = [f['name'] for f in result[group]]
+    assert 'user_status' in names, f'{group} 分组里没有 user_status: {names}'
 
 
 @pytest.mark.parametrize('name,mod_name,cls_name,task_mod', TEAM_TASKS)

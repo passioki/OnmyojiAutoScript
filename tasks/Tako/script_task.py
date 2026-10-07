@@ -44,7 +44,8 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
             self.close_buff()
 
         # 组队身份: alone(等路人, 同改造前) / leader(邀请好友) / member(等邀请)
-        conf_team = conf.user_status
+        # 注意取自 tako_config 分组内部(顶层标量会让 GUI 渲染失败)
+        conf_team = conf.tako_config.user_status
 
         # 队员身份: 不需要选副本/开房, 直接等队长邀请并应战(内含战斗流程)
         if conf_team == TeamUserStatus.MEMBER:

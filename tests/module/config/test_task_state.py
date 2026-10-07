@@ -9,12 +9,12 @@
 
 本功能为 Scheduler 增加:
     period   : none / daily / weekly
-    reset_at : 游戏重置时间(周期边界), 默认 05:00
+    reset_at : 游戏重置时间(周期边界), 默认 00:00(阴阳师以凌晨 0 点为界)
 并记录每个任务在其周期内是否已成功完成。
 
 关键保证:
   * period=none(默认) 时行为与改造前完全一致
-  * 周期边界按"游戏重置时间"计算(04:00 仍算前一天), 而不是自然日
+  * 周期边界可配(默认 0 点); 例: 设为 05:00 时次日 04:00 仍算前一天
   * 任何异常都退化为"未完成", 绝不让原本能跑的任务跑不了
 """
 import json
@@ -221,8 +221,17 @@ class TestSchedulerConfig:
         """默认必须是 none, 否则会改变既有用户的行为。"""
         assert Scheduler().period == TaskPeriod.NONE
 
-    def test_reset_at_defaults_to_5am(self):
-        assert Scheduler().reset_at == time(hour=5)
+    def test_reset_at_defaults_to_midnight(self):
+        """阴阳师以每日凌晨 0 点为界, 故默认 reset_at 为 00:00。"""
+        assert Scheduler().reset_at == time(hour=0, minute=0, second=0)
+
+    def test_daily_boundary_with_default_midnight(self):
+        """默认(0 点)边界: 23:59 属当天, 00:01 属新一天。"""
+        reset = time(hour=0)
+        assert task_state.period_key('daily', reset,
+                                     datetime(2026, 10, 7, 23, 59)) == '2026-10-07'
+        assert task_state.period_key('daily', reset,
+                                     datetime(2026, 10, 8, 0, 1)) == '2026-10-08'
 
     def test_task_period_values(self):
         assert [p.value for p in TaskPeriod] == ['none', 'daily', 'weekly']
@@ -237,11 +246,9 @@ class TestSchedulerConfig:
         """
         新字段要有中文文案, 否则 UI 显示英文键名。
 
-        注意: module/config/i18n/zh-CN.json 被 .gitignore 忽略(它是本机缓存 +
-        用户自定义译文的落地处), 因此这里以**被跟踪的** zh_CN.xml 为准,
-        这样新克隆的仓库也能验证。若本地存在 zh-CN.json 则一并核对。
+        以**被跟踪的** zh_CN.xml 为准(zh-CN.json 被 .gitignore 忽略, 且运行中的
+        后端会按自己的内存内容重写该文件, 因此不能对它做强断言)。
         """
-        import io
         import xml.etree.ElementTree as ET
         from pathlib import Path
 
@@ -257,12 +264,9 @@ class TestSchedulerConfig:
             assert key in sources, f'zh_CN.xml 缺少 {key}'
             assert sources[key].strip(), f'zh_CN.xml 中 {key} 的译文为空'
 
-        # 本地若有 json 缓存, 也应包含(否则界面会退化为显示英文键名)
-        json_path = repo / 'module' / 'config' / 'i18n' / 'zh-CN.json'
-        if json_path.exists():
-            d = json.load(io.open(json_path, encoding='utf-8'))
-            for key in ('period', 'period_help', 'reset_at', 'reset_at_help'):
-                assert key in d, f'本地 zh-CN.json 缺少 {key}'
+        # reset_at 的说明必须写明默认 00:00(阴阳师的重置点)
+        assert '00:00' in sources['reset_at_help'], \
+            'reset_at_help 应写明默认 00:00'
 
     def test_compiled_qm_contains_new_keys(self):
         """

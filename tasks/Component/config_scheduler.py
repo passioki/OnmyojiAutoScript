@@ -36,8 +36,8 @@ class Scheduler(ConfigBase):
 
     # 完成记忆。默认 none -> 新字段不改变既有行为
     period: TaskPeriod = Field(default=TaskPeriod.NONE, description='period_help')
-    # 游戏重置时间(周期边界), 默认 05:00
-    reset_at: Time = Field(default=Time(hour=5, minute=0, second=0), description='reset_at_help')
+    # 周期边界(游戏每日重置时刻)。阴阳师以凌晨 0 点为界, 故默认为 00:00
+    reset_at: Time = Field(default=Time(hour=0, minute=0, second=0), description='reset_at_help')
 
 
 if __name__ == "__main__":

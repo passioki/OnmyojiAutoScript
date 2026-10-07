@@ -244,7 +244,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
             reset_at = scheduler.get('reset_at')
             if reset_at is None:
-                reset_at = time(hour=5)
+                reset_at = time(hour=0)
             elif isinstance(reset_at, str):
                 reset_at = time.fromisoformat(reset_at)
 
@@ -280,7 +280,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             period_str = getattr(period, 'value', period)
             if str(period_str).lower() in ('none', ''):
                 return
-            reset_at = getattr(scheduler, 'reset_at', None) or time(hour=5)
+            reset_at = getattr(scheduler, 'reset_at', None) or time(hour=0)
             if isinstance(reset_at, str):
                 reset_at = time.fromisoformat(reset_at)
 

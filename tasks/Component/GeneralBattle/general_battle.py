@@ -21,6 +21,18 @@ from tasks.Component.GeneralBattle.battle_wait import BattleWait
 from module.logger import logger
 
 
+# ======================================================================================================================
+# 预设选择预算
+# ======================================================================================================================
+# switch_preset_team() 里"选预设组"与"选预设队"两段循环靠硬编码颜色常量判断是否已选中
+# (unselected_color), 颜色一旦因皮肤/分辨率/渲染差异而匹配不上, 循环就会一直点击同一个
+# 目标。这两个值给它们兜底: 无进展超时(每次点击会重置计时)与点击次数上限。
+# 实测正常选组/选队各在 1 秒内完成, 因此 20 秒余量充足; 若日志出现
+# "预设: 选择预设组/队: 连续 N 秒无进展" 而当时界面正常, 说明颜色常量需要重新标定。
+PRESET_SELECT_TIMEOUT = 20
+PRESET_SELECT_CLICKS = 12
+
+
 class GeneralBattle(BattleWait, GeneralBuff):
     """
     使用这个通用的战斗必须要求这个任务的config有config_general_battle
@@ -52,10 +64,20 @@ class GeneralBattle(BattleWait, GeneralBuff):
 
     def battle_before(self, buff: BuffClass | list[BuffClass], config: GeneralBattleConfig, timeout: float = 5) -> bool:
         """战斗前设置
+
+        超时语义说明: `timeout` 约束的是"点准备按钮"本身需要的收敛时间, 而不是整个流程。
+        换预设与开加成属于一次性、耗时不定的准备动作(实测换一次预设约 2.0-2.5 秒, 且随
+        预设组/网络/模拟器性能波动), 若把它们也计入这份预算, 点准备就会在预算耗尽后
+        被跳过 —— 表现是"换完预设没有点挑战", 界面停在准备页, 随后 battle_wait 找不到
+        胜利/奖励而卡死, 最终由看门狗报 GameStuckError。
+
+        因此在完成换预设与开加成之后重置计时器, 让点准备拿到完整的 timeout。
+
         :return: True:进入战斗或点击了准备按钮且识别不到准备按钮了 False:超过timeout s还没有进入战斗且没有点击过准备
         """
         timeout_timer = Timer(timeout).start()
         confed = False
+        clicked_prepare = False
         while not timeout_timer.reached():
             self.screenshot()
             if self.is_in_real_battle(False):  # 战斗阶段
@@ -70,13 +92,25 @@ class GeneralBattle(BattleWait, GeneralBuff):
                         self.switch_preset_team(config.preset_enable, config.preset_group, config.preset_team)
                         self.check_and_open_buff(buff)
                         confed = True
+                        # 一次性准备动作已完成, 不计入"点准备"的预算
+                        timeout_timer.reset()
                     # 点击准备(锁定阵容自动点准备,不锁定阵容前面也已经配置完毕需要点准备)
                     if self.appear_then_click(self.I_PREPARE_HIGHLIGHT, interval=0.8):
+                        clicked_prepare = True
+                        # 已点到准备, 后续是等界面切走, 同样重置以便给足收敛时间
+                        timeout_timer.reset()
                         continue
                 continue
             # 未知界面, 既不是准备界面也不是战斗界面
             # logger.info('Wait for preparation page')  # 这玩意刷屏
             sleep(random.uniform(0.4, 0.8))
+        # 超时退出。这里的返回值调用方当前会忽略, 因此额外落一条 WARNING:
+        # "换完预设却没点成准备"原本是完全静默的, 排查时只能靠反推日志时序。
+        if not clicked_prepare:
+            logger.warning(
+                f'Battle prepare not confirmed within timeout (prepare={self.is_in_prepare(False)}, '
+                f'real_battle={self.is_in_real_battle(False)}, confed={confed})'
+            )
         return False
 
     def run_general_battle_back(self, config: GeneralBattleConfig = None, exit_four: bool = False) -> bool:
@@ -453,6 +487,9 @@ class GeneralBattle(BattleWait, GeneralBuff):
         # unselected_color = get_unselect_color(self.C_PRESET_GROUP_1, self.C_PRESET_GROUP_2, self.C_PRESET_GROUP_3, size=color_size)
         # 考虑到有些预设组没有预设，所以这里取一个比较固定的颜色
         unselected_color = (224.9, 208.3, 187.4)
+        # 该循环靠硬编码颜色判断"是否已选中", 颜色一旦偏差就会永远点下去, 因此加预算兜底
+        budget = self._loop_budget('预设: 选择预设组', timeout=PRESET_SELECT_TIMEOUT,
+                                   max_clicks=PRESET_SELECT_CLICKS)
         while True:
             self.screenshot()
             color_tmp = get_color(self.device.image,
@@ -460,6 +497,7 @@ class GeneralBattle(BattleWait, GeneralBuff):
                                    tmp.roi_back[1] + color_size[1]))
             if color_similar(color_tmp, unselected_color):
                 self.click(tmp, interval=0.2)
+                self._loop_budget_tick(budget, clicked=True)
                 continue
             break
 
@@ -473,6 +511,8 @@ class GeneralBattle(BattleWait, GeneralBuff):
         color_size = [5, 5]
         # unselected_color = get_unselect_color(self.C_PRESET_TEAM_1, self.C_PRESET_TEAM_2, self.C_PRESET_TEAM_3, size=color_size )
         unselected_color = (216.8, 185.0, 146.8)
+        budget = self._loop_budget('预设: 选择预设队', timeout=PRESET_SELECT_TIMEOUT,
+                                   max_clicks=PRESET_SELECT_CLICKS)
         while True:
             self.screenshot()
             color_tmp = get_color(self.device.image,
@@ -480,6 +520,7 @@ class GeneralBattle(BattleWait, GeneralBuff):
                                    tmp.roi_back[1] + color_size[1]))
             if color_similar(color_tmp, unselected_color):
                 self.click(tmp, interval=0.2)
+                self._loop_budget_tick(budget, clicked=True)
                 continue
             break
 

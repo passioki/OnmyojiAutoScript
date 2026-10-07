@@ -58,12 +58,12 @@ LOOP_BUDGET_REWARD_ANIMATION_CLICKS = 15
 # 语义: 只要该图标存在, 就认为仍处于战斗中, **兜底计时器会被重置, 即战斗期间不累积计时**。
 #       因此下面的时长只在"已经不在战斗中、却仍未识别到任何结束界面"时才开始积累。
 #
-# BATTLE_STALL_TIMEOUT: 不在战斗中却迟迟没有结束界面的容忍时长。取 30 秒是为了容忍
-#   战斗结束瞬间的过渡帧(判据会短暂掉下来)。
+# BATTLE_STALL_TIMEOUT: 不在战斗中却迟迟没有结束界面的容忍时长。
+#   实测战斗结束的过渡期在 10s 以内(用户确认), 故取 15s 留少量余量。
 # BATTLE_ABSOLUTE_LIMIT: 最后一道防线, 防的是"判据自身失效"(例如 UI 改版导致
-#   I_ACTION_BAR_QUEUE 恒不命中, 那 30 秒窗口会在战斗刚开始就成立并误退出)。
+#   I_ACTION_BAR_QUEUE 恒不命中, 那 15 秒窗口会在战斗刚开始就成立并误退出)。
 #   取 90 分钟, 远大于实测最长战斗(超鬼王 17 分钟以上), 正常流程绝不会触及。
-BATTLE_STALL_TIMEOUT = 30
+BATTLE_STALL_TIMEOUT = 15
 BATTLE_ABSOLUTE_LIMIT = 90 * 60
 
 

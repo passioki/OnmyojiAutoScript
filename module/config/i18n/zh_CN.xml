@@ -692,17 +692,22 @@ Refresh：直接刷新，如果刷新操作进入CD，将标记为失败并退�
 	<message><source>Pets Happy</source><translation>其乐融融</translation></message>
 	<message><source>Pets Feast</source><translation>饕餮大餐</translation></message>
 	<message><source>GoldYoukaiConfig</source><translation>金币妖怪</translation></message>
-	<message><source>Charge Enable</source><translation>按次数(充能)调度</translation></message>
+	<message><source>Charge Enable</source><translation>按次数调度</translation></message>
 	<message><source>Charge Max</source><translation>最多存几次</translation></message>
-	<message><source>Charge Recover Hours</source><translation>每几小时恢复一次</translation></message>
+	<message><source>Charge Slots</source><translation>每天刷新时刻</translation></message>
 	<message><source>Charge Consume</source><translation>每次运行打几场</translation></message>
-	<message><source>charge_enable_help</source><translation>经验妖怪/金币妖怪的挑战次数每 12 小时恢复 1 次，最多累积 2 次。
-勾选：按次数调度——每次运行只打【每次运行打几场】，用完就排到下次充能后再做，
-这样存的 2 次会分摊到一天里（组队时尤其重要，避免背靠背连打导致队友对不上）。
+	<message><source>charge_enable_help</source><translation>这类玩法的挑战次数在【每天的固定时刻】刷新，最多储存若干次。
+勾选：按次数调度——每次运行只打【每次运行打几场】，次数用完就排到下一个刷新点再做，
+这样存的次数会按刷新点分摊，而不是一次连打（组队时尤其重要，避免队友对不上）。
 取消勾选：保持旧行为（一次运行内连续打 2 场）。</translation></message>
-	<message><source>charge_max_help</source><translation>最多可累积的挑战次数，游戏内为 2</translation></message>
-	<message><source>charge_recover_hours_help</source><translation>每多少小时恢复 1 次挑战次数，游戏内为 12</translation></message>
+	<message><source>charge_max_help</source><translation>最多可储存的挑战次数。经验妖怪/金币妖怪为 2</translation></message>
+	<message><source>charge_slots_help</source><translation>每天刷新的整点时刻，逗号分隔。经验妖怪/金币妖怪为 0,12
+即 0 点与 12 点各刷新 1 次。注意这是固定时刻，不是“间隔 12 小时”：
+若在 01:00 用掉一次，下一次是当天 12:00 刷新，而不是 13:00</translation></message>
 	<message><source>charge_consume_help</source><translation>每次运行消耗几次（即打几场）。组队建议填 1</translation></message>
+	<message><source>Zone Name</source><translation>玩法的列表名称</translation></message>
+	<message><source>zone_name_help</source><translation>该玩法在“便捷组队”页左侧列表中的名称，用于读取次数刷新倒计时。
+仅当名称与游戏内不一致时才需要修改，例如石距周末叫“愤怒的石距”。</translation></message>
 </context>	
 <context>
     <name>Args</name>

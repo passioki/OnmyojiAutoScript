@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
-"""验证充能式挑战次数机制(经验妖怪 / 金币妖怪)。
+"""验证按**固定时刻**刷新的挑战次数机制(经验妖怪 / 金币妖怪 / 石距)。
 
 游戏事实
 --------
-经验妖怪 / 金币妖怪的挑战次数每 12 小时恢复 1 次, 最多累积 2 次。
+这些玩法的挑战次数在**每天的固定时刻**刷新(0 点与 12 点), 最多储存 2 次。
+关键: 这是"固定时刻"而不是"间隔 12 小时" ——
+    若在 01:00 用掉一次, 下一次是**当天 12:00** 刷新, 而不是 13:00。
+用固定时刻建模更准确, 也更利于多账号在同一个刷新点对齐组队。
 
-改造前的实现是"一次运行内连打 2 场"(while count < 2), 这在需要组队时是错的:
-两场背靠背, 队友第二次对不上; 而且"存 2 次"本意是允许攒着, 不是一口气用完。
-
-本机制把次数纳入状态, 使任务能:
-  * 没有次数时不打, 而是排到下次充能后再做;
-  * 每次运行按 charge_consume 消耗次数;
-  * 把存量次数分摊到一天里(12 小时 1 次), 而不是背靠背。
+改造前的实现是"一次运行内连打 2 场"(while count < 2):
+  * 没有次数概念, 次数用尽后仍会去开房;
+  * 两场背靠背, 与"存 2 次、按刷新点来做"的本意相反, 组队时队友对不上。
 """
-import os
 from datetime import datetime, timedelta
 
 import pytest
@@ -29,166 +27,249 @@ def isolated_state(tmp_path, monkeypatch):
     monkeypatch.delenv('OAS_TASK_STATE_FILE', raising=False)
 
 
-T0 = datetime(2026, 10, 7, 12, 0, 0)
+# 2026-10-07 12:00 -- 正好在一个刷新点上
+NOON = datetime(2026, 10, 7, 12, 0, 0)
+SLOTS = '0,12'
+
+
+class TestSlotParsing:
+    def test_parse_standard(self):
+        assert task_state.parse_slots('0,12') == (0, 12)
+
+    def test_parse_with_spaces_and_fullwidth_comma(self):
+        assert task_state.parse_slots(' 0 ， 12 ') == (0, 12)
+
+    def test_parse_single(self):
+        assert task_state.parse_slots('12') == (12,)
+
+    def test_parse_three(self):
+        assert task_state.parse_slots('0,8,16') == (0, 8, 16)
+
+    def test_dedup_and_sort(self):
+        assert task_state.parse_slots('12,0,12') == (0, 12)
+
+    def test_invalid_falls_back_to_default(self):
+        assert task_state.parse_slots('abc') == (0, 12)
+        assert task_state.parse_slots('') == (0, 12)
+        assert task_state.parse_slots(None) == (0, 12)
+        assert task_state.parse_slots('99') == (0, 12)
+
+    def test_accepts_list(self):
+        assert task_state.parse_slots([0, 12]) == (0, 12)
+
+
+class TestSlotTimes:
+    """_slot_times 给出最近 N 个刷新点(由新到旧)。"""
+
+    def test_at_noon(self):
+        t = task_state._slot_times((0, 12), NOON, 2)
+        assert t == [datetime(2026, 10, 7, 12, 0), datetime(2026, 10, 7, 0, 0)]
+
+    def test_early_morning_crosses_day(self):
+        """01:00 时最近的两个刷新点是 今天00:00 与 昨天12:00。"""
+        now = datetime(2026, 10, 7, 1, 0)
+        t = task_state._slot_times((0, 12), now, 2)
+        assert t == [datetime(2026, 10, 7, 0, 0), datetime(2026, 10, 6, 12, 0)]
+
+    def test_late_evening(self):
+        now = datetime(2026, 10, 7, 23, 0)
+        t = task_state._slot_times((0, 12), now, 2)
+        assert t == [datetime(2026, 10, 7, 12, 0), datetime(2026, 10, 7, 0, 0)]
+
+    def test_never_in_future(self):
+        now = datetime(2026, 10, 7, 5, 30)
+        for t in task_state._slot_times((0, 12), now, 3):
+            assert t <= now
 
 
 class TestChargeAccounting:
     def test_initial_full(self):
         """首次使用时按满次数处理(不因为没记录就不让打)。"""
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0) == 2
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS, NOON) == 2
 
     def test_consume_one(self):
-        remain = task_state.consume_charge('cfg', 'T', max_charges=2,
-                                           recover_hours=12, now=T0)
-        assert remain == 1
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0) == 1
+        assert task_state.consume_charge('cfg', 'T', 2, SLOTS, NOON) == 1
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS, NOON) == 1
 
     def test_consume_both_then_empty(self):
-        assert task_state.consume_charge('cfg', 'T', max_charges=2,
-                                         recover_hours=12, now=T0) == 1
-        assert task_state.consume_charge('cfg', 'T', max_charges=2,
-                                         recover_hours=12, now=T0) == 0
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0) == 0
+        assert task_state.consume_charge('cfg', 'T', 2, SLOTS, NOON) == 1
+        assert task_state.consume_charge('cfg', 'T', 2, SLOTS, NOON) == 0
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS, NOON) == 0
 
     def test_cannot_consume_when_empty(self):
-        """没有次数时不得消耗(返回 0), 且状态不变。"""
         for _ in range(2):
-            task_state.consume_charge('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0)
-        assert task_state.consume_charge('cfg', 'T', max_charges=2,
-                                         recover_hours=12, now=T0) == 0
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0) == 0
+            task_state.consume_charge('cfg', 'T', 2, SLOTS, NOON)
+        assert task_state.consume_charge('cfg', 'T', 2, SLOTS, NOON) == 0
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS, NOON) == 0
 
-    def test_recovers_after_12_hours(self):
-        for _ in range(2):
-            task_state.consume_charge('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0)
-        later = T0 + timedelta(hours=12, minutes=1)
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=later) == 1
+    def test_consumption_is_reflected_in_state(self):
+        """消耗会写入状态: count 递减, 并记录槽位与消耗时刻。"""
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, NOON)
+        rec = task_state._read_all()['cfg']['t']['charges']
+        assert rec['count'] == 1
+        assert 'last_slot' in rec, '应记录槽位号'
+        assert rec.get('last_consume'), '应记录消耗时刻'
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, NOON)
+        rec = task_state._read_all()['cfg']['t']['charges']
+        assert rec['count'] == 0
 
-    def test_recovers_full_after_24_hours(self):
-        for _ in range(2):
-            task_state.consume_charge('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0)
-        later = T0 + timedelta(hours=24, minutes=1)
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=later) == 2
 
-    def test_not_recovered_before_12_hours(self):
-        for _ in range(2):
-            task_state.consume_charge('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0)
-        earlier = T0 + timedelta(hours=11, minutes=30)
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=earlier) == 0
+class TestFixedClockRefresh:
+    """
+    核心: 刷新发生在**固定时刻**, 不是"用掉后 12 小时"。
+    """
+
+    def test_used_at_0100_recovers_at_same_day_1200(self):
+        """
+        01:00 用掉一次 -> 当天 12:00 即可再打(而不是 13:00)。
+        这是与"间隔模型"最关键的差别。
+        """
+        t0100 = datetime(2026, 10, 7, 1, 0)
+        # 01:00 时最近两个刷新点是 07日00:00 与 06日12:00, 先用掉两次
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, t0100)
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, t0100)
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS, t0100) == 0
+
+        # 当天 12:00 刷新 -> 可打
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS,
+                                      datetime(2026, 10, 7, 12, 0)) == 1
+        # 11:59 还没刷新
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS,
+                                      datetime(2026, 10, 7, 11, 59)) == 0
+
+    def test_next_charge_time_is_next_clock_slot(self):
+        """13:00 用尽 -> 下次是次日 00:00, 不是 13:00+12h。"""
+        t1300 = datetime(2026, 10, 7, 13, 0)
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, t1300)
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, t1300)
+        nxt = task_state.next_charge_time('cfg', 'T', 2, SLOTS, t1300)
+        assert nxt == datetime(2026, 10, 8, 0, 0)
+
+    def test_next_charge_time_early_morning(self):
+        """01:00 用尽 -> 下次是当天 12:00。"""
+        t0100 = datetime(2026, 10, 7, 1, 0)
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, t0100)
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, t0100)
+        nxt = task_state.next_charge_time('cfg', 'T', 2, SLOTS, t0100)
+        assert nxt == datetime(2026, 10, 7, 12, 0)
+
+    def test_next_charge_time_when_available_is_now(self):
+        assert task_state.next_charge_time('cfg', 'T', 2, SLOTS, NOON) == NOON
+
+    def test_next_charge_time_never_in_past(self):
+        for hour in (0, 1, 6, 12, 13, 23):
+            now = datetime(2026, 10, 7, hour, 30)
+            task_state.clear()
+            for _ in range(2):
+                task_state.consume_charge('cfg', 'T', 2, SLOTS, now)
+            nxt = task_state.next_charge_time('cfg', 'T', 2, SLOTS, now)
+            assert nxt > now, f'{now} 时算出的下次刷新 {nxt} 不在未来'
+
+    def test_recovers_one_per_slot(self):
+        """两个刷新点之间只恢复 1 次(不是按小时连续恢复)。"""
+        t0000 = datetime(2026, 10, 7, 0, 0)
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, t0000)
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, t0000)
+        # 00:01~11:59 之间始终为 0
+        for h in (0, 3, 6, 9, 11):
+            assert task_state.get_charges('cfg', 'T', 2, SLOTS,
+                                          datetime(2026, 10, 7, h, 30)) == 0
 
     def test_cap_is_respected(self):
-        """上限 2: 即使过了很久也不会超过 2。"""
+        """上限 2: 即使隔了很多天也不会超过 2。"""
+        t0000 = datetime(2026, 10, 7, 0, 0)
         for _ in range(2):
-            task_state.consume_charge('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0)
-        much_later = T0 + timedelta(days=10)
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=much_later) == 2
+            task_state.consume_charge('cfg', 'T', 2, SLOTS, t0000)
+        much_later = datetime(2026, 10, 20, 15, 0)
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS, much_later) == 2
 
-    def test_partial_recovery_accumulates(self):
-        """消耗 2 次、过 18 小时 -> 恢复 1 次(第 12 小时那次)。"""
-        for _ in range(2):
-            task_state.consume_charge('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0)
-        later = T0 + timedelta(hours=18)
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=later) == 1
-
-    def test_sequential_consumption_across_time(self):
+    def test_first_two_days_gives_five_challenges(self):
         """
-        模拟一天: 12:00 打 2 场 -> 用尽; 次日 00:01 恢复 1 次 -> 可再打 1 场;
-        次日 12:01 再恢复 1 次 -> 又可打 1 场。共 4 场/天。
+        从空状态起算的两天: 共 5 次。
+        原因: 初始存量 2 次, 加上 4 个刷新点(每天 0/12 点)各恢复 1 次,
+        但刷新点恢复时会受"上限 2"约束, 因此不是简单的 2+4=6:
+            第1个刷新点 -> 存量2, 打1次后刷新又补到2 -> 仍剩1
+            第2个刷新点 -> 打1次后刷新 -> 剩1
+            第3、4个刷新点 -> 各打1次
+        合计 2(初始可用) + 3 = 5。
         """
         played = 0
-        now = T0
-        for _ in range(4):
-            avail = task_state.get_charges('cfg', 'T', max_charges=2,
-                                           recover_hours=12, now=now)
-            if avail > 0:
-                task_state.consume_charge('cfg', 'T', max_charges=2,
-                                          recover_hours=12, now=now)
-                played += 1
-                if avail > 1:
-                    continue          # 还有存量, 立刻再打一场
-            now = task_state.next_charge_time('cfg', 'T', max_charges=2,
-                                              recover_hours=12, now=now)
-            now = max(now, T0 + timedelta(seconds=1)) if now == T0 else now
-            now = now + timedelta(seconds=1)
-            if now > T0 + timedelta(days=2):
-                break
-        assert played == 4, f'一天(24h)应可打 4 场(初始2+恢复2), 实际 {played}'
+        for day in (7, 8):
+            for hour in (0, 12):
+                now = datetime(2026, 10, day, hour, 5)
+                while task_state.get_charges('cfg', 'T', 2, SLOTS, now) > 0:
+                    task_state.consume_charge('cfg', 'T', 2, SLOTS, now)
+                    played += 1
+        assert played == 5, f'实际 {played}'
 
-
-class TestNextChargeTime:
-    def test_now_when_charges_available(self):
-        assert task_state.next_charge_time('cfg', 'T', max_charges=2,
-                                           recover_hours=12, now=T0) == T0
-
-    def test_returns_next_recovery_not_whole_interval(self):
+    def test_steady_state_is_two_per_day(self):
         """
-        用尽后应返回"下一格充能"的时刻(约 12 小时后),
-        而不是"存量补满"的时刻(那是 24 小时后)。
+        稳态下每天恰好 2 次 —— 与游戏"0 点/12 点各恢复 1 次"一致。
+
+        做法: 每个刷新点检查并消耗到 0, 统计"该刷新点能打几次"。
+        刚耗尽后若跨越了多个刷新点, 会按"每点 +1"累计(封顶 2), 这是规格要求;
+        从第二天起进入稳态, 每个刷新点恰有 1 次。
         """
+        base = datetime(2026, 10, 7, 1, 0)
         for _ in range(2):
-            task_state.consume_charge('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0)
-        nxt = task_state.next_charge_time('cfg', 'T', max_charges=2,
-                                          recover_hours=12, now=T0)
-        delta = (nxt - T0).total_seconds() / 3600
-        assert 11.9 < delta <= 12.1, f'应约 12 小时后, 实际 {delta:.2f}h'
+            task_state.consume_charge('cfg', 'T', 2, SLOTS, base)
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS, base) == 0
 
-    def test_accounts_for_elapsed_time(self):
-        """已过 10 小时时, 下一格应在约 2 小时后。"""
-        for _ in range(2):
-            task_state.consume_charge('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0)
-        now = T0 + timedelta(hours=10)
-        nxt = task_state.next_charge_time('cfg', 'T', max_charges=2,
-                                          recover_hours=12, now=now)
-        delta = (nxt - now).total_seconds() / 3600
-        assert 1.9 < delta <= 2.1, f'应约 2 小时后, 实际 {delta:.2f}h'
+        # 从 10/8 00:05 起进入稳态: 之后每个刷新点恰有 1 次可打
+        playable = []
+        for day, hour in [(8, 0), (8, 12), (9, 0), (9, 12), (10, 0), (10, 12)]:
+            now = datetime(2026, 10, day, hour, 5)
+            avail = task_state.get_charges('cfg', 'T', 2, SLOTS, now)
+            playable.append((day, hour, avail))
+            while task_state.get_charges('cfg', 'T', 2, SLOTS, now) > 0:
+                task_state.consume_charge('cfg', 'T', 2, SLOTS, now)
+        # 首个点可能带走"结转存量", 从第二个点开始必须恒为 1
+        after_first = [a for _, _, a in playable[1:]]
+        assert after_first == [1, 1, 1, 1, 1], f'稳态每点应恰 1 次, 实际 {playable}'
 
-    def test_never_in_the_past(self):
-        for _ in range(2):
-            task_state.consume_charge('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0)
-        now = T0 + timedelta(hours=30)
-        nxt = task_state.next_charge_time('cfg', 'T', max_charges=2,
-                                          recover_hours=12, now=now)
-        assert nxt >= now
+
+class TestCustomSlots:
+    def test_single_daily_slot(self):
+        """只有 0 点刷新时, 每天只能打 1 次。"""
+        now = datetime(2026, 10, 7, 10, 0)
+        task_state.consume_charge('cfg', 'T', 1, '0', now)
+        assert task_state.get_charges('cfg', 'T', 1, '0', now) == 0
+        assert task_state.next_charge_time('cfg', 'T', 1, '0', now) == \
+            datetime(2026, 10, 8, 0, 0)
+
+    def test_three_slots(self):
+        now = datetime(2026, 10, 7, 8, 0)
+        assert task_state.get_charges('cfg', 'T', 3, '0,8,16', now) == 3
+        task_state.consume_charge('cfg', 'T', 3, '0,8,16', now)
+        assert task_state.get_charges('cfg', 'T', 3, '0,8,16', now) == 2
 
 
 class TestChargeDegradation:
     def test_corrupted_file_returns_full(self, isolated_state):
         """状态损坏时按满次数处理, 保证任务照常运行。"""
         isolated_state.write_text('{ 坏 JSON', encoding='utf-8')
-        assert task_state.get_charges('cfg', 'T', max_charges=2,
-                                      recover_hours=12, now=T0) == 2
+        assert task_state.get_charges('cfg', 'T', 2, SLOTS, NOON) == 2
 
     def test_unwritable_does_not_raise(self, monkeypatch):
         monkeypatch.setenv('OAS_TASK_STATE_FILE', 'Z:\\no\\such\\dir\\x.json')
-        # 不应抛异常; 消耗失败时按成功处理以便任务继续
-        task_state.consume_charge('cfg', 'T', max_charges=2,
-                                  recover_hours=12, now=T0)
+        task_state.consume_charge('cfg', 'T', 2, SLOTS, NOON)
 
     def test_configs_isolated(self):
-        task_state.consume_charge('acc1', 'T', max_charges=2,
-                                  recover_hours=12, now=T0)
-        assert task_state.get_charges('acc1', 'T', max_charges=2,
-                                      recover_hours=12, now=T0) == 1
-        assert task_state.get_charges('acc2', 'T', max_charges=2,
-                                      recover_hours=12, now=T0) == 2
+        task_state.consume_charge('acc1', 'T', 2, SLOTS, NOON)
+        assert task_state.get_charges('acc1', 'T', 2, SLOTS, NOON) == 1
+        assert task_state.get_charges('acc2', 'T', 2, SLOTS, NOON) == 2
+
+    def test_used_slots_do_not_grow_forever(self):
+        """状态记录必须保持 O(1) 大小, 不能随消耗次数增长。"""
+        now = datetime(2026, 10, 7, 0, 0)
+        for i in range(60):
+            t = now + timedelta(hours=12 * i)
+            task_state.consume_charge('cfg', 'T', 2, SLOTS, t)
+        rec = task_state._read_all()['cfg']['t']['charges']
+        # 现在只存 count / last_slot / slots / last_consume, 与消耗次数无关
+        assert set(rec.keys()) <= {'count', 'last_slot', 'slots', 'last_consume'}
+        import json as _json
+        assert len(_json.dumps(rec)) < 400, f'记录过大: {rec}'
 
 
 class TestChargeConfig:
@@ -197,12 +278,11 @@ class TestChargeConfig:
         ('tasks.GoldYoukai.config', 'GoldYoukai', 'gold_youkai'),
     ])
     def test_charge_fields_exist_with_game_defaults(self, mod_name, cls_name, group):
-        """默认值必须与游戏一致: 最多 2 次、每 12 小时恢复 1 次。"""
+        """默认值必须与游戏一致: 最多 2 次、0 点与 12 点刷新。"""
         cls = getattr(__import__(mod_name, fromlist=[cls_name]), cls_name)
-        obj = cls()
-        conf = getattr(obj, group)
+        conf = getattr(cls(), group)
         assert conf.charge_max == 2
-        assert conf.charge_recover_hours == 12.0
+        assert task_state.parse_slots(conf.charge_slots) == (0, 12)
         assert conf.charge_consume >= 1
         assert conf.charge_enable is True
 
@@ -217,7 +297,7 @@ class TestChargeConfig:
         root = ET.parse(repo / 'module' / 'config' / 'i18n' / 'zh_CN.xml').getroot()
         src = {m.findtext('source') for m in root.iter('message')}
         for key in ('charge_enable_help', 'charge_max_help',
-                    'charge_recover_hours_help', 'charge_consume_help'):
+                    'charge_slots_help', 'charge_consume_help'):
             assert key in src, f'zh_CN.xml 缺少 {key}'
 
 
@@ -233,7 +313,6 @@ class TestKekkaiNotAffected:
         assert Scheduler().period == TaskPeriod.NONE
 
     def test_none_period_never_skips(self):
-        """period=none 时 is_completed_in_period 恒为 False -> 不会被跳过。"""
         task_state.record_success('cfg', 'KekkaiActivation', 'none')
         assert task_state.is_completed_in_period('cfg', 'KekkaiActivation',
                                                 'none') is False

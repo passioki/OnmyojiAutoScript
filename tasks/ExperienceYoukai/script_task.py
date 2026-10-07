@@ -2,6 +2,8 @@
 # @author runhey
 # github https://github.com/runhey
 
+from datetime import datetime, timedelta
+
 from module.exception import TaskEnd
 from module.logger import logger
 
@@ -43,9 +45,9 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
             if con.buff_exp_100_click:
                 self.exp_100()
             self.close_buff()
-        # 挑战次数(充能): 经验妖怪每 charge_recover_hours 小时恢复 1 次, 最多存 charge_max 次。
+        # 挑战次数: 经验妖怪的次数在每天的固定时刻刷新(charge_slots, 游戏内为 0 点与 12 点),
         # 与改造前去别: 原来是"一次运行连打 2 场"(while count < 2), 现在改为
-        # 每次运行只做 charge_consume 次, 并把下次运行排到还需要充能时再做,
+        # 最多存 charge_max 次。每次运行只做 charge_consume 次, 并把下次排到刷新时再做,
         # 这样"存量 2 次"会分摊到一天里, 而不是背靠背连打(组队场景尤其重要)。
         from module.config import task_state
         TASK_NAME = 'ExperienceYoukai'
@@ -55,16 +57,16 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
         if con.charge_enable:
             available = task_state.get_charges(cfg_name, TASK_NAME,
                                                max_charges=con.charge_max,
-                                               recover_hours=con.charge_recover_hours)
+                                               slots=con.charge_slots)
             if available <= 0:
                 logger.info(f'经验妖怪次数已用尽(0/{con.charge_max}), '
-                            f'排到下次充能后再做')
+                            f'排到下次刷新后再做')
                 self.set_next_run(task=TASK_NAME, finish=True, success=False,
                                   server=False,
                                   target=task_state.next_charge_time(
                                       cfg_name, TASK_NAME,
                                       max_charges=con.charge_max,
-                                      recover_hours=con.charge_recover_hours))
+                                      slots=con.charge_slots))
                 self.experience_exit(con)
             # 最多做到本次允许消耗的次数, 且不超过可用次数
             count_max = min(con.charge_consume, available)
@@ -84,6 +86,16 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
 
             self.goto_page(page_team)
             self.check_zones('经验妖怪')
+            # 权威确认: "便捷组队"页在**次数用尽时**才显示该玩法的刷新倒计时。
+            # 读到了就说明游戏侧确实没次数了, 直接排到倒计时结束, 不进组队流程。
+            # (充能记账可能因外部消耗/换号而有偏差, 界面显示才是真相)
+            cd = self.read_zone_countdown(con.zone_name)
+            if cd and cd > 0:
+                logger.info(f'界面显示 {con.zone_name} 还需 {cd}s 刷新次数, 本次跳过')
+                self.set_next_run(task=TASK_NAME, finish=True, success=False,
+                                  server=False,
+                                  target=datetime.now() + timedelta(seconds=cd + 5))
+                self.experience_exit(con)
             # 开始: 开公开房(与改造前一致)。队长额外做定向邀请, 空位仍可被路人填充
             if not self.create_room():
                 self.experience_exit(con)
@@ -107,18 +119,18 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
             for _ in range(count):
                 task_state.consume_charge(cfg_name, TASK_NAME,
                                           max_charges=con.charge_max,
-                                          recover_hours=con.charge_recover_hours)
+                                          slots=con.charge_slots)
             remain = task_state.get_charges(cfg_name, TASK_NAME,
                                             max_charges=con.charge_max,
-                                            recover_hours=con.charge_recover_hours)
+                                            slots=con.charge_slots)
             if remain <= 0:
-                logger.info('经验妖怪次数已用完, 排到下次充能后再做')
+                logger.info('经验妖怪次数已用完, 排到下次刷新后再做')
                 self.set_next_run(task=TASK_NAME, finish=True, success=True,
                                   server=False,
                                   target=task_state.next_charge_time(
                                       cfg_name, TASK_NAME,
                                       max_charges=con.charge_max,
-                                      recover_hours=con.charge_recover_hours))
+                                      slots=con.charge_slots))
                 self.experience_exit(con)
         # 退出 (要么是在组队界面要么是在庭院)
         self.experience_exit(con)

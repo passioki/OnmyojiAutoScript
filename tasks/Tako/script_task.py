@@ -57,9 +57,20 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
         self.goto_page(page_team)
         if 5 <= self.start_time.weekday() <= 6:
             # 周末
-            self.check_zones('喷怒的石距')
+            zone_name = '喷怒的石距'
+            self.check_zones(zone_name)
         else:
-            self.check_zones('石距')
+            zone_name = '石距'
+            self.check_zones(zone_name)
+        # 权威确认: "便捷组队"页在**次数用尽时**才显示该玩法的刷新倒计时。
+        # 读到了就说明游戏侧确实没次数了, 直接排到倒计时结束, 不进组队流程。
+        cd = self.read_zone_countdown(zone_name)
+        if cd and cd > 0:
+            logger.info(f'界面显示 {zone_name} 还需 {cd}s 刷新次数, 本次跳过')
+            self.set_next_run(task='Tako', finish=True, success=False,
+                              server=False,
+                              target=datetime.now() + timedelta(seconds=cd + 5))
+            self.exit_task()
         if not self.create_room():
             self.exit_task()
         self.ensure_public()

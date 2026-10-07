@@ -48,6 +48,19 @@ LOOP_BUDGET_ANSWER_CLICKS = 20
 LOOP_BUDGET_REWARD_ANIMATION_TIMEOUT = 30    # 等"获得奖励"动画消失
 LOOP_BUDGET_REWARD_ANIMATION_CLICKS = 15
 
+# 逢魔鬼王战斗的"总时长"上限, 单位为秒。
+#
+# 语义与上面的 _loop_budget 不同: 战斗期间几十秒不点击是完全正常的(等动画/等结算),
+# 因此不能用"无进展超时"。这里限制的是整场战斗的绝对时长, 只作为兜底。
+#
+# 为什么需要兜底: 战斗状态(BATTLE_STATUS_S)已改为对看门狗无限期豁免(见 device.py
+# 的 stuck_unlimited_wait_list), 因此如果战斗实际已结束、但胜利/奖励/失败三个结束
+# 判据全都识别不到, 循环将永远等下去且看门狗不会介入 —— 这是静默挂死。
+#
+# 取值依据: 实测超鬼王战斗可达 17 分钟以上(BOSS 血量从 82% 一路降到 7% 仍在推进),
+# 故取 45 分钟留足余量。正常战斗绝不会触及此上限; 一旦触及, 说明结束判据失效。
+BATTLE_TOTAL_TIME_LIMIT = 45 * 60
+
 
 class LanternClass(Enum):
     BATTLE = 0  # 打怪  --> 无法判断因为怪的图片不一样，用排除法
@@ -645,6 +658,9 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         # 战斗过程 随机点击和滑动 防封
         logger.info("Start battle process")
         check_timer = None
+        # 整场战斗的绝对时长兜底。战斗状态已对看门狗无限期豁免, 因此若结束判据全部失效,
+        # 这里是唯一的逃生口(否则会静默挂死)。
+        total_timer = Timer(BATTLE_TOTAL_TIME_LIMIT).start()
         while 1:
             self.screenshot()
             if self.appear(self.I_DE_WIN):
@@ -672,6 +688,16 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             if check_timer and check_timer.reached():
                 logger.warning('Obtain battle timeout')
                 return True
+            # 整场战斗超过绝对上限: 说明三个结束判据(I_DE_WIN/I_WIN/I_REWARD 与 I_FALSE)
+            # 都没有识别到结束界面。当作战斗失败返回 False, 让任务重试而不是谎报成功;
+            # 并且明确落日志, 便于据此定位是哪条判据失效。
+            if total_timer.reached():
+                logger.error(
+                    f'Battle exceeded total time limit ({BATTLE_TOTAL_TIME_LIMIT}s) without any '
+                    f'end screen detected; treat as failure. 可能原因: 战斗结束判据失效'
+                    f'(I_DE_WIN/I_WIN/I_REWARD/I_FALSE 均未命中)'
+                )
+                return False
 
     @property
     def boss_type(self) -> str:

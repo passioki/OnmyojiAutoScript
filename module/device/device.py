@@ -29,6 +29,14 @@ class Device(Platform, Screenshot, Control, AppControl):
     stuck_timer = Timer(60, count=60).start()
     stuck_timer_long = Timer(300, count=300).start()
     stuck_long_wait_list = ['BATTLE_STATUS_S', 'PAUSE', 'LOGIN_CHECK', 'PREPARE_BEFORE_BATTLE']
+    # 上面这份白名单混了两类语义完全不同的状态:
+    #   - 战斗类: 持续时间由战斗本身决定, 可能长达十几分钟(超鬼王实测 BOSS 血量从 82%
+    #     一路降到 7% 仍在正常推进), 对它做"时限豁免"必然误杀长战斗 -> 需要无限期豁免
+    #   - 异常类: 暂停菜单 / 登录检查, 卡在这些界面本身就是需要介入的问题,
+    #     保留时限豁免, 让看门狗仍能把实例救回来
+    # 原实现统一只豁免到 stuck_timer_long(300s), 超过即抛 GameStuckError 并触发重启,
+    # 于是每一场超过 5 分钟的正常战斗都会被误杀。
+    stuck_unlimited_wait_list = ['BATTLE_STATUS_S', 'PREPARE_BEFORE_BATTLE']
 
     def __init__(self, *args, **kwargs):
         for trial in range(4):
@@ -148,6 +156,11 @@ class Device(Platform, Screenshot, Control, AppControl):
 
         if not reached:
             return False
+        # 战斗类状态: 持续时间由战斗本身决定, 不做时限判定。
+        # 若在这里仍然抛错, 长战斗(超鬼王等)会被误判为卡死并触发 Restart。
+        for button in self.stuck_unlimited_wait_list:
+            if button in self.detect_record:
+                return False
         if not reached_long:
             for button in self.stuck_long_wait_list:
                 if button in self.detect_record:

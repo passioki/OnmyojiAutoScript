@@ -165,7 +165,7 @@
     "itemName": "st_souls_5",
     "imageName": "sk5_st_souls_5.png",
     "roiFront": "1176,227,70,80",
-    "roiBack": "1181,234,58,69",
+    "roiBack": "1176,227,70,80",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "点击御魂"

@@ -220,7 +220,7 @@ class CostumeShikigamiAssets:
 	# 需要切换的预设按钮(颜色深一点) 
 	I_SOU_CLICK_PRESENT_2 = RuleImage(roi_front=(976,304,34,20), roi_back=(965,142,48,480), threshold=0.9, method="Template matching", file="./tasks/Component/CostumeShikigami/sk2/sk2_sou_click_present_2.png")
 	# 点击御魂 
-	I_ST_SOULS_2 = RuleImage(roi_front=(1176,227,70,80), roi_back=(1181,234,58,69), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk2/sk2_st_souls_2.png")
+	I_ST_SOULS_2 = RuleImage(roi_front=(1176,227,70,80), roi_back=(1176,227,70,80), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk2/sk2_st_souls_2.png")
 	# 更换 
 	I_ST_REPLACE_2 = RuleImage(roi_front=(861,150,100,100), roi_back=(861,150,100,100), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk2/sk2_st_replace_2.png")
 
@@ -263,7 +263,7 @@ class CostumeShikigamiAssets:
 	# 需要切换的预设按钮(颜色深一点) 
 	I_SOU_CLICK_PRESENT_3 = RuleImage(roi_front=(976,305,34,18), roi_back=(965,142,48,490), threshold=0.9, method="Template matching", file="./tasks/Component/CostumeShikigami/sk3/sk3_sou_click_present_3.png")
 	# 点击御魂 
-	I_ST_SOULS_3 = RuleImage(roi_front=(1176,227,70,80), roi_back=(1181,234,58,69), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk3/sk3_st_souls_3.png")
+	I_ST_SOULS_3 = RuleImage(roi_front=(1176,227,70,80), roi_back=(1176,227,70,80), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk3/sk3_st_souls_3.png")
 	# 更换 
 	I_ST_REPLACE_3 = RuleImage(roi_front=(860,168,100,100), roi_back=(860,168,100,100), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk3/sk3_st_replace_3.png")
 
@@ -306,7 +306,7 @@ class CostumeShikigamiAssets:
 	# 需要切换的预设按钮(颜色深一点) 
 	I_SOU_CLICK_PRESENT_4 = RuleImage(roi_front=(976,301,34,20), roi_back=(965,142,48,490), threshold=0.9, method="Template matching", file="./tasks/Component/CostumeShikigami/sk4/sk4_sou_click_present_4.png")
 	# 点击御魂 
-	I_ST_SOULS_4 = RuleImage(roi_front=(1176,227,70,80), roi_back=(1181,234,58,69), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk4/sk4_st_souls_4.png")
+	I_ST_SOULS_4 = RuleImage(roi_front=(1176,227,70,80), roi_back=(1176,227,70,80), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk4/sk4_st_souls_4.png")
 	# 更换 
 	I_ST_REPLACE_4 = RuleImage(roi_front=(860,168,100,100), roi_back=(860,168,100,100), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk4/sk4_st_replace_4.png")
 
@@ -349,7 +349,7 @@ class CostumeShikigamiAssets:
 	# 需要切换的预设按钮(颜色深一点) 
 	I_SOU_CLICK_PRESENT_5 = RuleImage(roi_front=(980,306,30,20), roi_back=(965,142,48,480), threshold=0.9, method="Template matching", file="./tasks/Component/CostumeShikigami/sk5/sk5_sou_click_present_5.png")
 	# 点击御魂 
-	I_ST_SOULS_5 = RuleImage(roi_front=(1176,227,70,80), roi_back=(1181,234,58,69), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk5/sk5_st_souls_5.png")
+	I_ST_SOULS_5 = RuleImage(roi_front=(1176,227,70,80), roi_back=(1176,227,70,80), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk5/sk5_st_souls_5.png")
 	# 更换 
 	I_ST_REPLACE_5 = RuleImage(roi_front=(860,168,100,100), roi_back=(860,168,100,100), threshold=0.8, method="Template matching", file="./tasks/Component/CostumeShikigami/sk5/sk5_st_replace_5.png")
 

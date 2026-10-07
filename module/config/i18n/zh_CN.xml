@@ -362,7 +362,7 @@ window_background >>> DroidCast_raw >  ADB_nc >> DroidCast > uiautomator2 ~= ADB
 每日：本游戏日成功完成后就不再执行，跨日自动重置
 每周：本游戏周成功完成后就不再执行，跨周自动重置
 （周期按下面的“重置时间”划分，而不是自然日）</translation></message>
-	<message><source>reset_at_help</source><translation>游戏每日的重置时刻，默认 05:00。用于划分“每日/每周”的周期边界：例如设为 05:00 时，次日 04:00 仍算作前一天</translation></message>
+	<message><source>reset_at_help</source><translation>游戏每日的重置时刻，默认 00:00（阴阳师以凌晨 0 点为界）。用于划分“每日/每周”的周期边界：例如设为 05:00 时，次日 04:00 仍算作前一天</translation></message>
 </context>
 <context>
     <name>Args</name>
@@ -692,6 +692,17 @@ Refresh：直接刷新，如果刷新操作进入CD，将标记为失败并退�
 	<message><source>Pets Happy</source><translation>其乐融融</translation></message>
 	<message><source>Pets Feast</source><translation>饕餮大餐</translation></message>
 	<message><source>GoldYoukaiConfig</source><translation>金币妖怪</translation></message>
+	<message><source>Charge Enable</source><translation>按次数(充能)调度</translation></message>
+	<message><source>Charge Max</source><translation>最多存几次</translation></message>
+	<message><source>Charge Recover Hours</source><translation>每几小时恢复一次</translation></message>
+	<message><source>Charge Consume</source><translation>每次运行打几场</translation></message>
+	<message><source>charge_enable_help</source><translation>经验妖怪/金币妖怪的挑战次数每 12 小时恢复 1 次，最多累积 2 次。
+勾选：按次数调度——每次运行只打【每次运行打几场】，用完就排到下次充能后再做，
+这样存的 2 次会分摊到一天里（组队时尤其重要，避免背靠背连打导致队友对不上）。
+取消勾选：保持旧行为（一次运行内连续打 2 场）。</translation></message>
+	<message><source>charge_max_help</source><translation>最多可累积的挑战次数，游戏内为 2</translation></message>
+	<message><source>charge_recover_hours_help</source><translation>每多少小时恢复 1 次挑战次数，游戏内为 12</translation></message>
+	<message><source>charge_consume_help</source><translation>每次运行消耗几次（即打几场）。组队建议填 1</translation></message>
 </context>	
 <context>
     <name>Args</name>

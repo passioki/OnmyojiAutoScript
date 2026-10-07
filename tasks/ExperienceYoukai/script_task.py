@@ -30,7 +30,8 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
                                          self.config.experience_youkai.switch_soul.team_name)
 
         # 组队身份: alone(等路人, 同改造前) / leader(邀请好友) / member(等邀请)
-        conf_team = self.config.experience_youkai.user_status
+        # 注意取自 experience_youkai 分组内部(顶层标量会让 GUI 渲染失败)
+        conf_team = self.config.experience_youkai.experience_youkai.user_status
 
         # 开启加成
         con = self.config.experience_youkai.experience_youkai
@@ -42,8 +43,38 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
             if con.buff_exp_100_click:
                 self.exp_100()
             self.close_buff()
+        # 挑战次数(充能): 经验妖怪每 charge_recover_hours 小时恢复 1 次, 最多存 charge_max 次。
+        # 与改造前去别: 原来是"一次运行连打 2 场"(while count < 2), 现在改为
+        # 每次运行只做 charge_consume 次, 并把下次运行排到还需要充能时再做,
+        # 这样"存量 2 次"会分摊到一天里, 而不是背靠背连打(组队场景尤其重要)。
+        from module.config import task_state
+        TASK_NAME = 'ExperienceYoukai'
+        cfg_name = self.config.config_name
+
         count = 0
-        while count < 2:
+        if con.charge_enable:
+            available = task_state.get_charges(cfg_name, TASK_NAME,
+                                               max_charges=con.charge_max,
+                                               recover_hours=con.charge_recover_hours)
+            if available <= 0:
+                logger.info(f'经验妖怪次数已用尽(0/{con.charge_max}), '
+                            f'排到下次充能后再做')
+                self.set_next_run(task=TASK_NAME, finish=True, success=False,
+                                  server=False,
+                                  target=task_state.next_charge_time(
+                                      cfg_name, TASK_NAME,
+                                      max_charges=con.charge_max,
+                                      recover_hours=con.charge_recover_hours))
+                self.experience_exit(con)
+            # 最多做到本次允许消耗的次数, 且不超过可用次数
+            count_max = min(con.charge_consume, available)
+            logger.info(f'经验妖怪可用次数 {available}/{con.charge_max}, '
+                        f'本次挑战 {count_max} 场')
+        else:
+            # 关闭充能控制 -> 保持改造前行为(连打 2 场)
+            count_max = 2
+
+        while count < count_max:
             # 队员身份: 不需要开房, 直接等待队长邀请并应战(内含战斗流程)
             if conf_team == TeamUserStatus.MEMBER:
                 logger.info('Member mode: wait for the leader invitation')
@@ -70,6 +101,25 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
                 self.enter_room_and_fire(conf_team, random_wait=50)
             count += 1
             self.run_general_battle()
+
+        # 消耗次数并安排下次运行
+        if con.charge_enable and count > 0:
+            for _ in range(count):
+                task_state.consume_charge(cfg_name, TASK_NAME,
+                                          max_charges=con.charge_max,
+                                          recover_hours=con.charge_recover_hours)
+            remain = task_state.get_charges(cfg_name, TASK_NAME,
+                                            max_charges=con.charge_max,
+                                            recover_hours=con.charge_recover_hours)
+            if remain <= 0:
+                logger.info('经验妖怪次数已用完, 排到下次充能后再做')
+                self.set_next_run(task=TASK_NAME, finish=True, success=True,
+                                  server=False,
+                                  target=task_state.next_charge_time(
+                                      cfg_name, TASK_NAME,
+                                      max_charges=con.charge_max,
+                                      recover_hours=con.charge_recover_hours))
+                self.experience_exit(con)
         # 退出 (要么是在组队界面要么是在庭院)
         self.experience_exit(con)
 

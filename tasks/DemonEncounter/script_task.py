@@ -1,6 +1,7 @@
 # This Python file uses the following encoding: utf-8
 # @author runhey
 # github https://github.com/runhey
+import copy
 import time
 from time import sleep
 
@@ -9,7 +10,7 @@ from cached_property import cached_property
 from datetime import datetime, timedelta
 
 from module.logger import logger
-from module.exception import TaskEnd
+from module.exception import TaskEnd, GameStuckError
 from module.base.timer import Timer
 
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
@@ -170,6 +171,8 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             # 点击集结挑战
             boss_fire_count = 0  # 五次没点到就意味着今天已经挑战过了
             ocr_people_item = self.O_DE_BEST_BOSS_PEOPLE if self.best_demon_enable else self.O_DE_BOSS_PEOPLE
+            # boss_fire_count 只约束"点击集结挑战", 人数满但找不到红返时会走到无上限的 continue
+            budget = self._loop_budget('Enter boss: 进入鬼王战斗', timeout=60, max_clicks=12)
             while 1:
                 self.screenshot()
 
@@ -179,6 +182,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                         logger.info('Boss battle people is full')
                         if not self.appear(self.I_UI_BACK_RED):
                             logger.warning('Boss battle people is full but no red back')
+                            self._loop_budget_tick(budget)
                             continue
                         self.ui_click_until_disappear(self.I_UI_BACK_RED)
                         # 退出重新选一个没人慢的boss
@@ -202,7 +206,9 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 if (self.appear_then_click(self.I_BOSS_FIRE, interval=3)
                         or self.appear_then_click(self.I_BEST_BOSS_FIRE, interval=3)):
                     boss_fire_count += 1
+                    self._loop_budget_tick(budget, clicked=True)
                     continue
+                self._loop_budget_tick(budget)
             return True
 
         fail_count = 0
@@ -257,14 +263,18 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
 
         # 等待回到挑战boss主界面
         self.wait_until_appear(self.I_BOSS_GATHER)
+        budget = self._loop_budget('Boss: 回到封魔主界面', timeout=40, max_clicks=10)
         while 1:
             self.screenshot()
             if self.appear(self.I_DE_LOCATION):
                 break
             if self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1):
+                self._loop_budget_tick(budget, clicked=True)
                 continue
             if self.appear_then_click(self.I_BOSS_BACK_WHITE, interval=1):
+                self._loop_budget_tick(budget, clicked=True)
                 continue
+            self._loop_budget_tick(budget)
         # 返回到封魔主界面
 
     def execute_lantern(self):
@@ -275,21 +285,27 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         # 先点四次
         ocr_timer = Timer(0.8)
         ocr_timer.start()
+        # OCR 持续识别失败时会走到 'Lantern count error' 的 continue, 没有上限
+        budget = self._loop_budget('Lantern count: 点满四次', timeout=60, max_clicks=20)
         while 1:
             self.screenshot()
             if not ocr_timer.reached():
+                self._loop_budget_tick(budget)
                 continue
             else:
                 ocr_timer.reset()
             cu, re, total = self.O_DE_COUNTER.ocr(self.device.image)
             if cu + re != total:
                 logger.warning('Lantern count error')
+                self._loop_budget_tick(budget)
                 continue
             if cu == 0 and re == 4:
                 break
 
             if self.appear_then_click(self.I_DE_FIND, interval=2.5):
+                self._loop_budget_tick(budget, clicked=True)
                 continue
+            self._loop_budget_tick(budget)
         logger.info('Lantern count success')
         # 然后领取红色达摩
         self.screenshot()
@@ -343,16 +359,28 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             3: self.I_DE_DEFEAT_3,
             4: self.I_DE_DEFEAT_4,
         }
-        self.I_DE_BOX.roi_back = match_roi[index]
-        self.I_DE_LETTER.roi_back = match_roi[index]
-        self.I_DE_MYSTERY.roi_back = match_roi[index]
-        self.I_DE_REALM.roi_back = match_roi[index]
-        self.I_DE_FIND_BOSS.roi_back = match_roi[index]
-        target_box = self.I_DE_BOX
-        target_letter = self.I_DE_LETTER
-        target_mystery = self.I_DE_MYSTERY
-        target_realm = self.I_DE_REALM
-        target_find_boss = self.I_DE_FIND_BOSS
+
+        def local_rule(source):
+            """
+            造一个只在本轮有效的搜索区副本。
+
+            直接给 self.I_DE_* 赋 roi_back 是就地修改类级共享对象, 影响会跨调用、跨任务
+            残留(assets.py 里的规则是类属性, 不是实例属性)。这里用浅拷贝隔离,
+            并给 name 加上灯笼索引: appear() 的节流计时器以 target.name 为键
+            (base_task.py:interval_timer), 若四个索引共用同一个名字会互相压掉节流窗口。
+            :param source: 原始 RuleImage
+            :return: 副本
+            """
+            rule = copy.copy(source)
+            rule.roi_back = match_roi[index]
+            rule.name = f'{source.name}_{index}'
+            return rule
+
+        target_box = local_rule(self.I_DE_BOX)
+        target_letter = local_rule(self.I_DE_LETTER)
+        target_mystery = local_rule(self.I_DE_MYSTERY)
+        target_realm = local_rule(self.I_DE_REALM)
+        target_find_boss = local_rule(self.I_DE_FIND_BOSS)
         target_empty = match_empty[index]
 
         # 开始判断
@@ -382,12 +410,16 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
 
     def _box(self, target_click):
         box_buy_config = self.config.demon_encounter.box_buy_config
+        budget = self._loop_budget('Lantern box: 打开宝箱界面', timeout=40, max_clicks=8)
         while 1:
             self.screenshot()
             if self.appear(self.I_JADE_50):
                 break
             if self.click(target_click, interval=1):
+                self._loop_budget_tick(budget, clicked=True)
                 continue
+            self._loop_budget_tick(budget)
+        budget = self._loop_budget('Lantern box: 购买并返回', timeout=40, max_clicks=8)
         while 1:
             self.screenshot()
             if not self.appear(self.I_MYSTERY_AMULET) and not (box_buy_config.box_buy_sushi and self.appear(self.I_SUSHI)):
@@ -397,12 +429,16 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             if self.appear(self.I_MYSTERY_AMULET):
                 logger.info('Buy a mystery amulet for 50 jade')
                 self.click(self.I_JADE_50)
+                self._loop_budget_tick(budget, clicked=True)
                 continue
             # 可选购买体力
             if box_buy_config.box_buy_sushi and self.appear(self.I_SUSHI):
                 logger.info('Buy one hundred sushi for 50 jade')
                 self.click(self.I_JADE_50)
+                self._loop_budget_tick(budget, clicked=True)
                 continue
+            # 所有分支都不命中时也必须记一次预算, 否则该循环会静默空转
+            self._loop_budget_tick(budget)
 
     def _mail(self, target_click):
         # 答题
@@ -432,22 +468,29 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             logger.info(f'Question: {question}, Answer: {index}')
             return click_match[index]
 
+        # 打开密信
+        budget = self._loop_budget('Lantern mail: 打开密信', timeout=40, max_clicks=8)
         while 1:
             self.screenshot()
             if self.appear(self.I_LETTER_CLOSE):
                 break
             if self.click(target_click, interval=1):
+                self._loop_budget_tick(budget, clicked=True)
                 continue
+            self._loop_budget_tick(budget)
         logger.info('Question answering Start')
         for i in range(1, 4):
             # 还未测试题库无法识别的情况
             logger.hr(f'Answer {i}', 3)
             answer_click = answer()
             # self.ui_get_reward(answer())
+            budget = self._loop_budget(f'Lantern mail: 答题 {i}', timeout=60, max_clicks=20)
             while 1:
                 self.screenshot()
                 if self.ui_reward_appear_click():
                     time.sleep(0.5)
+                    wait_budget = self._loop_budget(f'Lantern mail: 答题 {i} 奖励动画',
+                                                    timeout=30, max_clicks=15)
                     while 1:
                         self.screenshot()
                         # 等待动画结束
@@ -456,7 +499,10 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                             break
                         # 一直点击
                         if self.ui_reward_appear_click():
+                            self._loop_budget_tick(wait_budget, clicked=True)
                             continue
+                        # 既没点击也没消失(被 interval 节流)时必须记预算, 否则此处会自旋
+                        self._loop_budget_tick(wait_budget)
                     break
                 # 如果没有出现红色关闭按钮，说明答题结束
                 if not self.appear(self.I_LETTER_CLOSE):
@@ -468,10 +514,14 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                         return
 
                 # 一直点击
-                self.click(answer_click, interval=1.5)
+                if self.click(answer_click, interval=1.5):
+                    self._loop_budget_tick(budget, clicked=True)
+                    continue
+                self._loop_budget_tick(budget)
             time.sleep(0.5)
 
     def _battle(self, target_click):
+        budget = self._loop_budget('Lantern battle: 进入战斗', timeout=40, max_clicks=8)
         while 1:
             self.screenshot()
             if not self.appear(self.I_DE_LOCATION):
@@ -480,31 +530,40 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             if self.appear(self.I_DE_SMALL_FIRE):
                 # 小鬼王
                 logger.info('Small Boss')
+                small_budget = self._loop_budget('Lantern battle: 小鬼王', timeout=30, max_clicks=10)
                 while 1:
                     self.screenshot()
                     if not self.appear(self.I_DE_SMALL_FIRE):
                         break
                     if self.appear_then_click(self.I_DE_SMALL_FIRE, interval=1):
+                        self._loop_budget_tick(small_budget, clicked=True)
                         continue
+                    self._loop_budget_tick(small_budget)
                 break
 
             if self.click(target_click, interval=1):
+                self._loop_budget_tick(budget, clicked=True)
                 continue
+            self._loop_budget_tick(budget)
         if self.run_general_battle():
             logger.info('Battle End')
 
     def _realm(self, target_click):
         # 结界
+        budget = self._loop_budget('Lantern realm: 进入结界战斗', timeout=40, max_clicks=8)
         while 1:
             self.screenshot()
             if not self.appear(self.I_DE_LOCATION):
                 logger.info('Battle Start')
                 break
             if self.appear_then_click(self.I_DE_REALM_FIRE, interval=0.7):
+                self._loop_budget_tick(budget, clicked=True)
                 continue
 
             if self.click(target_click, interval=1):
+                self._loop_budget_tick(budget, clicked=True)
                 continue
+            self._loop_budget_tick(budget)
         if self.run_general_battle():
             logger.info('Battle End')
 
@@ -514,6 +573,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
 
     def _boss(self, target_click):
         # 运气爆表，点灯笼出现大鬼王
+        budget = self._loop_budget('Lantern boss: 进入鬼王战斗', timeout=40, max_clicks=8)
         while 1:
             self.screenshot()
             if self.appear(self.I_BOSS_KILLED):
@@ -525,7 +585,9 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
                 self.execute_boss()
                 break
             if self.click(target_click, interval=2.3):
+                self._loop_budget_tick(budget, clicked=True)
                 continue
+            self._loop_budget_tick(budget)
 
     def check_time(self):
         """

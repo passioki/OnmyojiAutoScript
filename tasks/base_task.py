@@ -21,7 +21,7 @@ from module.atom.swipe import RuleSwipe
 from module.base.timer import Timer
 from module.config.config import Config
 from module.device.device import Device
-from module.exception import ScriptError
+from module.exception import ScriptError, TaskEnd
 from module.logger import logger
 from module.ocr.base_ocr import OcrMode
 
@@ -440,6 +440,74 @@ class BaseTask(GlobalGameAssets, CostumeBase):
             if timeout.reached():
                 logger.warning(f'Wait_until_stable({target}) timeout')
                 break
+
+    def _loop_budget(self, name: str, timeout: float, max_clicks: int = None) -> dict:
+        """
+        创建一个用于 `while 1` 循环的超时与点击预算记录。
+
+        任务层大量使用 `while 1: screenshot -> 条件 break -> click(continue)` 的写法,
+        它的跳出完全依赖某个识别结果。一旦该识别因模板失配、UI 改版、皮肤差异或后台截图
+        丢帧而恒不成立, 循环会永远点击同一个按钮。此时 Device 的看门狗也救不了:
+        `click()` -> `handle_control_check()` -> `stuck_record_clear()` (device.py:165-168)
+        每次点击都会重置卡死计时器, 所以只有 click_record 累计 10 次同名点击才会抛
+        GameTooManyClickError, 而该异常会导致整个脚本进程 exit(1)。
+
+        使用方式:
+
+            budget = self._loop_budget('Check lantern 1', timeout=40, max_clicks=8)
+            while 1:
+                self.screenshot()
+                if 条件:
+                    break
+                if self.appear_then_click(target, interval=1):
+                    self._loop_budget_tick(budget, clicked=True)
+                    continue
+                self._loop_budget_tick(budget)
+
+        :param name: 预算的可读名称, 用于日志定位
+        :param timeout: 无进展超时秒数
+        :param max_clicks: 点击次数上限, None 表示只按时间限制
+        :return: 预算记录 dict
+        """
+        return {
+            'name': name,
+            'timer': Timer(timeout).start(),
+            'timeout': timeout,
+            'max_clicks': max_clicks,
+            'clicks': 0,
+        }
+
+    def _loop_budget_tick(self, budget: dict, clicked: bool = False) -> None:
+        """
+        在循环每一轮调用, 记录进展并检查是否超预算。
+
+        "有进展"定义为产生了点击, 因此会在点击时重置无进展计时。这与看门狗的语义有意
+        区分: 看门狗判定"无操作", 本方法判定"无进展"。两个判据互补, 本方法专门覆盖
+        "一直在点但界面毫无变化"这一看门狗因被重置而漏掉的场景。
+
+        预算耗尽时抛 TaskEnd 而不是异常: 任务正常结束, 由 Script.loop 重新调度下次运行,
+        避免单点界面异常升级为进程自杀(script.py:616 -> exit(1))。
+
+        :param budget: `_loop_budget()` 返回的记录
+        :param clicked: 本轮是否产生了点击
+        :return: 未超预算时正常返回, 超预算时抛 TaskEnd
+        """
+        if clicked:
+            budget['clicks'] += 1
+            budget['timer'].reset()
+            max_clicks = budget['max_clicks']
+            if max_clicks is not None and budget['clicks'] >= max_clicks:
+                logger.warning(
+                    f"{budget['name']}: 点击达到上限 {max_clicks} 次仍未推进, 结束本次任务"
+                )
+                raise TaskEnd(budget['name'])
+            return
+        if budget['timer'].reached():
+            logger.warning(
+                f"{budget['name']}: 连续 {budget['timeout']} 秒无进展 "
+                f"(已点击 {budget['clicks']} 次), 结束本次任务"
+            )
+            raise TaskEnd(budget['name'])
 
     def wait_animate_stable(self, rule: RuleAnimate, interval: float = None, timeout: float = None):
         """

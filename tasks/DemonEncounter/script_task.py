@@ -48,18 +48,23 @@ LOOP_BUDGET_ANSWER_CLICKS = 20
 LOOP_BUDGET_REWARD_ANIMATION_TIMEOUT = 30    # 等"获得奖励"动画消失
 LOOP_BUDGET_REWARD_ANIMATION_CLICKS = 15
 
-# 逢魔鬼王战斗的"总时长"上限, 单位为秒。
+# 战斗中的状态判据与兜底时长, 单位秒。
 #
-# 语义与上面的 _loop_budget 不同: 战斗期间几十秒不点击是完全正常的(等动画/等结算),
-# 因此不能用"无进展超时"。这里限制的是整场战斗的绝对时长, 只作为兜底。
+# 判据: I_ACTION_BAR_QUEUE(流程见 tasks/Component/GeneralBattle/gb/fighting_status.json)
+#       实测 6 张战斗截图(逢魔鬼王/探索战斗/地域鬼王/结界突破, 两个账号两台模拟器)
+#       相似度全部 1.0000; 非战斗样本(庭院/主界面 0.0788, 逢魔初始界面 0.1555,
+#       结界卡配置 0.6030)全部远低于其 0.95 阈值。
 #
-# 为什么需要兜底: 战斗状态(BATTLE_STATUS_S)已改为对看门狗无限期豁免(见 device.py
-# 的 stuck_unlimited_wait_list), 因此如果战斗实际已结束、但胜利/奖励/失败三个结束
-# 判据全都识别不到, 循环将永远等下去且看门狗不会介入 —— 这是静默挂死。
+# 语义: 只要该图标存在, 就认为仍处于战斗中, **兜底计时器会被重置, 即战斗期间不累积计时**。
+#       因此下面的时长只在"已经不在战斗中、却仍未识别到任何结束界面"时才开始积累。
 #
-# 取值依据: 实测超鬼王战斗可达 17 分钟以上(BOSS 血量从 82% 一路降到 7% 仍在推进),
-# 故取 45 分钟留足余量。正常战斗绝不会触及此上限; 一旦触及, 说明结束判据失效。
-BATTLE_TOTAL_TIME_LIMIT = 45 * 60
+# BATTLE_STALL_TIMEOUT: 不在战斗中却迟迟没有结束界面的容忍时长。取 30 秒是为了容忍
+#   战斗结束瞬间的过渡帧(判据会短暂掉下来)。
+# BATTLE_ABSOLUTE_LIMIT: 最后一道防线, 防的是"判据自身失效"(例如 UI 改版导致
+#   I_ACTION_BAR_QUEUE 恒不命中, 那 30 秒窗口会在战斗刚开始就成立并误退出)。
+#   取 90 分钟, 远大于实测最长战斗(超鬼王 17 分钟以上), 正常流程绝不会触及。
+BATTLE_STALL_TIMEOUT = 30
+BATTLE_ABSOLUTE_LIMIT = 90 * 60
 
 
 class LanternClass(Enum):
@@ -658,9 +663,10 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         # 战斗过程 随机点击和滑动 防封
         logger.info("Start battle process")
         check_timer = None
-        # 整场战斗的绝对时长兜底。战斗状态已对看门狗无限期豁免, 因此若结束判据全部失效,
-        # 这里是唯一的逃生口(否则会静默挂死)。
-        total_timer = Timer(BATTLE_TOTAL_TIME_LIMIT).start()
+        # 兜底计时: 只要仍能识别到"战斗中"图标(I_ACTION_BAR_QUEUE), 计时器就重置,
+        # 因此战斗进行期间不累积计时 —— 长战斗(超鬼王实测 17 分钟以上)不会被它打断。
+        stall_timer = Timer(BATTLE_STALL_TIMEOUT).start()
+        absolute_timer = Timer(BATTLE_ABSOLUTE_LIMIT).start()
         while 1:
             self.screenshot()
             if self.appear(self.I_DE_WIN):
@@ -688,14 +694,28 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
             if check_timer and check_timer.reached():
                 logger.warning('Obtain battle timeout')
                 return True
-            # 整场战斗超过绝对上限: 说明三个结束判据(I_DE_WIN/I_WIN/I_REWARD 与 I_FALSE)
-            # 都没有识别到结束界面。当作战斗失败返回 False, 让任务重试而不是谎报成功;
-            # 并且明确落日志, 便于据此定位是哪条判据失效。
-            if total_timer.reached():
+
+            # 战斗状态判据: 图标存在 => 仍在战斗中 => 重置兜底计时, 不累积
+            if self.appear(self.I_ACTION_BAR_QUEUE):
+                stall_timer.reset()
+                continue
+
+            # 已不在战斗中, 却迟迟没有任何结束界面 => 结束判据失效。
+            # 当作战斗失败返回(让任务重试), 而不是谎报成功。
+            if stall_timer.reached():
                 logger.error(
-                    f'Battle exceeded total time limit ({BATTLE_TOTAL_TIME_LIMIT}s) without any '
-                    f'end screen detected; treat as failure. 可能原因: 战斗结束判据失效'
-                    f'(I_DE_WIN/I_WIN/I_REWARD/I_FALSE 均未命中)'
+                    f'已连续 {BATTLE_STALL_TIMEOUT}s 未能识别到"战斗中"图标'
+                    f'(I_ACTION_BAR_QUEUE), 且 I_DE_WIN/I_WIN/I_REWARD/I_FALSE 均未命中; '
+                    f'判定为结束判据失效, 按战斗失败处理'
+                )
+                return False
+
+            # 最后一道防线: 防"判据自身失效"导致上面那个窗口在战斗开始就成立。
+            # 正常流程绝不会触及。
+            if absolute_timer.reached():
+                logger.error(
+                    f'Battle exceeded absolute limit ({BATTLE_ABSOLUTE_LIMIT}s) without any '
+                    f'end screen detected; treat as failure'
                 )
                 return False
 

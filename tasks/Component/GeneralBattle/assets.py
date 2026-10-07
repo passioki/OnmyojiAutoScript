@@ -75,6 +75,11 @@ class GeneralBattleAssets:
 
 
 	# Image Rule Assets
+	# 行动条右侧竖向纹理, 用于判断是否在战斗中。实测: 6 张战斗截图(逢魔鬼王 3 张 + 探索战斗/地域鬼王/结界突破 3 张, 分属两个账号两台模拟器)相似度全部为 1.0000; 非战斗样本为庭院/主界面 0.0788, 逢魔初始界面 0.1555, 结界卡配置 0.6030。分界区间 (0.6030, 1.0000), 0.95 位于其中且余量 0.047(下侧)/0.050(上侧)。注意: 改本文件后需重新执行 dev_tools/assets_extract.py 生成 assets.py 才生效 
+	I_ACTION_BAR_QUEUE = RuleImage(roi_front=(1268,95,9,271), roi_back=(1265,79,15,298), threshold=0.95, method="Template matching", file="./tasks/Component/GeneralBattle/gb/gb_action_bar_queue.png")
+
+
+	# Image Rule Assets
 	# 奖励，就是那个魂 
 	I_REWARD = RuleImage(roi_front=(547,518,172,96), roi_back=(547,518,172,96), threshold=0.8, method="Template matching", file="./tasks/Component/GeneralBattle/gb/gb_reward.png")
 	# 预设的小图标 

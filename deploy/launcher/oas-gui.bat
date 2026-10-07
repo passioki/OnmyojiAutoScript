@@ -62,6 +62,11 @@ set "_GitBin=%_root%\toolkit\Git\mingw64\bin"
 set "_adbBin=%_root%\toolkit\Lib\site-packages\adbutils\binaries"
 set "PATH=%_root%\toolkit\alias;%_root%\toolkit\command;%_pyBin%;%_pyBin%\Scripts;%_GitBin%;%_adbBin%;%PATH%"
 
+REM 令 Python 以 UTF-8 输出标准流。Windows 中文版默认用 GBK(代码页 936),
+REM 而终端/OASX 按 UTF-8 读取, 会导致日志中文乱码。详见 module/base/encoding.py
+set "PYTHONIOENCODING=utf-8"
+set "PYTHONUTF8=1"
+
 
 python -m deploy.installer
 if %errorlevel% neq 0 (

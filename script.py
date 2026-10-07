@@ -2,6 +2,17 @@
 # @author runhey
 # github https://github.com/runhey
 
+# 必须放在文件最顶部(早于任何其他 import):
+# Windows 中文版下标准输出默认按 GBK 编码, 而终端/OASX 按 UTF-8 读取, 会导致日志
+# 中文与制表符乱码。下面的 module.logger 会经由其他导入被间接加载并在导入期输出,
+# 因此本设置必须早于它们执行。详见 module/base/encoding.py
+import os
+import sys
+
+from module.base.encoding import setup_utf8_stdio
+
+setup_utf8_stdio()
+
 from functools import wraps
 import zerorpc
 import zmq

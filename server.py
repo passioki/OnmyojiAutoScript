@@ -9,6 +9,12 @@
 """
 import os, sys, time
 
+# 必须先于 module.logger 导入执行: Windows 中文版下标准输出默认按 GBK 编码,
+# 而终端/OASX 按 UTF-8 读取, 导致日志中文乱码。详见 module/base/encoding.py
+from module.base.encoding import setup_utf8_stdio
+
+setup_utf8_stdio()
+
 if hasattr(time, "tzset"):
     # Unix 全系  /  Windows 3.11+ 走这条
     os.environ["TZ"] = "Asia/Shanghai"     # IANA 名称，glibc/Apple libc 都认识

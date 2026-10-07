@@ -2,6 +2,12 @@
 # @author runhey
 # github https://github.com/runhey
 
+# 必须先于其余导入执行: Windows 中文版下标准输出默认按 GBK 编码,
+# 而终端按 UTF-8 读取, 导致日志中文乱码。详见 module/base/encoding.py
+from module.base.encoding import setup_utf8_stdio
+
+setup_utf8_stdio()
+
 from module.gui.utils import check_admin
 from module.gui.context.add import Add
 from module.gui.context.settings import Setting

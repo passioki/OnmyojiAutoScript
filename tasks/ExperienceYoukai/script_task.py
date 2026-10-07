@@ -50,8 +50,12 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
         # 最多存 charge_max 次。每次运行只做 charge_consume 次, 并把下次排到刷新时再做,
         # 这样"存量 2 次"会分摊到一天里, 而不是背靠背连打(组队场景尤其重要)。
         from module.config import task_state
+        from module.config import team_coordinator
         TASK_NAME = 'ExperienceYoukai'
         cfg_name = self.config.config_name
+
+        # 让另一个账号知道我在线(跨账号协同需要判断"对方在不在")
+        task_state.write_heartbeat(cfg_name)
 
         count = 0
         if con.charge_enable:
@@ -72,6 +76,20 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
             count_max = min(con.charge_consume, available)
             logger.info(f'经验妖怪可用次数 {available}/{con.charge_max}, '
                         f'本次挑战 {count_max} 场')
+
+            # 跨账号协同: 组队任务需要两边都有次数才有意义。
+            # 若对方还没恢复, 就等一个刷新点再一起做(等太久会自动放弃, 见防死锁)。
+            if conf_team != TeamUserStatus.MEMBER:
+                decision = team_coordinator.decide(
+                    TASK_NAME, cfg_name,
+                    max_charges=con.charge_max, slots=con.charge_slots)
+                logger.info(f'[TeamCoord] 经验妖怪协同决策: {decision}')
+                if not decision.should_start:
+                    self.set_next_run(task=TASK_NAME, finish=True, success=False,
+                                      server=False,
+                                      target=datetime.now()
+                                      + timedelta(seconds=decision.wait_seconds + 5))
+                    self.experience_exit(con)
         else:
             # 关闭充能控制 -> 保持改造前行为(连打 2 场)
             count_max = 2

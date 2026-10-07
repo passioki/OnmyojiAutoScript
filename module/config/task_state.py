@@ -233,6 +233,111 @@ def clear(config_name: str = None, task: str = None) -> None:
 
 
 # ---------------------------------------------------------------------------
+# 跨账号协同支撑: 心跳 / 可用配置发现 / 读取对方次数
+#
+# 说明: 各账号的"剩余次数"本来就按配置名分桶存在同一个状态文件里
+# (见 _charges_of), 因此协同不需要另建一套状态文件 —— 只要再加一个心跳,
+# 就能回答"对方在不在线"以及"对方这个任务还剩几次"。
+# ---------------------------------------------------------------------------
+HEARTBEAT_KEY = '__heartbeat__'
+DEFAULT_HEARTBEAT_TIMEOUT = 180      # 秒; 超过视为离线
+
+
+def write_heartbeat(config_name: str, extra: dict = None) -> None:
+    """刷新本账号的心跳时间戳(用于让其他账号判断"我在线")。"""
+    if not config_name:
+        return
+    try:
+        with _lock():
+            data = _read_all()
+            hb = data.setdefault(HEARTBEAT_KEY, {})
+            rec = {'at': datetime.now().replace(microsecond=0).isoformat()}
+            if extra and isinstance(extra, dict):
+                rec.update(extra)
+            hb[config_name] = rec
+            _write_all(data)
+    except Exception as exc:
+        logger.warning(f'[TaskState] 写心跳失败({type(exc).__name__}: {exc}), 忽略')
+
+
+def read_heartbeat(config_name: str):
+    """读取某账号的心跳信息(dict); 无记录返回 None。"""
+    try:
+        with _lock():
+            data = _read_all()
+    except Exception:
+        return None
+    hb = (data.get(HEARTBEAT_KEY) or {}).get(config_name)
+    return hb if isinstance(hb, dict) else None
+
+
+def is_online(config_name: str, timeout: float = DEFAULT_HEARTBEAT_TIMEOUT,
+              now: datetime = None) -> bool:
+    """对方是否在线(心跳未超时)。异常时返回 False(视为离线, 不做协同)。"""
+    rec = read_heartbeat(config_name)
+    if not rec or not rec.get('at'):
+        return False
+    try:
+        at = datetime.fromisoformat(rec['at'])
+    except (ValueError, TypeError):
+        return False
+    now = now or datetime.now()
+    return (now - at).total_seconds() <= float(timeout)
+
+
+def discover_configs(config_dir: str = None) -> list:
+    """
+    发现所有可用的配置名(账号), 用于确定"对方是谁"。
+
+    来源: config/*.json 的文件名(排除 template), 再并入状态文件里已有分桶的名字。
+    这样即使两台机器共享状态目录、各自只有自己的 config, 也能互相发现。
+    """
+    names = set()
+    try:
+        root = Path(config_dir) if config_dir else (Path.cwd() / 'config')
+        for p in root.glob('*.json'):
+            if p.stem and p.stem.lower() not in ('template',):
+                names.add(p.stem)
+    except Exception:
+        pass
+    try:
+        with _lock():
+            data = _read_all()
+        for k in data.keys():
+            if k != HEARTBEAT_KEY:
+                names.add(k)
+        for k in (data.get(HEARTBEAT_KEY) or {}).keys():
+            names.add(k)
+    except Exception:
+        pass
+    return sorted(names)
+
+
+def peer_charges(config_name: str, task: str,
+                 max_charges: int = 2, slots=None,
+                 now: datetime = None) -> int:
+    """
+    读取**对方**在某个次数型任务上的剩余次数。
+
+    slots 为 None 时会从状态文件里该任务已记录的 slots 推断(首次没有则用 0,12)。
+    异常时返回 max_charges(视为对方次数充足, 避免因为读不到而总是推迟)。
+    """
+    now = now or datetime.now()
+    try:
+        with _lock():
+            data = _read_all()
+    except Exception:
+        return max_charges
+
+    rec = _charges_of(data, config_name, task)
+    if not slots:
+        slots = (rec or {}).get('slots') or '0,12'
+    slot_hours = parse_slots(slots)
+
+    count, last, cur = _decode_charges_v2(rec, slot_hours, max_charges, now)
+    count, _ = _normalize(count, last, cur, max_charges)
+    return max(0, min(max_charges, count))
+# ---------------------------------------------------------------------------
 # 按固定时刻刷新的挑战次数(经验妖怪 / 金币妖怪 / 石距 这类)
 #
 # 游戏事实: 次数在**每天的固定时刻**刷新(默认 0 点与 12 点), 最多储存 2 次。

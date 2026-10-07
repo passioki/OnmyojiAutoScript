@@ -7,6 +7,7 @@ from datetime import time, datetime, timedelta
 from module.logger import logger
 from module.exception import TaskEnd
 from module.config import task_state
+from module.config import team_coordinator
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main, page_team, page_shikigami_records
@@ -52,6 +53,9 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
         TASK_NAME = 'Tako'
         cfg_name = self.config.config_name
 
+        # 让另一个账号知道我在线(跨账号协同需要判断"对方在不在")
+        task_state.write_heartbeat(cfg_name)
+
         # 队员身份: 不需要选副本/开房, 直接等队长邀请并应战(内含战斗流程)
         if conf_team == TeamUserStatus.MEMBER:
             logger.info('Member mode: wait for the leader invitation')
@@ -75,6 +79,21 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
                                       slots=conf_charge.charge_slots))
                 self.exit_task()
             logger.info(f'石距可用次数 {available}/{conf_charge.charge_max}')
+
+            # 跨账号协同: 组队任务需要两边都有次数才有意义。
+            # 若对方还没恢复, 就等一个刷新点再一起做(等太久会自动放弃, 见防死锁)。
+            if conf_team != TeamUserStatus.MEMBER:
+                decision = team_coordinator.decide(
+                    TASK_NAME, cfg_name,
+                    max_charges=conf_charge.charge_max,
+                    slots=conf_charge.charge_slots)
+                logger.info(f'[TeamCoord] 石距协同决策: {decision}')
+                if not decision.should_start:
+                    self.set_next_run(task=TASK_NAME, finish=True, success=False,
+                                      server=False,
+                                      target=datetime.now()
+                                      + timedelta(seconds=decision.wait_seconds + 5))
+                    self.exit_task()
 
         # 进入
         self.goto_page(page_team)

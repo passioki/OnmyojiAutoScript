@@ -6,6 +6,7 @@ from datetime import time, datetime, timedelta
 
 from module.logger import logger
 from module.exception import TaskEnd
+from module.config import task_state
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main, page_team, page_shikigami_records
@@ -46,12 +47,34 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
         # 组队身份: alone(等路人, 同改造前) / leader(邀请好友) / member(等邀请)
         # 注意取自 tako_config 分组内部(顶层标量会让 GUI 渲染失败)
         conf_team = conf.tako_config.user_status
+        # 挑战次数配置(与金币妖怪一致)
+        conf_charge = conf.tako_config
+        TASK_NAME = 'Tako'
+        cfg_name = self.config.config_name
 
         # 队员身份: 不需要选副本/开房, 直接等队长邀请并应战(内含战斗流程)
         if conf_team == TeamUserStatus.MEMBER:
             logger.info('Member mode: wait for the leader invitation')
             self.run_battle_by_accept()
             self.exit_task()
+
+        # 记账检查: 次数为 0 时直接排到下次刷新, 不去开房
+        if conf_charge.charge_enable:
+            available = task_state.get_charges(
+                cfg_name, TASK_NAME,
+                max_charges=conf_charge.charge_max,
+                slots=conf_charge.charge_slots)
+            if available <= 0:
+                logger.info(f'石距次数已用尽(0/{conf_charge.charge_max}), '
+                            f'排到下次刷新后再做')
+                self.set_next_run(task=TASK_NAME, finish=True, success=False,
+                                  server=False,
+                                  target=task_state.next_charge_time(
+                                      cfg_name, TASK_NAME,
+                                      max_charges=conf_charge.charge_max,
+                                      slots=conf_charge.charge_slots))
+                self.exit_task()
+            logger.info(f'石距可用次数 {available}/{conf_charge.charge_max}')
 
         # 进入
         self.goto_page(page_team)
@@ -67,7 +90,7 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
         cd = self.read_zone_countdown(zone_name)
         if cd and cd > 0:
             logger.info(f'界面显示 {zone_name} 还需 {cd}s 刷新次数, 本次跳过')
-            self.set_next_run(task='Tako', finish=True, success=False,
+            self.set_next_run(task=TASK_NAME, finish=True, success=False,
                               server=False,
                               target=datetime.now() + timedelta(seconds=cd + 5))
             self.exit_task()
@@ -84,6 +107,11 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
             # ALONE: 保持原有行为——等路人 60s 后没等到就退出
             self.enter_room_and_fire(conf_team, random_wait=60)
         self.run_general_battle()
+        # 打完一场 -> 消耗一次次数
+        if conf_charge.charge_enable:
+            task_state.consume_charge(cfg_name, TASK_NAME,
+                                      max_charges=conf_charge.charge_max,
+                                      slots=conf_charge.charge_slots)
         self.exit_task()
 
     def exit_task(self):

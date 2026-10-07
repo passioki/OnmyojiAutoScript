@@ -276,6 +276,7 @@ class TestChargeConfig:
     @pytest.mark.parametrize('mod_name,cls_name,group', [
         ('tasks.ExperienceYoukai.config', 'ExperienceYoukai', 'experience_youkai'),
         ('tasks.GoldYoukai.config', 'GoldYoukai', 'gold_youkai'),
+        ('tasks.Tako.config', 'Tako', 'tako_config'),
     ])
     def test_charge_fields_exist_with_game_defaults(self, mod_name, cls_name, group):
         """默认值必须与游戏一致: 最多 2 次、0 点与 12 点刷新。"""
@@ -289,6 +290,35 @@ class TestChargeConfig:
     @pytest.mark.parametrize('mod_name,cls_name,group', [
         ('tasks.ExperienceYoukai.config', 'ExperienceYoukai', 'experience_youkai'),
         ('tasks.GoldYoukai.config', 'GoldYoukai', 'gold_youkai'),
+        ('tasks.Tako.config', 'Tako', 'tako_config'),
+    ])
+    def test_zone_name_matches_the_zone_used_in_task(self, mod_name, cls_name, group):
+        """zone_name 必须与任务里 check_zones 用的名字对得上, 否则读不到倒计时。"""
+        from pathlib import Path
+
+        cls = getattr(__import__(mod_name, fromlist=[cls_name]), cls_name)
+        # 注意: 这里要取分组模型**实例**的默认值, 不能用 cls() 直接取属性
+        # (cls() 是任务顶层模型, 其 group 属性是 FieldInfo, 内部字段均为空串)
+        group_cls = cls.model_fields[group].annotation
+        zone = group_cls().zone_name
+        assert zone, 'zone_name 不能为空'
+
+        script = mod_name.replace('.config', '.script_task').replace('.', '/') + '.py'
+        repo = Path(__file__).resolve().parents[3]
+        src = (repo / script).read_text(encoding='utf-8')
+
+        # 场地名可以写死, 也可以是变量(如石距周末切"愤怒的石距"),
+        # 因此两种形态都接受: 字面量, 或该名字出现在同一个源文件里且被 check_zones 使用
+        literal = f"check_zones('{zone}')" in src
+        var_form = f"check_zones({group}.zone_name)" in src
+        assert literal or var_form or zone in src, \
+            (f'{cls_name} 的 zone_name={zone!r} 在 script_task 中既未作为 '
+             f'check_zones 字面量, 也未出现; 会导致读不到倒计时')
+
+    @pytest.mark.parametrize('mod_name,cls_name,group', [
+        ('tasks.ExperienceYoukai.config', 'ExperienceYoukai', 'experience_youkai'),
+        ('tasks.GoldYoukai.config', 'GoldYoukai', 'gold_youkai'),
+        ('tasks.Tako.config', 'Tako', 'tako_config'),
     ])
     def test_i18n_has_charge_text(self, mod_name, cls_name, group):
         import xml.etree.ElementTree as ET
@@ -297,7 +327,7 @@ class TestChargeConfig:
         root = ET.parse(repo / 'module' / 'config' / 'i18n' / 'zh_CN.xml').getroot()
         src = {m.findtext('source') for m in root.iter('message')}
         for key in ('charge_enable_help', 'charge_max_help',
-                    'charge_slots_help', 'charge_consume_help'):
+                    'charge_slots_help', 'charge_consume_help', 'zone_name_help'):
             assert key in src, f'zh_CN.xml 缺少 {key}'
 
 

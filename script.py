@@ -58,6 +58,10 @@ class Script:
         # Failure count of tasks
         # Key: str, task name, value: int, failure count
         self.failure_record = {}
+        # 本次 run() 是否算作任务失败, 供 loop() 累计 failure_record。
+        # 由 run() 的各 except 分支设置: 能在"任务级"处理的异常置 True 并让实例继续运行,
+        # 而不是直接 exit(1) 终止整个实例(那样会连带停掉其它所有任务)。
+        self._task_failed = False
         # 运行loop的线程
         self.loop_thread: Thread = None
         # 跨进程排队管理器（仅在 queue_mode=True 时初始化）
@@ -602,23 +606,31 @@ class Script:
             self.device.sleep(10)
             return False
         except ScriptError as e:
+            # 开发者级错误(或偶发问题)。原实现直接 exit(1), 会连带停掉同一实例下所有其它
+            # 任务, 而这属于"任务级"失败: 交给 loop() 累计 failure_record, 连续 3 次后
+            # 仍会按既有策略请求人工介入。
             logger.critical(e)
             self.exception_handler(e=e, command=command)
             logger.critical('This is likely to be a mistake of developers, but sometimes just random issues')
             self.config.notifier.push(title=f'{I18n.trans_zh_cn(command)}{command}', content=f"<{self.config_name}> ScriptError")
-            exit(1)
+            self._task_failed = True
+            return False
         except RequestHumanTakeover as e:
+            # 硬停止: 按设计这里必须停下来等人处理, 因此保留终止整个实例的行为。
             logger.critical(e)
             self.exception_handler(e=e, command=command)
             logger.critical('Request human takeover')
             self.config.notifier.push(title=f'{I18n.trans_zh_cn(command)}{command}', content=f"<{self.config_name}> RequestHumanTakeover")
             exit(1)
         except Exception as e:
+            # 未分类异常。原实现 exit(1)。改为任务级失败: 单个界面异常(例如某条识别规则的
+            # 模板文件缺失触发 FileNotFoundError)不应终止整个实例, 否则用户其它任务全部停摆。
             logger.exception(e)
             self.exception_handler(e=e, command=command)
             self.save_error_log()
             self.config.notifier.push(title=f'{I18n.trans_zh_cn(command)}{command}', content=f"<{self.config_name}> Exception occured")
-            exit(1)
+            self._task_failed = True
+            return False
 
     def loop(self):
         """
@@ -687,7 +699,12 @@ class Script:
             logger.hr(task, level=0)
             self.config.model.running_task = task
             _task_start = datetime.now()
+            self._task_failed = False
             success = self.run(inflection.camelize(task))
+            # run() 在任务级异常分支里会置 _task_failed, 此时即使返回值是 True 也算失败。
+            # (TaskEnd / GameNotRunningError 等"已转交后续处理"的分支不置该标志, 仍算成功)
+            if self._task_failed:
+                success = False
             self.config.model.running_task = ''
             logger.info(f'Scheduler: End task `{task}`')
             self.is_first_task = False

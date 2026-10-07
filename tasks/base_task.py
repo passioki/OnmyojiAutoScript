@@ -67,24 +67,50 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         self._boss_mark_flag = False
 
     def get_task_name(self) -> str:
-        model_task_name = getattr(self.config.model, 'running_task', '')
+        """
+        取任务名, 以任务类所在目录名为准。
+
+        目录名是唯一可靠来源: 调度器是按 `tasks/<TaskName>/script_task.py` 加载任务的,
+        目录名与配置项名天然一一对应。
+
+        这里刻意不再把 config 里的 running_task 当作校验依据。原因是那个字段是
+        "运行时状态"却被持久化到了配置文件, 而 Config.task_delay() 会先 reload() 再从
+        磁盘整份写回(module/config/config.py:304 与 :379), 于是内存里刚设置的
+        running_task 会被磁盘旧值覆盖。触发路径: _wait_close_game() 内调用
+        self.run('Restart'), 此时 model 仍是上一个任务(FrogBoss)、path 却是 Restart,
+        两者不一致即抛 ScriptError -> script.py 的 exit(1) 使整个脚本进程退出。
+
+        保留为告警而非致命错误: 不一致说明状态字段被污染了, 值得记录, 但目录名已经
+        给出正确答案, 没有必要因此终止整个实例。
+
+        :return: 任务名(大驼峰)
+        """
         class_file = inspect.getfile(type(self))
         path_task_name = Path(class_file).parent.name
-
-        model_task_name = (
-            inflection.camelize(model_task_name, uppercase_first_letter=True)
-            if model_task_name else ''
-        )
         path_task_name = inflection.camelize(
             path_task_name,
             uppercase_first_letter=True,
         )
 
-        if model_task_name and model_task_name != path_task_name:
-            raise ScriptError(
-                f'Task name mismatch: model={model_task_name}, path={path_task_name}'
+        model_task_name = getattr(self.config.model, 'running_task', '')
+        if model_task_name:
+            model_task_name = inflection.camelize(
+                model_task_name,
+                uppercase_first_letter=True,
             )
-        return model_task_name or path_task_name
+            if model_task_name != path_task_name:
+                # 曾经的 ScriptError 在此处会导致进程自杀, 现降级为告警
+                logger.warning(
+                    f'Task name mismatch: model={model_task_name}, '
+                    f'path={path_task_name}; 以目录名为准, 并重置被污染的 running_task'
+                )
+                # 顺手修正污染源, 避免它继续扩散到下一次 save()
+                try:
+                    self.config.model.running_task = path_task_name
+                except Exception as exc:
+                    logger.warning(f'Reset running_task failed: {exc}')
+
+        return path_task_name
 
     def _burst(self) -> bool:
         """

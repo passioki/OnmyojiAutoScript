@@ -301,7 +301,15 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         :return:
         """
         # 加载配置文件
+        # reload() 会用磁盘内容重建整个 model, 因此会把"运行时状态"也一起换成磁盘旧值。
+        # running_task 由 Script.loop() 在内存里设置(script.py:688/691), 一旦被 reload
+        # 覆盖成上一次 save() 落盘的旧任务名, 就会污染后续的 save() 并让任务名与任务目录
+        # 不一致。触发路径: _wait_close_game() 内 self.run('Restart'), 此时 model 残留
+        # FrogBoss 而 path 是 Restart。故 reload 前后需要保护这类运行时字段。
+        _runtime_task = getattr(self.model, 'running_task', '')
         self.reload()
+        if getattr(self.model, 'running_task', '') != _runtime_task:
+            self.model.running_task = _runtime_task
         # 任务预处理
         if not task:
             task = self.task.command

@@ -418,6 +418,136 @@ class ConfigModel(ConfigBase):
             logger.error(e)
             return False
 
+    def gui_common_groups(self, min_tasks: int = 2) -> list:
+        """
+        找出被多个任务重复使用的字段分组("公共分组")。
+
+        动机: 实测 56 个任务共下发 1402 个字段, 其中 4 类公共分组占了 60.9% ——
+        scheduler 一个 10 字段分组就被逐字复制了 54 份。用户想在多个任务上用
+        同一设置时, 只能逐个页面改。此方法为"改一处、多任务生效"提供依据。
+
+        :param min_tasks: 至少被多少个任务使用才算公共分组
+        :return: [{group, task_count, tasks, fields:[{name,title,description,type}]}]
+                 按 task_count 降序
+        """
+        info: Dict[str, Any] = {}
+        for task_name, value in self.model_dump().items():
+            if not isinstance(value, dict):
+                continue
+            task_object = getattr(self, task_name, None)
+            if task_object is None:
+                continue
+            for group_name, group_value in value.items():
+                if not isinstance(group_value, dict):
+                    continue
+                group_object = getattr(task_object, group_name, None)
+                if group_object is None or not isinstance(group_object, BaseModel):
+                    continue
+                item = info.setdefault(group_name, {'tasks': set(), 'fields': {}})
+                item['tasks'].add(task_name)
+                for field_name in group_value.keys():
+                    if field_name in item['fields']:
+                        continue
+                    f_info = type(group_object).model_fields.get(field_name)
+                    desc = getattr(f_info, 'description', '') if f_info else ''
+                    item['fields'][field_name] = {
+                        'name': field_name,
+                        'title': inflection.underscore(field_name),
+                        'description': desc,
+                    }
+        out = []
+        for group_name, item in info.items():
+            if len(item['tasks']) < min_tasks:
+                continue
+            out.append({
+                'group': group_name,
+                'task_count': len(item['tasks']),
+                'tasks': sorted(item['tasks']),
+                'fields': list(item['fields'].values()),
+            })
+        out.sort(key=lambda x: -x['task_count'])
+        return out
+
+    def set_common_arg(self, group: str, argument: str, value,
+                       only_tasks: list = None,
+                       exclude_tasks: list = None) -> dict:
+        """
+        把某个公共分组下的某个参数**一次写入所有引用该分组的任务**。
+
+        只在该任务确实含有这个分组时才写(避免把同名字段误写到别的语义上);
+        每个任务单独 try, 某个任务失败不影响其他任务。
+
+        :param group: 分组名(下划线形式, 如 'scheduler')
+        :param argument: 字段名(下划线形式, 如 'float_time')
+        :param value: 新值
+        :param only_tasks: 只写这些任务(下划线形式)
+        :param exclude_tasks: 排除这些任务
+        :return: {'changed': [任务...], 'failed': [{'task','error'}...],
+                  'skipped': [任务...], 'total': int}
+        """
+        only = {convert_to_underscore(t) for t in only_tasks} if only_tasks else None
+        skip = {convert_to_underscore(t) for t in exclude_tasks} if exclude_tasks else set()
+
+        changed, failed, skipped = [], [], []
+        for task_name, task_value in self.model_dump().items():
+            if not isinstance(task_value, dict) or group not in task_value:
+                continue
+            if not isinstance(task_value.get(group), dict):
+                continue
+            if only is not None and task_name not in only:
+                continue
+            if task_name in skip:
+                skipped.append(task_name)
+                continue
+
+            group_object = getattr(getattr(self, task_name, None), group, None)
+            if group_object is None or not isinstance(group_object, BaseModel):
+                skipped.append(task_name)
+                continue
+            field_info = type(group_object).model_fields.get(argument)
+            if field_info is None:
+                skipped.append(task_name)
+                continue
+
+            try:
+                # 先做一次显式校验: pydantic 默认**不在赋值时校验**
+                # (ConfigBase 未设 validate_assignment), 若直接 setattr,
+                # 越界的值会被静默写进配置。用 model_validate 走一遍类型与
+                # 约束(如 priority 的 ge/le、枚举取值)。
+                validated = self._validate_arg_value(field_info, value)
+                setattr(group_object, argument, validated)
+                changed.append(task_name)
+            except (ValidationError, ValueError, TypeError) as exc:
+                failed.append({'task': task_name, 'error': str(exc)[:200]})
+            except Exception as exc:
+                failed.append({'task': task_name,
+                               'error': f'{type(exc).__name__}: {exc}'[:200]})
+
+        if changed:
+            self.save()
+            logger.info(f'Set common arg {group}.{argument}={value!r} '
+                        f'for {len(changed)} tasks: {changed[:8]}'
+                        f'{"..." if len(changed) > 8 else ""}')
+        return {'changed': changed, 'failed': failed,
+                'skipped': skipped, 'total': len(changed)}
+
+    @staticmethod
+    def _validate_arg_value(field_info, value):
+        """
+        按字段的注解与约束校验并转换一个值。
+
+        为什么需要: pydantic 默认只在**构造**时校验, 赋值(setattr)不校验 ——
+        ConfigBase 未设 validate_assignment, 因此直接赋值会把越界值(如 priority
+        取 999)静默写进配置。这里显式跑一遍模型校验, 让调用方能拿到 ValidationError。
+
+        :return: 规范化后的值
+        :raises pydantic.ValidationError: 值不合法时
+        """
+        from pydantic import create_model
+        probe = create_model('_ArgProbe', __config__=None,
+                             v=(field_info.annotation, field_info))
+        return probe(v=value).v
+
     def copy_script_task(self, task_name: str, source_task: BaseModel) -> bool:
         model_task_name = convert_to_underscore(task_name)
         try:

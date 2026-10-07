@@ -204,6 +204,68 @@ async def script_task_status(script_name: str, task: str = '', peer: str = ''):
     }
 
 
+@script_app.get('/{script_name}/common_groups')
+async def script_common_groups(script_name: str, min_tasks: int = 2):
+    """
+    列出被多个任务重复使用的字段分组("公共分组")。
+
+    动机: 实测 56 个任务共下发 1402 个字段, 其中 4 类公共分组占 60.9% ——
+    仅 scheduler 一个 10 字段分组就被逐字复制 54 份。用户要在多个任务上用同一
+    设置时只能逐页改; 本接口给出"哪些分组是公共的、被哪些任务用、有哪些字段",
+    供前端做批量修改。
+    """
+    groups = mm.config_cache(script_name).gui_common_groups(min_tasks=min_tasks)
+    return {'config': script_name, 'min_tasks': min_tasks, 'groups': groups}
+
+
+@script_app.put('/{script_name}/common/{group}/{argument}/value')
+async def script_common_arg(script_name: str, group: str, argument: str,
+                            types: str, value, only_tasks: str = '',
+                            exclude_tasks: str = ''):
+    """
+    把公共分组里的某个参数一次写入**所有引用该分组的任务**。
+
+    例: group=scheduler, argument=float_time, types=time, value=00:03:00
+        -> 所有含 scheduler 的任务的"防封浮动时间"都会被设为 3 分钟。
+
+    :param only_tasks: 可选, 逗号分隔的任务名(下划线形式), 只写这些
+    :param exclude_tasks: 可选, 逗号分隔的任务名, 排除这些
+    """
+    try:
+        if types == 'integer':
+            value = int(value)
+        elif types == 'number':
+            value = float(value)
+        elif types == 'boolean':
+            if isinstance(value, str):
+                if value.lower() in ['true', '1']:
+                    value = True
+                elif value.lower() in ['false', '0']:
+                    value = False
+            value = bool(value)
+        elif types == 'time':
+            value = datetime.strptime(value, '%H:%M:%S').time()
+        elif types == 'date_time':
+            value = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        elif types == 'time_delta':
+            day = int(value[1])
+            dt = datetime.strptime(value[3:], '%H:%M:%S')
+            value = TimeDelta(days=day, hours=dt.hour, minutes=dt.minute,
+                              seconds=dt.second)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f'Argument type error: {e}')
+
+    only = [t for t in (only_tasks or '').split(',') if t.strip()]
+    exclude = [t for t in (exclude_tasks or '').split(',') if t.strip()]
+    result = mm.config_cache(script_name).set_common_arg(
+        group, argument, value,
+        only_tasks=only or None, exclude_tasks=exclude or None)
+    result['config'] = script_name
+    result['group'] = group
+    result['argument'] = argument
+    return result
+
+
 @script_app.put('/{script_name}/{task}/{group}/{argument}/value')
 async def script_task(script_name: str, task: str, group: str, argument: str, types: str, value):
     try:

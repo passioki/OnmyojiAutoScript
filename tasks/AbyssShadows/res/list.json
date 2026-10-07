@@ -2,8 +2,8 @@
     "name": "ryou_activity_list",
     "direction": "vertical",
     "type": "ocr",
-    "roiBack": "35,157,37,250",
-    "description": "这个是当前活跃的竂活动列表界面",
+    "roiBack": "20,150,170,400",
+    "description": "这个是当前活跃的竂活动列表界面 (roiBack 与 Dokan/res/list.json 的同一规则保持一致: 原先误设为 35,157,37,250, 短边仅 37px, 会被 OCR 检测器放大 19.9 倍而完全检不出)",
     "list": [
       {
         "itemName": "道馆",

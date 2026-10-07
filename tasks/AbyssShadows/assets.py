@@ -93,8 +93,8 @@ class AbyssShadowsAssets:
 
 
 	# List Rule Assets
-	# 这个是当前活跃的竂活动列表界面 
-	L_RYOU_ACTIVITY_LIST = RuleList(folder="./tasks/AbyssShadows/res", direction="vertical", mode="ocr", roi_back=(35,157,37,250), size=(42, 27), 
+	# 这个是当前活跃的竂活动列表界面 (roiBack 与 Dokan/res/list.json 的同一规则保持一致: 原先误设为 35,157,37,250, 短边仅 37px, 会被 OCR 检测器放大 19.9 倍而完全检不出) 
+	L_RYOU_ACTIVITY_LIST = RuleList(folder="./tasks/AbyssShadows/res", direction="vertical", mode="ocr", roi_back=(20,150,170,400), size=(42, 27), 
 					 array=["道馆", "首领", "狭间"])
 
 

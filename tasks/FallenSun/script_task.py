@@ -67,12 +67,16 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             if self.appear_then_click(self.I_FALLEN_SUN, interval=1):
                 continue
 
-    def check_layer(self, layer: str) -> bool:
+    def check_layer(self, layer) -> bool:
         """
         检查挑战的层数, 并选中挑战的层
+        :param layer: 层数, 可为 Layer 枚举成员或对应的字符串(如 '日蚀')
         :return:
         """
-        pos = self.list_find(self.L_LAYER_LIST, layer)
+        # Layer 是 str 的子类(枚举成员与字符串相等), 但这里统一取 .value 后传入,
+        # 使类型与 list_find / RuleList.array 期望的字符串一致
+        layer_name = getattr(layer, 'value', layer)
+        pos = self.list_find(self.L_LAYER_LIST, layer_name)
         if pos:
             self.device.click(x=pos[0], y=pos[1])
             return True

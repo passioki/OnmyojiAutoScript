@@ -45,6 +45,27 @@ class OcrMode(Enum):
 class OcrMethod(Enum):
     DEFAULT = 1  # str: "Default"
 
+def _detect_with_fallback(model, image):
+    """
+    在"不补边"与"补边"两种输入上做检测, 取先有结果的那次。
+
+    为何不固定用其中一种(实测, 18 个区域组合: 相同 10 / 补边更差 5 / 补边更好 3):
+        不补边更好 —— 窄长区域补边会引入大片白边, 检测框偏小并丢失末字:
+            不补边 ['壹层','贰层','叁层','日蚀']  vs  补边 ['壹层','贰层','叁层','日']
+        补边更好 —— 某些区域不补边完全检不出:
+            不补边 []                            vs  补边 ['大蛇','业原火']
+
+    故先试不补边, 无结果时才补边重试。这比固定任一者都更稳。
+    """
+    results = model.detect_and_ocr(image)
+    if results:
+        return results
+    enlarged = enlarge_canvas(image)
+    if enlarged.shape != image.shape:
+        return model.detect_and_ocr(enlarged)
+    return results
+
+
 class BaseCor:
 
     lang: str = "ch"
@@ -179,6 +200,9 @@ class BaseCor:
     def detect_and_ocr(self, image, logDisplay: bool = True) -> list[BoxedResult]:
         """
         注意：这里使用了预处理和后处理
+
+        检测采用"先不补边、检不出再补边兜底"的策略, 原因见 _detect_with_fallback。
+
         :param image:
         :return:
         """
@@ -186,10 +210,10 @@ class BaseCor:
         start_time = time.time()
         image = self.crop(image, self.roi)
         image = self.pre_process(image)
-        image = enlarge_canvas(image)
 
         # ocr
-        boxed_results: list[BoxedResult] = self.model.detect_and_ocr(image)
+        boxed_results: list[BoxedResult] = _detect_with_fallback(self.model, image)
+
         results = []
         # after proces
         for result in boxed_results:
@@ -270,9 +294,8 @@ class BaseCor:
         start_time = time.time()
         image = self.crop(image, self.roi)
         image = self.pre_process(image)
-        image = enlarge_canvas(image)
-        # ocr
-        boxed_results: list[BoxedResult] = self.model.detect_and_ocr(image)
+        # ocr (与 detect_and_ocr 使用同一套补边策略, 见 _detect_with_fallback)
+        boxed_results: list[BoxedResult] = _detect_with_fallback(self.model, image)
         results = ''
         # after proces
         for result in boxed_results:

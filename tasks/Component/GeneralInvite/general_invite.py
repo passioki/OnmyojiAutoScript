@@ -205,6 +205,90 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
                 continue
             if self.appear_then_click(self.I_FIRE_SEA, interval=1, threshold=0.7):
                 continue
+
+    def enter_room_and_fire(self, user_status, invite_config=None,
+                            random_wait: float = 60, wait_timeout: float = 300,
+                            joiner_image=None) -> bool:
+        """
+        已在房间内时, 按身份等待队友并点击挑战。供"开一次房打一场"的简单任务
+        (石距/经验妖怪/金币妖怪) 复用。**本方法只负责"点挑战", 不含战斗流程**,
+        调用方需在其后自行执行 run_general_battle()。
+
+        - ALONE : 开公开房等路人。等 `random_wait` 秒后即使没人也开战,
+                  与这些任务改造前的行为一致(原来是 50~60 秒)。
+        - LEADER: 先邀请 invite_config 指定的好友(run_invite(is_first=True)),
+                  再等对方进入房间(wait_battle), 然后点挑战。
+                  游戏实测: 房主可等约 5 分钟; 邀请接受时限约 10 秒, 但可反复邀请
+                  —— run_invite 内部每约 20 秒自动重发(见本文件 timer_invite 分支),
+                  因此单次错过不致失败。
+        - MEMBER: 不在此处理, 调用方应改用 run_battle_by_accept()。
+
+        :param user_status: 组队身份(TeamUserStatus)
+        :param invite_config: LEADER 时必填
+        :param random_wait: ALONE 等路人的秒数
+        :param wait_timeout: LEADER 邀请及等待队友的总秒数上限
+        :param joiner_image: ALONE 判断"有人进来了"的图片, 默认 self.I_ADD_5_1
+        :return: True 表示已开战(可以进入战斗流程), False 表示未能开战
+        """
+        if joiner_image is None:
+            joiner_image = self.I_ADD_5_1
+
+        if str(user_status) == TeamUserStatus.LEADER.value:
+            if invite_config is None:
+                logger.error('enter_room_and_fire: leader 身份需要 invite_config')
+                return False
+            # 邀请好友(内部会按 wait_time 循环重发; 成功后已点击挑战)
+            if not self.run_invite(invite_config, is_first=True):
+                logger.warning('Invite friend failed')
+                return False
+            # 等队友进入房间, 然后由本方法点击挑战
+            if not self.wait_battle(wait_time=invite_config.wait_time):
+                logger.warning('Wait team member failed')
+                return False
+            self.click_fire()
+            return True
+
+        # ALONE: 保持原有"等路人"行为
+        wait_timer = Timer(random_wait)
+        wait_timer.start()
+        while 1:
+            self.screenshot()
+            if not self.is_in_room():
+                continue
+            if wait_timer.reached():
+                # 超过时间依然挑战(与改造前一致)
+                logger.warning('Wait for too long and start the challenge')
+                self.click_fire()
+                return True
+            if not self.appear(joiner_image):
+                # 有人进来了，可以进行挑战
+                logger.info('There is someone in the room and start the challenge')
+                self.click_fire()
+                return True
+
+    def run_battle_by_accept(self, battle_config=None) -> bool:
+        """
+        队员(MEMBER)身份: 等待并自动接受队长邀请, 进而进入并完成战斗。
+
+        复用 check_then_accept() 的接受逻辑。注意本方法**包含战斗流程**
+        (与 enter_room_and_fire 不同), 因此调用方不需要再调 run_general_battle()。
+
+        :param battle_config: GeneralBattleConfig, 可为 None
+        :return: True 表示已完成一次战斗流程(或已进入战斗)
+        """
+        logger.info('Wait for team leader invitation (member mode)')
+        while 1:
+            self.screenshot()
+            if self.check_then_accept():
+                # 已接受邀请并进入房间; 若被秒开会直接进入战斗,
+                # check_take_over_battle 会接管
+                if battle_config is not None:
+                    return bool(self.run_general_battle(config=battle_config))
+                return bool(self.run_general_battle())
+            # 队长秒开时会直接进入战斗
+            if self.check_take_over_battle(False, config=battle_config):
+                return True
+
     @cached_property
     def room_type(self) -> RoomType:
         """

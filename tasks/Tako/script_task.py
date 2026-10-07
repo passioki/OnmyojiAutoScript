@@ -6,13 +6,13 @@ from datetime import time, datetime, timedelta
 
 from module.logger import logger
 from module.exception import TaskEnd
-from module.base.timer import Timer
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main, page_team, page_shikigami_records
 from tasks.Component.GeneralBattle.general_battle import GeneralBattle
 from tasks.Component.GeneralRoom.general_room import GeneralRoom
 from tasks.Component.GeneralInvite.general_invite import GeneralInvite
+from tasks.Component.GeneralInvite.config_invite import TeamUserStatus
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
 
 
@@ -43,6 +43,15 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
                 self.exp_100()
             self.close_buff()
 
+        # 组队身份: alone(等路人, 同改造前) / leader(邀请好友) / member(等邀请)
+        conf_team = conf.user_status
+
+        # 队员身份: 不需要选副本/开房, 直接等队长邀请并应战(内含战斗流程)
+        if conf_team == TeamUserStatus.MEMBER:
+            logger.info('Member mode: wait for the leader invitation')
+            self.run_battle_by_accept()
+            self.exit_task()
+
         # 进入
         self.goto_page(page_team)
         if 5 <= self.start_time.weekday() <= 6:
@@ -54,24 +63,15 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul):
             self.exit_task()
         self.ensure_public()
         self.create_ensure()
-        # 进入到了房间里面
-        wait_timer = Timer(60)
-        wait_timer.start()
-        while 1:
-            self.screenshot()
-
-            if not self.is_in_room():
-                continue
-            if wait_timer.reached():
-                logger.warning('Wait for too long, exit')
-                self.exit_room()
-                break
-            if not self.appear(self.I_ADD_1):
-                # 有人进来了，可以进行挑战
-                logger.info('There is someone in the room and start the challenge')
-                self.click_fire()
-                self.run_general_battle()
-                break
+        # 进入到了房间里面: 按身份等待队友并点击挑战
+        if conf_team == TeamUserStatus.LEADER:
+            if not self.enter_room_and_fire(conf_team, invite_config=conf.invite_config):
+                logger.warning('Invite team member failed')
+                self.exit_task()
+        else:
+            # ALONE: 保持原有行为——等路人 60s 后没等到就退出
+            self.enter_room_and_fire(conf_team, random_wait=60)
+        self.run_general_battle()
         self.exit_task()
 
     def exit_task(self):

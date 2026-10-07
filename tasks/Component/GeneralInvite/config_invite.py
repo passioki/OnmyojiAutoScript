@@ -15,6 +15,27 @@ class FindMode(str, Enum):
     AUTO_FIND = 'auto_find'
     RECENT_FRIEND = 'recent_friend'
 
+
+class TeamUserStatus(str, Enum):
+    """
+    组队身份(通用定义)。
+
+    - ALONE  : 不邀请指定好友, 开公开房等路人
+    - LEADER : 开房并循环邀请 invite_config 中指定的好友
+    - MEMBER : 等待并自动接受队长邀请
+
+    说明: 历史上 BondlingFairyland / EvoZone / Exploration / FallenSun / Orochi
+    各自在 config.py 中复制了一份同名枚举(部分还带 WILD / handoff1 / handoff2)。
+    新增任务请复用本定义, 不要再复制。
+    """
+    ALONE = 'alone'
+    LEADER = 'leader'
+    MEMBER = 'member'
+
+
+# 兼容别名: 新代码可用 TeamUserStatus, 习惯写法 UserStatus 亦可
+UserStatus = TeamUserStatus
+
 class InviteConfig(BaseModel):
 
     invite_number: InviteNumber = Field(default=InviteNumber.ONE, description='invite_number_help')

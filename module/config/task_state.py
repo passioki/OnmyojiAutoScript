@@ -337,6 +337,80 @@ def peer_charges(config_name: str, task: str,
     count, last, cur = _decode_charges_v2(rec, slot_hours, max_charges, now)
     count, _ = _normalize(count, last, cur, max_charges)
     return max(0, min(max_charges, count))
+
+
+def summarize(config_name: str, now: datetime = None) -> dict:
+    """
+    汇总某账号的完成记忆与次数状态, 供界面总览使用。
+
+    返回: {
+        "config": 账号名,
+        "global":  {任务名: {"period","period_key","last_success"}},
+        "charges": {任务名: {"count","slots","last_consume"}},
+    }
+
+    只读一次状态文件后展开, 避免逐任务加锁(该文件的 FileLock 粒度是整文件)。
+    """
+    now = now or datetime.now()
+    try:
+        with _lock():
+            data = _read_all()
+    except Exception as exc:
+        logger.warning(f'[TaskState] 汇总状态失败({type(exc).__name__}: {exc})')
+        return {'config': config_name, 'global': {}, 'charges': {}}
+
+    bucket = data.get(config_name) or {}
+    glob = {}
+    charges = {}
+    for key, item in bucket.items():
+        if not isinstance(item, dict):
+            continue
+        if 'period' in item or 'last_success' in item:
+            glob[key] = {
+                'period': item.get('period'),
+                'period_key': item.get('period_key'),
+                'last_success': item.get('last_success'),
+            }
+        rec = item.get('charges')
+        if isinstance(rec, dict):
+            slots = parse_slots(rec.get('slots') or '0,12')
+            cap = 2
+            try:
+                cap = max(1, int(rec.get('max', 2) or 2))
+            except (TypeError, ValueError):
+                cap = 2
+            count, last, cur = _decode_charges_v2(rec, slots, cap, now)
+            count, _ = _normalize(count, last, cur, cap)
+            charges[key] = {
+                'count': max(0, count),
+                'max': cap,
+                'slots': ','.join(str(h) for h in slots),
+                'last_consume': rec.get('last_consume'),
+            }
+    return {'config': config_name, 'global': glob, 'charges': charges}
+
+
+def peers_status(my_config: str, task: str = None,
+                 max_charges: int = 2, slots=None,
+                 now: datetime = None) -> list:
+    """
+    其他账号的在线与次数概况, 供界面显示"对方在不在、还剩几次"。
+
+    :return: [{"config","online","charges"(指定 task 时)}]
+    """
+    now = now or datetime.now()
+    out = []
+    for name in discover_configs():
+        if name == my_config:
+            continue
+        rec = {'config': name, 'online': is_online(name, now=now)}
+        if task:
+            rec['charges'] = peer_charges(name, task, max_charges=max_charges,
+                                          slots=slots, now=now)
+        out.append(rec)
+    return out
+
+
 # ---------------------------------------------------------------------------
 # 按固定时刻刷新的挑战次数(经验妖怪 / 金币妖怪 / 石距 这类)
 #

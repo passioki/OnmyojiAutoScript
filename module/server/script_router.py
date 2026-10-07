@@ -126,6 +126,84 @@ async def script_stop(script_name: str):
 async def script_task(script_name: str, task: str):
     return mm.config_cache(script_name).model.script_task(task)
 
+
+@script_app.get('/{script_name}/task_status')
+async def script_task_status(script_name: str, task: str = '', peer: str = ''):
+    """
+    任务状态总览: 调度器时间 + 完成记忆(period) + 挑战次数, 一次取全。
+
+    背景: 完成记忆与次数存在 module/config/task_state.py 的状态文件里, 但此前
+    没有任何 HTTP 出口(WS 只推 {name, next_run}), 因此界面无法显示
+    "本周期是否已完成""还剩几次"。本接口把它们暴露出来。
+
+    :param script_name: 配置名(账号)
+    :param task: 可选, 单个任务(下划线形式); 留空返回该账号全部任务
+    :param peer: 可选, 只看指定对方账号
+    :return: {config, at, tasks:[{name,command,enable,period,priority,next_run,
+             slot,last_success,completed,charges}], peers:[{config,online,charges}]}
+    """
+    from module.config import task_state
+
+    config = mm.config_cache(script_name)
+    now = datetime.now()
+
+    try:
+        config.update_scheduler()
+    except Exception as exc:
+        logger.warning(f'task_status: update_scheduler 失败: {exc}')
+
+    def _slot_of(command: str) -> str:
+        for bucket, attr in (('pending', 'pending_task'), ('waiting', 'waiting_task')):
+            for f in getattr(config, attr, None) or []:
+                if getattr(f, 'command', None) == command:
+                    return bucket
+        return ''
+
+    summary = task_state.summarize(script_name, now=now)
+    state_bucket = summary.get('global') or {}
+    charge_bucket = summary.get('charges') or {}
+
+    wanted = convert_to_underscore(task) if task else ''
+    tasks = []
+    for key, value in config.model.model_dump().items():
+        if not isinstance(value, dict):
+            continue
+        scheduler = value.get('scheduler')
+        if not isinstance(scheduler, dict):
+            continue
+        if wanted and key != wanted:
+            continue
+
+        command = ''.join(p.capitalize() for p in key.split('_'))
+        period = scheduler.get('period')
+        period_str = getattr(period, 'value', period) or 'none'
+        rec = state_bucket.get(key) or {}
+
+        tasks.append({
+            'name': key,
+            'command': command,
+            'enable': bool(scheduler.get('enable')),
+            'period': period_str,
+            'priority': scheduler.get('priority'),
+            'next_run': str(scheduler.get('next_run') or ''),
+            'slot': _slot_of(command),
+            'last_success': rec.get('last_success'),
+            'completed': bool(rec.get('period_key')) and period_str != 'none',
+            'charges': charge_bucket.get(key),
+        })
+
+    peers = task_state.peers_status(script_name, task=wanted or None, now=now)
+    if peer:
+        peers = [p for p in peers if p.get('config') == peer]
+
+    return {
+        'config': script_name,
+        'at': now.strftime('%Y-%m-%d %H:%M:%S'),
+        'tasks': tasks,
+        'peers': peers,
+    }
+
+
 @script_app.put('/{script_name}/{task}/{group}/{argument}/value')
 async def script_task(script_name: str, task: str, group: str, argument: str, types: str, value):
     try:

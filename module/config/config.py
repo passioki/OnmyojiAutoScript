@@ -190,6 +190,10 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             if not isinstance(func.next_run, datetime):
                 error.append(func)
             elif func.next_run < self.scheduler_update_dt:
+                # 完成记忆: 本周期已成功完成过的任务不再入队, 并把 next_run 推到下个周期
+                if self._skip_by_period(key, value):
+                    waiting_task.append(func)
+                    continue
                 pending_task.append(func)
             else:
                 waiting_task.append(func)
@@ -214,6 +218,77 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         self.pending_task = pending_task
         self.waiting_task = waiting_task
+
+    def _skip_by_period(self, task_key: str, task_value: dict) -> bool:
+        """
+        完成记忆: 判断该任务是否"本周期已成功完成", 若是则跳过本次调度。
+
+        task_value 是 model.dict() 里该任务的原始 dict, 其中 scheduler.period /
+        reset_at 可能是枚举或字符串(取决于序列化方式), 这里都兼容。
+
+        任何异常都返回 False(即照常运行), 保证记忆功能不会让任务跑不了。
+        """
+        try:
+            # model.dict() 里除任务外还有 config_name / running_task 等字符串字段
+            if not isinstance(task_value, dict):
+                return False
+            scheduler = task_value.get('scheduler')
+            if not isinstance(scheduler, dict):
+                return False
+            period = scheduler.get('period')
+            if not period:
+                return False
+            period_str = getattr(period, 'value', period)
+            if str(period_str).lower() in ('none', ''):
+                return False
+
+            reset_at = scheduler.get('reset_at')
+            if reset_at is None:
+                reset_at = time(hour=5)
+            elif isinstance(reset_at, str):
+                reset_at = time.fromisoformat(reset_at)
+
+            from module.config.task_state import is_completed_in_period, period_start
+            if not is_completed_in_period(self.config_name, task_key, period_str, reset_at):
+                return False
+
+            # 已在本周期完成 -> 把 next_run 推到下个周期起点, 避免每轮重复判断
+            next_start = period_start(period_str, reset_at)
+            self.model.deep_set(self.model, keys=f'{task_key}.scheduler.next_run',
+                                value=next_start)
+            logger.info(f'任务 `{task_key}` 本周期({period_str})已完成, 跳过; '
+                        f'下次运行 {next_start}')
+            return True
+        except Exception as exc:
+            logger.warning(f'_skip_by_period({task_key}) 异常 '
+                           f'({type(exc).__name__}: {exc}), 按未完成处理')
+            return False
+
+    def _record_task_success(self, task_key: str, scheduler) -> None:
+        """
+        完成记忆: 任务成功结束时, 记录"本周期已完成"。
+
+        仅在 scheduler.period 不为 none 时才需要记录; 异常只告警, 不影响任务本身。
+
+        :param task_key: 下划线形式的任务名
+        :param scheduler: 该任务的 scheduler 配置对象
+        """
+        try:
+            period = getattr(scheduler, 'period', None)
+            if not period:
+                return
+            period_str = getattr(period, 'value', period)
+            if str(period_str).lower() in ('none', ''):
+                return
+            reset_at = getattr(scheduler, 'reset_at', None) or time(hour=5)
+            if isinstance(reset_at, str):
+                reset_at = time.fromisoformat(reset_at)
+
+            from module.config.task_state import record_success
+            record_success(self.config_name, task_key, period_str, reset_at)
+        except Exception as exc:
+            logger.warning(f'_record_task_success({task_key}) 异常 '
+                           f'({type(exc).__name__}: {exc}), 忽略')
 
     def get_next(self) -> Function:
         """
@@ -338,6 +413,9 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             if isinstance(interval, str):
                 interval = timedelta(interval)
             run.append(start_time + interval)
+            # 完成记忆: 仅在成功时记录"本周期已完成"
+            if success:
+                self._record_task_success(task_key=task, scheduler=scheduler)
         # if server is not None:
         #     if server:
         #         server = scheduler.server_update

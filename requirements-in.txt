@@ -11,8 +11,29 @@ psutil==6.1.1
 pywin32==306
 
 # OCR
+#
+# 识别引擎已由 ppocr-onnx(内含 PP-OCRv2, 2020 年) 换为 RapidOCR(PP-OCRv6)。
+# 实测 v2 / v4 / v6 三代对比(真实游戏截图 + 合成图):
+#     繁体 戀鳥樹      v2: 懋岛树(错) / 读不出      v6: 戀鳥樹 0.99(正确)
+#     简体 地域鬼王    v2: "地域"(漏字)             v6: 地域鬼王(正确)
+#     简体 觉醒        v2: 空(漏检)                 v6: 觉醒(正确)
+#     简体 整屏        v2: 20条/0.908               v6: 20条/0.956(检出数持平, 置信度略优)
+# 即 v6 在简体上与 v2 持平, 在繁体上从"读不出"变为"正确"。
+# ppocr-onnx 保留: module/ocr/ppocr.py 的 BoxedResult 已本地定义, 代码不再依赖它,
+# 但保留可避免影响其他潜在引用与回滚。
+rapidocr==3.9.2
 ppocr-onnx==0.0.3.9
 cn2an==0.5.23
+
+# onnxruntime 由 ppocr-onnx 的 1.16.3 提升到 1.20.1。
+# 原因: PP-OCRv6 的 onnx 模型是 IR version 10, 1.16.3 只支持到 IR 9, 会报
+#       "Unsupported model IR version: 10"。
+# 上限原因(重要): 1.21.0 及以上与 zerorpc/gevent 存在 Windows DLL 加载顺序冲突 ——
+#       若先 import zerorpc 再 import onnxruntime, 会抛
+#       "DLL load failed while importing onnxruntime_pybind11_state"。
+#       实测: 1.20.1 可共存且能加载 v6; 1.21.1 / 1.23.2 均冲突。
+#       故 1.20.1 是同时满足"支持 v6"与"与 zerorpc 共存"的最高版本, 不要随意升级。
+onnxruntime==1.20.1
 
 # Web
 paho-mqtt==1.6.1

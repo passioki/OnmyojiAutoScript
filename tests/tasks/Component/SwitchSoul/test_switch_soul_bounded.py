@@ -171,6 +171,109 @@ class TestBidirectionalScan:
             '换成双向扫描后, 目标在反方向也应能找到')
 
 
+class TestScanPacing:
+    """
+    扫描节奏必须足够慢。
+
+    线上实测(2026-10-08, 用户判断"滑动速度过快"):
+      原实现用 `swipe(SWIPE_UP, 0.3)` 且滑完**立刻**截图。0.3 秒的冷却意味着几乎
+      不停顿地连滑, 而列表还在惯性滚动 —— 目标可能从未被渲染成一帧静止画面,
+      OCR 自然一直读不到。对照同一函数里"滑到列表顶部"那段的
+      `swipe(..., 2)` + `sleep(2.5)`(约 4 秒一次)是能正常收敛的。
+    """
+
+    def test_settle_delay_after_each_swipe(self):
+        import sys as _sys
+        _sys.path.insert(0, str(REPO_ROOT))
+
+        from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
+
+        order = []
+
+        class _Rule:
+            def detect_and_ocr(self, image):
+                order.append('ocr')
+                return [type('R', (), {'ocr_text': '别的'})()]
+
+        class _Owner:
+            device = type('D', (), {'image': None})()
+
+            def screenshot(self):
+                order.append('screenshot')
+
+            def swipe(self, target, interval=None):
+                order.append('swipe')
+
+            _scan_for_name = SwitchSoul._scan_for_name
+
+        import tasks.Component.SwitchSoul.switch_soul as _ss
+        # 把 settle 换成一个记录点, 验证"滑动 -> 等待 -> 判读"的顺序
+        orig_sleep = _ss.sleep
+        try:
+            _ss.sleep = lambda s: order.append(f'sleep({s})')
+            _Owner()._scan_for_name(_Rule(), '日轮', 'FWD', 'BWD',
+                                    swipe_sleep=1.5)
+        finally:
+            _ss.sleep = orig_sleep
+
+        # 每次 swipe 之后必须紧跟一次 sleep, 再才是 screenshot/ocr
+        for i, act in enumerate(order):
+            if act == 'swipe':
+                nxt = order[i + 1] if i + 1 < len(order) else None
+                assert nxt == 'sleep(1.5)', (
+                    f'swipe 之后应等待列表停稳再判读, 实际下一个动作={nxt}; '
+                    f'序列={order[:12]}')
+
+    def test_slow_swipe_interval_is_passed(self):
+        """滑动冷却必须显式传入且明显大于原来的 0.3。"""
+        import sys as _sys
+        _sys.path.insert(0, str(REPO_ROOT))
+
+        import tasks.Component.SwitchSoul.switch_soul as _ss
+
+        assert hasattr(_ss, 'SS_SCAN_SWIPE_INTERVAL')
+        assert _ss.SS_SCAN_SWIPE_INTERVAL >= 1.0, (
+            f'滑动冷却应明显放慢(原实现 0.3), 实际 {_ss.SS_SCAN_SWIPE_INTERVAL}')
+        assert hasattr(_ss, 'SS_SCAN_SETTLE')
+        assert _ss.SS_SCAN_SETTLE >= 1.0
+
+    def test_interval_actually_passed_to_swipe(self):
+        """`_scan_for_name` 必须把冷却值传给 swipe, 而不是用默认(无冷却)。"""
+        import sys as _sys
+        _sys.path.insert(0, str(REPO_ROOT))
+
+        from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
+        import tasks.Component.SwitchSoul.switch_soul as _ss
+
+        got = []
+
+        class _Rule:
+            def detect_and_ocr(self, image):
+                return [type('R', (), {'ocr_text': '别的'})()]
+
+        class _Owner:
+            device = type('D', (), {'image': None})()
+
+            def screenshot(self):
+                pass
+
+            def swipe(self, target, interval=None):
+                got.append(interval)
+
+            _scan_for_name = SwitchSoul._scan_for_name
+
+        orig_sleep = _ss.sleep
+        try:
+            _ss.sleep = lambda s: None
+            _Owner()._scan_for_name(_Rule(), '日轮', 'FWD', 'BWD')
+        finally:
+            _ss.sleep = orig_sleep
+
+        assert got, '应发生过滑动'
+        assert all(g == _ss.SS_SCAN_SWIPE_INTERVAL for g in got), (
+            f'每次滑动都应传入冷却 {_ss.SS_SCAN_SWIPE_INTERVAL}, 实际={set(got)}')
+
+
 class TestSwitchSoulByBameIsBounded:
     def test_constants_exist(self):
         text = SRC.read_text(encoding='utf-8')

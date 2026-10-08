@@ -1,4 +1,4 @@
-# This Python file uses the following encoding: utf-8
+﻿# This Python file uses the following encoding: utf-8
 # @author runhey
 # github https://github.com/runhey
 from time import sleep
@@ -33,8 +33,17 @@ SS_SOUL_SWITCH_TIMEOUT = 30
 
 # 双向扫描里"朝一个方向最多滑几次"。
 # 一屏约显示 3 项预设, 常见分组也就几项; 12 次足够覆盖到列表尽头。
-# 两个方向各 12 次 → 最多 24 次滑动(每次含截图+OCR 约 1.5~2.5s)。
+# 两个方向各 12 次 → 最多 24 次滑动(每次含等待+截图+OCR 约 2~3s)。
 SS_SCAN_MAX_SWIPES = 12
+
+# 扫描时每次滑动之间的冷却(秒) —— 传给 BaseTask.swipe 的 interval。
+# 原实现用 0.3, 相当于几乎不停顿地连滑; 而列表还在惯性滚动, 目标可能从未被渲染成
+# 静止的一帧, OCR 一直读不到。对照同一函数里"滑到列表顶部"那段的 `swipe(..., 2)`
+# + `sleep(2.5)`, 约 4 秒一次是能收敛的 —— 慢才可靠。这里取 1.5。
+SS_SCAN_SWIPE_INTERVAL = 1.5
+
+# 每次滑动后等待列表停稳的秒数, 之后才截图判读(避免读到滚动中的中间帧)。
+SS_SCAN_SETTLE = 1.5
 
 
 
@@ -213,26 +222,34 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
 
     def _scan_for_name(self, rule, target_name: str,
                        swipe_forward, swipe_backward,
-                       swipe_sleep: float = 1.5) -> bool:
+                       swipe_sleep: float = SS_SCAN_SETTLE) -> bool:
         """
-        在可滑动列表里找 `target_name`, **先看当前屏, 再双向扫描**。
+        在可滑动列表里找 `target_name`, **先看当前屏, 慢速双向扫描**。
 
         为什么不沿用原来的单向 `while 1`: 原实现是"先滑再看", 于是
         1) 目标本来就在当前屏时, 第一下就把它滑走了;
         2) 而且只朝一个方向翻 —— 一旦划过头(目标被推到可视区之外)就再也回不来;
         3) 列表一屏只显示约 3 项, 滑过一次就会永久错过。
 
-        线上实测 2026-10-08 11:55(日轮之陨): 阵容列表一屏只显示 3 个预设,
-        目标 '日轮' 本来在最上面, 被 `S_SS_TEAM_SWIPE_UP`(朝"更靠前"方向翻)
-        推到了可视区上方, 之后一直 OCR 不到, 循环空转 60s 被看门狗判死重启游戏。
+        为什么要把节奏放慢(`SS_SCAN_SETTLE`): 原实现用 `swipe(..., 0.3)` 且滑完
+        **立刻**截图 —— 0.3 秒的冷却意味着几乎不停地连滑, 而此时列表还在惯性滚动,
+        目标很可能从未被渲染成一帧静止画面, OCR 自然一直读不到它。
+        对照同一函数里"滑动到列表顶部"那段用的是 `swipe(..., 2)` + `sleep(2)`,
+        约 4 秒一次, 是能正常收敛的 —— 慢才是可靠的。
+        本方法在**每次滑动后先等列表停稳, 再截图判读**。
 
-        现在的做法: 当前屏 → 朝 swipe_forward 扫到尽头 → 换 swipe_backward 回扫。
+        线上实测 2026-10-08 11:55(日轮之陨): 目标 '日轮' 本来就在列表里(用户确认),
+        被过快且单向的滑动推到了可视区上方, 之后一直 OCR 不到, 空转 60s 被看门狗
+        判死并重启游戏。
+
+        现在的做法: 当前屏 → 朝 swipe_forward 慢速扫到尽头 → 换 swipe_backward 回扫。
         因此无论目标在列表的哪一端、当前停在何处, 都不会被跳过。
         仍未找到则返回 False(调用方跳过切换, 不要让整局任务卡死)。
 
         :param rule: 带 keyword 的 RuleOcr 实例(调用方负责设置 keyword)
         :param swipe_forward: 朝"更靠后"方向翻的滑动(会浮现列表下方的项)
         :param swipe_backward: 朝"更靠前"方向翻的滑动(会浮现列表上方的项)
+        :param swipe_sleep: 每次滑动后等待列表停稳的秒数
         :return: 最终是否能在屏幕上看到目标
         """
         def seen() -> bool:
@@ -243,15 +260,15 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         # 1) 先看当前屏 —— 目标可能已经可见, 不要先滑
         if seen():
             return True
-        # 2) 朝一个方向扫到尽头
+        # 2) 朝一个方向慢速扫到尽头
         for _ in range(SS_SCAN_MAX_SWIPES):
-            self.swipe(swipe_forward)
-            sleep(swipe_sleep)
+            self.swipe(swipe_forward, SS_SCAN_SWIPE_INTERVAL)
+            sleep(swipe_sleep)          # 等列表停稳再判读, 避免读到滚动中的中间帧
             if seen():
                 return True
         # 3) 换方向回扫, 覆盖"目标在另一端 / 之前划过头"的情况
         for _ in range(SS_SCAN_MAX_SWIPES):
-            self.swipe(swipe_backward)
+            self.swipe(swipe_backward, SS_SCAN_SWIPE_INTERVAL)
             sleep(swipe_sleep)
             if seen():
                 return True

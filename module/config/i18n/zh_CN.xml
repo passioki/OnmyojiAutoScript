@@ -159,7 +159,7 @@
         <translation>滑动规范</translation>
     </message>
     <message><source>Daily Task</source><translation>日常任务</translation></message>
-    <message><source>AreaBoss</source><translation>地狱鬼王</translation></message>
+    <message><source>AreaBoss</source><translation>地域鬼王</translation></message>
     <message><source>GoldYoukai</source><translation>金币妖怪</translation></message>
     <message><source>ExperienceYoukai</source><translation>经验妖怪</translation></message>
     <message><source>Nian</source><translation>年兽</translation></message>
@@ -178,14 +178,14 @@
 	<message><source>Exploration</source><translation>探索</translation></message>
 	<message><source>List Rule</source><translation>列表规则</translation></message>
 	<message><source>Activity Task</source><translation>限时活动</translation></message>
-	<message><source>ActivityShikigami</source><translation>当期式神爬塔</translation></message>
+	<message><source>ActivityShikigami</source><translation>当期爬塔</translation></message>
 	<message><source>Liver Emperor Exclusive</source><translation>肝帝专属</translation></message>
 	<message><source>BondlingFairyland</source><translation>契灵之境</translation></message>
 	<message><source>Weekly Task</source><translation>每周任务</translation></message>
-	<message><source>TrueOrochi</source><translation>真·八岐大蛇</translation></message>
+	<message><source>TrueOrochi</source><translation>真八岐大蛇</translation></message>
 	<message><source>KekkaiUtilize</source><translation>结界蹭卡</translation></message>
 	<message><source>KekkaiActivation</source><translation>结界挂卡</translation></message>
-	<message><source>DemonEncounter</source><translation>封魔之时</translation></message>
+	<message><source>DemonEncounter</source><translation>逢魔之时</translation></message>
 	<message><source>DailyTrifles</source><translation>每日琐事</translation></message>
 	<message><source>TalismanPass</source><translation>花合战</translation></message>
 	<message><source>SoulsTidy</source><translation>御魂整理</translation></message>
@@ -193,7 +193,7 @@
 	<message><source>EvoZone</source><translation>觉醒副本</translation></message>
 	<message><source>Guild</source><translation>阴阳寮</translation></message>
 	<message><source>RichMan</source><translation>大富翁</translation></message>
-	<message><source>Secret</source><translation>秘闻之境</translation></message>
+	<message><source>Secret</source><translation>秘闻副本</translation></message>
 	<message><source>WeeklyTrifles</source><translation>每周琐事</translation></message>
 	<message><source>Delegation</source><translation>式神委派</translation></message>
 	<message><source>GoryouRealm</source><translation>御灵之境</translation></message>
@@ -204,11 +204,30 @@
 	<message><source>WantedQuests</source><translation>悬赏封印</translation></message>
 	<message><source>Tako</source><translation>石距</translation></message>
 	<message><source>AutoCheckinBigGod</source><translation>大神签到</translation></message>
+
+		<!-- 由 dev_tools/gen_i18n.py 从 tasks/<Name>/meta.py 生成; 请勿手改, 改 meta.py -->
+		<message><source>AbyssShadows</source><translation>狭间暗域</translation></message>
+		<message><source>BudokaiTournament</source><translation>武道大会</translation></message>
+		<message><source>DemonRetreat</source><translation>首领退治</translation></message>
+		<message><source>DyeTrials</source><translation>灵染试炼</translation></message>
+		<message><source>FindJade</source><translation>寻找协作任务</translation></message>
+		<message><source>FloatParade</source><translation>花车巡游</translation></message>
+		<message><source>FrogBoss</source><translation>对弈竞猜</translation></message>
+		<message><source>GotoMain</source><translation>回到庭院</translation></message>
+		<message><source>GuildActivityMonitor</source><translation>寮活动监控</translation></message>
+		<message><source>GuildBanquet</source><translation>寮宴会</translation></message>
+		<message><source>HeroTest</source><translation>英杰试炼</translation></message>
+		<message><source>Hyakkiyakou</source><translation>百鬼夜行</translation></message>
+		<message><source>KittyShop</source><translation>猫咪铺子</translation></message>
+		<message><source>MemoryScrolls</source><translation>绘卷</translation></message>
+		<message><source>MetaDemon</source><translation>超鬼王</translation></message>
+		<message><source>Quiz</source><translation>智力竞赛</translation></message>
+		<message><source>SixRealms</source><translation>六道之门</translation></message>
 </context>
 <context>
     <name>TaskList</name>
 	    <message><source>Daily Task</source><translation>日常任务</translation></message>
-    <message><source>AreaBoss</source><translation>地狱鬼王</translation></message>
+    <message><source>AreaBoss</source><translation>地域鬼王</translation></message>
     <message><source>GoldYoukai</source><translation>金币妖怪</translation></message>
     <message><source>ExperienceYoukai</source><translation>经验妖怪</translation></message>
     <message><source>Nian</source><translation>年兽</translation></message>
@@ -227,14 +246,14 @@
 	<message><source>Exploration</source><translation>探索</translation></message>
 	<message><source>List Rule</source><translation>列表规则</translation></message>
 	<message><source>Activity Task</source><translation>限时活动</translation></message>
-	<message><source>ActivityShikigami</source><translation>当期式神爬塔</translation></message>
+	<message><source>ActivityShikigami</source><translation>当期爬塔</translation></message>
 	<message><source>Liver Emperor Exclusive</source><translation>肝帝专属</translation></message>
 	<message><source>BondlingFairyland</source><translation>契灵之境</translation></message>
 	<message><source>Weekly Task</source><translation>每周任务</translation></message>
-	<message><source>TrueOrochi</source><translation>真·八岐大蛇</translation></message>
+	<message><source>TrueOrochi</source><translation>真八岐大蛇</translation></message>
 	<message><source>KekkaiUtilize</source><translation>结界蹭卡</translation></message>
 	<message><source>KekkaiActivation</source><translation>结界挂卡</translation></message>
-	<message><source>DemonEncounter</source><translation>封魔之时</translation></message>
+	<message><source>DemonEncounter</source><translation>逢魔之时</translation></message>
 	<message><source>DailyTrifles</source><translation>每日琐事</translation></message>
 	<message><source>TalismanPass</source><translation>花合战</translation></message>
 	<message><source>SoulsTidy</source><translation>御魂整理</translation></message>
@@ -242,7 +261,7 @@
 	<message><source>EvoZone</source><translation>觉醒副本</translation></message>
 	<message><source>Guild</source><translation>阴阳寮</translation></message>
 	<message><source>RichMan</source><translation>大富翁</translation></message>
-	<message><source>Secret</source><translation>秘闻之境</translation></message>
+	<message><source>Secret</source><translation>秘闻副本</translation></message>
 	<message><source>WeeklyTrifles</source><translation>每周琐事</translation></message>
 	<message><source>Delegation</source><translation>式神委派</translation></message>
 	<message><source>GoryouRealm</source><translation>御灵之境</translation></message>
@@ -766,5 +785,7 @@ Refresh：直接刷新，如果刷新操作进入CD，将标记为失败并退�
 	<message><source>window_end_help</source><translation>开放时段的结束时刻，如 23:00。若该时刻早于开始时刻，则视为跨午夜(如 22:00-02:00)</translation></message>
 	<message><source>window_days_help</source><translation>开放星期，逗号分隔，周一=0。留空或 0,1,2,3,4,5,6 表示每天。例：狭间暗域填 4,5,6 表示只在周五六日</translation></message>
 	<message><source>TakoConfig</source><translation>石距加成</translation></message>
+
+	
 </context>
 </TS>

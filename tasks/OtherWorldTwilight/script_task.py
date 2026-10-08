@@ -127,7 +127,9 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
             if self.check_then_accept():
                 continue
             if self.is_in_room(False):
-                self.device.stuck_record_clear()
+                # 不能 clear(): 转场动画期间无可识别状态, 会只剩 60s 看门狗 -> 误判卡死。
+                # 详见 FallenSun/script_task.py 同名位置的长注释(2026-10-08 线上实测)。
+                self.device.stuck_record_add('BATTLE_STATUS_S')
                 if self.wait_battle(wait_time=self.conf.invite_config.wait_time):
                     self.run_general_battle(config=self.conf.general_battle_config)
                 else:

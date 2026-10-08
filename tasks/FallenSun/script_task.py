@@ -220,7 +220,15 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 continue
 
             if self.is_in_room():
-                self.device.stuck_record_clear()
+                # 这里**不能**调 stuck_record_clear()。原因(线上实测 2026-10-08):
+                # BATTLE_STATUS_S 在 device.stuck_unlimited_wait_list 里, 是**无限期**
+                # 豁免(见 device.py 的说明) —— 战斗中/战斗结束的转场动画期间, 画面上
+                # 没有任何已知状态可识别, 全靠这个豁免兜住。
+                # 而原来的 clear() 会把豁免清掉, 于是"战斗结束→结算页"那段约 1 秒的
+                # 转场动画被计入 Timer(60) 卡死倒计时; 一旦那一刻画面探测不到状态,
+                # 就会 GameStuckError → 重启游戏 → 掉线 → 队长邀请等待超时。
+                # 幂等: detect_record 是 set, 重复 add 无副作用。
+                self.device.stuck_record_add('BATTLE_STATUS_S')
                 if self.wait_battle(wait_time=self.config.fallen_sun.invite_config.wait_time):
                     self.run_general_battle(config=self.config.fallen_sun.general_battle_config)
                 else:

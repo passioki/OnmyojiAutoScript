@@ -237,7 +237,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 continue
 
             if self.is_in_room():
-                self.device.stuck_record_clear()
+                # 不能 clear(): BATTLE_STATUS_S 是无限期豁免(见 device.py), 战斗结束的
+                # 转场动画期间画面无可识别状态, 清掉它会只剩 60s 看门狗 -> 误判卡死并重启游戏。
+                # 详见 FallenSun/script_task.py 同名位置的长注释(2026-10-08 线上实测)。
+                self.device.stuck_record_add('BATTLE_STATUS_S')
                 if self.wait_battle(wait_time=self.config.orochi.invite_config.wait_time):
                     self.run_general_battle(config=self.config.orochi.general_battle_config)
                 else:

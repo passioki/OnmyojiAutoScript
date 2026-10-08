@@ -1,4 +1,4 @@
-# This Python file uses the following encoding: utf-8
+﻿# This Python file uses the following encoding: utf-8
 # @author runhey
 # github https://github.com/runhey
 from time import sleep
@@ -243,7 +243,9 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 continue
 
             if self.is_in_room():
-                self.device.stuck_record_clear()
+                # 不能 clear(): 转场动画期间无可识别状态, 会只剩 60s 看门狗 -> 误判卡死。
+                # 详见 FallenSun/script_task.py 同名位置的长注释(2026-10-08 线上实测)。
+                self.device.stuck_record_add('BATTLE_STATUS_S')
                 if self.wait_battle(wait_time=self.config.evo_zone.invite_config.wait_time):
                     self.run_general_battle(config=self.config.evo_zone.general_battle_config)
                 else:

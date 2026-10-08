@@ -107,12 +107,12 @@ def build_schema(config_name: str = '') -> dict:
         ],
         # 任务列表: 列表就是**调度器的一种模式**, 不是新子系统
         # (见 docs/architecture.md §5)。
-        'list': _list_meta(),
+        'list': _list_meta(config_name),
         'tasks': tasks,
     }
 
 
-def _list_meta() -> dict:
+def _list_meta(config_name: str = '') -> dict:
     """
     任务列表的元信息(供界面渲染排序控件)。
 
@@ -161,27 +161,116 @@ def _list_meta() -> dict:
         # 用户编排写入的字段
         'order_field': 'run_list',
         'order_group': 'script.optimization',
+        # 当前的调度模式 —— ★ 界面**不能硬编码**默认值, 否则会显示成
+        # "顺序不生效"的样子(实际用户早就设成 List 了)
+        'current_mode': _current_schedule_rule(config_name),
         # 条目类型(界面据此渲染"添加条目"选择器)
         'entry_kinds': kinds,
         'duration_choices': durations,
         # 当前用户编排(原始数组; 空表示未编排)
-        'entries': _current_run_list(),
+        'entries': _current_run_list(config_name),
         'note': ('task 条目**不阻塞**列表(未就绪就跳过); '
                  'rest/delay 条目**阻塞**列表, 生效后自动移除'),
+        # 全局开关 —— 界面直接渲染, 不必知道字段名
+        'global_fields': _global_fields(config_name),
     }
 
 
-def _current_run_list() -> list:
-    """读当前配置的 `run_list`(取第一个可用配置; 界面会按账号再拉一次)。"""
+def _config_of(config_name: str):
+    """
+    按**脚本名**取配置。
+
+    ⚠ 不要用 `mm.config_cache_list()[0]` —— 那会读到**另一个账号**的配置。
+      (踩过: 第一版就是这样, 结果是"current"字段永远为空或串号。)
+    """
+    if not config_name:
+        return None
     try:
         from module.server.main_manager import mm
-        configs = mm.config_cache_list() if hasattr(mm, 'config_cache_list') else []
-        if configs:
-            return list(getattr(configs[0].model.script.optimization,
-                                'run_list', []) or [])
+        return mm.config_cache(config_name)
     except Exception:
-        pass
-    return []
+        return None
+
+
+def _global_fields(config_name: str = '') -> dict:
+    """
+    `Script.optimization` 里值得放到「全局设置」面板的字段。
+
+    ## ★ 为什么这里**没有**"跑完循环整表"
+
+    原型里画了一个"跑完循环整表"开关, 但**后端根本没有这个字段**
+    (`Script.optimization` 里既没有 `loop_whole_list`, 也没有循环开关)。
+
+    我没有为了"界面上有这一项"就造一个假字段 —— 那会**静默失效**:
+    `script_set_arg` 遇到不存在的字段会返回 `False` 并记 error, 界面看不出来。
+
+    若将来要真正实现"循环整表", 需要**后端加字段 + 调度器支持**。
+    见 `docs/ui-api-mapping.md` 的缺口清单。
+
+    这里暴露的是**后端真实支持**的 `when_task_queue_empty`。
+    """
+    from tasks.Script.config_optimization import WhenTaskQueueEmpty
+
+    labels = {
+        WhenTaskQueueEmpty.GOTO_MAIN.value: '回庭院待命',
+        WhenTaskQueueEmpty.CLOSE_GAME.value: '关闭游戏',
+    }
+    current = ''
+    config = _config_of(config_name)
+    if config is not None:
+        try:
+            v = getattr(config.model.script.optimization,
+                        'when_task_queue_empty', None)
+            # ⚠ 不能直接 `str(v)` —— 枚举实例的 `str()` 会得到
+            #   `'WhenTaskQueueEmpty.GOTO_MAIN'`(枚举名), 而不是 `'goto_main'`。
+            #   前端拿去比对会永远不匹配。
+            current = str(getattr(v, 'value', v) or '')
+        except Exception:
+            current = ''
+    if not current:
+        # 兜底: 给后端默认值, 免得界面下拉框空着
+        current = WhenTaskQueueEmpty.GOTO_MAIN.value
+
+    return {
+        'when_task_queue_empty': {
+            'group': 'script.optimization',
+            'field': 'when_task_queue_empty',
+            'type': 'string',
+            'label': '队列跑空后',
+            'current': current,
+            'choices': [
+                {'value': k.value, 'label': labels.get(k.value, k.value)}
+                for k in WhenTaskQueueEmpty
+            ],
+        },
+    }
+
+
+def _current_run_list(config_name: str = '') -> list:
+    """读**指定配置**的 `run_list`。"""
+    config = _config_of(config_name)
+    if config is None:
+        return []
+    try:
+        return list(getattr(config.model.script.optimization,
+                            'run_list', []) or [])
+    except Exception:
+        return []
+
+
+def _current_schedule_rule(config_name: str = '') -> str:
+    """读**指定配置**的调度模式。取不到时给 `Filter`(后端的默认值)。"""
+    from tasks.Script.config_optimization import ScheduleRule
+    config = _config_of(config_name)
+    if config is not None:
+        try:
+            v = getattr(config.model.script.optimization,
+                        'schedule_rule', None)
+            if v is not None:
+                return str(getattr(v, 'value', v))
+        except Exception:
+            pass
+    return ScheduleRule.FILTER.value
 
 
 # --------------------------------------------------------------------------- 动态总览

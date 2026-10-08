@@ -215,10 +215,14 @@ POST /{script}/run_list/entry?index=2   body: {"kind":"rest","minutes":30}
 
 ### 2.5 全局设置区
 
-| 原型控件 | 接口 |
-|---|---|
-| `#loop` 循环模式 | `PUT /{script}/script/optimization/schedule_rule/value` |
-| 预期执行流程（推算） | 前端根据 `next_run` + `schema.resource` 推算 |
+| 原型控件 | 实际接口 | 说明 |
+|---|---|---|
+| `#pmode` 优先级依据 | `PUT /{script}/script/optimization/schedule_rule/value` | 四个模式；当前值读 `schema.list.current_mode` |
+| `#loop` **跑完循环整表** | ❌ **后端没有这个字段** | 见 §5.1 —— 换成了 `when_task_queue_empty` |
+| 预期执行流程（推算） | `GET /{script}/run_list/preview` | ✅ 已实现，带 `disclaimer` |
+
+★ **当前值必须从 `/schema` 读**，不能硬编码 —— 否则界面会误报
+"顺序不生效"（实际用户早设成 `List` 了）。见 §5.2。
 
 ---
 
@@ -267,9 +271,43 @@ POST /{script}/run_list/entry?index=2   body: {"kind":"rest","minutes":30}
 |---|---|---|---|
 | 1 | **无批量写入端点** | 批量启停 50 个任务 = 50 次请求 | 后端加 `PUT /{script}/tasks/bulk`；或前端并发请求（可接受）|
 | 2 | `teams` 是**账号级**而非**任务级** | "对方"列若要求"该任务的队友"，数据不够 | 需明确需求：是账号在线状态，还是任务级队友 |
-| 3 | 无"预期执行流程"推算接口 | 原型里那张流程图要前端自己算 | 前端用 `next_run` + `resource.interval/period` 推算；或后端加 `/plan` |
+| 3 | ~~无"预期执行流程"推算接口~~ | ✅ **已补** —— `GET /{script}/run_list/preview` | — |
 | 4 | `schema` 与 `overview` 需要**两次请求** | 首次加载稍慢 | 可接受；也可后端合并（但破坏职责分离）|
-| 5 | 无"任务详情页"接口规划 | 原型只画了总览+列表 | 详情页沿用既有 `GET /{script}/{task}/args`（返回完整 pydantic schema）|
+| 5 | 无"任务详情页"接口规划 | 原型只画了总览+列表 | 详情页沿用既有 `GET /{script}/{task}/args` |
+| 6 | **「跑完循环整表」后端没有对应字段** | 原型画了但 `Script.optimization` 里没有 | 见 §5.1 |
+
+### 5.1 ★ 关于「跑完循环整表」
+
+原型里画了一个"跑完循环整表"开关，但**后端不支持**。
+
+**没有为了"界面上有这一项"就造一个假字段** —— 那会**静默失效**：
+`script_set_arg` 遇到不存在的字段会返回 `False` 并记 error，
+**界面完全看不出来**，用户会以为设置生效了。
+
+**界面改成了什么** —— 「全局设置」面板里换成**后端真实支持**的字段：
+
+| 控件 | 字段 | 取值 |
+|---|---|---|
+| 队列跑空后 | `script.optimization.when_task_queue_empty` | `goto_main` 回庭院待命 / `close_game` 关闭游戏 |
+
+字段名、标题、可选值、当前值**全部来自 `/schema` 的 `list.global_fields`**。
+
+**若要真正实现"循环整表"**（属于**新功能**，不是界面适配）：
+
+1. `Script.optimization` 加字段（如 `loop_whole_list: bool`）
+2. 调度器在列表跑空时（`when_task_queue_empty` 之前）判断：回列表开头还是走原逻辑
+3. `run_list` 的一次性条目会被移除，所以"循环"要能重新入队
+
+### 5.2 ★ 界面**不能硬编码**的两个初值
+
+| 字段 | 位置 | 坑 |
+|---|---|---|
+| `list.current_mode` | `/schema` | 硬编码成 `'Filter'` 会让界面**误报**"顺序不生效"（实际用户早设成 `List`）|
+| `list.global_fields.*.current` | `/schema` | 必须取枚举的 `.value` —— `str(枚举)` 会得到 `'WhenTaskQueueEmpty.GOTO_MAIN'` 而非 `'goto_main'` |
+
+★ 另一个坑：**按脚本名取配置**（`mm.config_cache(name)`），
+  不要用 `config_cache_list()[0]` —— 那会读到**另一个账号**的配置。
+
 
 ---
 

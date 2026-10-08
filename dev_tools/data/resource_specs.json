@@ -1,0 +1,991 @@
+[
+  {
+    "task": "AbyssShadows",
+    "name_zh": "狭间暗域",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "ActivityShikigami",
+    "name_zh": "当期爬塔",
+    "category": "limited",
+    "resource": {
+      "kind": "window"
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 01:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "AreaBoss",
+    "name_zh": "地域鬼王",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 06:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "AutoCheckinBigGod",
+    "name_zh": "大神签到",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "BondlingFairyland",
+    "name_zh": "契灵之境",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 30
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 30,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "BudokaiTournament",
+    "name_zh": "武道大会",
+    "category": "limited",
+    "resource": {
+      "kind": "window"
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "CollectiveMissions",
+    "name_zh": "集体任务",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "DailyTrifles",
+    "name_zh": "每日琐事",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Delegation",
+    "name_zh": "式神委派",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 01:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "DemonEncounter",
+    "name_zh": "逢魔之时",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 01:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "DemonRetreat",
+    "name_zh": "首领退治",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Dokan",
+    "name_zh": "道馆",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Duel",
+    "name_zh": "斗技",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "DyeTrials",
+    "name_zh": "灵染试炼",
+    "category": "limited",
+    "resource": {
+      "kind": "window"
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "EternitySea",
+    "name_zh": "永生之海",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 30
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 30,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "EvoZone",
+    "name_zh": "觉醒副本",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 30
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 30,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "ExperienceYoukai",
+    "name_zh": "经验妖怪",
+    "category": "charge",
+    "resource": {
+      "kind": "slots",
+      "slots": [
+        [
+          0,
+          0
+        ],
+        [
+          12,
+          0
+        ]
+      ],
+      "amount": 1,
+      "capacity": 2,
+      "consume": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": "0,12",
+      "charge_max": 2,
+      "charge_consume": 1
+    }
+  },
+  {
+    "task": "Exploration",
+    "name_zh": "探索",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 30
+    },
+    "_source": {
+      "count_field": "minions_cnt",
+      "count_default": 30,
+      "success_interval": "00 01:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "FallenSun",
+    "name_zh": "日轮之陨",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 50
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 50,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "FindJade",
+    "name_zh": "寻找协作任务",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "FloatParade",
+    "name_zh": "花车巡游",
+    "category": "limited",
+    "resource": {
+      "kind": "window"
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "03 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "FrogBoss",
+    "name_zh": "对弈竞猜",
+    "category": "limited",
+    "resource": {
+      "kind": "window"
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "GoldYoukai",
+    "name_zh": "金币妖怪",
+    "category": "charge",
+    "resource": {
+      "kind": "slots",
+      "slots": [
+        [
+          0,
+          0
+        ],
+        [
+          12,
+          0
+        ]
+      ],
+      "amount": 1,
+      "capacity": 2,
+      "consume": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": "0,12",
+      "charge_max": 2,
+      "charge_consume": 1
+    }
+  },
+  {
+    "task": "GoryouRealm",
+    "name_zh": "御灵之境",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 30
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 30,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "GotoMain",
+    "name_zh": "回到庭院",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": null,
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "GuildActivityMonitor",
+    "name_zh": "寮活动监控",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "GuildBanquet",
+    "name_zh": "寮宴会",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "HeroTest",
+    "name_zh": "英杰试炼",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 100
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 100,
+      "success_interval": "00 01:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Hunt",
+    "name_zh": "狩猎战",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Hyakkiyakou",
+    "name_zh": "百鬼夜行",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 10
+    },
+    "_source": {
+      "count_field": "hya_limit_count",
+      "count_default": 10,
+      "success_interval": "00 12:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "KekkaiActivation",
+    "name_zh": "结界挂卡",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "KekkaiUtilize",
+    "name_zh": "结界蹭卡",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "KittyShop",
+    "name_zh": "猫咪铺子",
+    "category": "limited",
+    "resource": {
+      "kind": "window"
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "MemoryScrolls",
+    "name_zh": "绘卷",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "MetaDemon",
+    "name_zh": "超鬼王",
+    "category": "limited",
+    "resource": {
+      "kind": "window"
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "MysteryShop",
+    "name_zh": "神秘商店",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Nian",
+    "name_zh": "年兽",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Orochi",
+    "name_zh": "八岐大蛇",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 30
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 30,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "OtherWorldTwilight",
+    "name_zh": "彼世逢魔",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 30
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 30,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Pets",
+    "name_zh": "小猫咪",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Quiz",
+    "name_zh": "智力竞赛",
+    "category": "limited",
+    "resource": {
+      "kind": "window"
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "RealmRaid",
+    "name_zh": "个人突破",
+    "category": "toppa",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 30
+    },
+    "_source": {
+      "count_field": "number_attack",
+      "count_default": 30,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Restart",
+    "name_zh": "重启",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "RichMan",
+    "name_zh": "大富翁",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "RyouToppa",
+    "name_zh": "寮突破",
+    "category": "toppa",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 50
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 50,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Secret",
+    "name_zh": "秘闻副本",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "weekly",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "07 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "SixRealms",
+    "name_zh": "六道之门",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 1,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Sougenbi",
+    "name_zh": "业原火",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 30
+    },
+    "_source": {
+      "count_field": "limit_count",
+      "count_default": 30,
+      "success_interval": "01 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "SoulsTidy",
+    "name_zh": "御魂整理",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "Tako",
+    "name_zh": "石距",
+    "category": "charge",
+    "resource": {
+      "kind": "slots",
+      "slots": [
+        [
+          0,
+          0
+        ],
+        [
+          12,
+          0
+        ]
+      ],
+      "amount": 1,
+      "capacity": 2,
+      "consume": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": "0,12",
+      "charge_max": 2,
+      "charge_consume": 1
+    }
+  },
+  {
+    "task": "TalismanPass",
+    "name_zh": "花合战",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "TrueOrochi",
+    "name_zh": "真八岐大蛇",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "weekly",
+      "capacity": 2
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "03 00:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "WantedQuests",
+    "name_zh": "悬赏封印",
+    "category": "fixed",
+    "resource": {
+      "kind": "period",
+      "period": "daily",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 01:30:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  },
+  {
+    "task": "WeeklyTrifles",
+    "name_zh": "每周琐事",
+    "category": "timed",
+    "resource": {
+      "kind": "period",
+      "period": "weekly",
+      "capacity": 1
+    },
+    "_source": {
+      "count_field": null,
+      "count_default": null,
+      "success_interval": "00 03:00:00",
+      "charge_slots": null,
+      "charge_max": null,
+      "charge_consume": null
+    }
+  }
+]

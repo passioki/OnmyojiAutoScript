@@ -37,6 +37,8 @@ from datetime import datetime, time, timedelta
 from enum import Enum
 from typing import Literal
 
+from module.config.availability import AvailabilityWindow
+
 
 class Period(str, Enum):
     """容量重置周期。仅在 refill 为 `none` 时有意义。"""
@@ -78,6 +80,7 @@ class Resource:
     slots: tuple = ()                    # ((hour, minute), ...)
     period: Period = Period.DAILY
     reset_at: time = time(0, 0)
+    window: 'AvailabilityWindow' = None  # 开放时段(硬约束); None = 不限时段
 
     # ------------------------------------------------------------------ 校验
     def __post_init__(self):
@@ -115,6 +118,11 @@ class Resource:
     def is_activity_gated(self) -> bool:
         """是否受活动期限制(限时活动)。"""
         return self.refill == 'window'
+
+    @property
+    def has_window(self) -> bool:
+        """是否配置了开放时段(硬约束)。"""
+        return self.window is not None and self.window.enabled
 
     # ------------------------------------------------------------ 周期边界的纯函数
     def period_start(self, now: datetime) -> datetime:

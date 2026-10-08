@@ -20,14 +20,15 @@
 |---|---|
 | [1](#1-设计原则) | 设计原则 |
 | [2](#2-现状问题) | 现状问题（已实测） |
-| [3](#3-核心抽象) | 核心抽象：Resource + RunState |
+| [3](#3-核心抽象) | 核心抽象：Resource + RunState + AvailabilityWindow |
 | [4](#4-调度器) | 调度器 |
 | [5](#5-任务列表) | 任务列表（调度器的一种模式） |
 | [6](#6-运行控制) | 运行控制：暂停 / 休息 / 延后 |
 | [7](#7-可演进性) | 可演进性：新增任务 / 维护 / 前后端 / 跨平台 |
-| [8](#8-路线图) | 路线图 |
-| [9](#9-决策台账) | 决策台账 |
-| [10](#10-已修复的-bug) | 已修复的 bug |
+| [8](#8-游戏机制数据从哪来) | **游戏机制数据从哪来（调研方法论）** |
+| [9](#9-路线图) | 路线图 |
+| [10](#10-决策台账) | 决策台账 |
+| [11](#11-已修复的-bug) | 已修复的 bug |
 
 ---
 
@@ -116,15 +117,86 @@ OASX i18n_cn.dart     FallenSun → 日轮之陨     ← 权威
 
 ## 3. 核心抽象
 
-**只有两个概念。**
+**只有三个概念。**
 
 ```
-Resource    资源   —— 任务"能跑几次"的来源   （静态规则, 来自 tasks/<Name>/meta.py）
-RunState    运行态 —— 它"现在能不能跑"        （动态, 由 scheduler 维护）
+Resource            资源     —— 任务"能跑几次"的来源   （静态规则）
+AvailabilityWindow  开放时段 —— 任务"什么时候允许跑"   （静态规则, 硬约束）
+RunState            运行态   —— 它"现在能不能跑"        （动态）
 ```
 
-`next_run` / `success_interval` / `charge_*` 全部消失 —— 它们都是这两个概念的
+`next_run` / `success_interval` / `charge_*` 全部消失 —— 它们都是这些概念的
 **不完整实现**。
+
+### 3.0 ★ AvailabilityWindow —— 一个此前完全缺失的概念
+
+**阴阳师很多玩法不是随时能做**，而是有固定开放时段。而 OAS 此前**没有这个概念**，
+用户只能用一个迂回办法绕过：
+
+> 把 `success_interval` 设得很短（如 1 小时），让任务**频繁醒来碰运气** ——
+> 因为软件无法保证"在开放时段内一定会打开该任务"。
+
+这带来两个后果：
+
+| 后果 | 说明 |
+|---|---|
+| **字段语义被污染** | `success_interval` 里混进了**用户意图**（轮询节奏），不再是游戏机制。任何拿它当游戏知识读的逻辑都会出错 |
+| **白跑一趟** | 不在时段内时，任务进界面、发现做不了、退出 —— 浪费时间，还可能干扰游戏状态 |
+
+```python
+# 复现该问题(用户实际配置)
+demon_encounter.success_interval = "00 01:00:00"   # ← 这是"用户为了不错过而每小时轮询"
+# 真实的游戏机制是: 逢魔之时 每天 17:00-23:00   ← 这条信息配置里完全没有
+```
+
+**新模型把两者彻底分开**：
+
+| 概念 | 来源 | 性质 | 例 |
+|---|---|---|---|
+| `AvailabilityWindow` | **游戏机制** | **硬约束**：不在时段内一律不跑 | 逢魔 17:00–23:00 |
+| `interval` | **用户配置** | **软约束**：我想多快轮询 | 每小时醒一次 |
+| `slots` | **游戏机制** | 固定时刻补充额度 | 金币妖怪 0/12 点 |
+| `period` | **游戏机制** | 周期回满额度 | 每天打 50 次 |
+
+三者可以**共存**：
+
+```python
+Resource(
+    capacity=1,
+    interval=(0, 1, 0),                                 # 用户轮询节奏(软)
+    window=AvailabilityWindow(True, time(17), time(23)),  # 游戏开放时段(硬)
+    period=Period.DAILY,
+)
+```
+
+**设计约束（用户明确要求）**：
+
+| # | 要求 | 落实 |
+|---|---|---|
+| 1 | **不写死任何时段** | 时段全部来自用户配置；`AvailabilityWindow` 的默认值是 `enabled=False`（不限时段），因此新字段**不改变既有行为** |
+| 2 | **全部开放出来** | `start` / `end` / `days` 都是用户可配字段，放进 `Scheduler` 配置（与 `period` 同级） |
+| 3 | **支持自学习** | `ObservedWindow` 记录实际跑通的时刻，反推真实时段，与配置比对后**提示用户**（不是自动改配置） |
+
+**能力**：
+
+* 每天固定时段：`AvailabilityWindow(True, time(17), time(23))`
+* 限定星期：`AvailabilityWindow(True, time(19), time(21), days=(4,5,6))`（周五六日）
+* **跨午夜**：`AvailabilityWindow(True, time(22), time(2))`（22:00–次日 02:00）
+
+**自学习的工作方式**：
+
+```
+运行中记录"每次成功发生的时刻"(只记成功 —— 失败可能因体力/网络等无关原因)
+        ↓  样本 >= 5 个才下结论(避免误报)
+      取 1%/99% 分位并向外扩 5 分钟(抵抗偶发异常值)
+        ↓
+    反推出实测时段 → 与用户配置比对
+        ↓
+不一致时**提示**用户: "实测该任务只在 每天 17:00-22:05 运行过(共 12 次); 可考虑启用时段限制"
+```
+
+★ 这样即使初始配置不准、或游戏改版，软件也能**自我纠正并告知**，
+而不是依赖某一次把数据填对。
 
 ### 3.1 Resource —— 三种形态覆盖全部 54 个任务
 
@@ -512,22 +584,149 @@ python dev_tools/gen_task_catalog.py --check
 
 ---
 
-## 8. 路线图
+## 8. 游戏机制数据从哪来（调研方法论）
+
+> 这一节是**给未来的我**写的。本轮为了查"逢魔之时的开放时段"，我在搜索上花了
+> 大量时间却几乎一无所获，踩过的坑必须记下来，避免重复劳动。
+
+### 8.1 核心教训：**不要把用户配置当游戏机制读**
+
+这是本轮最贵的一个错误。
+
+```python
+# 我曾经的推理(错)
+demon_encounter.success_interval = "00 01:00:00"
+→ "逢魔之时每小时可以做一次"
+```
+
+**真相**：用户把 `success_interval` 设成 1 小时，是因为**软件无法保证在开放时段内
+一定会打开该任务**，所以让它每小时醒来碰运气。这是**用户为了绕过软件限制而设的
+轮询节奏**，不是游戏机制。
+
+| 字段 | 实际含义 | 是不是游戏机制 |
+|---|---|---|
+| `success_interval` | 用户希望的轮询/冷却节奏 | ❌ **用户意图** |
+| `charge_slots` / `charge_max` | 游戏内补充时刻与上限 | ✅ 是 |
+| `limit_count` | 单次运行打几次 | ⚠️ 半是（用户可调） |
+| `window`（新增） | 游戏开放时段 | ✅ 是 |
+
+**规则：任何"游戏多久开放一次"的结论，必须来自游戏机制本身，不能从
+`success_interval` 反推。** 若拿不准，就问用户或标注"未验证"。
+
+### 8.2 本轮实测到的真实游戏时间（来自代码，可信）
+
+代码里已经**藏着一部分**真实时间，以"定点运行"的形式存在（这是旧的绕过手段）：
+
+| 任务 | 字段 | 值 |
+|---|---|---|
+| `AbyssShadows` 狭间暗域 | `custom_run_time_friday` / `_saturday` / `_sunday` | **19:00** |
+| `DemonRetreat` 首领退治 | `custom_run_time` | **10:00** |
+| `GuildBanquet` 寮宴会 | `run_time_1` / `run_time_2` | **19:00** |
+| `Hunt` 狩猎战 | `kirin_time` / `netherworld_time` | **19:00** |
+| `MemoryScrolls` 绘卷 | `next_exploration_time` | **7:00** |
+| `MysteryShop` 神秘商店 | `time_of_mystery` | **0:00** |
+| `RyouToppa` 寮突破 | `next_ryoutoppa_time` | **7:00** |
+
+⚠️ 这些是**定点**，不等于**开放时段**。开放时段的上界/下界代码里没有。
+
+用户告知的一条真实机制（可信）：**逢魔之时 每天 17:00–23:00**。
+
+### 8.3 网络途径现状（实测于 2026-10-08）
+
+| 途径 | 状态 | 说明 |
+|---|---|---|
+| **PowerShell `Invoke-WebRequest`** | ✅ **唯一稳定可用** | 走系统代理；**优先用它** |
+| `web_fetch` 工具 | ⚠️ 时好时坏 | **自己解析 DNS**，不读系统设置。代理 fake-ip 模式下域名解析到 `198.18.x.x`（代理保留段），工具据此判定"非公网 IP"并拒绝。每次调用重新解析，所以偶尔能通 |
+| `web_search` 工具 | ❌ HTTP 402 | 该工具走 DeepSeek Messages API，**账户余额不足**。与代理无关，关代理无用。修法：Settings → Plugins → Web search 改 endpoint，或设 `DEEPSEEK_SEARCH_BASE_URL` |
+| Bing / Google / 百度 / 搜狗 / 360 / DuckDuckGo | ❌ | 全部反爬：中文切词错误、验证码、JS 重定向、403。Bing 会把「阴阳师」切成「阴阳」，返回哲学内容 |
+| **bilibili 阴阳师 wiki** | ✅ 可达但**只有剧情** | `wiki.biligame.com/yys/` —— 500+ 页面全是剧情/角色，`含'玩法'`、`含'逢魔'` 均为空。**没有玩法时间表** |
+| `yys.huijiwiki.com` | ❌ 403 | |
+| GitHub API（仓库搜索） | ✅ 可用 | 找同类项目；但**代码搜索需认证**（401） |
+| GitHub raw | ✅ 可用 | 可直读文件 |
+
+### 8.4 可用的抓取手法（供复用）
+
+**基础连通性自检**：
+
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$ProgressPreference = 'SilentlyContinue'
+$ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+function WJ($u) {
+  try { return (Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 30 -Headers @{'User-Agent'=$ua}).Content }
+  catch { return $null }
+}
+```
+
+**HTML 转纯文本**：
+
+```powershell
+function ToText($h) {
+  if (-not $h) { return '' }
+  $t = [regex]::Replace($h, '(?is)<(script|style)[^>]*>.*?</\1>', ' ')
+  $t = [regex]::Replace($t, '(?s)<[^>]+>', ' ')
+  return ([regex]::Replace($t, '\s+', ' ')).Trim()
+}
+```
+
+**MediaWiki API**（若目标站点是 wiki，比抓 HTML 可靠得多）：
+
+```
+# 搜索
+https://<wiki>/api.php?action=query&format=json&list=search&srlimit=20&srsearch=<urlencoded>
+
+# 列页面(注意 apprefix/allpages 在部分站点被禁用, 会返回空)
+https://<wiki>/api.php?action=query&format=json&list=allpages&aplimit=500
+
+# 取页面正文渲染后 HTML
+https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
+```
+
+**注意事项（都踩过）**：
+
+1. **执行策略**：`.ps1` 文件被拦（`not digitally signed`）。直接内联命令，或
+   `powershell -ExecutionPolicy Bypass -File x.ps1`。
+2. **`pwsh` 不存在** —— 本机只有 Windows PowerShell 5.1，调用要用 `powershell`。
+3. **Python 子进程调不通** —— `subprocess.run(['pwsh', ...])` 报
+   `FileNotFoundError`，因为 `pwsh` 不在该 Python 的 PATH 里。
+4. **`allpages` 可能返回空** —— 部分 wiki 禁用该接口（用 `srsearch` 替代）。
+5. **`prop=extracts` 未安装**时返回 `Unrecognized value for parameter "prop"`，
+   改用 `action=parse&prop=text`。
+6. **编码**：中文页面用 UTF-8 解码；若出现乱码试 `gbk`。
+
+### 8.5 结论：数据来源的优先级
+
+```
+1. 用户直接告知                    ← 最权威, 优先问
+2. 代码里已存在的真实字段(定点/时段)  ← 本轮已挖出 7 处
+3. 其它同类开源脚本的常量            ← GitHub 仓库搜索 + raw 直读
+4. 官方/wiki/攻略站                 ← 中文搜索基本被反爬, wiki 只有剧情
+5. 自学习(ObservedWindow)           ← 兜底, 且能纠正以上任何一层的错误
+```
+
+★ **第 5 条是关键**：既然外部数据既难拿又可能过时，就让软件**从自己的运行记录里
+推断**。这样任何一层的错误都能被发现并提示，而不是永久错下去。
+
+---
+
+## 9. 路线图
 
 | # | 内容 | 状态 |
 |---|---|---|
 | 1 | `task_catalog` 任务元数据目录 | ✅ 已提交 `b004d6ed` |
-| 2 | `Resource` + `TaskSpec` 加进 catalog | ⬜ |
-| 3 | **`Scheduler` 核心（纯函数 + 完整单测，不接线）** | ⬜ |
-| 4 | 一次性迁移脚本 + 切换 `get_next()` | ⬜ |
-| 5 | 一次性脚本为 54 个任务批量生成 `meta.py` | ⬜ |
-| 6 | `config_model` 自动发现（删 113 行） | ⬜ |
-| 7 | i18n 改为生成 / `/schema` 提供 | ⬜ |
-| 8 | 休息 / 延后 / 暂停 | ⬜ |
-| 9 | 任务列表（`list_pos` / `mode`） | ⬜ |
-| 10 | `GET /{script}/schema` + `/overview` | ⬜ |
-| 11 | `StateProvider`（界面感知）+ `DeviceProvider` | ⬜ |
-| 12 | OASX 前端页面 | ⬜ |
+| 2 | `Resource` + `RunState` + `next_available()` 纯函数核心 | ✅ 已提交 `90f803de` |
+| 3 | **`AvailabilityWindow` 开放时段 + `ObservedWindow` 自学习** | ✅ 已提交（本步） |
+| 4 | `Resource` 加进 catalog（含各任务开放时段的元数据） | ⬜ |
+| 5 | 开放时段接入用户配置（`Scheduler` 加 `window_*` 字段） | ⬜ |
+| 6 | 一次性迁移脚本 + 切换 `get_next()` 到新调度器 | ⬜ |
+| 7 | 一次性脚本为 54 个任务批量生成 `meta.py` 自描述 | ⬜ |
+| 8 | `config_model` 自动发现（删 113 行） | ⬜ |
+| 9 | i18n 改为生成 / `/schema` 提供 | ⬜ |
+| 10 | 休息 / 延后 / 暂停 | ⬜ |
+| 11 | 任务列表（`list_pos` / `mode`） | ⬜ |
+| 12 | `GET /{script}/schema` + `/overview` | ⬜ |
+| 13 | `StateProvider`（界面感知）+ `DeviceProvider` | ⬜ |
+| 14 | OASX 前端页面（含开放时段配置 + 自学习提示） | ⬜ |
 
 ### 待修 bug（独立于上述路线图）
 
@@ -536,9 +735,10 @@ python dev_tools/gen_task_catalog.py --check
 | **完成记忆从未生效** | 所有任务 `period=none`；真实周期由 `success_interval` 控制 |
 | **`WantedQuests` 硬编码 30** | 用户无法配置次数 |
 | 4 处字段不统一 | `Exploration.minions_cnt` / `Hyakkiyakou.hya_limit_count` / `RealmRaid.number_attack` / 上述硬编码 |
+| **`gen_resource_specs.py` 误分类** | 6 个任务的"小时级间隔"被错误归为 `period`，丢失"3 小时/6 小时"信息，应保留为 `interval` |
 
-★ **第 3 步是关键安全支点**：新调度核心先以**纯函数 + 单测**独立写完，不碰现有代码。
-即使第 4 步切换出问题，回退成本是"把 `get_next()` 指回旧实现"，
+★ **第 2-3 步是安全支点**：新核心以**纯函数 + 单测**独立写完，不碰现有代码。
+即使后续切换出问题，回退成本是"把 `get_next()` 指回旧实现"，
 而不是"拆掉半新半旧的东西"。
 
 ### 用户配置面的变化（第 4 步后）
@@ -553,12 +753,12 @@ python dev_tools/gen_task_catalog.py --check
 
 ---
 
-## 9. 决策台账
+## 10. 决策台账
 
 > 每条都记录了出处。**实施前逐条核对，避免"用户答过我又问一遍"。**
 > 建立起因：曾漏记用户「好的，A就行」，之后反复把它当待确认项重复询问。
 
-### 9.1 暂停 / 运行控制
+### 10.1 暂停 / 运行控制
 
 | # | 决定 | 状态 |
 |---|---|---|
@@ -567,7 +767,7 @@ python dev_tools/gen_task_catalog.py --check
 | 1.3 | **不提供**「立即停」（不安全） | ✅ |
 | 1.4 | 这是**新功能**（现有只有 `terminate()` 硬杀） | ✅ 事实 |
 
-### 9.2 界面职责
+### 10.2 界面职责
 
 | # | 决定 | 状态 |
 |---|---|---|
@@ -575,7 +775,7 @@ python dev_tools/gen_task_catalog.py --check
 | 2.2 | 改为**批量操作条** + 搜索 + 过滤 | ✅ |
 | 2.3 | 任务级 `enable` 禁用时列表行显示 `⚠ 配置中已停用` | ✅ |
 
-### 9.3 任务列表
+### 10.3 任务列表
 
 | # | 决定 | 状态 |
 |---|---|---|
@@ -587,14 +787,14 @@ python dev_tools/gen_task_catalog.py --check
 | 3.6 | 列表存在 `Script` 全局配置的 `task_list` 分组 | ✅ |
 | 3.7 | `priority_mode` 默认「定时优先」 | ✅ |
 
-### 9.4 休息 / 延后
+### 10.4 休息 / 延后
 
 | # | 决定 | 状态 |
 |---|---|---|
 | 4.1 | 删除「休息作用范围」概念（v1 的多余设计） | ✅ |
 | 4.2 | 改为**两个独立条目类型**：休息（全停）+ 延后（只缓列表） | ✅ |
 
-### 9.5 次数字段
+### 10.5 次数字段
 
 | # | 决定 | 状态 |
 |---|---|---|
@@ -602,7 +802,7 @@ python dev_tools/gen_task_catalog.py --check
 | 5.2 | 待统一：`Exploration` / `Hyakkiyakou` / `RealmRaid` / `WantedQuests` | ✅ 已列出 |
 | 5.3 | 旧配置用一次性迁移脚本，**脚本用完即删** | ✅ |
 
-### 9.6 任务分类
+### 10.6 任务分类
 
 | # | 决定 | 状态 |
 |---|---|---|
@@ -615,7 +815,7 @@ python dev_tools/gen_task_catalog.py --check
 | 6.7 | 中文名以 **OASX i18n 为权威**，54/54 已解析 | ✅ |
 | 6.8 | `FallenSun` = **日轮之陨**（非"日轮之城"） | ✅ 已修 `d9053699` |
 
-### 9.7 调度器重设计
+### 10.7 调度器重设计
 
 | # | 决定 | 状态 |
 |---|---|---|
@@ -627,7 +827,7 @@ python dev_tools/gen_task_catalog.py --check
 | 7.6 | 「次数」与「冷却」**解耦** | ✅ |
 | 7.7 | 用户配置面 10 → 3 个字段 | ✅ |
 
-### 9.8 架构与可演进性
+### 10.8 架构与可演进性
 
 | # | 决定 | 状态 |
 |---|---|---|
@@ -640,17 +840,29 @@ python dev_tools/gen_task_catalog.py --check
 | 8.7 | 跨平台：`DeviceProvider` + `requires` 声明 + 优雅降级 | ✅ |
 | 8.8 | 前端**不内置任务知识**，全部从 `/schema` 拉 | ✅ |
 
-### 9.9 工程纪律
+### 10.9 游戏机制数据与开放时段
+
+| # | 决定 | 状态 | 出处 |
+|---|---|---|---|
+| 9.1 | **不要把用户配置当游戏机制读** —— `success_interval` 是用户轮询节奏，不是游戏机制 | ✅ | 用户：「逢魔不是每1小时，这个是我为了确保不会错过…所以我让他每1小时轮询下」 |
+| 9.2 | 新增 **`AvailabilityWindow`** 概念：开放时段是**硬约束** | ✅ 已实现 | 同上 |
+| 9.3 | **不写死任何时段** —— 全部由用户配置；默认 `enabled=False`（不限时段），不改变既有行为 | ✅ 已实现 | 用户：「不要写死时间段」 |
+| 9.4 | **全部开放出来** —— `start`/`end`/`days` 都是用户可配字段 | ✅ 已实现 | 用户：「都开放出来时间」 |
+| 9.5 | **自学习**：记录实际跑通时刻反推时段，与配置比对后提示 | ✅ 已实现 | 用户：「自学习加用户可配置」 |
+| 9.6 | 逢魔之时真实机制 = **每天 17:00–23:00** | ✅ 记录（**不写死**） | 用户告知 |
+| 9.7 | 搜索方式与调研方法论写进文档（§8） | ✅ | 用户：「记得更新文档，包括搜索方式」 |
+
+### 10.10 工程纪律
 
 | # | 决定 | 状态 |
 |---|---|---|
-| 9.1 | `KeepLocalChanges: true` | ✅ 已做 |
-| 9.2 | `AutoUpdate: false`（开发期） | ✅ 已做 |
-| 9.3 | 不为兼容旧配置留双轨 / 兼容层 / feature flag | ✅ |
+| 10.1 | `KeepLocalChanges: true` | ✅ 已做 |
+| 10.2 | `AutoUpdate: false`（开发期） | ✅ 已做 |
+| 10.3 | 不为兼容旧配置留双轨 / 兼容层 / feature flag | ✅ |
 
 ---
 
-## 10. 已修复的 bug
+## 11. 已修复的 bug
 
 | 项 | 提交 | 核实依据 |
 |---|---|---|
@@ -671,6 +883,8 @@ python dev_tools/gen_task_catalog.py --check
 | 组队不点开始挑战 | `general_invite.py` 用了 `TeamUserStatus` 却漏 import | 加 `symtable` 静态检查测试 |
 | 完成记忆无效 | `period` 默认全为 `none`，真实周期在 `success_interval` | 加了功能要验证**真的生效** |
 | 我丢失两个提交 | `AutoUpdate: true` + `KeepLocalChanges: false` → `git reset --hard` | 开发期必须关自动更新 |
+| 把用户配置当游戏机制 | `success_interval=1h` 是用户轮询节奏，我读成"逢魔每小时一次" | **游戏机制不能从用户配置反推** |
+| 窗口候选点枚举退化 | `next_opening` 在窗口内返回 `now`，枚举时反复得到同一时刻 | 枚举需要 `strict` 语义 |
 
 ---
 
@@ -681,4 +895,10 @@ python dev_tools/gen_task_catalog.py --check
 | `docs/team-coordination.md` | 跨账号组队协同详细设计（Availability Oracle） |
 | `docs/task-list-prototype.html` | 任务列表界面原型（可交互） |
 | `module/config/task_catalog.py` | 任务元数据（运行时） |
-| `dev_tools/gen_task_catalog.py` | 元数据生成 / 校验工具 |
+| `module/config/resource.py` | **`Resource` 资源规则**（interval / slots / window / period） |
+| `module/config/availability.py` | **`AvailabilityWindow` 开放时段 + `ObservedWindow` 自学习** |
+| `module/config/scheduler_core.py` | **`RunState` + `next_available()` 纯函数调度核心** |
+| `dev_tools/gen_task_catalog.py` | 元数据生成 / 校验（支持 `--dump-names`） |
+| `dev_tools/gen_resource_specs.py` | 为 54 个任务生成 `Resource` 定义 |
+| `tests/module/config/test_scheduler_core.py` | 调度核心测试（57 项） |
+| `tests/module/config/test_availability.py` | 开放时段与自学习测试（47 项） |

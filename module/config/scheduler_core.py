@@ -170,7 +170,17 @@ def credits_at(resource: Resource, state: RunState, now: datetime) -> int:
 # --------------------------------------------------------------------------- 核心: next_available
 def _is_feasible(resource: Resource, state: RunState, at: datetime,
                  window_open: bool) -> bool:
-    """在 `at` 时刻是否可运行。"""
+    """
+    在 `at` 时刻是否可运行。
+
+    三道闸门, 全部通过才可行:
+      1. **开放时段**(`resource.window`)—— 游戏机制决定的硬约束。
+         不在时段内一律不跑(这正是旧代码缺失、只能靠频繁轮询绕过的那个概念)。
+      2. **活动期**(`window_open` 参数)—— 限时活动是否开放, 由外部探针判定。
+      3. **资源额度** + 失败退避。
+    """
+    if resource.has_window and not resource.window.contains(at):
+        return False
     if resource.is_activity_gated and not window_open:
         return False
     if state.retry_after is not None and at < state.retry_after:
@@ -197,6 +207,28 @@ def _candidate_times(resource: Resource, state: RunState, now: datetime) -> list
     cands = [now]
     if state.retry_after is not None and state.retry_after > now:
         cands.append(state.retry_after)
+
+    # 开放时段: 枚举未来的开放时刻。
+    #
+    # 必须用 `strict=True` —— 否则 `now` 已在窗口内时, next_opening 会反复
+    # 返回同一个 now, 枚举退化成"只找到周期边界", 漏掉次日的开放点。
+    # 踩过: 窗口内额度用完时, next_available 跳到 32 天上界。
+    if resource.has_window:
+        cur = now
+        for _ in range(10):
+            nxt = resource.window.next_opening(cur, strict=True)
+            if nxt > now + _MAX_HORIZON:
+                break
+            cands.append(nxt)
+            cur = nxt
+        # 周期边界若恰好落在窗口外, 单独补上"边界之后的下一次开放"
+        if resource.is_periodic:
+            boundary = resource.next_period_start(now)
+            while boundary <= now + _MAX_HORIZON:
+                cands.append(boundary)
+                cands.append(resource.window.next_opening(boundary, strict=True))
+                boundary = boundary + timedelta(
+                    days=7 if resource.period == Period.WEEKLY else 1)
 
     # interval: 从锚点起算的整数倍
     if resource.refill == 'interval':
@@ -250,7 +282,15 @@ def next_available(resource: Resource, state: RunState, now: datetime,
     if _is_feasible(resource, state, now, window_open):
         return now
 
-    # 活动期关闭: 核心不知道窗口何时打开, 交给调用方在稍后重试。
+    # 开放时段未开: 核心**知道**下一次开放时刻(时段是显式建模的),
+    # 因此可以直接给出答案, 而不是"稍后再问"。
+    if resource.has_window and not resource.window.contains(now):
+        opening = resource.window.next_opening(now)
+        if _is_feasible(resource, state, opening, window_open):
+            return opening
+
+    # 活动期关闭: 核心不知道活动何时开始(那是探针的事, 属于外部信息),
+    # 只能返回"稍后再问"的时刻。
     if resource.is_activity_gated and not window_open:
         return now + _WINDOW_RECHECK
 
@@ -275,6 +315,10 @@ def cannot_run_reason(resource: Resource, state: RunState, now: datetime,
 
     返回人类可读的短语; 可运行则返回 None。
     """
+    if resource.has_window and not resource.window.contains(now):
+        opening = resource.window.next_opening(now)
+        return (f'不在开放时段（{resource.window.describe()}，'
+                f'{opening:%m-%d %H:%M} 开放）')
     if resource.is_activity_gated and not window_open:
         return '不在活动期'
     if state.retry_after is not None and now < state.retry_after:

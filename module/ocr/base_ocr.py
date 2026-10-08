@@ -256,33 +256,86 @@ class BaseCor:
         if exact:
             result = [index for index, word in enumerate(strings) if word == keyword]
             return result or None
-        elif keyword in concatenated_string:
+
+        # 注意: "整串(拼接后)包含关键词" 并不等于 "某个单行包含关键词" ——
+        # 目标文本被 OCR 拆到相邻两行时, 拼接后包含、但逐行都不包含,
+        # 这里的列表推导会得到**空列表**。旧代码用 `if result is not None`
+        # 判断, 空列表会直接返回并提前退出, 使后面的跨行/相似度匹配永不执行。
+        # 因此改为只在**确实匹配到行**时返回。
+        if keyword in concatenated_string:
             result = [index for index, word in enumerate(strings) if keyword in word]
-        else:
-            result = None
+            if result:
+                return result
 
-        if result is not None:
-            # logger.info("Filter result: %s" % result)
-            return result
+        # 单行都匹配不上时, 尝试"跨行拼接": 目标文本可能被 OCR 拆到相邻两行,
+        # 或者被识别成略有出入的字(例如 50%/100% 只差一个字符)。
+        #
+        # 这里刻意**不再**沿用"逐字符各找一行"的旧回退: 那种做法只要求关键词的
+        # 每个字符出现在**某一行**里, 于是"金币增加50%"里的字会分别命中
+        # "觉醒副本掉落额外的觉醒材料"/"战斗胜利获得的经验增加50%" 等无关行,
+        # 返回一大串 index, 上层 merge_area 会把它们合并成一大片区域,
+        # 点击位置必然落错 —— 线上表现为"金币妖怪多开了觉醒加成"(2026-10-08)。
+        #
+        # 新做法保证匹配结果**连续且紧凑**:
+        #   1) 逐字符只在"当前行或下一行"里找(竖排/换行都满足);
+        #   2) 要求命中足够多的字符(>= 阈值), 避免偶然命中;
+        #   3) 返回的 index 收敛到 [起始行, 结束行] 这个连续区间。
+        matched = self._match_across_lines(strings, keyword)
+        if matched:
+            return matched
+        # 最后兜底: 允许少量 OCR 误差(如 50% 被读成 60%), 用相似度找最接近的那一行。
+        return self._match_by_similarity(strings, keyword)
 
-        # 如果适用顺序拼接还是没有匹配到，那可能是竖排的，使用单个字节的keyword进行匹配
-        indices = []
-        # 对于keyword中的每一个字符，都要在strings中进行匹配
-        # 如果这个字符在strings中的某一个string中，那么就记录这个string的index
-        max_index = len(strings) - 1
-        for index, char in enumerate(keyword):
-            for i, string in enumerate(strings):
-                if char not in string:
-                    continue
-                if i <= max_index:
-                    indices.append(i)
-                    break
-        if indices:
-            # 剔除掉重复的index
-            indices = list(set(indices))
-            return indices
-        else:
+    @staticmethod
+    def _match_across_lines(strings: list, keyword: str) -> list or None:
+        """逐字符在"当前行或下一行"里推进, 返回连续的 index 区间。"""
+        if not keyword or not strings:
             return None
+        hits = 0
+        row = 0
+        first_row = None
+        last_row = None
+        for char in keyword:
+            found_row = None
+            # 只允许停留在当前行, 或前进到下一行 —— 不允许跳行或回头,
+            # 这样匹配结果一定连续。
+            for candidate in (row, row + 1):
+                if candidate < len(strings) and char in strings[candidate]:
+                    found_row = candidate
+                    break
+            if found_row is None:
+                continue
+            row = found_row
+            hits += 1
+            if first_row is None:
+                first_row = found_row
+            last_row = found_row
+        # 命中比例要求: 至少 80% 的字符找到, 且至少 4 个字符, 避免偶然命中。
+        if first_row is None or hits < max(4, int(len(keyword) * 0.8)):
+            return None
+        if last_row - first_row > 2:
+            # 跨越太多行说明仍然不可靠(正常换行只会跨 1 行)
+            return None
+        return list(range(first_row, last_row + 1))
+
+    @staticmethod
+    def _match_by_similarity(strings: list, keyword: str) -> list or None:
+        """用相似度找最接近的单行(容忍少量 OCR 误差)。"""
+        if not keyword or not strings:
+            return None
+        import difflib
+        best_ratio = 0.0
+        best_index = None
+        for index, string in enumerate(strings):
+            ratio = difflib.SequenceMatcher(None, keyword, string).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_index = index
+        # 阈值取得较高: 只用于"同一句话被读错一两个字"的情形,
+        # 不会把 '金币增加50%' 和 '经验增加100%' 这种不同条目录到一起。
+        if best_index is not None and best_ratio >= 0.75:
+            return [best_index]
+        return None
 
     def detect_text(self, image) -> str:
         """

@@ -1,0 +1,2243 @@
+﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 01:16:59 +0800
+Subject: [PATCH] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+ =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
+ =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
+ =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
+ =?UTF-8?q?=E7=8A=B6=E8=B0=83=E5=8F=82?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+## 动机
+
+用户明确指出: **"不要照搬原有 OASX 的设计"** ——
+"目前他的风格很像是树状展开, 但是挺难用的"。
+
+树状结构的问题: 它是为**逐任务调参**设计的, 而"总览"和"列表"本质上是
+**横向对比**的界面 —— 一行一个任务, 一列一个维度。树状结构看不了全局。
+
+所以按 `docs/task-list-prototype.html`(已确认的设计稿)重做,
+严格分两个 tab。
+
+## 新增
+
+### `lib/views/tasks/task_list_view.dart`
+
+两个 tab, 严格按原型:
+
+* **任务总览** = 监控面板
+  * 批量操作(全选/全不选/反选/只选列表里的 + 启用/停用选中 + 搜索 + 过滤)
+  * 任务总览表格(与原型 8 列一一对应)
+  * ★ **不放单个任务的启停开关** —— `enable` 放两处必然出现
+    "列表行开着却不跑"的静默矛盾
+  * ★ **不隐藏**停用状态 —— 行尾显示 `⚠ 配置中已停用`
+  * ★ 目标次数**只读**(用户决定: 只在列表页可改)
+
+* **任务列表（调度器）** = 唯一调度控制台
+  * **全局设置**(跑完循环整表 + 优先级依据四个模式)
+  * **执行顺序**(见下)
+  * **预期执行流程**(推算, 带 disclaimer)
+
+### `lib/views/tasks/run_list_panel.dart` —— 模型 B 的核心界面
+
+列表是**有序条目**的序列, 可混入控制条目:
+
+    1. 探索
+    2. 御魂
+    3. [全部停止 30 分钟]     ← 一条"条目", 不是按钮
+    4. 金币妖怪
+
+★ 所以控制条目能**插到任意位置** —— 这正是原型说的"都可插入到任意位置"。
+
+★ 阻塞条目给**不同底色 + 不同图标** —— 用户一眼看出"哪一条会停",
+  否则会困惑"为什么列表卡在这里不动"。
+
+### `lib/views/tasks/run_control_bar.dart`
+
+效果命名(用户要求): **全部停止** / **只停列表**,
+不用"休息/延后"(那两个词都容易误解)。
+
+三种运行控件: ⏸ 暂停调度(跑完本场) / ⏭ 本轮跑完再停 / ▶ 继续调度。
+★ **不提供「立即停」** —— 会卡在半途(战斗中/组队房间中), 不安全。
+
+### `lib/views/tasks/task_row_view.dart`
+
+与原型 8 列对应: 任务 / 类型 / 状态 / 目标次数 / 进度·存量 /
+下次运行 / 对方 / 在列表。
+
+### `lib/controller/task_list/task_list_controller.dart`
+
+## 设计要点
+
+1. **不硬编码任务知识** —— 类别标签(`category_label`)、条目的
+   **效果名/说明/三个标志**(`entry_kinds`)、时长选项、调度模式列表
+   **全部从 `/schema` 读**。后端改名(如"休息"→"全部停止")前端自动跟上。
+2. **不做调度决策** —— `can_run` / `reason` / `next_run` 由后端算好。
+3. **不照搬 OASX 的 tag 模式** —— 改用**显式传递控制器**
+   (`TaskListView` → `RunControlBar` / `TaskRowView`),
+   比 `Get.find<T>(tag: ...)` + `Get.arguments` 在嵌套时可靠得多。
+   (踩过: 靠路由参数在子组件里取 tag, 一旦组件被复用就取错。)
+
+## 接线
+
+* `routes.dart` —— 新增 `/tasks` 路由
+* `views/layout/content.dart` —— `[name, 'TaskList'] => TaskListView(...)`
+* `controller/ctrl_nav.dart` —— 给每个配置的菜单**插一个 `TaskList` 入口**
+  (用 `insert(0, ...)`: "看全局"比"调参数"更常用)
+
+## `api_client.dart` 新增
+
+* `getTaskSchema` / `getTaskOverview` / `getCapabilities`
+* `getRunControl` / `pauseScript` / `resumeScript` / `restScript` / `delayScript`
+* `getRunList` / `putRunList`(整体替换) / `addRunListEntry` / `removeRunListEntry`
+* `getRunListPreview`
+
+## 同时提交: 之前会话的终端乱码修复
+
+* `lib/controller/server/server_controller.dart` ——
+  `ShellLinesController` 未指定编码, 回退到平台默认(GBK)导致 OAS 子进程
+  输出的 UTF-8 变乱码。改为显式指定 UTF-8。
+* `lib/views/server/server_view.dart` —— 配套小改
+* `docs-zh-CN/encoding-fix.md` —— 记录问题/根因/修法
+
+★ 日志文件本身正常(OAS 以 `encoding='utf-8'` 直写文件),
+  只有经 stdout 的那一路乱码 —— 所以问题在 OASX 侧的读取编码。
+
+## 验证
+
+* `dart analyze lib` —— **新增文件零问题**(剩余 11 个是既有 lint)
+* `flutter build windows --debug` —— **通过**
+
+★ 注意: `dart compile kernel` 会报
+  "Undefined name 'Color' / 'VoidCallback' / 'TextBaseline'" ——
+  那是**假警报**, 它不解析 Flutter 的 import。只有
+  `flutter build` / `flutter analyze` 的结果才准。
+
+## 顺带
+
+* `i18n_content.dart` / `i18n_cn.dart` —— 由 OAS 的
+  `dev_tools/gen_i18n.py` 从 `tasks/<Name>/meta.py` 生成(16 个任务名)
+* 删除 `pubspec.lock.bak`(备份文件)
+* 生成的平台插件注册文件(`windows/linux/macos`)行尾变化
+---
+ docs-zh-CN/encoding-fix.md                    | 123 +++++
+ lib/api/api_client.dart                       | 135 ++++++
+ lib/config/translation/i18n_cn.dart           |  16 +
+ lib/config/translation/i18n_content.dart      |  16 +
+ lib/controller/ctrl_nav.dart                  |  16 +
+ lib/controller/server/server_controller.dart  |  56 ++-
+ .../task_list/task_list_controller.dart       | 373 ++++++++++++++++
+ lib/views/layout/content.dart                 |   7 +
+ lib/views/routes.dart                         |  20 +-
+ lib/views/server/server_view.dart             |   1 +
+ lib/views/tasks/run_control_bar.dart          | 219 +++++++++
+ lib/views/tasks/run_list_panel.dart           | 272 +++++++++++
+ lib/views/tasks/task_list_view.dart           | 421 ++++++++++++++++++
+ lib/views/tasks/task_row_view.dart            | 254 +++++++++++
+ 14 files changed, 1924 insertions(+), 5 deletions(-)
+ create mode 100644 docs-zh-CN/encoding-fix.md
+ create mode 100644 lib/controller/task_list/task_list_controller.dart
+ create mode 100644 lib/views/tasks/run_control_bar.dart
+ create mode 100644 lib/views/tasks/run_list_panel.dart
+ create mode 100644 lib/views/tasks/task_list_view.dart
+ create mode 100644 lib/views/tasks/task_row_view.dart
+
+diff --git a/docs-zh-CN/encoding-fix.md b/docs-zh-CN/encoding-fix.md
+new file mode 100644
+index 0000000..8f1aa68
+--- /dev/null
++++ b/docs-zh-CN/encoding-fix.md
+@@ -0,0 +1,123 @@
++# OASX 乱码修复
++
++## 问题
++OASX 启动 OAS 时，终端里大量乱码：
++
++```
++鈺愨晲鈺愨晲鈺愨晲鈺愨晲   ← 应为 ════════════
++鈹€鈹€鈹€鈹€ START 鈹€鈹€鈹€鈹€   ← 应为 ────── START ──────
++涓枃娴嬭瘯: 浼寸敓鏍?      ← 应为 中文测试: 伴生树
++```
++
++日志文件本身正常（OAS 以 `encoding='utf-8'` 直接写文件），只有经 stdout 的那一路乱码。
++
++## 根因
++1. OAS 侧把标准输出明确设为 UTF-8
++   （`deploy/launcher/*.bat` 的 `set PYTHONIOENCODING=utf-8` + `PYTHONUTF8=1`，
++   以及 `module/base/encoding.py` 的 `setup_utf8_stdio()`）。
++2. OASX 用 `process_run` 的 `ShellLinesController` 读子进程输出，但**没有指定编码**：
++
++   ```dart
++   // lib/controller/server/server_controller.dart:11 (修复前)
++   var shellController = ShellLinesController();
++   ```
++
++3. `process_run` 于是回退到平台默认编码：
++
++   ```dart
++   // process_run 0.13.3  lib/src/lines_utils_common.dart:34-35
++   ShellLinesController({Encoding? encoding}) {
++     this.encoding = encoding ?? shellContext.encoding;   // <-- 回退
++   }
++   // ... 第 77 行用它解码每一行
++   ctlr.add(encoding!.decode(currentLine!));
++
++   // process_run  lib/src/shell_context_io.dart
++   @override
++   Encoding get encoding => systemEncoding;   // Dart 的 systemEncoding
++   ```
++
++   **Dart 的 `systemEncoding` 在 Windows 上是 Latin-1（每个字节映射成一个字符），不是 UTF-8。**
++
++所以链路是：**OAS 写 UTF-8 字节 → process_run 按 Latin-1 解码 → 乱码**。
++一个 3 字节的 `═`(U+2550, `E2 95 90`) 被解成 3 个 Latin-1 字符，正是你看到的 `鈺愨晲`。
++
++逐字节实测（用与 server.py 相同的方式输出 `═` 并检查重定向后的字节）：
++
++```
++原始字节      : E2 95 90 E2 95 90 ...
++按 UTF-8 解码 : ════════════════      ✓ 正确
++按 GBK 解码   : 鈺愨晲鈺愨晲鈺愨晲...     ✗ 与 OASX 里的乱码一致
++```
++
++## 修复
++只需在 OASX 侧显式指定 UTF-8（`ShellLinesController` 本来就支持这个参数）：
++
++```dart
++// lib/controller/server/server_controller.dart
++var shellController = ShellLinesController(encoding: utf8);
++```
++
++配套加导入（`library server;` 里原本没有 `dart:convert`）：
++
++```dart
++// lib/views/server/server_view.dart
++import 'dart:convert' show utf8;
++```
++
++全 OASX 只有这一处 `ShellLinesController`，改动作用域干净。
++
++## 为什么不能靠升级依赖解决
++`shell` 与 `process_run` 都已是 pub 上的最新版（`shell: 2.0.0`、`process_run: 0.13.3`），
++上游没有修这个默认编码问题。所以必须自己带这个改动（fork 或本地路径依赖）。
++
++## 需要你自己动手的两步
++1. **安装 Flutter SDK**（本机尚未安装；工程 `environment: sdk ">=3.5.0 <4.0.0"`，
++   上游 CHANGELOG 提到已更新到 Flutter 3.27.1）。
++2. 在 OASX 源码目录执行 `flutter pub get` 然后 `flutter build windows`。
++
++## 顺带修掉的假错误（同一文件）
++`server_controller.dart` 的 `run()` 原本还会执行 `pwd`：
++
++```dart
++runShell('echo OAS working directory: ').then((value) => null);
++runShell('pwd').then((value) => null);          // Windows 没有 pwd
++runShell('python -m deploy.installer')...
++runShell('taskkill /f /t /im pythonw.exe')...
++runShell('.\\toolkit\\pythonw.exe  server.py')...
++```
++
++Windows 的 shell 没有 `pwd`，因此每次启动 OASX 都会在日志顶部留下：
++
++```
++ERROR: ShellException(pwd, exitCode 1, workingDirectory: D:\OAS-dev\OnmyojiAutoScript)
++```
++
++同理 `taskkill /f /t /im pythonw.exe` 在本来就没有 pythonw 进程时会返回 128：
++
++```
++ERROR: ShellException(taskkill /f /t /im pythonw.exe, exitCode 128, ...)
++```
++
++这两条都是"预期会失败"的命令，却以 `ERROR:` 出现在日志最上方，会淹没真正的问题。
++
++改动：
++* `pwd` → `cd`（cmd 下语义等价，都会打印当前目录）；
++* `runShell` 增加"允许失败"名单：命中名单的命令在调用时追加 `|| ver >nul`
++  把退出码归一为 0（`ver` 是 cmd 的恒真命令），并且即使仍抛
++  `ShellException` 也不再记为 ERROR；
++* 顺带把输出从"只打印 errText"改为 out/err 都打印（原来 `echo` 的结果被丢掉了）。
++
++## OAS 侧要不要改
++不需要。OAS 输出 UTF-8 是正确的一方，文件日志也一直正常。
++在 OAS 侧做 ASCII 规避只是绕过，不解决问题（且会让中文也一并丢失）。
++
++## 与跨平台的关系
++OAS 后端本身是跨平台的（`deploy/docker/Dockerfile` 基于 Debian；
++`module/device/env.py` 有 `IS_WINDOWS`/`IS_MACINTOSH`；模拟器管理在非 Windows 上
++优雅降级）。而上面这些 `runShell(...)` 是**"OASX 顺便帮你启动本机后端"**的
++Windows 专属便利功能 —— 在跨平台场景下后端跑在另一台机器上，这整段都不适用。
++
++建议后续把"连接远程后端"提升为一等公民启动模式（首次启动就选
++「本机启动后端」/「连接远程后端」），`/login` 页面已经支持填地址并做连通性检测，
++只需把它从设置里提到启动流程。
+diff --git a/lib/api/api_client.dart b/lib/api/api_client.dart
+index b88b883..3749009 100644
+--- a/lib/api/api_client.dart
++++ b/lib/api/api_client.dart
+@@ -261,6 +261,141 @@ class ApiClient {
+     return res.isSuccess && res.data == true;
+   }
+ 
++// -------------------------   任务知识 / 总览 / 运行控制   --------------------------
++//
++// 这三个接口是后端新加的, 目的是让前端**不必内置任务知识**
++// (见 OAS 的 docs/ui-api-mapping.md)。
++//
++//   /schema       —— 静态元数据(中文名/类别/资源规则/可配字段)
++//   /overview     —— 运行态总览(能不能跑/为什么不能/下次什么时候)
++//   /run_control  —— 暂停 / 休息 / 延后
++//
++// 三者都用**原始 JSON**(不强类型 model), 因为字段会随
++// `tasks/<Name>/meta.py` 演进, 前端只按需读取。
++
++  /// 任务静态元数据。与账号无关。
++  Future<Map<String, dynamic>> getTaskSchema(String scriptName) async {
++    final res = await request(() => get('/$scriptName/schema'));
++    return res.data ?? {};
++  }
++
++  /// 运行态总览:每个任务现在能不能跑、为什么不能、下次什么时候。
++  Future<Map<String, dynamic>> getTaskOverview(String scriptName) async {
++    final res = await request(() => get('/$scriptName/overview'));
++    return res.data ?? {};
++  }
++
++  /// 运行控制状态(暂停/休息/延后)。
++  Future<Map<String, dynamic>> getRunControl(String scriptName) async {
++    final res = await request(() => get('/$scriptName/run_control'));
++    return res.data ?? {};
++  }
++
++  /// 暂停调度。
++  ///
++  /// [mode] 只能是 `battle`(⏸ 跑完当前这场战斗) 或 `round`(⏭ 本轮跑完再停)。
++  /// **没有"立即停"** —— 那会卡在半途(战斗中/组队房间中), 不安全。
++  Future<bool> pauseScript(String scriptName, {String mode = 'battle'}) async {
++    final res = await request(() => put(
++          '/$scriptName/run_control/pause',
++          queryParameters: {'mode': mode},
++        ));
++    return res.isSuccess && res.data is Map && !res.data.containsKey('error');
++  }
++
++  /// 继续调度(解除暂停)。
++  Future<bool> resumeScript(String scriptName) async {
++    final res = await request(() => put('/$scriptName/run_control/resume'));
++    return res.isSuccess && res.data is Map && !res.data.containsKey('error');
++  }
++
++  /// 休息 N 分钟(**全局**暂停, 定时任务也不跑)。`minutes=0` 取消。
++  Future<bool> restScript(String scriptName, int minutes) async {
++    final res = await request(() => put(
++          '/$scriptName/run_control/rest',
++          queryParameters: {'minutes': minutes},
++        ));
++    return res.isSuccess && res.data is Map && !res.data.containsKey('error');
++  }
++
++  /// 延后 N 分钟(只推迟**列表**推进, 定时任务照常)。`minutes=0` 取消。
++  Future<bool> delayScript(String scriptName, int minutes) async {
++    final res = await request(() => put(
++          '/$scriptName/run_control/delay',
++          queryParameters: {'minutes': minutes},
++        ));
++    return res.isSuccess && res.data is Map && !res.data.containsKey('error');
++  }
++
++  /// 平台能力(非 Windows 上部分功能不可用, 界面据此置灰)。
++  Future<Map<String, dynamic>> getCapabilities() async {
++    final res = await request(() => get('/capabilities'));
++    return res.data ?? {};
++  }
++
++// -------------------------   运行列表(有序条目清单)   --------------------------
++//
++// 列表不只是"任务顺序", 而是**有序条目**的序列。条目三种(按**效果**命名):
++//
++//   {"kind":"task",  "task":"FallenSun"}   执行任务
++//   {"kind":"rest",  "minutes":30}         **全部停止** 30 分钟(连定时任务一起停)
++//   {"kind":"delay", "minutes":30}         **只停列表** 30 分钟(定时任务照常)
++//
++// ★ 用**整体替换**而不是逐条增删: 界面拖拽后拿到的是**完整清单**
++//   (含控制条目的位置), 整体写入最简单可靠, 也不会出现"拖到一半只写了一半"。
++//
++// ★ 条目类型的值/名称/说明**不在这里硬编码** —— 从 `/schema` 的
++//   `list.entry_kinds` 读, 避免前端与后端各维护一份映射。
++
++  /// 读运行列表。
++  Future<Map<String, dynamic>> getRunList(String scriptName) async {
++    final res = await request(() => get('/$scriptName/run_list'));
++    return res.data ?? {};
++  }
++
++  /// **整体替换**运行列表(界面拖拽走这条)。
++  Future<Map<String, dynamic>> putRunList(
++      String scriptName, List<Map<String, dynamic>> entries) async {
++    final res = await request(() => put(
++          '/$scriptName/run_list',
++          data: entries,
++        ));
++    return res.data ?? {};
++  }
++
++  /// 在指定位置插入一个条目。`index=-1` 表示追加到末尾。
++  Future<Map<String, dynamic>> addRunListEntry(
++    String scriptName,
++    Map<String, dynamic> entry, {
++    int index = -1,
++  }) async {
++    final res = await request(() => post(
++          '/$scriptName/run_list/entry',
++          queryParameters: {'index': index},
++          data: entry,
++        ));
++    return res.data ?? {};
++  }
++
++  /// 删除指定位置的条目。
++  Future<Map<String, dynamic>> removeRunListEntry(
++      String scriptName, int index) async {
++    final res = await request(() => delete(
++          '/$scriptName/run_list/entry',
++          queryParameters: {'index': index},
++        ));
++    return res.data ?? {};
++  }
++
++  /// 「预期执行流程」的**推算**。
++  ///
++  /// ⚠ 返回值里带 `disclaimer` —— 界面**必须**显示它,
++  ///   不能让用户以为这是精确预测(实际还受体力/网络/开放时段影响)。
++  Future<Map<String, dynamic>> getRunListPreview(String scriptName) async {
++    final res = await request(() => get('/$scriptName/run_list/preview'));
++    return res.data ?? {};
++  }
++
+ // ---------------------------------   Snackbar --------------------------------
+   void showDialog(String title, String content) {
+     Get.snackbar(title, content);
+diff --git a/lib/config/translation/i18n_cn.dart b/lib/config/translation/i18n_cn.dart
+index db4a8af..3384f92 100644
+--- a/lib/config/translation/i18n_cn.dart
++++ b/lib/config/translation/i18n_cn.dart
+@@ -91,6 +91,22 @@ final Map<String, String> _cn_ui = {
+   I18n.config_add: '添加新配置',
+   I18n.config_copy_from_exist: '复制已有配置',
+   I18n.setting_saved: '设置已保存',
++  // ---- 以下由 dev_tools/gen_i18n.py 从 tasks/<Name>/meta.py 生成; 请勿手改 ----
++  I18n.abyss_shadows: '狭间暗域',
++  I18n.budokai_tournament: '武道大会',
++  I18n.dokan: '道馆',
++  I18n.find_jade: '寻找协作任务',
++  I18n.float_parade: '花车巡游',
++  I18n.frog_boss: '对弈竞猜',
++  I18n.goto_main: '回到庭院',
++  I18n.guild_activity_monitor: '寮活动监控',
++  I18n.guild_banquet: '寮宴会',
++  I18n.hero_test: '英杰试炼',
++  I18n.hyakkiyakou: '百鬼夜行',
++  I18n.kitty_shop: '猫咪铺子',
++  I18n.other_world_twilight: '彼世逢魔',
++  I18n.quiz: '智力竞赛',
++  I18n.six_realms: '六道之门',
+ };
+ 
+ final Map<String, String> _cn_menu = {
+diff --git a/lib/config/translation/i18n_content.dart b/lib/config/translation/i18n_content.dart
+index 6ba0370..7e70df3 100644
+--- a/lib/config/translation/i18n_content.dart
++++ b/lib/config/translation/i18n_content.dart
+@@ -235,4 +235,20 @@ class I18n {
+   static const String go_oasx_release = 'Click to download';
+   static const String tip = 'Tip';
+   static const String copy_success = 'Copy success';
++  // ---- 以下由 dev_tools/gen_i18n.py 从 tasks/<Name>/meta.py 生成; 请勿手改 ----
++  static const String abyss_shadows = 'AbyssShadows';
++  static const String budokai_tournament = 'BudokaiTournament';
++  static const String dokan = 'Dokan';
++  static const String find_jade = 'FindJade';
++  static const String float_parade = 'FloatParade';
++  static const String frog_boss = 'FrogBoss';
++  static const String goto_main = 'GotoMain';
++  static const String guild_activity_monitor = 'GuildActivityMonitor';
++  static const String guild_banquet = 'GuildBanquet';
++  static const String hero_test = 'HeroTest';
++  static const String hyakkiyakou = 'Hyakkiyakou';
++  static const String kitty_shop = 'KittyShop';
++  static const String other_world_twilight = 'OtherWorldTwilight';
++  static const String quiz = 'Quiz';
++  static const String six_realms = 'SixRealms';
+ }
+diff --git a/lib/controller/ctrl_nav.dart b/lib/controller/ctrl_nav.dart
+index 1df0065..3eb20e5 100644
+--- a/lib/controller/ctrl_nav.dart
++++ b/lib/controller/ctrl_nav.dart
+@@ -27,6 +27,22 @@ class NavCtrl extends GetxController {
+     homeMenuJson.value = await ApiClient().getHomeMenu();
+     scriptMenuJson.value = await ApiClient().getScriptMenu();
+ 
++    // 给每个配置插一个「任务列表」入口 —— 那是**唯一的调度控制台**
++    // （取代原来"树状展开"逐任务调参的入口方式）。
++    //
++    // 用 insert(0, ...) 而不是 append: 它应该排在最前, 因为
++    // "看全局"比"调某个任务的参数"更常用。
++    //
++    // ⚠ 要**整体替换** `scriptMenuJson.value`, 不能就地改 ——
++    //   GetX 的 RxMap 只有整体赋值才会通知。
++    final scriptMenu = <String, List<String>>{};
++    scriptMenuJson.forEach((key, items) {
++      final list = List<String>.from(items);
++      if (!list.contains('TaskList')) list.insert(0, 'TaskList');
++      scriptMenu[key] = list;
++    });
++    scriptMenuJson.value = scriptMenu;
++
+     super.onInit();
+   }
+ 
+diff --git a/lib/controller/server/server_controller.dart b/lib/controller/server/server_controller.dart
+index a1f6ff0..c2ea241 100644
+--- a/lib/controller/server/server_controller.dart
++++ b/lib/controller/server/server_controller.dart
+@@ -8,7 +8,23 @@ class ServerController extends GetxController with LogMixin {
+   final log = ''.obs;
+   final deployContent = ''.obs;
+   Shell? shell;
+-  var shellController = ShellLinesController();
++
++  /// 读取 OAS 子进程输出的行控制器。
++  ///
++  /// **必须显式指定 `encoding: utf8`**: `ShellLinesController()` 默认使用
++  /// `shellContext.encoding`, 而它在 IO 平台上就是 Dart 的 `systemEncoding` ——
++  /// Windows 下该值是 Latin-1(每个字节映射成一个字符), 不是 UTF-8。
++  ///
++  /// 而 OAS 侧 `deploy/launcher/*.bat` 与 `module/base/encoding.py` 都把标准输出
++  /// 明确设为 UTF-8, 于是"写 UTF-8 / 按 Latin-1 读"就产生了乱码:
++  ///   `════` (U+2550, UTF-8 为 E2 95 90 …) -> `鈺愨晲`
++  ///   `伴生树` -> `ä¼´çæ`(中文) 或 `浼寸敓鏍`(若按 GBK 显示)
++  /// 日志文件本身一直正常 —— 它由 Python 以 encoding='utf-8' 直接写入, 不经这条链路。
++  ///
++  /// 详见 process_run 的 lib/src/lines_utils_common.dart:
++  ///   this.encoding = encoding ?? shellContext.encoding;
++  ///   ... ctlr.add(encoding!.decode(currentLine!));
++  var shellController = ShellLinesController(encoding: utf8);
+ 
+   @override
+   void onInit() {
+@@ -96,11 +112,41 @@ class ServerController extends GetxController with LogMixin {
+         verbose: false,
+       );
+ 
++  /// 允许失败的命令: 它失败是**预期行为**, 不应打印成 ERROR。
++  ///
++  /// `taskkill /f /t /im pythonw.exe` 在没有 pythonw 进程时退出码为 128,
++  /// 于是每次启动 OASX 都会在日志顶部留下
++  /// `ShellException(..., exitCode 128, ...)` 这条假错误, 把真正的问题淹没。
++  ///
++  /// 这里用 `|| ver >nul` 把退出码归一为 0(`ver` 是 Windows cmd 的恒真命令),
++  /// 既保留命令的实际作用, 又不再产生误导性的错误日志。
++  ///
++  /// (原先还有 `pwd` —— 它已被下面的 `cd` 取代, 见 run()。)
++  static const _toleratedCommands = {
++    'taskkill /f /t /im pythonw.exe',
++  };
++
+   Future<void> runShell(String command) async {
++    final tolerated = _toleratedCommands.contains(command);
+     try {
+-      var result = await shell!.run(command);
+-      printInfo(info: result.errText);
++      // process_run 的 Shell.run 返回 List<ProcessResult>; outText/errText 是
++      // 定义在 List<ProcessResult> 上的扩展(见 process_run 的
++      // process_result_common_extension.dart), 因此必须对整个结果列表取属性。
++      final results =
++          await shell!.run(tolerated ? '$command || ver >nul' : command);
++      final out = results.outText;
++      final err = results.errText;
++      if (out.isNotEmpty) {
++        printInfo(info: out);
++      }
++      if (err.isNotEmpty) {
++        printInfo(info: err);
++      }
+     } on ShellException catch (e) {
++      // 允许失败的命令即使仍然抛错也不记为 ERROR
++      if (tolerated) {
++        return;
++      }
+       addLog('ERROR: ${e.toString()}');
+     }
+   }
+@@ -109,7 +155,9 @@ class ServerController extends GetxController with LogMixin {
+     clearLog();
+     shell!.kill();
+     runShell('echo OAS working directory: ').then((value) => null);
+-    runShell('pwd').then((value) => null);
++    // 用 `cd` 代替原先的 `pwd`: Windows 的 shell 没有 pwd, 每次启动都会报
++    // ShellException(pwd, exitCode 1)。`cd` 在 cmd 下会打印当前目录, 语义等价。
++    runShell('cd').then((value) => null);
+     runShell('python -m deploy.installer').then((value) => null);
+     runShell('echo Start OAS').then((value) => null);
+     runShell('taskkill /f /t /im pythonw.exe').then((value) => null);
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+new file mode 100644
+index 0000000..e46eac8
+--- /dev/null
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -0,0 +1,373 @@
++part of task_list;
++
++/// 任务列表/总览的控制器。
++///
++/// ## 设计要点
++///
++/// * **不缓存任务知识** —— 类别标签、条目的效果名与说明、模式列表
++///   全部来自 `/schema`, 前端不硬编码(否则又是"同一知识多处")
++/// * **不做调度决策** —— `can_run` / `reason` / `next_run` 由后端算好
++/// * 运行列表的**顺序**就是数组顺序(模型 B), 拖拽后整体 PUT 回去
++/// * `task` 条目不阻塞、`rest`/`delay` 阻塞 —— 这是后端语义,
++///   前端只负责让用户看清"哪一条会停"
++class TaskListController extends GetxController {
++  TaskListController({required this.scriptName});
++
++  final String scriptName;
++  final _api = ApiClient();
++
++  // ---------------------------------------------------------------- 状态
++  bool loading = false;
++  bool busy = false;
++  String? error;
++
++  /// `/schema` 的原始内容。
++  Map<String, dynamic> schema = {};
++
++  /// `/overview` 的原始内容。
++  Map<String, dynamic> overview = {};
++
++  /// 运行列表的条目(原始 JSON, 顺序即执行顺序)。
++  List<Map<String, dynamic>> entries = [];
++
++  /// 「预期执行流程」推算。
++  List<Map<String, dynamic>> flow = [];
++  String flowDisclaimer = '推算, 不是预测';
++
++  /// 界面用的任务行(已过滤)。
++  List<Map<String, dynamic>> tasks = [];
++  int runnableCount = 0;
++
++  /// 批量选择。
++  final Set<String> selected = {};
++
++  // ---------------------------------------------------------------- 过滤
++  String query = '';
++  bool onlyEnabled = false;
++  bool onlyFixed = false;
++
++  // ---------------------------------------------------------------- 全局设置
++  bool loopWholeList = false;
++  String scheduleRule = 'Filter';
++
++  Map<String, dynamic> get schemaList =>
++      (schema['list'] as Map?)?.cast<String, dynamic>() ?? {};
++
++  /// 调度模式列表（值 + 标签），**来自 `/schema`**。
++  List<Map<String, dynamic>> get modes =>
++      ((schemaList['modes'] as List?) ?? const [])
++          .map((e) => Map<String, dynamic>.from(e as Map))
++          .toList();
++
++  /// 条目类型定义（值 + 效果名 + 说明 + 三个标志），**来自 `/schema`**。
++  ///
++  /// ★ 前端不硬编码 `task`/`rest`/`delay` 的名称 ——
++  ///   后端改名(如从"休息"改成"全部停止")前端自动跟上。
++  List<Map<String, dynamic>> get entryKinds =>
++      ((schemaList['entry_kinds'] as List?) ?? const [])
++          .map((e) => Map<String, dynamic>.from(e as Map))
++          .toList();
++
++  List<int> get durationChoices =>
++      ((schemaList['duration_choices'] as List?) ?? const [10, 30, 60])
++          .map((e) => (e as num).toInt())
++          .toList();
++
++  String get listModeValue => '${schemaList['mode_value'] ?? 'List'}';
++
++  String get listModeLabel {
++    for (final m in modes) {
++      if ('${m['value']}' == listModeValue) return '${m['label']}';
++    }
++    return listModeValue;
++  }
++
++  /// 某个条目类型的定义。
++  Map<String, dynamic> kindOf(String kind) {
++    for (final k in entryKinds) {
++      if ('${k['value']}' == kind) return k;
++    }
++    return {'value': kind, 'label': kind, 'help': ''};
++  }
++
++  /// 条目的显示名（任务条目显示任务中文名，控制条目显示效果名）。
++  String describeEntry(Map<String, dynamic> e) {
++    final kind = '${e['kind']}';
++    if (kind == 'task') {
++      final t = '${e['task']}';
++      return taskNameZh(t);
++    }
++    final k = kindOf(kind);
++    final m = (e['minutes'] as num?)?.toInt() ?? 0;
++    final dur = (m >= 60 && m % 60 == 0) ? '${m ~/ 60} 小时' : '$m 分钟';
++    return '${k['label']} $dur';
++  }
++
++  bool isTaskEntry(Map<String, dynamic> e) => '${e['kind']}' == 'task';
++
++  /// 任务名(大驼峰) -> 中文名。
++  String taskNameZh(String command) {
++    for (final t in tasks) {
++      if ('${t['command']}' == command) return '${t['name_zh'] ?? command}';
++    }
++    // 不在当前过滤结果里也在全量里找
++    for (final t in _allTasks) {
++      if ('${t['command']}' == command) return '${t['name_zh'] ?? command}';
++    }
++    return command;
++  }
++
++  List<Map<String, dynamic>> _allTasks = [];
++
++  @override
++  void onInit() {
++    super.onInit();
++    refresh();
++  }
++
++  // ---------------------------------------------------------------- 加载
++  ///
++  /// 覆盖 GetX 的 `refresh`（它会通知监听者）—— 所以这里
++  /// **自己拉数据再 update()**, 而不是调 `super.refresh()`。
++  @override
++  Future<void> refresh() async {
++    loading = true;
++    error = null;
++    update();
++    try {
++      final results = await Future.wait([
++        _api.getTaskSchema(scriptName),
++        _api.getTaskOverview(scriptName),
++        _api.getRunList(scriptName),
++        _api.getRunListPreview(scriptName),
++      ]);
++      schema = results[0];
++      overview = results[1];
++      final rl = results[2];
++      final pv = results[3];
++
++      if (overview.containsKey('error')) error = '${overview['error']}';
++
++      entries = ((rl['entries'] as List?) ?? const [])
++          .map((e) => Map<String, dynamic>.from(e as Map))
++          .toList();
++      flow = ((pv['flow'] as List?) ?? const [])
++          .map((e) => Map<String, dynamic>.from(e as Map))
++          .toList();
++      flowDisclaimer = '${pv['disclaimer'] ?? flowDisclaimer}';
++
++      runnableCount = (overview['runnable'] as num?)?.toInt() ?? 0;
++      _allTasks = ((overview['tasks'] as List?) ?? const [])
++          .map((e) => Map<String, dynamic>.from(e as Map))
++          .toList();
++
++      // 已编排 -> 顺序由 entries 决定; 未编排 -> 用后端给的默认顺序
++      _applyFilter();
++    } catch (e) {
++      error = '$e';
++    } finally {
++      loading = false;
++      update();
++    }
++  }
++
++  // ---------------------------------------------------------------- 过滤
++  void setQuery(String v) {
++    query = v.trim();
++    _applyFilter();
++    update();
++  }
++
++  void toggleOnlyEnabled() {
++    onlyEnabled = !onlyEnabled;
++    _applyFilter();
++    update();
++  }
++
++  void toggleOnlyFixed() {
++    onlyFixed = !onlyFixed;
++    _applyFilter();
++    update();
++  }
++
++  void _applyFilter() {
++    var all = _allTasks;
++    if (onlyEnabled) {
++      all = all.where((t) => t['enable'] == true).toList();
++    }
++    if (onlyFixed) {
++      // "固定任务"= countable(fixed / toppa), 由后端给的标志决定
++      all = all.where((t) => t['countable'] == true).toList();
++    }
++    if (query.isNotEmpty) {
++      final q = query.toLowerCase();
++      all = all.where((t) =>
++          '${t['name_zh'] ?? ''}'.contains(query) ||
++          '${t['name'] ?? ''}'.toLowerCase().contains(q) ||
++          '${t['command'] ?? ''}'.toLowerCase().contains(q)).toList();
++    }
++    tasks = all;
++
++    final names = tasks.map((t) => '${t['name']}').toSet();
++    selected.removeWhere((n) => !names.contains(n));
++  }
++
++  // ---------------------------------------------------------------- 批量选择
++  void selectAll() {
++    selected
++      ..clear()
++      ..addAll(tasks.map((t) => '${t['name']}'));
++    update();
++  }
++
++  void selectNone() {
++    selected.clear();
++    update();
++  }
++
++  void selectInvert() {
++    final all = tasks.map((t) => '${t['name']}').toSet();
++    final keep = all.difference(selected);
++    selected
++      ..clear()
++      ..addAll(keep);
++    update();
++  }
++
++  void selectListOnly() {
++    selected
++      ..clear()
++      ..addAll(tasks
++          .where((t) => t['in_list'] == true)
++          .map((t) => '${t['name']}'));
++    update();
++  }
++
++  void toggleSelected(String name) {
++    if (!selected.remove(name)) selected.add(name);
++    update();
++  }
++
++  /// 批量启用/停用。
++  ///
++  /// ⚠ 目前是"逐个 PUT"(N 个任务 = N 次请求) —— 后端还没有批量写入端点。
++  /// 见 `docs/ui-api-mapping.md` 的缺口清单。
++  Future<void> bulkApply(bool enable) async {
++    final names = selected.toList();
++    if (names.isEmpty) return;
++    busy = true;
++    update();
++    try {
++      await Future.wait(names.map((n) => setEnabled(n, enable)));
++      selected.clear();
++    } finally {
++      busy = false;
++      update();
++    }
++    await refresh();
++  }
++
++  // ---------------------------------------------------------------- 单行写入
++  /// 启用/停用(任务级长期开关)。
++  Future<bool> setEnabled(String taskName, bool enable) => _api.putScriptArg(
++      scriptName, taskName, 'scheduler', 'enable', 'boolean', enable);
++
++  /// 设置目标次数。
++  ///
++  /// ⚠ `scheduler.target` 是**调度决策**(本轮想打几次), 与任务配置里的
++  ///   `limit_count`(**能力上限**)不是一回事。`0` = 用默认值。
++  Future<bool> setTarget(String taskName, int target) => _api.putScriptArg(
++      scriptName, taskName, 'scheduler', 'target', 'integer', target);
++
++  // ---------------------------------------------------------------- 运行列表
++  /// 拖拽重排（整体替换 —— 位置信息完整, 不做"保持原位"的猜测）。
++  Future<void> reorderEntries(int oldIndex, int newIndex) async {
++    if (newIndex > oldIndex) newIndex -= 1;
++    final item = entries.removeAt(oldIndex);
++    entries.insert(newIndex, item);
++    update();
++    await _saveEntries();
++  }
++
++  /// 添加条目。`index = -1` 追加到末尾。
++  ///
++  /// ★ 模型 B 的关键能力: 控制条目可插到**任意位置**。
++  Future<void> addEntry(Map<String, dynamic> entry, {int index = -1}) async {
++    final res = await _api.addRunListEntry(scriptName, entry, index: index);
++    if (res.containsKey('error')) {
++      Get.snackbar('添加失败', '${res['error']}');
++      return;
++    }
++    await refresh();
++  }
++
++  /// 删除条目。
++  Future<void> removeEntry(int index) async {
++    final res = await _api.removeRunListEntry(scriptName, index);
++    if (res.containsKey('error')) {
++      Get.snackbar('删除失败', '${res['error']}');
++      return;
++    }
++    await refresh();
++  }
++
++  Future<void> _saveEntries() async {
++    final res = await _api.putRunList(scriptName, entries);
++    if (res.containsKey('error')) {
++      Get.snackbar('保存失败', '${res['error']}');
++      // 保存失败 -> 回滚到服务端状态, 免得界面显示的和实际不一致
++      await refresh();
++    }
++  }
++
++  /// 「恢复默认」= 清空列表 -> 回退到内置 `list_pos` 顺序。
++  Future<void> resetToDefault() async {
++    final ok = await _confirm('恢复默认顺序', '将清空运行列表, 回到内置默认顺序。');
++    if (!ok) return;
++    entries = [];
++    update();
++    await _saveEntries();
++    await refresh();
++  }
++
++  // ---------------------------------------------------------------- 全局设置
++  /// 循环模式 —— 跑完整表后是否从头再来。
++  Future<void> setLoopWholeList(bool v) async {
++    loopWholeList = v;
++    update();
++    // 复用既有的 Script.optimization 字段(若后端没有该字段会被忽略)
++    await _api.putScriptArg(
++        scriptName, 'script', 'optimization', 'loop_whole_list', 'boolean', v);
++  }
++
++  /// 切调度模式。
++  ///
++  /// ★ 顺序要生效, 必须选「列表优先」(`/schema` 的 `list.mode_value`)。
++  ///   但我们**不替用户切** —— 那会悄悄改变他的调度策略; 界面给提示。
++  Future<void> setScheduleRule(String rule) async {
++    scheduleRule = rule;
++    update();
++    await _api.putScriptArg(scriptName, 'script', 'optimization',
++        'schedule_rule', 'string', rule);
++  }
++
++  Future<bool> _confirm(String title, String content) async {
++    final r = await Get.dialog<bool>(
++      AlertDialog(
++        title: Text(title),
++        content: Text(content),
++        actions: [
++          TextButton(
++              onPressed: () => Get.back(result: false),
++              child: const Text('取消')),
++          FilledButton(
++              onPressed: () => Get.back(result: true),
++              child: const Text('确定')),
++        ],
++      ),
++    );
++    return r == true;
++  }
++
++  String get script => scriptName;
++}
+diff --git a/lib/views/layout/content.dart b/lib/views/layout/content.dart
+index d08ad2a..fa4a045 100644
+--- a/lib/views/layout/content.dart
++++ b/lib/views/layout/content.dart
+@@ -7,6 +7,7 @@ import 'package:oasx/views/home/tool_view.dart';
+ import 'package:oasx/views/home/updater_view.dart';
+ import 'package:oasx/views/nav/view_nav.dart';
+ import 'package:oasx/views/overview/overview_view.dart';
++import 'package:oasx/views/tasks/task_list_view.dart';
+ 
+ Widget content() {
+   return GetX<NavCtrl>(builder: (controller) {
+@@ -19,6 +20,12 @@ Widget content() {
+       ['Home', 'Tool'] => const ToolView(),
+       // ignore: prefer_const_constructors, unused_local_variable
+       [String name, 'Overview'] => Overview(),
++      // 任务总览 / 任务列表（调度器）—— **唯一的调度控制台**
++      //
++      // ★ 这是一张**扁平表格**(一行一个任务, 一列一个维度), 而不是
++      //   原来"树状展开"的调参界面。总览和列表本质上是**横向对比**,
++      //   树状结构不适合看全局。
++      [String name, 'TaskList'] => TaskListView(scriptName: name),
+       _ => const Args(),
+     };
+   });
+diff --git a/lib/views/routes.dart b/lib/views/routes.dart
+index 5ee4397..1820cea 100644
+--- a/lib/views/routes.dart
++++ b/lib/views/routes.dart
+@@ -5,11 +5,17 @@ import 'package:oasx/views/layout/binding.dart';
+ import 'package:oasx/views/login/login_view.dart';
+ import 'package:oasx/views/settings/settings_view.dart';
+ import 'package:oasx/views/server/server_view.dart';
++import 'package:oasx/views/tasks/task_list_view.dart';
+ 
+ class Routes {
+   /// when the app is opened, this page will be the first to be shown
+   static const initial = '/login';
+ 
++  /// 任务总览 / 任务列表（调度器）。
++  ///
++  /// 用法: `Get.toNamed(Routes.tasks, arguments: '配置名')`
++  static const tasks = '/tasks';
++
+   static final routes = [
+     GetPage(
+       name: '/login',
+@@ -23,7 +29,7 @@ class Routes {
+     ),
+     GetPage(
+       name: '/settings',
+-      page: () => SettingsView(),
++      page: () => const SettingsView(),
+     ),
+     GetPage(
+       name: '/server',
+@@ -31,6 +37,18 @@ class Routes {
+       binding: BindingsBuilder(() {
+         Get.put<ServerController>(ServerController());
+       }),
++    ),    // 任务总览 / 任务列表 —— OAS 的**唯一调度控制台**
++    // （取代原来"树状展开"的调参界面: 总览和列表本质是**横向对比**的
++    //   界面 —— 一行一个任务, 一列一个维度; 树状结构不适合看全局）
++    GetPage(
++      name: tasks,
++      page: () {
++        final arg = Get.arguments;
++        final name = arg is String
++            ? arg
++            : (arg is Map ? '${arg['script'] ?? ''}' : '');
++        return TaskListView(scriptName: name);
++      },
+     ),
+   ];
+ }
+diff --git a/lib/views/server/server_view.dart b/lib/views/server/server_view.dart
+index ee6097e..4c10918 100644
+--- a/lib/views/server/server_view.dart
++++ b/lib/views/server/server_view.dart
+@@ -7,6 +7,7 @@ import 'package:get/get.dart';
+ import 'package:oasx/component/log/log_mixin.dart';
+ import 'package:oasx/component/log/log_widget.dart';
+ import 'package:process_run/shell.dart';
++import 'dart:convert' show utf8;
+ import 'dart:io';
+ import 'package:styled_widget/styled_widget.dart';
+ import 'package:code_editor/code_editor.dart';
+diff --git a/lib/views/tasks/run_control_bar.dart b/lib/views/tasks/run_control_bar.dart
+new file mode 100644
+index 0000000..af8083d
+--- /dev/null
++++ b/lib/views/tasks/run_control_bar.dart
+@@ -0,0 +1,219 @@
++part of task_list;
++
++/// 顶部运行控制条:暂停 / 继续 / **全部停止** / **只停列表**。
++///
++/// ## 三种运行控件的语义（用户已确认, 不可混用）
++///
++/// | 控件 | `mode` | 行为 |
++/// |---|---|---|
++/// | ⏸ 暂停调度 | `battle` | 跑完**当前这场战斗**(安全点)后不再开新任务 |
++/// | ⏭ 本轮跑完再停 | `round` | 本任务本轮**打满目标次数**再停 |
++/// | ▶ 继续调度 | `resume` | 恢复 |
++///
++/// ★ **不提供「立即停」** —— 会卡在半途(战斗中/组队房间中), 不安全。
++///
++/// ## 效果命名（用户明确要求）
++///
++/// 不说"休息 / 延后"(那两个词都容易误解), 而按**效果**命名:
++///
++/// | 按钮 | 效果 | 对定时任务 |
++/// |---|---|---|
++/// | **全部停止** | 暂停调度 N 分钟 | ✅ 一起停 |
++/// | **只停列表** | 只推迟列表 N 分钟 | ❌ 照常 |
++///
++/// ★ 名字里就写着**唯一区别**。
++///
++/// ## 与「执行顺序」面板里的控制条目是什么关系
++///
++/// | | 这里的按钮 | 列表里的条目 |
++/// |---|---|---|
++/// | 生效时机 | **现在** | **执行到那一行时** |
++/// | 位置 | 全局 | 可插到任意位置 |
++///
++/// 两者调用**同一套** `run_control` 状态, 所以不会冲突。
++class RunControlBar extends StatefulWidget {
++  const RunControlBar({super.key, required this.controller});
++
++  final TaskListController controller;
++
++  @override
++  State<RunControlBar> createState() => _RunControlBarState();
++}
++
++class _RunControlBarState extends State<RunControlBar> {
++  Map<String, dynamic> _state = {};
++  bool _busy = false;
++
++  /// 显式传入 —— 不靠 `Get.find` + 路由参数, 嵌套时更可靠。
++  TaskListController get _c => widget.controller;
++
++  @override
++  void initState() {
++    super.initState();
++    _load();
++  }
++
++  Future<void> _load() async {
++    final s = await ApiClient().getRunControl(_c.script);
++    if (!mounted) return;
++    setState(() => _state = s);
++  }
++
++  Future<void> _do(Future<bool> Function() fn) async {
++    setState(() => _busy = true);
++    try {
++      await fn();
++      await _load();
++    } finally {
++      if (mounted) setState(() => _busy = false);
++    }
++  }
++
++  /// 效果名 —— 优先用 `/schema` 给的名字(后端改名前端自动跟上)。
++  String _label(String kind, String fallback) {
++    for (final k in _c.entryKinds) {
++      if ('${k['value']}' == kind) return '${k['label']}';
++    }
++    return fallback;
++  }
++
++  String _help(String kind, String fallback) {
++    for (final k in _c.entryKinds) {
++      if ('${k['value']}' == kind) return '${k['help']}';
++    }
++    return fallback;
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final paused = _state['paused'] == true;
++    final restUntil = _state['rest_until'];
++    final listResumeAt = _state['list_resume_at'];
++    final pauseLabel = '${_state['pause_mode_label'] ?? '运行中'}';
++
++    return Card(
++      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
++      child: Padding(
++        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
++        child: Wrap(
++          spacing: 8,
++          runSpacing: 4,
++          crossAxisAlignment: WrapCrossAlignment.center,
++          children: [
++            // ---- 当前状态 ----
++            Container(
++              width: 10,
++              height: 10,
++              decoration: BoxDecoration(
++                color: paused ? Colors.orange : Colors.green,
++                shape: BoxShape.circle,
++              ),
++            ),
++            const SizedBox(width: 4),
++            Text(pauseLabel),
++            if (restUntil != null)
++              Chip(
++                label: Text('${_label('rest', '全部停止')} 至 $restUntil'),
++                visualDensity: VisualDensity.compact,
++              ),
++            if (listResumeAt != null)
++              Chip(
++                label: Text('${_label('delay', '只停列表')} 至 $listResumeAt'),
++                visualDensity: VisualDensity.compact,
++              ),
++            const SizedBox(width: 12),
++
++            // ---- 三个运行控件 ----
++            if (!paused) ...[
++              Tooltip(
++                message: '跑完当前这场战斗后不再开新任务',
++                child: FilledButton.icon(
++                  onPressed: _busy
++                      ? null
++                      : () => _do(() => ApiClient()
++                          .pauseScript(_c.script, mode: 'battle')),
++                  icon: const Icon(Icons.pause, size: 18),
++                  label: const Text('暂停调度'),
++                ),
++              ),
++              Tooltip(
++                message: '本任务本轮打满目标次数后再停',
++                child: OutlinedButton.icon(
++                  onPressed: _busy
++                      ? null
++                      : () => _do(() =>
++                          ApiClient().pauseScript(_c.script, mode: 'round')),
++                  icon: const Icon(Icons.skip_next, size: 18),
++                  label: const Text('本轮跑完再停'),
++                ),
++              ),
++            ],
++            if (paused)
++              FilledButton.icon(
++                onPressed: _busy
++                    ? null
++                    : () => _do(() => ApiClient().resumeScript(_c.script)),
++                icon: const Icon(Icons.play_arrow, size: 18),
++                label: const Text('继续调度'),
++              ),
++
++            const SizedBox(width: 12),
++
++            // ---- 效果命名的两个时长控制 ----
++            Tooltip(
++              message: _help('rest', '暂停调度 N 分钟 —— 连定时任务一起停'),
++              child: OutlinedButton.icon(
++                onPressed: _busy
++                    ? null
++                    : () => _pickMinutes('rest', _label('rest', '全部停止')),
++                icon: const Icon(Icons.stop_circle_outlined, size: 18),
++                label: Text(_label('rest', '全部停止')),
++              ),
++            ),
++            Tooltip(
++              message: _help('delay', '只推迟列表 N 分钟 —— 定时任务照常'),
++              child: OutlinedButton.icon(
++                onPressed: _busy
++                    ? null
++                    : () => _pickMinutes('delay', _label('delay', '只停列表')),
++                icon: const Icon(Icons.schedule, size: 18),
++                label: Text(_label('delay', '只停列表')),
++              ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  Future<void> _pickMinutes(String kind, String label) async {
++    final choices = _c.durationChoices;
++    final minutes = await showDialog<int>(
++      context: context,
++      builder: (ctx) => SimpleDialog(
++        title: Text(label),
++        children: [
++          Padding(
++            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
++            child: Text(_help(kind, ''),
++                style: Theme.of(ctx).textTheme.labelMedium),
++          ),
++          for (final m in choices)
++            SimpleDialogOption(
++              onPressed: () => Navigator.pop(ctx, m),
++              child: Text(m >= 60 && m % 60 == 0 ? '${m ~/ 60} 小时' : '$m 分钟'),
++            ),
++          const Divider(),
++          SimpleDialogOption(
++            onPressed: () => Navigator.pop(ctx, 0),
++            child: const Text('取消'),
++          ),
++        ],
++      ),
++    );
++    if (minutes == null) return;
++    await _do(() => kind == 'rest'
++        ? ApiClient().restScript(_c.script, minutes)
++        : ApiClient().delayScript(_c.script, minutes));
++  }
++}
+diff --git a/lib/views/tasks/run_list_panel.dart b/lib/views/tasks/run_list_panel.dart
+new file mode 100644
+index 0000000..b0520f0
+--- /dev/null
++++ b/lib/views/tasks/run_list_panel.dart
+@@ -0,0 +1,272 @@
++part of task_list;
++
++/// 「执行顺序」面板 —— **模型 B 的核心界面**。
++///
++/// ## 与"只是任务顺序"的区别
++///
++/// 列表是**有序条目**的序列, 里面可以混入控制条目:
++///
++///     1. 探索
++///     2. 御魂
++///     3. [全部停止 30 分钟]     ← 一条"条目", 不是按钮
++///     4. 金币妖怪
++///
++/// ★ 所以控制条目能**插到任意位置** —— 这正是原型说的
++///   "都可插入到任意位置", 也是本模型存在的理由。
++///
++/// ## 条目类型不硬编码
++///
++/// 效果名(全部停止 / 只停列表)、说明、以及"需不需要时长"这些标志
++/// 全部从 `/schema` 的 `list.entry_kinds` 读 ——
++/// 后端改名前端自动跟上, 不会两处不一致。
++///
++/// ## 视觉上必须让用户看出"哪一条会停"
++///
++/// `task` 条目不阻塞(未就绪就跳过), `rest`/`delay` 阻塞列表 ——
++/// 这是**语义差别**, 界面必须体现(用不同图标与底色),
++/// 否则用户会以为"为什么列表卡在这里不动"。
++class RunListPanel extends StatelessWidget {
++  const RunListPanel({super.key, required this.c});
++
++  final TaskListController c;
++
++  @override
++  Widget build(BuildContext context) {
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            _title(context),
++            const SizedBox(height: 4),
++            Text(
++              '拖动 ⠿ 调整顺序 · 序号即优先级 · '
++              '「${c.kindOf("rest")["label"]}」会停在那一行',
++              style: Theme.of(context).textTheme.labelSmall,
++            ),
++            const SizedBox(height: 8),
++            if (c.entries.isEmpty)
++              _empty(context)
++            else
++              ReorderableListView.builder(
++                shrinkWrap: true,
++                physics: const NeverScrollableScrollPhysics(),
++                buildDefaultDragHandles: false,
++                itemCount: c.entries.length,
++                onReorder: c.reorderEntries,
++                itemBuilder: (_, i) => _entryRow(context, i),
++              ),
++            const SizedBox(height: 12),
++            _actions(context),
++          ],
++        ),
++      ),
++    );
++  }
++
++  Widget _title(BuildContext context) {
++    return Text('执行顺序', style: Theme.of(context).textTheme.titleSmall);
++  }
++
++  Widget _empty(BuildContext context) {
++    return Container(
++      width: double.infinity,
++      padding: const EdgeInsets.symmetric(vertical: 20),
++      child: Column(
++        children: [
++          Text('（未编排 —— 正在用内置默认顺序）',
++              style: Theme.of(context).textTheme.labelMedium),
++          const SizedBox(height: 4),
++          Text('添加条目即可自定义执行顺序',
++              style: Theme.of(context).textTheme.labelSmall),
++        ],
++      ),
++    );
++  }
++
++  Widget _entryRow(BuildContext context, int i) {
++    final e = c.entries[i];
++    final isTask = c.isTaskEntry(e);
++    // ★ 阻塞条目给不同底色 —— 用户一眼看出"这里会停"
++    final bg = isTask
++        ? null
++        : Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.35);
++
++    return Container(
++      key: ValueKey('entry-$i-${e['kind']}-${e['task'] ?? e['minutes']}'),
++      color: bg,
++      child: Padding(
++        padding: const EdgeInsets.symmetric(vertical: 4),
++        child: Row(
++          children: [
++            ReorderableDragStartListener(
++              index: i,
++              child: const Padding(
++                padding: EdgeInsets.symmetric(horizontal: 6),
++                child: Icon(Icons.drag_handle, size: 20),
++              ),
++            ),
++            SizedBox(
++              width: 28,
++              child: Text('${i + 1}',
++                  style: Theme.of(context).textTheme.labelMedium),
++            ),
++            Icon(isTask ? Icons.play_circle_outline : Icons.pause_circle_outline,
++                size: 18,
++                color: isTask ? null : Theme.of(context).colorScheme.error),
++            const SizedBox(width: 8),
++            Expanded(
++              child: Text(c.describeEntry(e),
++                  style: Theme.of(context).textTheme.bodyMedium),
++            ),
++            // 类型标签也来自 schema, 不硬编码
++            Chip(
++              label: Text('${c.kindOf('${e['kind']}')['label']}'),
++              visualDensity: VisualDensity.compact,
++              labelStyle: Theme.of(context).textTheme.labelSmall,
++            ),
++            IconButton(
++              tooltip: '删除此条目',
++              icon: const Icon(Icons.close, size: 18),
++              onPressed: () => c.removeEntry(i),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  Widget _actions(BuildContext context) {
++    return Wrap(
++      spacing: 8,
++      runSpacing: 4,
++      children: [
++        FilledButton.icon(
++          onPressed: () => _pickTask(context),
++          icon: const Icon(Icons.add, size: 18),
++          label: const Text('添加任务'),
++        ),
++        // ★ 为**每一种非 task 条目**各生成一个按钮 —— 不硬编码"休息/延后"
++        for (final k in c.entryKinds)
++          if (k['needs_minutes'] == true)
++            OutlinedButton.icon(
++              onPressed: () => _addControlEntry(context, k),
++              icon: const Icon(Icons.pause_circle_outline, size: 18),
++              label: Text('添加「${k['label']}」'),
++            ),
++        TextButton(
++          onPressed: c.entries.isEmpty ? null : c.resetToDefault,
++          child: const Text('恢复默认'),
++        ),
++      ],
++    );
++  }
++
++  /// 选一个任务加进列表。
++  Future<void> _pickTask(BuildContext context) async {
++    final picked = await showDialog<String>(
++      context: context,
++      builder: (ctx) => _TaskPickerDialog(controller: c),
++    );
++    if (picked == null) return;
++    await c.addEntry({'kind': 'task', 'task': picked});
++  }
++
++  /// 添加一个控制条目(`rest` / `delay`)。
++  ///
++  /// ★ 时长可选项来自 `/schema` 的 `duration_choices`。
++  /// ★ 说明文字来自 `/schema` 的 `entry_kinds[].help` ——
++  ///   里面写着**对定时任务的不同处理**, 这是用户唯一需要知道的区别。
++  Future<void> _addControlEntry(
++      BuildContext context, Map<String, dynamic> kind) async {
++    final minutes = await showDialog<int>(
++      context: context,
++      builder: (ctx) => SimpleDialog(
++        title: Text('添加「${kind['label']}」'),
++        children: [
++          Padding(
++            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
++            child: Text('${kind['help']}',
++                style: Theme.of(ctx).textTheme.labelMedium),
++          ),
++          for (final m in c.durationChoices)
++            SimpleDialogOption(
++              onPressed: () => Navigator.pop(ctx, m),
++              child: Text(m >= 60 && m % 60 == 0 ? '${m ~/ 60} 小时' : '$m 分钟'),
++            ),
++        ],
++      ),
++    );
++    if (minutes == null) return;
++    await c.addEntry({'kind': '${kind['value']}', 'minutes': minutes});
++  }
++}
++
++/// 任务选择对话框（带搜索）。
++class _TaskPickerDialog extends StatefulWidget {
++  const _TaskPickerDialog({required this.controller});
++
++  final TaskListController controller;
++
++  @override
++  State<_TaskPickerDialog> createState() => _TaskPickerDialogState();
++}
++
++class _TaskPickerDialogState extends State<_TaskPickerDialog> {
++  String _q = '';
++
++  @override
++  Widget build(BuildContext context) {
++    final all = widget.controller._allTasks;
++    final list = _q.isEmpty
++        ? all
++        : all
++            .where((t) =>
++                '${t['name_zh']}'.contains(_q) ||
++                '${t['command']}'.toLowerCase().contains(_q.toLowerCase()))
++            .toList();
++    return AlertDialog(
++      title: const Text('选择任务'),
++      content: SizedBox(
++        width: 420,
++        height: 420,
++        child: Column(
++          children: [
++            TextField(
++              autofocus: true,
++              decoration: const InputDecoration(
++                isDense: true,
++                prefixIcon: Icon(Icons.search, size: 18),
++                hintText: '搜索…',
++                border: OutlineInputBorder(),
++              ),
++              onChanged: (v) => setState(() => _q = v.trim()),
++            ),
++            const SizedBox(height: 8),
++            Expanded(
++              child: ListView.builder(
++                itemCount: list.length,
++                itemBuilder: (_, i) {
++                  final t = list[i];
++                  return ListTile(
++                    dense: true,
++                    title: Text('${t['name_zh']}'),
++                    subtitle: Text(
++                        '${t['category_label']} · ${t['command']}'),
++                    onTap: () =>
++                        Navigator.pop(context, '${t['command']}'),
++                  );
++                },
++              ),
++            ),
++          ],
++        ),
++      ),
++      actions: [
++        TextButton(
++            onPressed: () => Navigator.pop(context), child: const Text('取消')),
++      ],
++    );
++  }
++}
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+new file mode 100644
+index 0000000..cfb033d
+--- /dev/null
++++ b/lib/views/tasks/task_list_view.dart
+@@ -0,0 +1,421 @@
++// 任务列表 / 总览 —— OAS 的**唯一调度控制台**
++//
++// ## 设计依据
++//
++// 严格按 `docs/task-list-prototype.html`(已确认的设计稿)与
++// `docs/architecture.md` §5.2 / §5.4 实现, **不沿用 OASX 原有的树状风格**
++// (用户明确说"挺难用的")。
++//
++// ## 原型结构
++//
++//   tab「任务总览」= 监控面板
++//     ├─ 批量操作   (多选 + 批量启停 + 搜索 + 过滤)
++//     └─ 任务总览   (表格)
++//
++//   tab「任务列表（调度器）」= 唯一调度控制台
++//     ├─ 全局设置   (循环模式 + 优先级依据)
++//     ├─ 执行顺序   (拖拽排序 + 添加/删除**条目**)
++//     └─ 预期执行流程(推算)
++//
++// ## 界面职责（架构文档 §5.2 定的，不可违反）
++//
++// | 页面 | 能做什么 | 不能做什么 |
++// |---|---|---|
++// | 任务总览 | 看状态/进度/下次运行、**批量**启停 | ❌ 单个任务的启停开关 |
++// | 任务列表 | 排序、每行启停、**每行次数**、全部停止/只停列表、全局模式 | — |
++//
++// ★ 理由: `enable` 放两处必然出现"列表行开着却不跑"的静默矛盾。
++//   所以**只有一个开关**(列表行), 但总览页**不隐藏**状态 ——
++//   停用的行显示 `⚠ 配置中已停用`。
++//
++// ★ 目标次数**只在列表页可改**(用户决定); 总览页只读显示。
++//
++// ## 运行列表 = 有序**条目清单**（模型 B）
++//
++// 列表里可以混入控制条目, 按**效果**命名:
++//
++//   task   执行某个任务
++//   rest   **全部停止** N 分钟(连定时任务一起停)
++//   delay  **只停列表** N 分钟(定时任务照常)
++//
++// ★ `task` 条目**不阻塞**列表(未就绪就跳过); `rest`/`delay` **阻塞**列表,
++//   生效后自动移除(用户看到的是"这一行消失了")。
++//
++// ★ 条目类型的值/效果名/说明/标志**全部从 `/schema` 的 `list.entry_kinds` 读** ——
++//   前端不硬编码, 否则又是"同一知识多处"。
++library task_list;
++
++import 'package:flutter/material.dart';
++import 'package:get/get.dart';
++
++import 'package:oasx/api/api_client.dart';
++part '../../controller/task_list/task_list_controller.dart';
++part './task_row_view.dart';
++part './run_control_bar.dart';
++part './run_list_panel.dart';
++
++class TaskListView extends StatelessWidget {
++  const TaskListView({super.key, required this.scriptName});
++
++  /// 配置名（账号名）。由绑定层传入 —— **不依赖 `Get.arguments`**,
++  /// 因为子组件（`RunControlBar` / `TaskRowView`）也要用它,
++  /// 靠路由参数传递会在嵌套时变得脆弱。
++  final String scriptName;
++
++  @override
++  Widget build(BuildContext context) {
++    final tag = 'tasks:$scriptName';
++    if (!Get.isRegistered<TaskListController>(tag: tag)) {
++      Get.put(TaskListController(scriptName: scriptName),
++          tag: tag, permanent: false);
++    }
++    final c = Get.find<TaskListController>(tag: tag);
++    return GetBuilder<TaskListController>(
++      tag: tag,
++      builder: (_) => DefaultTabController(
++        length: 2,
++        child: Column(
++          children: [
++            RunControlBar(controller: c),
++            _header(context, c),
++            const TabBar(
++              tabs: [
++                Tab(text: '任务总览'),
++                Tab(text: '任务列表（调度器）'),
++              ],
++            ),
++            Expanded(
++              child: TabBarView(
++                children: [
++                  _OverviewTab(c: c),
++                  _ListTab(c: c),
++                ],
++              ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  /// 顶部:刷新 / 运行控制概览。
++  Widget _header(BuildContext context, TaskListController c) {
++    final r = c.overview;
++    return Padding(
++      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
++      child: Row(
++        children: [
++          IconButton(
++            tooltip: '刷新',
++            onPressed: c.loading ? null : c.refresh,
++            icon: const Icon(Icons.refresh),
++          ),
++          const SizedBox(width: 4),
++          Text('可跑 ${c.runnableCount} / ${c.tasks.length}',
++              style: Theme.of(context).textTheme.labelLarge),
++          if (c.loading)
++            const Padding(
++              padding: EdgeInsets.only(left: 12),
++              child: SizedBox(
++                width: 14, height: 14,
++                child: CircularProgressIndicator(strokeWidth: 2),
++              ),
++            ),
++          const Spacer(),
++          Text('${r['at'] ?? ''}',
++              style: Theme.of(context).textTheme.labelSmall),
++        ],
++      ),
++    );
++  }
++}
++
++// ============================================================ tab 1: 任务总览
++
++/// 总览页 —— **监控面板**, 不是开关来源。
++///
++/// 单个任务的启停统一在「任务列表」里管, 避免同一任务两处开关互相打脸。
++/// 这里可以**批量启停**、**看状态**。
++///
++/// ★ 目标次数这里**只读**(用户决定: 只在列表页可改)。
++class _OverviewTab extends StatelessWidget {
++  const _OverviewTab({required this.c});
++
++  final TaskListController c;
++
++  @override
++  Widget build(BuildContext context) {
++    return ListView(
++      padding: const EdgeInsets.all(12),
++      children: [
++        _bulkPanel(context),
++        const SizedBox(height: 12),
++        _tablePanel(context),
++      ],
++    );
++  }
++
++  Widget _bulkPanel(BuildContext context) {
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            _panelTitle(context, '批量操作',
++                '改的是 scheduler.enable（任务级长期开关）'),
++            const SizedBox(height: 8),
++            Wrap(
++              spacing: 8,
++              runSpacing: 8,
++              crossAxisAlignment: WrapCrossAlignment.center,
++              children: [
++                OutlinedButton(
++                    onPressed: () => c.selectAll(),
++                    child: const Text('全选')),
++                OutlinedButton(
++                    onPressed: () => c.selectNone(),
++                    child: const Text('全不选')),
++                OutlinedButton(
++                    onPressed: () => c.selectInvert(),
++                    child: const Text('反选')),
++                OutlinedButton(
++                    onPressed: () => c.selectListOnly(),
++                    child: const Text('只选列表里的')),
++                const SizedBox(width: 8),
++                FilledButton(
++                  onPressed: c.selected.isEmpty || c.busy
++                      ? null
++                      : () => c.bulkApply(true),
++                  child: Text('启用选中 (${c.selected.length})'),
++                ),
++                OutlinedButton(
++                  onPressed: c.selected.isEmpty || c.busy
++                      ? null
++                      : () => c.bulkApply(false),
++                  child: const Text('停用选中'),
++                ),
++                const SizedBox(width: 8),
++                SizedBox(
++                  width: 180,
++                  child: TextField(
++                    decoration: const InputDecoration(
++                      isDense: true,
++                      prefixIcon: Icon(Icons.search, size: 18),
++                      hintText: '搜索任务名…',
++                      border: OutlineInputBorder(),
++                    ),
++                    onChanged: c.setQuery,
++                  ),
++                ),
++                FilterChip(
++                  label: const Text('只看已启用'),
++                  selected: c.onlyEnabled,
++                  onSelected: (_) => c.toggleOnlyEnabled(),
++                ),
++                FilterChip(
++                  label: const Text('只看固定任务'),
++                  selected: c.onlyFixed,
++                  onSelected: (_) => c.toggleOnlyFixed(),
++                ),
++              ],
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  Widget _tablePanel(BuildContext context) {
++    if (c.tasks.isEmpty) {
++      return const Card(
++        child: Padding(
++          padding: EdgeInsets.all(24),
++          child: Center(child: Text('没有符合条件的任务')),
++        ),
++      );
++    }
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            _panelTitle(context, '任务总览',
++                '目标次数在「任务列表」里改 · 空白 = 用任务默认值'),
++            const SizedBox(height: 8),
++            _tableHeader(context),
++            const Divider(height: 1),
++            for (final t in c.tasks)
++              TaskRowView(task: t, mode: TaskRowMode.overview, controller: c),
++          ],
++        ),
++      ),
++    );
++  }
++
++  /// 表头 —— 与原型的 8 列对应。
++  Widget _tableHeader(BuildContext context) {
++    final s = Theme.of(context).textTheme.labelMedium;
++    return Padding(
++      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
++      child: Row(
++        children: [
++          const SizedBox(width: 28),
++          Expanded(flex: 22, child: Text('任务', style: s)),
++          Expanded(flex: 12, child: Text('类型', style: s)),
++          Expanded(flex: 14, child: Text('状态', style: s)),
++          Expanded(flex: 12, child: Text('目标次数', style: s)),
++          Expanded(flex: 12, child: Text('进度 / 存量', style: s)),
++          Expanded(flex: 16, child: Text('下次运行', style: s)),
++          Expanded(flex: 12, child: Text('对方', style: s)),
++          Expanded(flex: 12, child: Text('在列表', style: s)),
++        ],
++      ),
++    );
++  }
++}
++
++// ============================================================ tab 2: 任务列表
++
++/// 列表页 —— **唯一调度控制台**。
++class _ListTab extends StatelessWidget {
++  const _ListTab({required this.c});
++
++  final TaskListController c;
++
++  @override
++  Widget build(BuildContext context) {
++    return ListView(
++      padding: const EdgeInsets.all(12),
++      children: [
++        _globalPanel(context),
++        const SizedBox(height: 12),
++        RunListPanel(c: c),
++        const SizedBox(height: 12),
++        _flowPanel(context),
++      ],
++    );
++  }
++
++  /// 全局设置 —— 循环模式 + 优先级依据。
++  Widget _globalPanel(BuildContext context) {
++    final modes = c.modes;
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            _panelTitle(context, '全局设置', null),
++            const SizedBox(height: 8),
++            Wrap(
++              spacing: 16,
++              runSpacing: 8,
++              crossAxisAlignment: WrapCrossAlignment.center,
++              children: [
++                FilterChip(
++                  label: const Text('跑完循环整表'),
++                  selected: c.loopWholeList,
++                  onSelected: (_) => c.setLoopWholeList(!c.loopWholeList),
++                ),
++                Row(
++                  mainAxisSize: MainAxisSize.min,
++                  children: [
++                    const Text('优先级依据'),
++                    const SizedBox(width: 8),
++                    DropdownButton<String>(
++                      value: c.scheduleRule,
++                      isDense: true,
++                      items: [
++                        for (final m in modes)
++                          DropdownMenuItem<String>(
++                            value: '${m['value']}',
++                            child: Text('${m['label']}'),
++                          ),
++                      ],
++                      onChanged: (v) {
++                        if (v != null) c.setScheduleRule(v);
++                      },
++                    ),
++                  ],
++                ),
++                if (c.scheduleRule != c.listModeValue)
++                  Chip(
++                    label: Text('⚠ 顺序要生效需选「${c.listModeLabel}」'),
++                    visualDensity: VisualDensity.compact,
++                  ),
++              ],
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  /// 预期执行流程 —— **推算**, 不是保证。
++  Widget _flowPanel(BuildContext context) {
++    final flow = c.flow;
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            _panelTitle(context, '预期执行流程', '按当前列表推算'),
++            const SizedBox(height: 8),
++            if (flow.isEmpty)
++              const Text('（列表为空 —— 请先在上方添加条目）')
++            else ...[
++              for (final f in flow)
++                Padding(
++                  padding: const EdgeInsets.symmetric(vertical: 2),
++                  child: Row(
++                    children: [
++                      SizedBox(
++                        width: 130,
++                        child: Text('${f['at']}',
++                            style: Theme.of(context).textTheme.labelSmall),
++                      ),
++                      SizedBox(
++                        width: 80,
++                        child: Text('${f['kind']}',
++                            style: Theme.of(context).textTheme.labelSmall),
++                      ),
++                      Expanded(child: Text('${f['text']}')),
++                      if ('${f['note']}'.isNotEmpty)
++                        Text('${f['note']}',
++                            style: Theme.of(context).textTheme.labelSmall),
++                    ],
++                  ),
++                ),
++              const SizedBox(height: 8),
++              Text(
++                '★ ${c.flowDisclaimer}',
++                style: Theme.of(context).textTheme.labelSmall,
++              ),
++            ],
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++// ============================================================ 共用
++
++Widget _panelTitle(BuildContext context, String title, String? hint) {
++  return Row(
++    crossAxisAlignment: CrossAxisAlignment.baseline,
++    textBaseline: TextBaseline.alphabetic,
++    children: [
++      Text(title, style: Theme.of(context).textTheme.titleSmall),
++      if (hint != null) ...[
++        const SizedBox(width: 8),
++        Flexible(
++          child: Text(hint, style: Theme.of(context).textTheme.labelSmall),
++        ),
++      ],
++    ],
++  );
++}
+diff --git a/lib/views/tasks/task_row_view.dart b/lib/views/tasks/task_row_view.dart
+new file mode 100644
+index 0000000..01dd4f9
+--- /dev/null
++++ b/lib/views/tasks/task_row_view.dart
+@@ -0,0 +1,254 @@
++part of task_list;
++
++/// 任务行的显示模式。
++enum TaskRowMode {
++  /// 总览页:监控面板 —— 有批量选择框, **没有**启停开关。
++  overview,
++
++  /// 列表页:唯一控制台 —— 有启停开关、有目标次数输入框。
++  list,
++}
++
++/// 单个任务行。
++///
++/// ## 与原型的 8 列对应
++///
++/// | 列 | 来源 |
++/// |---|---|
++/// | 任务 | `name_zh` |
++/// | 类型 | `category_label`（后端给中文, 前端不自建映射）|
++/// | 状态 | `can_run` + `reason` |
++/// | 目标次数 | `count`（**只在列表页可改**）|
++/// | 进度 / 存量 | `charges`（充能）或 `count`（固定）|
++/// | 下次运行 | `next_run` |
++/// | 对方 | `teams`（账号级组队状态）|
++/// | 在列表 | `in_list` |
++///
++/// ## 两条不可违反的界面规则
++///
++/// 1. **总览页不放启停开关** —— `enable` 放两处必然出现"列表行开着却不跑"
++///    的静默矛盾（架构文档 §5.2）
++/// 2. **总览页不隐藏停用状态** —— 停用的行显示 `⚠ 配置中已停用`,
++///    点一下即可到列表页启用, **不会静默不跑**
++class TaskRowView extends StatelessWidget {
++  const TaskRowView({
++    super.key,
++    required this.task,
++    required this.mode,
++    required this.controller,
++    this.onTap,
++  });
++
++  final Map<String, dynamic> task;
++  final TaskRowMode mode;
++
++  /// 显式传入 —— 不靠 `Get.find` + 路由参数, 嵌套时更可靠。
++  final TaskListController controller;
++
++  final VoidCallback? onTap;
++
++  TaskListController get _c => controller;
++
++  @override
++  Widget build(BuildContext context) {
++    final name = '${task['name']}';
++    final enabled = task['enable'] == true;
++    final canRun = task['can_run'] == true;
++    final countable = task['countable'] == true;
++    final isOverview = mode == TaskRowMode.overview;
++
++    final row = Padding(
++      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
++      child: Row(
++        children: [
++          // 总览页有批量选择框; 列表页空出等宽位置保持列对齐
++          if (isOverview)
++            SizedBox(
++              width: 28,
++              child: Checkbox(
++                value: _c.selected.contains(name),
++                onChanged: (_) => _c.toggleSelected(name),
++              ),
++            )
++          else
++            const SizedBox(width: 28),
++          Expanded(flex: 22, child: _nameCell(context)),
++          Expanded(
++              flex: 12,
++              child: Text('${task['category_label'] ?? task['category'] ?? ''}',
++                  style: Theme.of(context).textTheme.labelSmall)),
++          Expanded(flex: 14, child: _statusCell(context, canRun, enabled)),
++          Expanded(flex: 12, child: _targetCell(context, countable, isOverview)),
++          Expanded(flex: 12, child: _progressCell(context, countable)),
++          Expanded(
++              flex: 16,
++              child: Text(_shortTime('${task['next_run'] ?? ''}'),
++                  style: Theme.of(context).textTheme.labelSmall)),
++          Expanded(flex: 12, child: _peerCell(context)),
++          Expanded(flex: 12, child: _inListCell(context, isOverview)),
++          // 列表页多一格:启停开关
++          if (!isOverview)
++            Switch(
++              value: enabled,
++              onChanged: _c.busy
++                  ? null
++                  : (v) async {
++                      await _c.setEnabled(name, v);
++                      await _c.refresh();
++                    },
++            ),
++        ],
++      ),
++    );
++
++    return Opacity(
++      // 停用的行整体压暗 —— 一眼能看出状态, 但**不隐藏**
++      opacity: enabled ? 1.0 : 0.55,
++      child: InkWell(onTap: onTap, child: row),
++    );
++  }
++
++  Widget _nameCell(BuildContext context) {
++    final desc = '${task['resource_describe'] ?? ''}';
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.start,
++      children: [
++        Text('${task['name_zh'] ?? task['name']}',
++            style: Theme.of(context).textTheme.bodyMedium),
++        if (desc.isNotEmpty)
++          Text(desc, style: Theme.of(context).textTheme.labelSmall),
++      ],
++    );
++  }
++
++  /// 状态:可执行 / 等待 / **⚠ 配置中已停用** / 时段未到。
++  Widget _statusCell(BuildContext context, bool canRun, bool enabled) {
++    if (canRun) {
++      return Row(
++        mainAxisSize: MainAxisSize.min,
++        children: [
++          _dot(Colors.green),
++          const SizedBox(width: 6),
++          Text('可执行', style: Theme.of(context).textTheme.labelSmall),
++        ],
++      );
++    }
++    final reason = '${task['reason'] ?? ''}';
++    if (!enabled) {
++      // ★ 不隐藏 —— 避免"看起来在跑其实没跑"
++      return Row(
++        mainAxisSize: MainAxisSize.min,
++        children: [
++          _dot(Colors.grey),
++          const SizedBox(width: 6),
++          Flexible(
++            child: Tooltip(
++              message: '在「任务列表」里可启用',
++              child: Text('⚠ 配置中已停用',
++                  style: Theme.of(context)
++                      .textTheme
++                      .labelSmall
++                      ?.copyWith(color: Colors.orange)),
++            ),
++          ),
++        ],
++      );
++    }
++    return Row(
++      mainAxisSize: MainAxisSize.min,
++      children: [
++        _dot(task['in_window'] == false ? Colors.blueGrey : Colors.orange),
++        const SizedBox(width: 6),
++        Flexible(
++          child: Text(reason,
++              style: Theme.of(context).textTheme.labelSmall,
++              overflow: TextOverflow.ellipsis),
++        ),
++      ],
++    );
++  }
++
++  /// 目标次数。
++  ///
++  /// ★ **只在列表页可改**（用户决定）; 总览页只读显示当前值。
++  /// ★ 非 countable(fixed/toppa)的任务**不显示输入框**, 而不是显示一个无效的框。
++  Widget _targetCell(BuildContext context, bool countable, bool isOverview) {
++    if (!countable) return const SizedBox.shrink();
++    final cur = (task['count'] as num?)?.toInt();
++    if (isOverview) {
++      return Text(cur == null ? '默认' : '$cur',
++          style: Theme.of(context).textTheme.labelMedium);
++    }
++    final ctrl = TextEditingController(text: cur?.toString() ?? '');
++    return SizedBox(
++      width: 68,
++      child: TextField(
++        controller: ctrl,
++        keyboardType: TextInputType.number,
++        decoration: const InputDecoration(
++          isDense: true,
++          hintText: '默认',
++          border: OutlineInputBorder(),
++          contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
++        ),
++        onSubmitted: (v) async {
++          final n = int.tryParse(v.trim()) ?? 0;
++          await _c.setTarget('${task['name']}', n);
++          await _c.refresh();
++        },
++      ),
++    );
++  }
++
++  /// 进度/存量:
++  ///   * 充能类 -> `charges.count / charges.max`(如 2/2)
++  ///   * 固定类 -> 当前已打次数
++  Widget _progressCell(BuildContext context, bool countable) {
++    final charges = task['charges'];
++    if (charges is Map) {
++      return Text('${charges['count']}/${charges['max']}',
++          style: Theme.of(context).textTheme.labelMedium);
++    }
++    if (!countable) return const SizedBox.shrink();
++    return Text('—', style: Theme.of(context).textTheme.labelSmall);
++  }
++
++  /// "对方" —— 组队协同的队友在线状态。
++  ///
++  /// ⚠ 目前 `overview.teams` 是**账号级**的（哪些账号在线），
++  ///   不是"这个任务的队友"。见 `docs/ui-api-mapping.md` 缺口清单 #2。
++  Widget _peerCell(BuildContext context) {
++    final teams = (_c.overview['teams'] as List?) ?? const [];
++    if (teams.isEmpty) return const SizedBox.shrink();
++    final online = teams
++        .where((t) => (t as Map)['online'] == true)
++        .map((t) => '${(t as Map)['config']}')
++        .toList();
++    if (online.isEmpty) {
++      return Text('离线', style: Theme.of(context).textTheme.labelSmall);
++    }
++    return Tooltip(
++      message: '在线账号: ${online.join(", ")}',
++      child: Text('${online.length} 在线',
++          style: Theme.of(context).textTheme.labelSmall?.copyWith(
++              color: Colors.green)),
++    );
++  }
++
++  Widget _inListCell(BuildContext context, bool isOverview) {
++    final inList = task['in_list'] == true;
++    return Text(inList ? '✓' : '—',
++        style: Theme.of(context).textTheme.labelSmall?.copyWith(
++            color: inList ? Colors.green : null));
++  }
++
++  Widget _dot(Color color) => Container(
++        width: 8,
++        height: 8,
++        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
++      );
++
++  /// `2026-10-08 22:01:00` -> `10-08 22:01`
++  static String _shortTime(String s) =>
++      s.length >= 16 ? s.substring(5, 16) : s;
++}
+-- 
+2.41.0.windows.1
+

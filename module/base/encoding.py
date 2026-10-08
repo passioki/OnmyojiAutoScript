@@ -27,9 +27,12 @@ spawn 的子进程(含 multiprocessing 子进程)继承同样的编码设置。
 
 使用方式
 --------
-在入口(server.py / gui.py / script.py)最顶部、**早于 module.logger 导入**调用:
+在入口(server.py / script.py)最顶部、**早于 module.logger 导入**调用:
     from module.base.encoding import setup_utf8_stdio
     setup_utf8_stdio()
+
+注意: 旧的内置 PySide6 GUI 入口 gui.py 已移除 —— 界面统一由 OASX 承担,
+它通过 server.py 的 HTTP/WebSocket 接口通信, 因此本模块只需覆盖这两个入口。
 """
 import os
 import sys

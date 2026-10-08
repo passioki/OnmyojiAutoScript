@@ -1,5 +1,7 @@
 # This Python file uses the following encoding: utf-8
-# Copy from https://github.com/LmeSzinc/AzurLaneAutoScript/gui.py
+# 参考 https://github.com/LmeSzinc/AzurLaneAutoScript 的 gui.py 思路,
+# 但 OAS 把前后端拆开了: 本文件是**后端服务**(FastAPI), 界面由 OASX 承担。
+# 因此这里只暴露 HTTP/WebSocket 接口, 不包含任何界面代码。
 
 
 """

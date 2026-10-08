@@ -20,7 +20,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 ENCODING_MODULE = REPO_ROOT / 'module' / 'base' / 'encoding.py'
 
 # 应当在自己的最顶部、早于任何可能间接导入 module.logger 的语句完成设置
-ENTRY_POINTS = ('server.py', 'gui.py', 'script.py')
+# 注: 旧的内置 PySide6 GUI 入口 gui.py 已移除(见 docs 里的架构说明), 因此不再列入。
+ENTRY_POINTS = ('server.py', 'script.py')
 
 
 # --------------------------------------------------------------------------
@@ -112,7 +113,7 @@ def test_logger_file_handler_keeps_explicit_utf8():
 # --------------------------------------------------------------------------
 # 启动脚本
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize('script_name', ('oas-server.bat', 'oas-backend.bat', 'oas-gui.bat'))
+@pytest.mark.parametrize('script_name', ('oas-server.bat', 'oas-backend.bat'))
 def test_launcher_sets_utf8_environment(script_name):
     """
     批处理应在调用 python 之前设置编码环境变量, 使直起的进程也正确。
@@ -120,6 +121,8 @@ def test_launcher_sets_utf8_environment(script_name):
     注意: oas-server.bat 与 oas-backend.bat 被 .gitignore 忽略(上游如此),
     因此这两个文件在代码仓库中可能不存在。此测试仅在其存在时校验,
     真正兜底的是 module/base/encoding.py 的 setup_utf8_stdio()。
+
+    (原先还包含 oas-gui.bat —— 它随旧的内置 PySide6 GUI 一起移除了。)
     """
     path = REPO_ROOT / 'deploy' / 'launcher' / script_name
     if not path.exists():

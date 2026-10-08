@@ -70,6 +70,9 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         self._counter_period = 'none'
         self._counter_reset_at = None
         self._counter_persisted = 0
+        # 运行控制: 战斗循环收到暂停请求后置位, 让任务循环自然收敛
+        # (见 docs/architecture.md §6.1 与 should_stop_battle_loop)
+        self._pause_requested = False
 
     # ---------------------------------------------------------------- 战斗计数持久化
     def bind_counter(self, task: str = None, period='none', reset_at=None) -> int:
@@ -137,6 +140,79 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         task_state.reset_count(self.config.config_name, self._counter_task)
         self.current_count = 0
         self._counter_persisted = 0
+
+    # ------------------------------------------------------------------ 运行控制
+    def requested_pause(self) -> bool:
+        """
+        界面是否请求了暂停(**⏸ 跑完当前这场战斗**)?
+
+        语义: 返回 True 的那一刻正是**安全点** —— 战斗 + 结算 + 领奖都已完成
+        (见 `docs/architecture.md` §6.1)。调用方应当**结束当前任务的本轮循环**,
+        而不是硬杀进程(硬杀会卡在半途: 战斗中 / 组队房间中, 不安全)。
+
+        为什么放在 `BaseTask`: 与 `commit_count()` 同一手法 —— 放在共享层,
+        **所有走 `GeneralBattle` 的任务自动受益**, 不必逐个任务改。
+        """
+        try:
+            from module.config import run_control
+            return run_control.is_paused()
+        except Exception as exc:
+            # 状态读取失败时"照常运行" —— 不能因为状态文件问题把任务卡死
+            logger.warning(f'查询暂停状态失败({type(exc).__name__}: {exc}), 继续运行')
+            return False
+
+    def should_stop_battle_loop(self) -> bool:
+        """
+        本任务的战斗循环是否该结束了?
+
+        ## 两种暂停模式(用户确认的语义, 见 docs/architecture.md §6.1)
+
+        | 模式 | 含义 | 本轮未打满时 |
+        |---|---|---|
+        | `PAUSE_BATTLE` | ⏸ 跑完**当前这场战斗**就停 | **也停**(这就是它的定义) |
+        | `PAUSE_ROUND` | ⏭ 本轮(**目标次数**)跑完再停 | 继续打满 |
+
+        因此:
+          * `PAUSE_ROUND` + 本轮已打满 -> 停
+          * `PAUSE_ROUND` + 本轮未打满 -> 继续(让本轮跑完)
+          * `PAUSE_BATTLE`            -> 停(本场已结束)
+
+        ## 插入位置
+
+        调用点应放在**战斗循环体的开头**(紧跟 `self.screenshot()`)。这样:
+          * 战斗中时循环体阻塞在 `battle_wait()` 里, **不会**在这里 break
+            -> 天然保证只在"两场战斗之间"退出
+          * 退出时任务既有的收尾逻辑(退房间 / 回庭院 / `set_next_run`)仍会执行
+            -> 不会卡在半途
+
+        任务自身的循环形如 `while 1: ... break`, 因此 `return True` 让调用方 `break` 即可。
+
+        **为什么不在这里 raise / sys.exit**: 那会跳过收尾逻辑, 正是要避免的"卡在半途"。
+        """
+        requested = getattr(self, '_pause_requested', False) or self.requested_pause()
+        if not requested:
+            return False
+
+        from module.config import run_control
+        try:
+            mode = run_control.pause_mode()
+        except Exception as exc:
+            logger.warning(f'读取暂停模式失败({type(exc).__name__}: {exc}), '
+                           f'按"跑完本场就停"处理')
+            return True
+
+        if mode == run_control.PAUSE_ROUND:
+            # 本轮跑完再停
+            limit = getattr(self, 'limit_count', None)
+            if limit:
+                try:
+                    if int(self.current_count) < int(limit):
+                        # 本轮还没打满 -> 继续(但保留标志, 打满后会在下一次检查时停)
+                        self._pause_requested = True
+                        return False
+                except (TypeError, ValueError):
+                    pass
+        return True
 
     def get_task_name(self) -> str:
         """

@@ -67,6 +67,9 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
         # 这个时候我已经进入房间了哦
         while 1:
             self.screenshot()
+            if self.should_stop_battle_loop():
+                logger.info(f'OtherWorldTwilight 暂停请求: 本轮结束')
+                break
             # 无论胜利与否, 都会出现是否邀请一次队友
             # 区别在于，失败的话不会出现那个勾选默认邀请的框
             if self.check_and_invite(self.conf.invite_config.default_invite):
@@ -120,6 +123,9 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
         self.device.keep_stuck_exempt('BATTLE_STATUS_S')
         while 1:
             self.screenshot()
+            if self.should_stop_battle_loop():
+                logger.info(f'OtherWorldTwilight 暂停请求: 本轮结束')
+                break
             self.device.keep_stuck_exempt('BATTLE_STATUS_S')
             if self.current_count >= self.conf.other_world_twilight_config.limit_count:
                 logger.info('Count limit out')
@@ -163,6 +169,9 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
                 logger.info('Time limit out')
                 break
             self.screenshot()
+            if self.should_stop_battle_loop():
+                logger.info(f'OtherWorldTwilight 暂停请求: 本轮结束')
+                break
             current_page = self.get_current_page(False)
             # session 返回的 Page 是 clone，与模块级 page_owt 不是同一对象，
             # 必须用 == （Page.__eq__ 比 key），is 恒为 False

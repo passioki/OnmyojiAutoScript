@@ -107,6 +107,63 @@ try:
         chk('/task_status 有 tasks', isinstance(ts.get('tasks'), list),
             f'{len(ts.get("tasks") or [])} 个')
 
+    print()
+    print('--- 运行控制 (暂停 / 继续 / 休息 / 延后) ---')
+
+    def put(path):
+        url = f'http://127.0.0.1:{PORT}' + urllib.parse.quote(path, safe="/?&=")
+        req = urllib.request.Request(url, method='PUT')
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status, json.loads(r.read().decode('utf-8'))
+
+    st4, body4 = get('/恋鸟树/run_control')
+    d4 = json.loads(body4)
+    chk('GET run_control 200', st4 == 200, str(st4))
+    chk('初始未暂停', d4.get('paused') is False, str(d4.get('paused')))
+    chk('初始可运行', d4.get('can_run') is True)
+
+    st5, d5 = put('/恋鸟树/run_control/pause?mode=battle')
+    chk('PUT pause 200', st5 == 200, str(st5))
+    chk('暂停生效', d5.get('paused') is True, str(d5.get('pause_mode')))
+    chk('暂停后 can_run=False', d5.get('can_run') is False)
+
+    _, d6 = put('/恋鸟树/run_control/pause?mode=round')
+    chk('round 模式生效', d6.get('pause_mode') == 'round')
+
+    _, d7 = put('/恋鸟树/run_control/rest?minutes=5')
+    chk('休息生效', d7.get('rest_until') is not None)
+    chk('休息时 can_run=False', d7.get('can_run') is False)
+
+    _, d8 = put('/恋鸟树/run_control/delay?minutes=10')
+    chk('延后生效', d8.get('delayed') is True)
+
+    # 关键区别: "延后"只推迟列表推进, **不阻止定时任务** ——
+    # 必须在清掉暂停与休息之后验证, 否则 can_run 是被前两者压住的。
+    put('/恋鸟树/run_control/resume')
+    put('/恋鸟树/run_control/rest?minutes=0')
+    _, body8b = get('/恋鸟树/run_control')
+    d8b = json.loads(body8b)
+    chk('清掉暂停+休息后, 延后不阻止定时任务',
+        d8b.get('can_run') is True and d8b.get('delayed') is True,
+        f'can_run={d8b.get("can_run")} delayed={d8b.get("delayed")}')
+
+    _, d9 = put('/恋鸟树/run_control/rest?minutes=0')
+    chk('取消休息', d9.get('rest_until') is None)
+    _, d10 = put('/恋鸟树/run_control/delay?minutes=0')
+    chk('取消延后', d10.get('delayed') is False)
+
+    _, d11 = put('/恋鸟树/run_control/resume')
+    chk('继续调度', d11.get('paused') is False)
+    chk('恢复后可运行', d11.get('can_run') is True)
+
+    _, d12 = put('/恋鸟树/run_control/pause?mode=immediate')
+    chk('非法 mode 被拒绝', 'error' in d12, str(d12.get('error'))[:40])
+
+    # 收尾: 确保不把暂停状态留给真实运行
+    put('/恋鸟树/run_control/resume')
+    put('/恋鸟树/run_control/rest?minutes=0')
+    put('/恋鸟树/run_control/delay?minutes=0')
+
 finally:
     proc.terminate()
     try:

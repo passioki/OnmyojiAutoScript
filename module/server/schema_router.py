@@ -234,6 +234,83 @@ async def script_schema(script_name: str):
         return {'error': str(exc), 'tasks': {}}
 
 
+# --------------------------------------------------------------------------- 运行控制
+@schema_app.get('/{script_name}/run_control')
+async def get_run_control(script_name: str):
+    """
+    当前运行控制状态(暂停 / 休息 / 延后)。
+
+    返回: {paused, pause_mode, pause_mode_label, rest_until, rest_remaining,
+           delayed, list_resume_at, list_remaining, can_run}
+    """
+    try:
+        from module.config import run_control
+        return run_control.state()
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'can_run': True}
+
+
+@schema_app.put('/{script_name}/run_control/pause')
+async def put_pause(script_name: str, mode: str = 'battle', reason: str = ''):
+    """
+    **暂停**调度。
+
+    :param mode: `battle`(默认, ⏸ 跑完当前这场战斗) 或 `round`(⏭ 本轮跑完再停)
+    :param reason: 可选备注(便于排障: 谁在什么时候暂停的)
+
+    ⚠ 语义: 立即置位, 但脚本会在**安全点**(战斗 + 结算 + 领奖完成)才停 ——
+    这样不会卡在半途(战斗中 / 组队房间中)。**不提供"立即停"**: 不安全。
+    """
+    try:
+        from module.config import run_control
+        if mode not in (run_control.PAUSE_BATTLE, run_control.PAUSE_ROUND):
+            return {'error': f'非法 mode: {mode!r}; 应为 battle / round'}
+        return run_control.request_pause(mode=mode, reason=reason)
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.put('/{script_name}/run_control/resume')
+async def put_resume(script_name: str):
+    """**继续**调度(解除暂停)。"""
+    try:
+        from module.config import run_control
+        return run_control.resume()
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.put('/{script_name}/run_control/rest')
+async def put_rest(script_name: str, minutes: int = 0):
+    """
+    **休息**: 全局暂停 N 分钟(定时任务也不跑)。`minutes=0` 取消。
+
+    与"延后"的区别: 休息影响**所有**任务; 延后只推迟**列表**推进。
+    """
+    try:
+        from module.config import run_control
+        return run_control.rest(minutes=minutes)
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.put('/{script_name}/run_control/delay')
+async def put_delay(script_name: str, minutes: int = 0):
+    """
+    **延后**: 只推迟**列表**推进 N 分钟(定时任务照常)。`minutes=0` 取消。
+    """
+    try:
+        from module.config import run_control
+        return run_control.delay(minutes=minutes)
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
 @schema_app.get('/{script_name}/overview')
 async def script_overview(script_name: str):
     """

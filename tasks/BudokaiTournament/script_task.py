@@ -132,7 +132,14 @@ class Foot(StateMachine, GameUi, BaseActivity, SwitchSoul, ActivityShikigamiAsse
                 logger.info(f'Try click fire, remain times[{max_times - click_times}]')
                 continue
         # 运行战斗
-        return self.run_general_battle(config=self.get_general_battle_conf())
+        win = self.run_general_battle(config=self.get_general_battle_conf())
+        # 安全点: 一场战斗(含结算领奖)已结束, 此时才检查暂停。
+        # 本任务的 `run_general_battle` 在本方法(辅助)里而非循环体内,
+        # 故用调用点检查(见 docs/architecture.md §6.1)。
+        if self.should_stop_battle_loop():
+            logger.info('BudokaiTournament 暂停请求: 本轮结束')
+            self._pause_requested = True
+        return win
 
     def battle_wait(self, random_click_swipt_enable: bool) -> bool:
         func = getattr(self, f'battle_wait_daily_training', self.battle_wait_daily_training)

@@ -297,6 +297,11 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         logger.hr('Start wanted quests')
         while 1:
             self.screenshot()
+            # 运行控制: 暂停请求在 challenge() 里置位, 这里在下一次迭代时收口
+            # (见 docs/architecture.md §6.1)
+            if self.should_stop_battle_loop():
+                logger.info('WantedQuests 暂停请求: 本轮结束')
+                break
             if self.appear(self.I_TRACE_TRUE):
                 break
             if self.click(ocr, interval=1):
@@ -344,6 +349,13 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         # 锁定阵容进入战斗
         wq_config = GeneralBattleConfig(lock_team_enable=True)
         self.run_general_battle(config=wq_config)
+        # 安全点: 一场战斗(含结算领奖)已结束。此处**不直接 break** ——
+        # 下面还有"关闭挑战界面"的收尾逻辑, 必须让它执行(否则界面停在挑战页)。
+        # 因此只置标志, 由外层 `execute_mission` 的循环在下一次迭代时检测。
+        # (见 docs/architecture.md §6.1)
+        if self.should_stop_battle_loop():
+            logger.info('WantedQuests 暂停请求: 本场结束后退出')
+            self._pause_requested = True
         self.wait_until_appear(self.I_WQC_FIRE, wait_time=4)
         # 关闭 挑战界面
         while 1:

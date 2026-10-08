@@ -744,6 +744,17 @@ class Script:
                     self.device.emulator_stop()
                 exit(1)
 
+            # ---- 运行控制: 暂停 / 休息 ----
+            #
+            # 放在这里而不是循环开头: 上面的成功分支用 `continue` 直接跳回开头,
+            # 会**跳过**循环开头的检查。放在 `continue` 之前才可靠。
+            #
+            # 注意: 走到这里时任务已经完整结束(战斗 + 结算 + 领奖 + 收尾),
+            # 因此这是**安全点** —— 不会卡在半途(见 docs/architecture.md §6.1)。
+            if self._handle_run_control():
+                del_cached_property(self, 'config')
+                continue
+
             if success:
                 del_cached_property(self, 'config')
                 continue
@@ -754,6 +765,42 @@ class Script:
                 continue
             else:
                 break
+
+    def _handle_run_control(self) -> bool:
+        """
+        处理暂停 / 休息。返回 True 表示"已等待, 应重新调度"。
+
+        * **暂停**(⏸ / ⏭): 不派发新任务, 循环等待用户点"继续"
+        * **休息**: 全局暂停到指定时刻(定时任务也不跑)
+
+        两者都在**安全点**被检查(任务已完整结束)。等待期间给较短的轮询间隔
+        (15 秒), 因为用户可能随时点"继续", 不该等到下个任务周期才响应。
+        """
+        try:
+            from module.config import run_control
+        except Exception as exc:
+            logger.warning(f'运行控制不可用({type(exc).__name__}: {exc}), 继续调度')
+            return False
+
+        try:
+            if run_control.is_paused():
+                st = run_control.state()
+                logger.info(f'调度已暂停({st["pause_mode_label"]}), 等待"继续"…')
+                while run_control.is_paused():
+                    time.sleep(run_control.wait_seconds() or 15)
+                logger.info('暂停已解除, 恢复调度')
+                return True
+
+            if run_control.in_rest():
+                ru = run_control.rest_until()
+                logger.info(f'休息中, 至 {ru:%Y-%m-%d %H:%M}, 暂停派发任务')
+                while run_control.in_rest():
+                    time.sleep(run_control.wait_seconds() or 15)
+                logger.info('休息结束, 恢复调度')
+                return True
+        except Exception as exc:
+            logger.warning(f'运行控制处理异常({type(exc).__name__}: {exc}), 继续调度')
+        return False
 
     def start_loop(self) -> None:
         """

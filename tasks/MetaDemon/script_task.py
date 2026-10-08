@@ -166,6 +166,12 @@ class ScriptTask(RightActivity, GeneralBattle, SwitchSoul, Star56):
             if battle_processing and self.appear(self.I_BATTLE_DEMON):
                 logger.info(f'preset group team: {target_group_team}')
                 self.battle_boss(target_group_team[0], target_group_team[1])
+                # 安全点: 一场战斗(含结算领奖)已结束。此时才检查暂停 ——
+                # 本任务的 `run_general_battle` 在 `battle_boss()` 里, 不在循环体内,
+                # 故用调用点检查(见 docs/architecture.md §6.1)。
+                if self.should_stop_battle_loop():
+                    logger.info('MetaDemon 暂停请求: 本轮结束')
+                    break
                 if first_battle_for_easy_boss:
                     first_battle_for_easy_boss = False
                 if is_hard_boss:

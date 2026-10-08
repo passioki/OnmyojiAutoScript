@@ -64,6 +64,25 @@ class GeneralBattle(BattleWait, GeneralBuff):
             self.green_mark(config.green_enable, config.green_mark)
         # 战中设置
         win = self.battle_wait(random_click_swipt_enable=config.random_click_swipt_enable)
+
+        # ---- 安全点: 暂停检查 ----
+        #
+        # `battle_wait()` 返回 = 战斗 + 结算 + 领奖全部完成 = **正是安全点**
+        # (见 docs/architecture.md §6.1)。此时可以安全地结束本任务循环。
+        #
+        # 为什么在这里而不是各任务里: 与 `commit_count()` 同一手法 ——
+        # 放在共享层, **所有走 GeneralBattle 的任务自动受益**。
+        # 任务自身的循环形如 `while 1: ... if <条件>: break`, 因此只要让
+        # `appear_then_click` 之类的条件继续成立, 循环自然会退出。
+        if win and self.requested_pause():
+            logger.info('收到暂停请求: 本场战斗已完成, 结束当前任务')
+            try:
+                # 通知任务循环尽快收敛(不强制 break, 避免干扰任务的收尾逻辑)
+                self._pause_requested = True
+            except Exception:
+                pass
+            return True
+
         if win:
             return True
         else:

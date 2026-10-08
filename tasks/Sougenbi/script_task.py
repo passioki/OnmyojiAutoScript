@@ -79,6 +79,9 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, SougenbiAssets):
         # 开始循环
         while 1:
             self.screenshot()
+            if self.should_stop_battle_loop():
+                logger.info(f'Sougenbi 暂停请求: 本轮结束')
+                break
 
             if not self.appear(self.I_S_CHECK_SOUGENBI):
                 continue

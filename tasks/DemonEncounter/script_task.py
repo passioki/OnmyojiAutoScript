@@ -273,6 +273,9 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         preset_switched = False
         while True:
             self.screenshot()
+            if self.should_stop_battle_loop():
+                logger.info(f'DemonEncounter 暂停请求: 本轮结束')
+                break
             if self.appear(self.I_BOSS_DONE_CHECK):
                 break
             if self.appear(self.I_BOSS_GATHER):

@@ -153,6 +153,9 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
         # 更改循环顺序
         while 1:
             self.screenshot()
+            if self.should_stop_battle_loop():
+                logger.info(f'RealmRaid 暂停请求: 本轮结束')
+                break
             #看到弹窗点掉，不然会卡死
             if self.appear(self.I_FRESH_ENSURE):
                 logger.info("Pop-up detected: Refresh Confirmation. Clicking Confirm.")

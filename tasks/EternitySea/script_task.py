@@ -79,6 +79,9 @@ class ScriptTask(
         # 这个时候我已经进入房间了哦
         while 1:
             self.screenshot()
+            if self.should_stop_battle_loop():
+                logger.info(f'EternitySea 暂停请求: 本轮结束')
+                break
             # 无论胜利与否, 都会出现是否邀请一次队友
             # 区别在于，失败的话不会出现那个勾选默认邀请的框
             if self.check_and_invite(self._task_config.invite_config.default_invite):
@@ -187,6 +190,9 @@ class ScriptTask(
         self.device.keep_stuck_exempt('BATTLE_STATUS_S')
         while 1:
             self.screenshot()
+            if self.should_stop_battle_loop():
+                logger.info(f'EternitySea 暂停请求: 本轮结束')
+                break
             self.device.keep_stuck_exempt('BATTLE_STATUS_S')
 
             #限制
@@ -238,6 +244,9 @@ class ScriptTask(
 
         while 1:
             self.screenshot()
+            if self.should_stop_battle_loop():
+                logger.info(f'EternitySea 暂停请求: 本轮结束')
+                break
 
             if not self._is_in_eternity_sea():
                 continue

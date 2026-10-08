@@ -25,6 +25,9 @@ from module.logger import logger
 class Device(Platform, Screenshot, Control, AppControl):
     _screen_size_checked = False
     detect_record = set()
+    # 持续豁免: stuck_record_clear() 之后会被自动恢复, 只能由 release_stuck_exempt()
+    # 撤销。用于"战斗期间"这类**内部仍会频繁点击**的长耗时状态, 见 hold_stuck_exempt()。
+    stuck_record_late = set()
     click_record = deque(maxlen=15)
     stuck_timer = Timer(60, count=60).start()
     stuck_timer_long = Timer(300, count=300).start()
@@ -142,7 +145,15 @@ class Device(Platform, Screenshot, Control, AppControl):
         logger.info(f'Add stuck record: {button}')
 
     def stuck_record_clear(self):
+        """
+        清空"当前识别到的状态"并重置卡死计时器。
+
+        注意: **不会清掉 `stuck_record_late` 里的持续豁免** —— 那也是它对
+        `handle_control_check()` 的语义: "我刚点击了一下" 只应清掉瞬时状态,
+        不该取消"我正处于某个长耗时的正常状态里"的声明。见 `hold_stuck_exempt()`。
+        """
         self.detect_record = set()
+        self.detect_record |= self.stuck_record_late
         self.stuck_timer.reset()
         self.stuck_timer_long.reset()
 
@@ -164,12 +175,41 @@ class Device(Platform, Screenshot, Control, AppControl):
         (见 `stuck_unlimited_wait_list`)。豁免一失效, 转场动画就会被计入 60s 倒计时,
         一旦那一刻没有检测命中就抛 GameStuckError -> 重启游戏。
 
-        所以: 长时间处于正常状态的任务循环, 应当**每一轮**调用本方法重新声明豁免。
-        幂等(detect_record 是 set), 重复调用无副作用。
-
         :param button: 豁免名, 见 stuck_unlimited_wait_list / stuck_long_wait_list
         """
         self.detect_record.add(str(button))
+
+    def hold_stuck_exempt(self, button: str) -> None:
+        """
+        声明一个**持续**豁免: 它会在 `stuck_record_clear()` 之后自动恢复。
+
+        与 `keep_stuck_exempt()` 的区别(线上实测 2026-10-08 定下的语义):
+
+            豁免生效期间, 任务代码仍会**频繁点击**(战斗中的防封随机点击/滑动、
+            队伍界面操作等), 每次点击都走 `handle_control_check()` ->
+            `stuck_record_clear()`。于是"每轮重新声明"这种写法在单场战斗内部
+            **执行不到**(战斗循环还没返回), 豁免在第一次随机点击后就永久失效,
+            60 秒后看门狗把正常战斗判为卡死并重启游戏。
+
+        实测时序(伴生树/恋鸟树 两个账号完全一致):
+            11:20:05.623  Add stuck record: BATTLE_STATUS_S
+            11:20:14.683  Click (667,237) @ random_click     <- 豁免被清
+            11:21:14.892  Wait too long | Waiting for set()  <- 正好 60s 后
+
+        所以"战斗期间"这类声明必须能跨过点击存活, 由任务代码在**真正离开**该状态时
+        调用 `release_stuck_exempt()` 撤销。
+
+        :param button: 豁免名, 见 stuck_unlimited_wait_list / stuck_long_wait_list
+        """
+        name = str(button)
+        self.stuck_record_late.add(name)
+        self.detect_record.add(name)
+
+    def release_stuck_exempt(self, button: str) -> None:
+        """撤销 `hold_stuck_exempt()` 声明的持续豁免(真正离开该状态时调用)。"""
+        name = str(button)
+        self.stuck_record_late.discard(name)
+        self.detect_record.discard(name)
 
     def stuck_record_check(self):
         """

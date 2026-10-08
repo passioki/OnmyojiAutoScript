@@ -1113,7 +1113,17 @@ class BattleWait(BaseTask, GeneralBattleAssets):
         self.C_REWARD_1.name = 'C_REWARD'
         self.C_REWARD_2.name = 'C_REWARD'
         self.C_REWARD_3.name = 'C_REWARD'
-        self.device.stuck_record_add('BATTLE_STATUS_S')
+        # 必须用 hold_stuck_exempt 而不是 stuck_record_add:
+        # 战斗期间本流程自己会频繁点击(防封随机点击/滑动, 见 _bw_randomclick_default),
+        # 而 device.handle_control_check() 的第一件事就是 stuck_record_clear(),
+        # 会把普通豁免清掉 —— 之后战斗/转场期间只剩 stuck_timer(60s) 硬判定,
+        # 于是正常战斗被误判卡死并重启游戏。
+        # 线上实测(2026-10-08, 两个账号时序完全一致):
+        #     11:20:05.623  Add stuck record: BATTLE_STATUS_S
+        #     11:20:14.683  Click @ random_click          <- 豁免被清
+        #     11:21:14.892  Wait too long | Waiting for set()  <- 正好 60s 后
+        # hold 声明的豁免能跨过点击存活, 由 battle_wait_with_strategy 收尾时释放。
+        self.device.hold_stuck_exempt('BATTLE_STATUS_S')
         self.device.click_record_clear()
         logger.info('Start battle process')
         return HookSignal.DONE
@@ -1672,18 +1682,24 @@ class BattleWait(BaseTask, GeneralBattleAssets):
         handlers = [getattr(self, func_name, None) for func_name in battle_wait_plan.sequence_function_names()]
         self.setup_hook(handlers=handlers)
 
-        while True:
-            self.screenshot()
-            hook_enabled = runtime.hook_enabled()
-            # self.state_show()
-            for handler in handlers:
-                if runtime.hook2event(handler.__name__) not in hook_enabled:
-                    continue
-                result = handler()
-                if handler.__name__.startswith('_bw_completion') and result == HookSignal.DONE:
-                    return runtime.pub_ctx.per_battle.success == BattleResult.SUCCESS
-                if result == HookSignal.CONTINUE:
-                    continue
+        try:
+            while True:
+                self.screenshot()
+                hook_enabled = runtime.hook_enabled()
+                # self.state_show()
+                for handler in handlers:
+                    if runtime.hook2event(handler.__name__) not in hook_enabled:
+                        continue
+                    result = handler()
+                    if handler.__name__.startswith('_bw_completion') and result == HookSignal.DONE:
+                        return runtime.pub_ctx.per_battle.success == BattleResult.SUCCESS
+                    if result == HookSignal.CONTINUE:
+                        continue
+        finally:
+            # 释放 setup 阶段持有的持续豁免(见 _bw_setup_default 的说明)。
+            # 放在 finally 里是为了异常路径也一定释放 —— 否则豁免会残留,
+            # 把之后的真实卡死也一并豁免掉, 看门狗就失效了。
+            self.device.release_stuck_exempt('BATTLE_STATUS_S')
 
     @classmethod
     def setup_hook(cls, handlers: list[Callable]):

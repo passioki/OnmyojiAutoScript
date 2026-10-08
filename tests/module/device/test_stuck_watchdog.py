@@ -27,6 +27,9 @@ class _Harness:
 
     def __init__(self):
         self.detect_record = set()
+        # Device.stuck_record_clear() 会恢复 stuck_record_late 里的持续豁免,
+        # 所以 harness 必须提供这个属性(真实 Device 上是类属性)。
+        self.stuck_record_late = set()
         self.stuck_timer = Timer(1).start()
         self.stuck_timer_long = Timer(1).start()
         self._app_running = True

@@ -50,6 +50,13 @@ class GeneralBattle(BattleWait, GeneralBuff):
         # 战斗统计
         self.current_count += 1
         logger.info(f"Current count: {self.current_count}")
+        # 把计数写盘(仅对调用了 bind_counter 的任务生效; 否则是空操作)。
+        # 放在这里而不是各任务里, 是为了所有走 GeneralBattle 的任务自动受益。
+        try:
+            self.commit_count()
+        except AttributeError:
+            # 极少数不走 BaseTask 的调用方没有该方法, 忽略即可
+            pass
         # 战前设置
         self.battle_before(buff, config)
         # 绿标

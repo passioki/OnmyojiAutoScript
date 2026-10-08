@@ -1215,9 +1215,26 @@ class BattleWait(BaseTask, GeneralBattleAssets):
         while 1:
             self.screenshot()
 
-            # 不小心点到了具体的奖励，他会弹出这个物品的详细描述 里面必定包含有“获取途径”
-            if self.appear(self.I_END_FIX_1) or self.appear(self.I_END_FIX_2):
-                self.click(self.C_REWARD_2, interval=1.5)
+            # 不小心点到了具体的奖励，会弹出该物品的详细描述(内含"获取途径")。
+            #
+            # 这里必须:
+            #   1) 检查**全部三个**弹窗模板 —— 原实现只认 _1/_2, 漏了 _3,
+            #      于是 _3 这类弹窗根本没被识别;
+            #   2) 弹窗消失前**不得退出**本循环 —— 弹窗会遮住下面的奖励图,
+            #      而"看不见奖励图"正是本循环的退出条件, 所以弹窗一出现就会被
+            #      误判为"奖励领完", 带着弹窗退出去, 结果卡在奖励界面无法
+            #      进入下一次邀请/战斗(线上反馈: 奖励多时会点到奖励, 弹出介绍
+            #      后不退出奖励界面)。对照本文件另一处奖励循环(见 _bw_success_soul
+            #      附近的实现), 那里就是先判断三个模板、再二次确认后才继续。
+            if any((self.appear(self.I_END_FIX_1),
+                    self.appear(self.I_END_FIX_2),
+                    self.appear(self.I_END_FIX_3))):
+                self.screenshot()
+                if any((self.appear(self.I_END_FIX_1),
+                        self.appear(self.I_END_FIX_2),
+                        self.appear(self.I_END_FIX_3))):
+                    self.click(self.C_REWARD_2, interval=2.5)
+                continue      # 确认弹窗已关掉再继续, 避免带着弹窗退出
 
             _appear_ghost, _appear_reward, _appear_gold, _appear_skin = (
                 self.appear(self.I_GREED_GHOST, threshold=0.6),

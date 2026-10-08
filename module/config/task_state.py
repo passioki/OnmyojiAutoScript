@@ -233,6 +233,95 @@ def clear(config_name: str = None, task: str = None) -> None:
 
 
 # ---------------------------------------------------------------------------
+# 战斗计数的持久化
+#
+# 问题: `BaseTask.current_count` 只存在内存里(每个任务还在 run() 开头重置为 0),
+# 进程一旦重启(手动重启、崩溃后 restart、任务被中断)计数就归零, 于是
+# "我今天要打 N 次"这类固定任务会从头再打一遍, 永远打不满 N。
+# 这里把它落到与"完成记忆/次数"同一个状态文件里, 按周期自动重置。
+# ---------------------------------------------------------------------------
+def _coerce_period(period) -> str:
+    """把周期参数规范化成字符串; 接受 TaskPeriod 枚举或普通字符串。"""
+    if period is None:
+        return 'none'
+    return str(getattr(period, 'value', period)).lower()
+
+
+def get_count(config_name: str, task: str, period='none',
+              reset_at: dt_time = DEFAULT_RESET_AT,
+              now: datetime = None) -> int:
+    """
+    读取某任务在当前周期内已累计的战斗次数。
+
+    周期变了(或从未记录过)则返回 0。任何异常也返回 0 —— 计数失败不应影响任务。
+    """
+    now = now or datetime.now()
+    pkey = period_key(_coerce_period(period), reset_at, now)
+    try:
+        with _lock():
+            data = _read_all()
+    except Exception:
+        return 0
+    item = (data.get(config_name) or {}).get(str(task).lower()) or {}
+    if pkey and item.get('count_key') != pkey:
+        return 0            # 换了周期, 旧计数作废
+    try:
+        return max(0, int(item.get('count', 0) or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def add_count(config_name: str, task: str, delta: int = 1, period='none',
+              reset_at: dt_time = DEFAULT_RESET_AT,
+              now: datetime = None) -> int:
+    """
+    累加战斗次数并写盘, 返回累加后的值。
+
+    跨周期时先归零再加。写盘失败只记 warning —— 计数不应成为任务失败的原因。
+    """
+    now = now or datetime.now()
+    pkey = period_key(_coerce_period(period), reset_at, now)
+    key = str(task).lower()
+    try:
+        with _lock():
+            data = _read_all()
+            item = data.setdefault(config_name, {}).setdefault(key, {})
+            if pkey and item.get('count_key') != pkey:
+                item['count'] = 0
+                item['count_key'] = pkey
+            try:
+                cur = max(0, int(item.get('count', 0) or 0))
+            except (TypeError, ValueError):
+                cur = 0
+            # 夹到 >= 0: 负数会让状态文件里留下脏值(虽然读取时会再夹一次),
+            # 也会让"已打次数"看起来倒退。
+            cur = max(0, cur + int(delta))
+            item['count'] = cur
+            item['count_updated'] = now.replace(microsecond=0).isoformat()
+            _write_all(data)
+        return cur
+    except Exception as exc:
+        logger.warning(f'[TaskState] 记录战斗次数失败({type(exc).__name__}: {exc}), 忽略')
+        return get_count(config_name, task, period, reset_at, now)
+
+
+def reset_count(config_name: str, task: str) -> None:
+    """清零某任务的累计次数(例: 用户手动要求重新计数)。"""
+    key = str(task).lower()
+    try:
+        with _lock():
+            data = _read_all()
+            item = (data.get(config_name) or {}).get(key)
+            if isinstance(item, dict):
+                item.pop('count', None)
+                item.pop('count_key', None)
+                item.pop('count_updated', None)
+                _write_all(data)
+    except Exception as exc:
+        logger.warning(f'[TaskState] 重置战斗次数失败({type(exc).__name__}: {exc}), 忽略')
+
+
+# ---------------------------------------------------------------------------
 # 跨账号协同支撑: 心跳 / 可用配置发现 / 读取对方次数
 #
 # 说明: 各账号的"剩余次数"本来就按配置名分桶存在同一个状态文件里

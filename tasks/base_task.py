@@ -6,7 +6,7 @@ import inspect
 import inflection
 import random
 from typing import Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dt_time
 from pathlib import Path
 from time import sleep, time
 
@@ -65,6 +65,78 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         # 战斗次数相关
         self.current_count = 0  # 战斗次数
         self._boss_mark_flag = False
+        # 战斗计数的持久化绑定(见 bind_counter/commit_count 的说明)
+        self._counter_task = None
+        self._counter_period = 'none'
+        self._counter_reset_at = None
+        self._counter_persisted = 0
+
+    # ---------------------------------------------------------------- 战斗计数持久化
+    def bind_counter(self, task: str = None, period='none', reset_at=None) -> int:
+        """
+        把 `current_count` 绑定到状态文件, 并返回恢复到内存的计数。
+
+        为什么需要: `current_count` 原本只存在内存里(每个任务还在 run() 开头重置为 0),
+        进程一旦重启(手动重启 / 崩溃后 restart / 任务被中断)计数就归零, 于是
+        "我今天要打 N 次"这类固定任务会从头再打, 永远打不满 N。
+
+        用法(在 run() 里, 取代 `self.current_count = 0`):
+
+            self.current_count = self.bind_counter('FallenSun', period='daily')
+
+        之后每次战斗结束调 `self.commit_count()` 写盘。
+
+        :param task: 任务名; 留空则用目录名推断(见 get_task_name)
+        :param period: 周期类型('daily'/'weekly'/'none'), 决定何时自动清零
+        :param reset_at: 游戏重置时刻(datetime.time); 留空用 task_state 的默认(0 点)
+        :return: 恢复后的计数
+        """
+        from module.config import task_state
+        self._counter_task = str(task or self.get_task_name()).lower()
+        self._counter_period = str(getattr(period, 'value', period) or 'none').lower()
+        self._counter_reset_at = reset_at if isinstance(reset_at, dt_time) \
+            else task_state.DEFAULT_RESET_AT
+        try:
+            self.current_count = task_state.get_count(
+                self.config.config_name, self._counter_task,
+                period=self._counter_period, reset_at=self._counter_reset_at)
+        except Exception as exc:
+            logger.warning(f'恢复战斗计数失败({type(exc).__name__}: {exc}), 从 0 开始')
+            self.current_count = 0
+        self._counter_persisted = self.current_count
+        if self.current_count:
+            logger.info(f'从状态恢复战斗计数: {self.current_count}')
+        return self.current_count
+
+    def commit_count(self) -> None:
+        """
+        把内存里的 `current_count` 同步到状态文件。
+
+        幂等: 内部记录"已写盘的值", 只把增量写下去, 因此重复调用不会重复累加。
+        未调用 bind_counter 时是空操作。
+        """
+        if not self._counter_task:
+            return
+        delta = int(self.current_count) - int(self._counter_persisted)
+        if delta <= 0:
+            return
+        from module.config import task_state
+        try:
+            task_state.add_count(
+                self.config.config_name, self._counter_task, delta=delta,
+                period=self._counter_period, reset_at=self._counter_reset_at)
+            self._counter_persisted = int(self.current_count)
+        except Exception as exc:
+            logger.warning(f'写盘战斗计数失败({type(exc).__name__}: {exc}), 忽略')
+
+    def reset_persisted_count(self) -> None:
+        """清零本任务的持久化计数(供"重新计数"或排障使用)。"""
+        if not self._counter_task:
+            return
+        from module.config import task_state
+        task_state.reset_count(self.config.config_name, self._counter_task)
+        self.current_count = 0
+        self._counter_persisted = 0
 
     def get_task_name(self) -> str:
         """

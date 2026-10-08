@@ -752,8 +752,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 3 | **`AvailabilityWindow` 开放时段 + `ObservedWindow` 自学习** | ✅ 已提交（本步） |
 | 4 | `Resource` 分层（`Recharge`）+ 修正误分类 + `resource_specs.json` | ✅ 已提交 |
 | 5 | 开放时段接入用户配置（`Scheduler` 四个 `window_*` 字段 + `build_window()`） | ✅ 已提交 |
-| 6 | 一次性迁移脚本 + 切换 `get_next()` 到新调度器 | ⬜ 下一步 |
-| 7 | 一次性脚本为 54 个任务批量生成 `meta.py` 自描述 | ⬜ |
+| 6 | 一次性迁移脚本 + `get_next()` 引入开放时段闸门 | ✅ 已提交 |
+| 7 | 一次性脚本为 54 个任务批量生成 `meta.py` 自描述 | ⬜ 下一步 |
 | 8 | `config_model` 自动发现（删 113 行） | ⬜ |
 | 9 | i18n 改为生成 / `/schema` 提供 | ⬜ |
 | 10 | 休息 / 延后 / 暂停 | ⬜ |

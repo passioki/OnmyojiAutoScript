@@ -144,6 +144,40 @@ class TestWatchdogSemantics:
         assert Device.stuck_record_check(dev) is False, (
             '持有持续豁免时不得判定卡死')
 
+    def test_watchdog_reads_held_set_not_only_detect_record(self, dev):
+        """
+        **关键回归**: 看门狗必须直接检查持续豁免集合, 不能只看 detect_record。
+
+        线上实测(2026-10-08, 第一次带 hold 的版本仍卡死):
+            battle_wait.py:1128  Start battle process        <- hold_stuck_exempt 执行
+            device.py:0234       Wait too long | Waiting for set()  <- detect_record 为空!
+        原因: detect_record 只在 stuck_record_clear() 里由 stuck_record_late 重建;
+        若点击后没有再触发 clear, detect_record 一直为空, 看门狗就读不到豁免。
+        """
+        from module.device.device import Device
+        dev.hold_stuck_exempt('BATTLE_STATUS_S')
+        # 直接把 detect_record 清空, 模拟"点击后尚未再触发 clear"的状态
+        dev.detect_record = set()
+        assert dev.stuck_record_late == {'BATTLE_STATUS_S'}
+        dev.stuck_timer._current -= 3600
+        dev.stuck_timer._reach_count = dev.stuck_timer.count + 1
+        assert Device.stuck_record_check(dev) is False, (
+            'detect_record 虽空, 但持续豁免仍在 —— 不得判定卡死')
+
     def test_battle_status_in_unlimited_list(self):
         from module.device.device import Device
         assert 'BATTLE_STATUS_S' in Device.stuck_unlimited_wait_list
+
+    def test_release_then_watchdog_can_fire(self, dev):
+        """释放持续豁免后, 看门狗必须恢复工作(不能永久豁免)。"""
+        from module.device.device import Device
+        from module.exception import GameStuckError
+        dev.hold_stuck_exempt('BATTLE_STATUS_S')
+        dev.release_stuck_exempt('BATTLE_STATUS_S')
+        dev.detect_record = set()
+        dev.stuck_timer._current -= 3600
+        dev.stuck_timer._reach_count = dev.stuck_timer.count + 1
+        dev.stuck_timer_long._current -= 4000
+        dev.stuck_timer_long._reach_count = dev.stuck_timer_long.count + 1
+        with pytest.raises(GameStuckError):
+            Device.stuck_record_check(dev)

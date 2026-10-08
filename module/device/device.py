@@ -221,18 +221,25 @@ class Device(Platform, Screenshot, Control, AppControl):
 
         if not reached:
             return False
+        # 判据必须同时看"瞬时状态"和"持续豁免":
+        #   detect_record    —— 本帧识别到的状态, 会被任何点击清空
+        #   stuck_record_late —— hold_stuck_exempt() 声明的持续豁免
+        # 只看 detect_record 是不够的(线上实测 2026-10-08): 战斗中的一次随机点击会
+        # 清空 detect_record, 而在下一次 stuck_record_clear() 之前它一直是空的,
+        # 于是看门狗读不到豁免 -> 正常战斗被误判卡死并重启游戏。
+        active = self.detect_record | self.stuck_record_late
         # 战斗类状态: 持续时间由战斗本身决定, 不做时限判定。
         # 若在这里仍然抛错, 长战斗(超鬼王等)会被误判为卡死并触发 Restart。
         for button in self.stuck_unlimited_wait_list:
-            if button in self.detect_record:
+            if button in active:
                 return False
         if not reached_long:
             for button in self.stuck_long_wait_list:
-                if button in self.detect_record:
+                if button in active:
                     return False
 
         logger.warning('Wait too long')
-        logger.warning(f'Waiting for {self.detect_record}')
+        logger.warning(f'Waiting for {active}')
         self.stuck_record_clear()
 
         if self.app_is_running():

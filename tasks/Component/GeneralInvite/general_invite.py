@@ -11,9 +11,14 @@ from datetime import timedelta, time
 from module.base.timer import Timer
 from tasks.base_task import BaseTask
 from tasks.Component.GeneralInvite.assets import GeneralInviteAssets
-from tasks.Component.GeneralInvite.config_invite import InviteConfig, InviteNumber, FindMode
+from tasks.Component.GeneralInvite.config_invite import InviteConfig, InviteNumber, FindMode, TeamUserStatus
 from tasks.Component.GeneralBattle.assets import GeneralBattleAssets
 from module.logger import logger
+
+
+# enter_room_and_fire 里"确认自己已在房间内"的时限(秒)。
+# 房间通常 1~2 秒就建好; 给 30 秒足够, 且远小于卡死看门狗的 60 秒。
+ROOM_ENTER_TIMEOUT = 30
 
 
 class FriendList(str, Enum):
@@ -251,10 +256,22 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         # ALONE: 保持原有"等路人"行为
         wait_timer = Timer(random_wait)
         wait_timer.start()
+        # 与 random_wait 分开的一个"确认自己确实在房间里"的时限。
+        # 原写法是 `if not self.is_in_room(): continue` —— 一旦房间没建起来
+        # (或被游戏弹掉), 这个循环会永远空转, 直到 device 的卡死看门狗把
+        # 整局任务判死并重启游戏。这里给它一个上限, 超时按失败返回。
+        room_timer = Timer(ROOM_ENTER_TIMEOUT)
+        room_timer.start()
         while 1:
             self.screenshot()
             if not self.is_in_room():
+                if room_timer.reached():
+                    logger.warning(
+                        f'enter_room_and_fire: {ROOM_ENTER_TIMEOUT}s 内未能确认已在房间内, '
+                        f'放弃本次开战')
+                    return False
                 continue
+            room_timer.reset()
             if wait_timer.reached():
                 # 超过时间依然挑战(与改造前一致)
                 logger.warning('Wait for too long and start the challenge')

@@ -31,6 +31,11 @@ SS_TEAM_FIND_MAX_ATTEMPTS = 30
 # 若 I_SOU_SWITCH_SURE 与目标阵容都识别不到, 原来的 `while 1` 会一直转。
 SS_SOUL_SWITCH_TIMEOUT = 30
 
+# 双向扫描里"朝一个方向最多滑几次"。
+# 一屏约显示 3 项预设, 常见分组也就几项; 12 次足够覆盖到列表尽头。
+# 两个方向各 12 次 → 最多 24 次滑动(每次含截图+OCR 约 1.5~2.5s)。
+SS_SCAN_MAX_SWIPES = 12
+
 
 
 def switch_parser(switch_str: str) -> tuple:
@@ -206,6 +211,52 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             self.click_preset()
             self.switch_soul_by_name(groupName, teamName)
 
+    def _scan_for_name(self, rule, target_name: str,
+                       swipe_forward, swipe_backward,
+                       swipe_sleep: float = 1.5) -> bool:
+        """
+        在可滑动列表里找 `target_name`, **先看当前屏, 再双向扫描**。
+
+        为什么不沿用原来的单向 `while 1`: 原实现是"先滑再看", 于是
+        1) 目标本来就在当前屏时, 第一下就把它滑走了;
+        2) 而且只朝一个方向翻 —— 一旦划过头(目标被推到可视区之外)就再也回不来;
+        3) 列表一屏只显示约 3 项, 滑过一次就会永久错过。
+
+        线上实测 2026-10-08 11:55(日轮之陨): 阵容列表一屏只显示 3 个预设,
+        目标 '日轮' 本来在最上面, 被 `S_SS_TEAM_SWIPE_UP`(朝"更靠前"方向翻)
+        推到了可视区上方, 之后一直 OCR 不到, 循环空转 60s 被看门狗判死重启游戏。
+
+        现在的做法: 当前屏 → 朝 swipe_forward 扫到尽头 → 换 swipe_backward 回扫。
+        因此无论目标在列表的哪一端、当前停在何处, 都不会被跳过。
+        仍未找到则返回 False(调用方跳过切换, 不要让整局任务卡死)。
+
+        :param rule: 带 keyword 的 RuleOcr 实例(调用方负责设置 keyword)
+        :param swipe_forward: 朝"更靠后"方向翻的滑动(会浮现列表下方的项)
+        :param swipe_backward: 朝"更靠前"方向翻的滑动(会浮现列表上方的项)
+        :return: 最终是否能在屏幕上看到目标
+        """
+        def seen() -> bool:
+            self.screenshot()
+            texts = [r.ocr_text for r in rule.detect_and_ocr(self.device.image)]
+            return bool(set(texts).intersection({target_name}))
+
+        # 1) 先看当前屏 —— 目标可能已经可见, 不要先滑
+        if seen():
+            return True
+        # 2) 朝一个方向扫到尽头
+        for _ in range(SS_SCAN_MAX_SWIPES):
+            self.swipe(swipe_forward)
+            sleep(swipe_sleep)
+            if seen():
+                return True
+        # 3) 换方向回扫, 覆盖"目标在另一端 / 之前划过头"的情况
+        for _ in range(SS_SCAN_MAX_SWIPES):
+            self.swipe(swipe_backward)
+            sleep(swipe_sleep)
+            if seen():
+                return True
+        return seen()
+
     def switch_soul_by_name(self, groupName, teamName):
         """
         保证在式神录的界面
@@ -226,27 +277,18 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         logger.info('Swipe to top of group')
 
         # 判断有无目标分组
-        # 限次原因同下面"找目标阵容": 分组名不在列表里时会一直滑动,
-        # 直到看门狗把整局任务判死重启。找不到就跳过切换。
-        found_group = False
-        for _ in range(SS_TEAM_FIND_MAX_ATTEMPTS):
-            self.screenshot()
-            # 获取当前分组名
-            results = self.O_SS_GROUP_NAME.detect_and_ocr(self.device.image)
-            text1 = [result.ocr_text for result in results]
-            # 判断当前分组有无目标分组
-            if set(text1).intersection({groupName}):
-                found_group = True
-                break
-            self.swipe(self.S_SS_GROUP_SWIPE_DOWN)
-            sleep(1.5)
-        if not found_group:
+        # 先看当前屏再双向扫描, 避免"先滑再看"把已在屏上的目标滑走, 也避免划过头后回不来。
+        # 分组列表方向: SWIPE_UP 的内容移动方向与阵容列表一致。
+        self.O_SS_GROUP_NAME.keyword = groupName
+        if not self._scan_for_name(self.O_SS_GROUP_NAME, groupName,
+                                   self.S_SS_GROUP_SWIPE_UP,
+                                   self.S_SS_GROUP_SWIPE_DOWN,
+                                   swipe_sleep=1.5):
             logger.warning(
-                f'切换御魂: 找了 {SS_TEAM_FIND_MAX_ATTEMPTS} 次仍未找到目标分组 '
-                f'{groupName!r} (当前列表 {text1}), 跳过本次切换'
+                f'切换御魂: 双向扫描后仍未找到目标分组 {groupName!r}, 跳过本次切换'
             )
             return
-        logger.info('Swipe down to find target group')
+        logger.info('Found target group')
 
         # 选中分组
         selected_group = False
@@ -276,27 +318,20 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         logger.info('Swipe to top of team')
 
         # 判断当前分组有无目标阵容
-        # 必须限次: 若目标阵容名不在列表里(OCR 失配 / 配置写错 / 该阵容属于别的分组),
-        # 这里会无限滑动, 直到 device 的卡死看门狗抛 GameStuckError 并重启游戏。
-        # 线上实测 2026-10-08 11:55: 列表为 ['安魂冢','真蛇'], 目标 '日轮' 不在其中,
-        # 循环持续 60s 后被看门狗判死 -> 重启游戏。切御魂是可选项, 找不到就跳过即可。
-        found = False
-        for _ in range(SS_TEAM_FIND_MAX_ATTEMPTS):
-            self.screenshot()
-            results = self.O_SS_TEAM_NAME.detect_and_ocr(self.device.image)
-            text1 = [result.ocr_text for result in results]
-            # 判断当前分组有无目标阵容
-            if set(text1).intersection({teamName}):
-                found = True
-                break
-            self.swipe(self.S_SS_TEAM_SWIPE_UP, 0.3)
-        if not found:
+        # 先看当前屏再双向扫描。原实现是"先滑再看"且只朝一个方向:
+        # 一屏只显示约 3 个预设, 目标本来在最上面时会被 SWIPE_UP(朝"更靠前"方向翻)
+        # 推到可视区上方, 之后永远 OCR 不到 —— 实测 2026-10-08 11:55 就是这样空转
+        # 60s 被看门狗判死重启游戏(目标 '日轮' 本来在列表里, 用户确认是划过头了)。
+        self.O_SS_TEAM_NAME.keyword = teamName
+        if not self._scan_for_name(self.O_SS_TEAM_NAME, teamName,
+                                   self.S_SS_TEAM_SWIPE_UP,
+                                   self.S_SS_TEAM_SWIPE_DOWN,
+                                   swipe_sleep=1.5):
             logger.warning(
-                f'切换御魂: 在分组 {groupName!r} 中找了 {SS_TEAM_FIND_MAX_ATTEMPTS} 次'
-                f'仍未找到目标阵容 {teamName!r} (当前列表 {text1}), 跳过本次切换'
+                f'切换御魂: 双向扫描后仍未找到目标阵容 {teamName!r}, 跳过本次切换'
             )
             return
-        logger.info('Swipe up to find target team')
+        logger.info('Found target team')
 
         # 选中分组
         # 同样必须限次: 找不到目标时这里会一直点击, 直到看门狗重启游戏。

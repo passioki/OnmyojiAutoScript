@@ -58,6 +58,119 @@ def _function_body(name: str) -> str:
     return '\n'.join(body)
 
 
+class TestBidirectionalScan:
+    """
+    核心回归: 查找必须"先看当前屏, 再双向扫描"。
+
+    线上实测 2026-10-08 11:55(日轮之陨, 用户确认)：
+      阵容列表一屏只显示约 3 个预设, 目标 '日轮' **本来就在列表里、且在最上面**。
+      原实现是"先滑再看"且只朝 SWIPE_UP(朝"更靠前"方向翻) 一个方向 ——
+      于是第一下就把 '日轮' 推到了可视区上方, 之后永远 OCR 不到,
+      循环空转 60s 被卡死看门狗判死并重启游戏。
+    """
+
+    def test_check_screen_before_any_swipe(self):
+        """当前屏已有目标时, **不得**发生任何滑动。"""
+        import sys as _sys
+        _sys.path.insert(0, str(REPO_ROOT))
+
+        from tasks.Component.SwitchSoul.switch_soul import (
+            SS_SCAN_MAX_SWIPES, SwitchSoul,
+        )
+
+        order = []
+
+        class _Rule:
+            def detect_and_ocr(self, image):
+                order.append('ocr')
+                return [type('R', (), {'ocr_text': '日轮'})()]
+
+        class _Owner:
+            device = type('D', (), {'image': None})()
+
+            def screenshot(self):
+                order.append('screenshot')
+
+            def swipe(self, *a, **kw):
+                order.append('swipe')
+
+            _scan_for_name = SwitchSoul._scan_for_name
+
+        assert _Owner()._scan_for_name(_Rule(), '日轮',
+                                       'SWIPE_FWD', 'SWIPE_BWD') is True
+        assert 'swipe' not in order, (
+            f'当前屏已有目标时不应滑动, 实际动作序列={order}')
+        assert order[0] == 'screenshot', f'应先截图, 实际={order}'
+
+    def test_scans_both_directions_when_missing(self):
+        """当前屏没有目标时, 必须朝两个方向都找过。"""
+        import sys as _sys
+        _sys.path.insert(0, str(REPO_ROOT))
+
+        from tasks.Component.SwitchSoul.switch_soul import (
+            SS_SCAN_MAX_SWIPES, SwitchSoul,
+        )
+
+        swipes = []
+
+        class _Rule:
+            def detect_and_ocr(self, image):
+                return [type('R', (), {'ocr_text': '别的'})()]
+
+        class _Owner:
+            device = type('D', (), {'image': None})()
+
+            def screenshot(self):
+                pass
+
+            def swipe(self, target, *a, **kw):
+                swipes.append(target)
+
+            _scan_for_name = SwitchSoul._scan_for_name
+
+        assert _Owner()._scan_for_name(_Rule(), '日轮',
+                                       'FWD', 'BWD', swipe_sleep=0) is False
+        assert swipes.count('FWD') == SS_SCAN_MAX_SWIPES, '应朝前扫满'
+        assert swipes.count('BWD') == SS_SCAN_MAX_SWIPES, (
+            '没找到时必须换方向回扫 —— 否则划过头就再也回不来')
+
+    def test_finds_target_when_scrolled_to_far_end(self):
+        """
+        目标在"反方向"那一端时也能找到 —— 这正是"划过头"的场景。
+
+        模拟: 目标只在朝 BWD 回扫若干次后才出现。
+        """
+        import sys as _sys
+        _sys.path.insert(0, str(REPO_ROOT))
+
+        from tasks.Component.SwitchSoul.switch_soul import (
+            SS_SCAN_MAX_SWIPES, SwitchSoul,
+        )
+
+        state = {'swipes': 0}
+
+        class _Rule:
+            def detect_and_ocr(self, image):
+                # 只有朝 BWD 滑过 3 次后才"看得到"目标
+                text = '日轮' if state['swipes'] >= SS_SCAN_MAX_SWIPES + 3 else '别的'
+                return [type('R', (), {'ocr_text': text})()]
+
+        class _Owner:
+            device = type('D', (), {'image': None})()
+
+            def screenshot(self):
+                pass
+
+            def swipe(self, target, *a, **kw):
+                state['swipes'] += 1
+
+            _scan_for_name = SwitchSoul._scan_for_name
+
+        assert _Owner()._scan_for_name(_Rule(), '日轮',
+                                       'FWD', 'BWD', swipe_sleep=0) is True, (
+            '换成双向扫描后, 目标在反方向也应能找到')
+
+
 class TestSwitchSoulByBameIsBounded:
     def test_constants_exist(self):
         text = SRC.read_text(encoding='utf-8')

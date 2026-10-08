@@ -36,6 +36,7 @@ OAS 里"打满 N 次就停"的字段**命名极不统一**:
     task_catalog.all_names()                       # {task: 中文名}
     task_catalog.by_category(Category.LIMITED)     # [TaskMeta, ...]
 """
+import dataclasses
 import json
 from dataclasses import dataclass
 from enum import Enum
@@ -121,6 +122,121 @@ class TaskMeta:
         return UNIFIED_COUNT_FIELD if self.countable else None
 
 
+@dataclass(frozen=True)
+class TaskSpec:
+    """
+    **任务自描述** —— 任务与调度器之间的唯一契约。
+
+    设计目标(见 `docs/architecture.md` §7):
+        新增一个游戏活动 = **只写 `tasks/<New>/meta.py`**, 零改动其它文件。
+
+    为什么需要它: 早期任务元数据散落在 4 处(任务 config / OAS i18n / OASX i18n /
+    本模块的 JSON), 新增一个活动要改 5 个地方, 且**漏一处就出问题**
+    (本轮实测: `MetaDemon` 等任务在两个 i18n 里都缺条目, 界面显示英文 key)。
+
+    现在把"这个任务是什么"收进**任务自己的目录**:
+
+        tasks/MetaDemon/
+            meta.py          <- 本文件(SPEC)
+            config.py
+            script_task.py
+            assets.py
+
+    字段:
+        task:       任务名(与目录名一致)
+        name_zh:    中文名(i18n 由此生成, 不再手写两份)
+        category:   类别(见 `Category`)
+        resource:   资源规则(`Resource`); None 表示由旧字段推导
+        requires:   需要的平台能力(见 `docs/architecture.md` §7.4);
+                    框架启动时校验, 不足则优雅禁用并提示
+        note:       备注(供维护者)
+    """
+
+    task: str
+    name_zh: str
+    category: Category = Category.TIMED
+    resource: object = None          # Resource; 用 object 避免循环 import
+    requires: tuple = ()
+    note: str = ''
+
+    def __post_init__(self):
+        if not self.task:
+            raise ValueError('TaskSpec.task 不能为空')
+        if not isinstance(self.category, Category):
+            try:
+                object.__setattr__(self, 'category', Category(self.category))
+            except ValueError as exc:
+                raise ValueError(
+                    f'{self.task}: 非法 category {self.category!r}; '
+                    f'应为 {[c.value for c in Category]}') from exc
+
+
+# meta.py 约定的变量名。任务目录里写 `SPEC = TaskSpec(...)` 即被发现。
+SPEC_VAR = 'SPEC'
+# 未提供 meta.py 时的降级类别
+FALLBACK_CATEGORY = Category.TIMED
+
+
+def _discover_specs() -> dict:
+    """
+    扫描 `tasks/*/meta.py`, 收集任务自描述。
+
+    **这是"新增任务零改动"的关键**: catalog 不再依赖一份中心化的 JSON,
+    而是去每个任务目录里读它自己的声明。
+
+    未提供 `meta.py` 的任务**不报错**, 只是不被发现(调用方会退回到
+    `task_catalog_data.json` 或默认值) —— 这样渐进迁移不会导致系统不可用。
+    """
+    import importlib
+    import inspect
+
+    tasks_dir = Path(__file__).resolve().parent.parent.parent / 'tasks'
+    if not tasks_dir.is_dir():
+        return {}
+
+    out = {}
+    for d in sorted(tasks_dir.iterdir()):
+        if not d.is_dir() or not (d / 'meta.py').exists():
+            continue
+        mod_name = f'tasks.{d.name}.meta'
+        try:
+            mod = importlib.import_module(mod_name)
+        except Exception as exc:
+            logger.warning(f'{d.name}/meta.py 导入失败'
+                           f'({type(exc).__name__}: {exc}), 已跳过')
+            continue
+        spec = getattr(mod, SPEC_VAR, None)
+        if not isinstance(spec, TaskSpec):
+            logger.warning(f'{d.name}/meta.py 缺少 {SPEC_VAR}(或类型不对), 已跳过')
+            continue
+        if spec.task != d.name:
+            logger.warning(f'{d.name}/meta.py 的 task={spec.task!r} 与目录名不符, '
+                           f'以目录名为准')
+            spec = dataclasses.replace(spec, task=d.name)
+        out[spec.task] = spec
+    return out
+
+
+@lru_cache(maxsize=1)
+def _load_specs() -> dict:
+    return _discover_specs()
+
+
+def reload_specs() -> None:
+    """丢弃 meta.py 发现缓存(测试与热更新用)。"""
+    _load_specs.cache_clear()
+
+
+def all_specs() -> dict:
+    """{任务名: TaskSpec} —— 所有**自描述**的任务。"""
+    return dict(_load_specs())
+
+
+def get_spec(task: str) -> TaskSpec or None:
+    """取某个任务的自描述; 未提供 meta.py 时返回 None。"""
+    return _load_specs().get(task)
+
+
 @lru_cache(maxsize=1)
 def _load() -> tuple:
     """(按任务名索引的 dict, 有序任务名列表)。首次访问时读取并缓存。"""
@@ -169,7 +285,41 @@ def _load() -> tuple:
         )
         index[meta.task] = meta
 
-    return index, list(index.keys())
+    # ---- 合并 `tasks/*/meta.py` 的任务自描述 ----
+    #
+    # 自描述**优先**: 它是任务自己声明的, 比中心化 JSON 权威。
+    # 同时把"只在 meta.py 里、JSON 里没有"的任务也纳入 —— 这正是
+    # "新增任务零改动"的落地点: 写一个 meta.py 就能被系统发现。
+    for task, spec in _load_specs().items():
+        base = index.get(task)
+        if base is None:
+            # 全新任务(尚未进入 JSON) —— 用自描述构造 TaskMeta
+            base = TaskMeta(
+                task=task,
+                name_zh=spec.name_zh or task,
+                category=spec.category,
+                count_field=None,
+                count_default=None,
+                needs_unify=False,
+                has_charge=False,
+                charge_max=None,
+                charge_slots=None,
+                charge_consume=None,
+                has_limit_time=False,
+                success_interval=None,
+            )
+        else:
+            # 已存在: 自描述覆盖"名称 + 类别"这两项权威信息,
+            # 其余(次数字段/充能参数等)仍取自 JSON, 直到该任务也把
+            # resource 写进 meta.py。
+            base = dataclasses.replace(
+                base,
+                name_zh=spec.name_zh or base.name_zh,
+                category=spec.category,
+            )
+        index[task] = base
+
+    return index, sorted(index.keys())
 
 
 def reload() -> None:

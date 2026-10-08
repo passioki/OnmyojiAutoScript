@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='FallenSun',
     name_zh='日轮之陨',
     category=Category.FIXED,
+    list_pos=25,
     resource=Resource(capacity=50, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

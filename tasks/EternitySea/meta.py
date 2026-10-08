@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='EternitySea',
     name_zh='永生之海',
     category=Category.FIXED,
+    list_pos=26,
     resource=Resource(capacity=30, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

@@ -74,6 +74,26 @@ class Scheduler(ConfigBase):
         description='window_days_help',
         title='开放星期')
 
+    # ------------------------------------------------------------ 任务列表
+    #
+    # 任务列表就是**调度器的一种模式**, 不是新子系统(见 docs/architecture.md §5)。
+    # 相关概念:
+    #   * 列表顺序 -> `tasks/<Name>/meta.py` 的 `TaskSpec.list_pos`
+    #   * 每行次数 -> 本类的 `target`
+    #   * 列表优先 / 定时优先 -> `Script` 全局组的 `scheduler_mode`
+
+    # 本任务的目标次数。0 = 用默认值(即任务配置里的 limit_count)。
+    #
+    # ★ 为什么放在 scheduler 而不是任务配置里: "打几次"是**调度决策**,
+    # 而任务配置里的 limit_count 是"这个任务最多打几次"的能力上限。
+    # 界面上的每行次数框改的是 `target` —— 这样调整调度策略不必改任务配置。
+    target: int = Field(
+        default=0,
+        description='target_help',
+        title='目标次数',
+        ge=0,
+        le=999)
+
     # ------------------------------------------------------------ 开放时段: 便捷访问
     def build_window(self) -> 'AvailabilityWindow':
         """

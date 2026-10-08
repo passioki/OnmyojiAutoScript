@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='AutoCheckinBigGod',
     name_zh='大神签到',
     category=Category.TIMED,
+    list_pos=10,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

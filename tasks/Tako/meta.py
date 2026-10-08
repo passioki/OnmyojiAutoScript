@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Tako',
     name_zh='石距',
     category=Category.CHARGE,
+    list_pos=9,
     resource=Resource(capacity=2, recharge=Recharge(kind='slots', slots=((0, 0), (12, 0),), refill_to_full=True)),
 )

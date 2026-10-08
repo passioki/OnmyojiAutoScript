@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='DemonRetreat',
     name_zh='首领退治',
     category=Category.TIMED,
+    list_pos=19,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

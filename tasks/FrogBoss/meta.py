@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='FrogBoss',
     name_zh='对弈竞猜',
     category=Category.LIMITED,
+    list_pos=48,
     resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

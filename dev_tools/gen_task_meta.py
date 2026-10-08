@@ -35,6 +35,7 @@
 """
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -81,8 +82,8 @@ SPEC = TaskSpec(
     task={task!r},
     name_zh={name_zh!r},
     category=Category.{category_upper},
-    resource={resource_expr},
-{requires_block}{note_block})
+{list_pos_block}{requires_block}{note_block}    resource={resource_expr},
+)
 '''
 
 
@@ -160,12 +161,27 @@ def main() -> int:
             missing.append(task)
             continue
 
+        # 保留 meta.py 里已有的 list_pos(用户可编排的默认顺序)
+        list_pos = None
+        if target.exists():
+            m = re.search(r'^\s*list_pos=(\d+),', target.read_text(encoding='utf-8'),
+                          re.M)
+            if m:
+                list_pos = int(m.group(1))
+        if list_pos is None:
+            existing = TC.get_spec(task)
+            list_pos = getattr(existing, 'list_pos', None) if existing else None
+
         content = HEADER.format(
             task=task,
             name_zh=meta.name_zh or task,
             category_note=CATEGORY_NOTE.get(meta.category, ''),
             category_upper=meta.category.name,
             resource_expr=resource_expr(spec['resource']),
+            # 保留已有的 list_pos —— 它是**用户可编排的默认顺序**,
+            # 重新生成时不能丢(否则用户拖拽过的列表会被重置)。
+            list_pos_block=(f'    list_pos={list_pos},\n'
+                            if list_pos is not None else ''),
             requires_block='',
             note_block='',
         )

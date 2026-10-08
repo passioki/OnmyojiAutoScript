@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Sougenbi',
     name_zh='业原火',
     category=Category.FIXED,
+    list_pos=24,
     resource=Resource(capacity=30, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

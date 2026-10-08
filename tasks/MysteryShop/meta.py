@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='MysteryShop',
     name_zh='神秘商店',
     category=Category.TIMED,
+    list_pos=43,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

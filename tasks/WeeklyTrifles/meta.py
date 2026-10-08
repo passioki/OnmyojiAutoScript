@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='WeeklyTrifles',
     name_zh='每周琐事',
     category=Category.TIMED,
+    list_pos=42,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

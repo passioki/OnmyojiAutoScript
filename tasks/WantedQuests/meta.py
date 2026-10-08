@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='WantedQuests',
     name_zh='悬赏封印',
     category=Category.FIXED,
+    list_pos=31,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 1, 30))),
 )

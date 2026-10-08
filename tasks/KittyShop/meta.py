@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='KittyShop',
     name_zh='猫咪铺子',
     category=Category.LIMITED,
+    list_pos=51,
     resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

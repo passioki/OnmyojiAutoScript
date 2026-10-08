@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='FloatParade',
     name_zh='花车巡游',
     category=Category.LIMITED,
+    list_pos=49,
     resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

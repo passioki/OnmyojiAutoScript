@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='GuildActivityMonitor',
     name_zh='寮活动监控',
     category=Category.TIMED,
+    list_pos=20,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

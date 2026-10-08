@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='BudokaiTournament',
     name_zh='武道大会',
     category=Category.LIMITED,
+    list_pos=30,
     resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

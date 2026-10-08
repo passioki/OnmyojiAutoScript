@@ -274,8 +274,11 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # f = Filter(regex=r"(.*)", attr=["command"])
         # f.load(self.SCHEDULER_PRIORITY)
         if pending_task:
-            pending_task = TaskScheduler.schedule(rule=self.model.script.optimization.schedule_rule,
-                                                  pending=pending_task)
+            _opt = self.model.script.optimization
+            pending_task = TaskScheduler.schedule(
+                rule=_opt.schedule_rule,
+                pending=pending_task,
+                task_order=getattr(_opt, 'task_order', '') or '')
             # 防止正在运行的任务被新上来的pending队列中的任务给顶替掉
             if self.model.running_task and pending_task:
                 for i, obj in enumerate(pending_task):

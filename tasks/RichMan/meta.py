@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='RichMan',
     name_zh='大富翁',
     category=Category.TIMED,
+    list_pos=46,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

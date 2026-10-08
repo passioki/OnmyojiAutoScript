@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Delegation',
     name_zh='式神委派',
     category=Category.TIMED,
+    list_pos=39,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 1, 0))),
 )

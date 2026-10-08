@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Hunt',
     name_zh='狩猎战',
     category=Category.TIMED,
+    list_pos=17,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

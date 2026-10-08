@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='MetaDemon',
     name_zh='超鬼王',
     category=Category.LIMITED,
+    list_pos=47,
     resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

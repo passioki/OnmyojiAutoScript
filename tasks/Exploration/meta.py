@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Exploration',
     name_zh='探索',
     category=Category.FIXED,
+    list_pos=14,
     resource=Resource(capacity=30, recharge=Recharge(kind='interval', interval=(0, 1, 0))),
 )

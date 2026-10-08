@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='EvoZone',
     name_zh='觉醒副本',
     category=Category.FIXED,
+    list_pos=33,
     resource=Resource(capacity=30, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

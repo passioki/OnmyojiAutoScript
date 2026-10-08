@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='GoryouRealm',
     name_zh='御灵之境',
     category=Category.FIXED,
+    list_pos=34,
     resource=Resource(capacity=30, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

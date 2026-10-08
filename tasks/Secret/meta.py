@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Secret',
     name_zh='秘闻副本',
     category=Category.TIMED,
+    list_pos=41,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.WEEKLY)),
 )

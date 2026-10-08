@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Duel',
     name_zh='斗技',
     category=Category.TIMED,
+    list_pos=44,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

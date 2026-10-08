@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='ExperienceYoukai',
     name_zh='经验妖怪',
     category=Category.CHARGE,
+    list_pos=7,
     resource=Resource(capacity=2, recharge=Recharge(kind='slots', slots=((0, 0), (12, 0),), refill_to_full=True)),
 )

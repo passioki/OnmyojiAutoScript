@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='GuildBanquet',
     name_zh='寮宴会',
     category=Category.TIMED,
+    list_pos=18,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

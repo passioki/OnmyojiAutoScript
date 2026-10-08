@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='SoulsTidy',
     name_zh='御魂整理',
     category=Category.TIMED,
+    list_pos=1,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

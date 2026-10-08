@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='TrueOrochi',
     name_zh='真八岐大蛇',
     category=Category.TIMED,
+    list_pos=45,
     resource=Resource(capacity=2, recharge=Recharge(kind='none', period=Period.WEEKLY)),
 )

@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Quiz',
     name_zh='智力竞赛',
     category=Category.LIMITED,
+    list_pos=50,
     resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

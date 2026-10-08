@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='AbyssShadows',
     name_zh='狭间暗域',
     category=Category.TIMED,
+    list_pos=16,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

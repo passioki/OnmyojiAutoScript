@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='RyouToppa',
     name_zh='寮突破',
     category=Category.TOPPA,
+    list_pos=12,
     resource=Resource(capacity=50, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

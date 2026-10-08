@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='DyeTrials',
     name_zh='灵染试炼',
     category=Category.LIMITED,
+    list_pos=52,
     resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

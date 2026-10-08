@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='KekkaiActivation',
     name_zh='结界挂卡',
     category=Category.TIMED,
+    list_pos=3,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

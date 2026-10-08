@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='RealmRaid',
     name_zh='个人突破',
     category=Category.TOPPA,
+    list_pos=11,
     resource=Resource(capacity=30, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Nian',
     name_zh='年兽',
     category=Category.TIMED,
+    list_pos=8,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

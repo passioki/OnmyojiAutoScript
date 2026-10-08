@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='HeroTest',
     name_zh='英杰试炼',
     category=Category.FIXED,
+    list_pos=35,
     resource=Resource(capacity=100, recharge=Recharge(kind='interval', interval=(0, 1, 0))),
 )

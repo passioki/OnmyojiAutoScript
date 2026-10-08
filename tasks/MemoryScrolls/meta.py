@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='MemoryScrolls',
     name_zh='绘卷',
     category=Category.TIMED,
+    list_pos=53,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

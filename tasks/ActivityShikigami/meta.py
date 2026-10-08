@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='ActivityShikigami',
     name_zh='当期爬塔',
     category=Category.LIMITED,
+    list_pos=29,
     resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

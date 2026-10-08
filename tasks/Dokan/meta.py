@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Dokan',
     name_zh='道馆',
     category=Category.TIMED,
+    list_pos=15,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

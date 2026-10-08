@@ -62,6 +62,9 @@ def build_schema(config_name: str = '') -> dict:
             'count_default': meta.count_default,
             # 需要的平台能力(跨平台用; 见 docs/architecture.md §7.4)
             'requires': list(getattr(spec, 'requires', ()) or ()),
+            # 任务列表里的**默认位置**。None = 未编排(排最后)。
+            # 用户拖拽后写入 Script.optimization.task_order 覆盖它。
+            'list_pos': getattr(spec, 'list_pos', None) if spec else None,
         }
 
         if resource is not None:
@@ -102,7 +105,37 @@ def build_schema(config_name: str = '') -> dict:
             {'name': 'window_days', 'type': 'str', 'default': '0,1,2,3,4,5,6',
              'label': '开放星期(周一=0)'},
         ],
+        # 任务列表: 列表就是**调度器的一种模式**, 不是新子系统
+        # (见 docs/architecture.md §5)。
+        'list': _list_meta(),
         'tasks': tasks,
+    }
+
+
+def _list_meta() -> dict:
+    """
+    任务列表的元信息(供界面渲染排序控件)。
+
+    顺序来源分两级:
+      1. `Script.optimization.task_order` —— **用户编排**(逗号分隔任务名)
+      2. 各任务 `meta.py` 的 `list_pos` —— 内置默认顺序
+
+    只改 pending(已到点)任务的先后; 没到点的任务本来就不参与。
+    """
+    from tasks.Script.config_optimization import ScheduleRule
+    return {
+        # 列表模式的取值(界面把它填进 Script.optimization.schedule_rule)
+        'mode_value': ScheduleRule.LIST.value,
+        'modes': [
+            {'value': ScheduleRule.FILTER.value, 'label': '过滤器(内置默认顺序)'},
+            {'value': ScheduleRule.FIFO.value, 'label': '定时优先(先到点先跑)'},
+            {'value': ScheduleRule.PRIORITY.value, 'label': '优先级'},
+            {'value': ScheduleRule.LIST.value, 'label': '列表优先(自定义顺序)'},
+        ],
+        # 用户编排写入的字段(界面据此 PUT)
+        'order_field': 'task_order',
+        'order_group': 'script.optimization',
+        'note': '顺序只影响已到点任务的先后; 未编排的任务排最后',
     }
 
 

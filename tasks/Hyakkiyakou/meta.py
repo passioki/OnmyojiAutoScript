@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Hyakkiyakou',
     name_zh='百鬼夜行',
     category=Category.FIXED,
+    list_pos=40,
     resource=Resource(capacity=10, recharge=Recharge(kind='interval', interval=(0, 12, 0))),
 )

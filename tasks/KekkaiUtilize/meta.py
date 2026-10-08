@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='KekkaiUtilize',
     name_zh='结界蹭卡',
     category=Category.TIMED,
+    list_pos=2,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

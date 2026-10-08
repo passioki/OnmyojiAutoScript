@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='CollectiveMissions',
     name_zh='集体任务',
     category=Category.TIMED,
+    list_pos=36,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

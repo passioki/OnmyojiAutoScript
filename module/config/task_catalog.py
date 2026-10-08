@@ -158,6 +158,12 @@ class TaskSpec:
     resource: object = None          # Resource; 用 object 避免循环 import
     requires: tuple = ()
     note: str = ''
+    # 任务列表里的默认位置。None = 未编排(排最后)。
+    #
+    # ★ 为什么默认 None 而不是给每个任务一个序号: 列表是**用户自己编排**的,
+    # 我们不该预设"哪个任务该先跑"。默认全部未编排 -> 界面按类别/名称排序,
+    # 用户拖拽后才写入位置。
+    list_pos: int = None
 
     def __post_init__(self):
         if not self.task:
@@ -169,6 +175,11 @@ class TaskSpec:
                 raise ValueError(
                     f'{self.task}: 非法 category {self.category!r}; '
                     f'应为 {[c.value for c in Category]}') from exc
+        if self.list_pos is not None:
+            try:
+                object.__setattr__(self, 'list_pos', int(self.list_pos))
+            except (TypeError, ValueError):
+                object.__setattr__(self, 'list_pos', None)
 
 
 # meta.py 约定的变量名。任务目录里写 `SPEC = TaskSpec(...)` 即被发现。

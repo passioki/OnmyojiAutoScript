@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='Restart',
     name_zh='重启',
     category=Category.TIMED,
+    list_pos=0,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

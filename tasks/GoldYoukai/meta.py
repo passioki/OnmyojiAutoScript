@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='GoldYoukai',
     name_zh='金币妖怪',
     category=Category.CHARGE,
+    list_pos=6,
     resource=Resource(capacity=2, recharge=Recharge(kind='slots', slots=((0, 0), (12, 0),), refill_to_full=True)),
 )

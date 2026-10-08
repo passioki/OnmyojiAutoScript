@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='SixRealms',
     name_zh='六道之门',
     category=Category.FIXED,
+    list_pos=27,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

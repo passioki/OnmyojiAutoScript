@@ -19,5 +19,6 @@ SPEC = TaskSpec(
     task='AreaBoss',
     name_zh='地域鬼王',
     category=Category.TIMED,
+    list_pos=5,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 6, 0))),
 )

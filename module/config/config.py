@@ -35,11 +35,13 @@ class Function:
             self.enable = False
             self.command = "Unknown"
             self.next_run = DEFAULT_TIME
+            self.window = None
             return
         if data.get("scheduler") is None:
             self.enable = False
             self.command = "Unknown"
             self.next_run = DEFAULT_TIME
+            self.window = None
             return
 
         self.enable: bool = data['scheduler']['enable']
@@ -55,9 +57,74 @@ class Function:
         if not isinstance(self.priority, int):
             logger.error(f"Invalid priority: {self.priority}")
 
+        # 开放时段(游戏机制, 硬约束)。**默认关闭** -> 不限时段, 行为与改造前一致。
+        #
+        # 阴阳师很多玩法有固定开放时段(如逢魔之时 17:00-23:00)。此前 OAS 没有这个
+        # 概念, 用户只能把 success_interval 设短让任务频繁醒来碰运气 —— 于是
+        # "用户轮询节奏"混进了本该表达游戏机制的字段。这里把它显式建模。
+        #
+        # 解析失败时退化为"不限时段", 不让配置错误把任务卡死。
+        self.window = self._build_window(data.get('scheduler') or {})
+
         # self.enable = deep_get(data, keys="Scheduler.Enable", default=False)
         # self.command = deep_get(data, keys="Scheduler.Command", default="Unknown")
         # self.next_run = deep_get(data, keys="Scheduler.NextRun", default=DEFAULT_TIME)
+
+    def _build_window(self, sch: dict):
+        """
+        从 `scheduler` 节点构造开放时段。
+
+        **与 `Scheduler.build_window()` 共用 `AvailabilityWindow`, 且解析规则一致** ——
+        避免同一份配置在两处被解释成不同结果(本项目已因"知识存在两处"
+        栽过一次: 生成器与 from_legacy 的分类判定不一致, 丢了 6 个任务的间隔信息)。
+        """
+        from module.config.availability import ALL_DAYS, AvailabilityWindow
+        if not sch.get('window_enable'):
+            return AvailabilityWindow()
+
+        days, bad = [], []
+        for part in str(sch.get('window_days') or '').split(','):
+            part = part.strip()
+            if part == '':
+                continue
+            if part.lstrip('-').isdigit() and 0 <= int(part) <= 6:
+                days.append(int(part))
+            else:
+                bad.append(part)
+        if bad:
+            # 逐项跳过而不是整体丢弃: '4,abc,6' 里 4/6 仍是有效的用户意图
+            logger.warning(f'{self.command}: window_days 无效项已忽略 {bad}'
+                           f'（应为 0-6, 周一=0）')
+
+        try:
+            return AvailabilityWindow(
+                enabled=True,
+                start=sch['window_start'],
+                end=sch['window_end'],
+                days=tuple(sorted(set(days))) or ALL_DAYS,
+            )
+        except Exception as exc:
+            logger.warning(f'{self.command}: 开放时段配置非法'
+                           f'({type(exc).__name__}: {exc}), 按不限时段处理')
+            return AvailabilityWindow()
+
+    def in_window(self, now: datetime = None) -> bool:
+        """当前是否落在开放时段内。未配置时段时恒为 True。"""
+        if self.window is None or not self.window.enabled:
+            return True
+        return self.window.contains(now or datetime.now())
+
+    @property
+    def window_reason(self) -> str or None:
+        """若因开放时段不可跑, 返回可读原因; 否则 None。"""
+        if self.window is None or not self.window.enabled:
+            return None
+        now = datetime.now()
+        if self.window.contains(now):
+            return None
+        opening = self.window.next_opening(now)
+        return (f'不在开放时段（{self.window.describe()}，'
+                f'{opening:%m-%d %H:%M} 开放）')
 
     def __str__(self):
         enable = "Enable" if self.enable else "Disable"
@@ -191,6 +258,13 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             elif func.next_run < self.scheduler_update_dt:
                 # 完成记忆: 本周期已成功完成过的任务不再入队, 并把 next_run 推到下个周期
                 if self._skip_by_period(key, value):
+                    waiting_task.append(func)
+                    continue
+                # 开放时段(新增, 默认关闭): 游戏机制决定的硬约束。
+                # 不在时段内的任务入 waiting 而不是 pending, 避免白跑一趟 ——
+                # 这正是用户此前只能靠"缩短轮询间隔碰运气"绕过的那个问题。
+                if not func.in_window():
+                    logger.info(f'{func.command} 暂缓: {func.window_reason}')
                     waiting_task.append(func)
                     continue
                 pending_task.append(func)

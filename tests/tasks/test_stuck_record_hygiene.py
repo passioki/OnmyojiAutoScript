@@ -84,12 +84,56 @@ def test_adds_battle_exemption_before_wait_battle(rel):
     """进入 wait_battle 前必须已经加上 BATTLE_STATUS_S 豁免。"""
     path = REPO_ROOT / rel
     text = path.read_text(encoding='utf-8')
-    assert 'stuck_record_add' in text and 'BATTLE_STATUS_S' in text, (
+    assert 'stuck_record_add' in text or 'keep_stuck_exempt' in text, (
         f'{rel} 应使用 BATTLE_STATUS_S 豁免')
-    # 同一文件里 is_in_room -> wait_battle 之间应有 add
+    assert 'BATTLE_STATUS_S' in text, f'{rel} 应使用 BATTLE_STATUS_S 豁免'
     code = '\n'.join(t for _, t in _code_lines(path))
     m = re.search(r'is_in_room\([^)]*\)\s*:(.{0,400}?)wait_battle', code, re.S)
     assert m, f'{rel} 未找到 is_in_room -> wait_battle 的相邻结构'
-    assert 'stuck_record_add' in m.group(1), (
-        f'{rel}: is_in_room() 到 wait_battle() 之间没有 stuck_record_add(), '
-        f'说明豁免在进入等待前是缺失的')
+    assert 'stuck_record_add' in m.group(1) or 'keep_stuck_exempt' in m.group(1), (
+        f'{rel}: is_in_room() 到 wait_battle() 之间没有豁免, 说明进入等待前豁免是缺失的')
+
+
+@pytest.mark.parametrize('rel', TEAM_TASK_FILES)
+def test_exemption_reasserted_every_loop(rel):
+    """
+    豁免必须**每轮循环重新声明**, 不能只在循环外 add 一次。
+
+    线上实测(2026-10-08): device.handle_control_check() 的第一件事就是
+    stuck_record_clear(), 而它由任何 detector 的点击触发。循环里
+    appear_then_click(I_PET_PRESENT) / check_then_accept() 都会触发它,
+    于是"循环外加一次"的豁免在第一次点击后就被清空, 且再也补不回来 ——
+    之后战斗中/转场时只剩 Timer(60) 硬判定, 一旦那一刻没有检测命中就
+    抛 GameStuckError 并重启游戏。
+
+    因此要求: 循环体内的前几行里必须出现 keep_stuck_exempt。
+    """
+    path = REPO_ROOT / rel
+    lines = _code_lines(path)
+
+    # 先在 run_member 定义处定位, 再找它内部的第一个 `while 1:`
+    # (文件里其它方法也有同名循环, 不能直接取第一个)
+    idx_member = None
+    for i, (_, t) in enumerate(lines):
+        if re.match(r'def run_member\s*\(', t.strip()):
+            idx_member = i
+            break
+    assert idx_member is not None, f'{rel} 未找到 run_member 定义'
+
+    idx_while = None
+    for i in range(idx_member + 1, len(lines)):
+        _, t = lines[i]
+        if t.strip() == 'while 1:':
+            idx_while = i
+            break
+        # 遇到下一个方法定义说明 run_member 里没有循环
+        if re.match(r'def \w+\s*\(', t.strip()):
+            break
+    assert idx_while is not None, f'{rel} run_member 内未找到 while 1: 循环'
+
+    head = ' '.join(t for _, t in lines[idx_while + 1:idx_while + 8])
+    assert 'keep_stuck_exempt' in head, (
+        f'{rel}: run_member 的循环体内前几行没有 keep_stuck_exempt —— '
+        f'豁免会被 handle_control_check() 清掉且补不回来, 战斗转场会被误判卡死。'
+        f'实际前几行: {head[:200]}'
+    )

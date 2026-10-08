@@ -201,9 +201,18 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         # self.check_lock(self.config.fallen_sun.general_battle_config.lock_team_enable)
 
         # 进入战斗流程
-        self.device.stuck_record_add('BATTLE_STATUS_S')
+        # 豁免必须**每轮循环都重新声明**, 不能只在循环外 add 一次:
+        # device.handle_control_check() 的第一件事就是 stuck_record_clear()
+        # (见 module/device/device.py), 而它由任何 detector 的点击触发 ——
+        # 本循环里的 appear_then_click(I_PET_PRESENT)、check_then_accept() 都会触发,
+        # 于是循环外加的那一次豁免在第一次点击后就被清空, 且再也补不回来。
+        # 后果(2026-10-08 线上实测): 战斗结束到结算页之间的**转场动画**(约 1 秒)上
+        # 探不到任何界面状态, 而 BATTLE_STATUS_S 的无限期豁免已失效, 只剩 Timer(60)
+        # 硬判定 -> GameStuckError -> 重启游戏 -> 掉线 -> 队长邀请等待超时。
+        self.device.keep_stuck_exempt('BATTLE_STATUS_S')
         while 1:
             self.screenshot()
+            self.device.keep_stuck_exempt('BATTLE_STATUS_S')
 
             # 检查猫咪奖励
             if self.appear_then_click(self.I_PET_PRESENT, action=self.C_WIN_3, interval=1):

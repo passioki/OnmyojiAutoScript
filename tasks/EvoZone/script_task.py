@@ -1,4 +1,4 @@
-﻿# This Python file uses the following encoding: utf-8
+# This Python file uses the following encoding: utf-8
 # @author runhey
 # github https://github.com/runhey
 from time import sleep
@@ -224,9 +224,12 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         # self.check_lock(self.config.evo_zone.general_battle_config.lock_team_enable)
 
         # 进入战斗流程
-        self.device.stuck_record_add('BATTLE_STATUS_S')
+        # 豁免必须每轮重新声明: handle_control_check() 会因 detector 点击而清空豁免。
+        # 详见 FallenSun/script_task.py 同名位置的长注释(2026-10-08 线上实测)。
+        self.device.keep_stuck_exempt('BATTLE_STATUS_S')
         while 1:
             self.screenshot()
+            self.device.keep_stuck_exempt('BATTLE_STATUS_S')
 
             # 检查猫咪奖励
             if self.appear_then_click(self.I_PET_PRESENT, action=self.C_WIN_3, interval=1):

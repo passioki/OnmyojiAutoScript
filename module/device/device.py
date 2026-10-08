@@ -146,6 +146,31 @@ class Device(Platform, Screenshot, Control, AppControl):
         self.stuck_timer.reset()
         self.stuck_timer_long.reset()
 
+    def keep_stuck_exempt(self, button: str) -> None:
+        """
+        "我这一轮确认过自己在某个长耗时的正常状态里" —— 重新声明豁免, 不要记为一次点击。
+
+        为什么需要它: `handle_control_check()`(任何 detector 点击都会走到) 的第一件事
+        就是 `stuck_record_clear()`, 它会**连豁免一起清掉**。于是任务里常见的写法
+
+            self.device.stuck_record_add('BATTLE_STATUS_S')   # 循环外加一次
+            while 1:
+                ... 某个 detector 触发点击 -> 豁免被清空, 且再也补不回来 ...
+
+        会在第一次点击后失效, 之后只剩 `stuck_timer`(60s) 硬判定。
+
+        而战斗(以及战斗结束到结算页之间的**转场动画**)期间画面上没有任何可识别的界面
+        状态, 正是靠 `BATTLE_STATUS_S`/`PREPARE_BEFORE_BATTLE` 这类**无限期豁免**兜住的
+        (见 `stuck_unlimited_wait_list`)。豁免一失效, 转场动画就会被计入 60s 倒计时,
+        一旦那一刻没有检测命中就抛 GameStuckError -> 重启游戏。
+
+        所以: 长时间处于正常状态的任务循环, 应当**每一轮**调用本方法重新声明豁免。
+        幂等(detect_record 是 set), 重复调用无副作用。
+
+        :param button: 豁免名, 见 stuck_unlimited_wait_list / stuck_long_wait_list
+        """
+        self.detect_record.add(str(button))
+
     def stuck_record_check(self):
         """
         Raises:

@@ -218,9 +218,13 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         # self.check_lock(self.config.orochi.general_battle_config.lock_team_enable)
 
         # 进入战斗流程
-        self.device.stuck_record_add('BATTLE_STATUS_S')
+        # 豁免必须每轮重新声明: device.handle_control_check() 会因任何 detector 点击而
+        # stuck_record_clear(), 循环外加的那一次会被清空且补不回来(2026-10-08 线上实测)。
+        # 详见 FallenSun/script_task.py 同名位置的长注释。
+        self.device.keep_stuck_exempt('BATTLE_STATUS_S')
         while 1:
             self.screenshot()
+            self.device.keep_stuck_exempt('BATTLE_STATUS_S')
 
             # 检查猫咪奖励
             if self.appear_then_click(self.I_PET_PRESENT, action=self.C_WIN_3, interval=1):

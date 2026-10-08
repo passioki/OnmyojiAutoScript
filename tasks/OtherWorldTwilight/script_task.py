@@ -115,9 +115,12 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
         logger.info('Start run member')
         self.goto_page(page_main)
         # 进入战斗流程
-        self.device.stuck_record_add('BATTLE_STATUS_S')
+        # 豁免必须每轮重新声明: handle_control_check() 会因 detector 点击而清空豁免。
+        # 详见 FallenSun/script_task.py 同名位置的长注释(2026-10-08 线上实测)。
+        self.device.keep_stuck_exempt('BATTLE_STATUS_S')
         while 1:
             self.screenshot()
+            self.device.keep_stuck_exempt('BATTLE_STATUS_S')
             if self.current_count >= self.conf.other_world_twilight_config.limit_count:
                 logger.info('Count limit out')
                 break

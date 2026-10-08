@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 1/2] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2238,6 +2238,417 @@ index 0000000..01dd4f9
 +  static String _shortTime(String s) =>
 +      s.length >= 16 ? s.substring(5, 16) : s;
 +}
+-- 
+2.41.0.windows.1
+
+
+From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 01:28:55 +0800
+Subject: [PATCH 2/2] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+ =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
+ =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
+ =?UTF-8?q?=E5=BB=BA?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+## 起因
+
+用户反馈 **"非常卡"**。查出来四个原因, 前三个是我写的。
+
+## 1. ★ 给的是 **Debug** 构建(主因)
+
+之前让用户跑的是 `build\windows\x64\runner\**Debug**\oasx.exe` ——
+Debug 带断言、无 AOT 优化, 性能差 5~10 倍, **不该拿去日常用**。
+
+已改为 **Release**: `build\windows\x64\runner\Release\oasx.exe`
+
+## 2. `TextEditingController` 在 `build()` 里新建(每帧泄漏)
+
+```dart
+// 错: 每次重建都 new 一个 ChangeNotifier, 且从不 dispose
+Widget _targetCell(...) {
+  final ctrl = TextEditingController(text: ...);
+  return TextField(controller: ctrl, ...);
+}
+```
+
+`TextEditingController` 是 `ChangeNotifier` —— 每帧泄漏一个。
+54 行任务 × 每次重建 = **每帧泄漏 54 个监听器**, 直接导致卡顿。
+
+改为 `StatefulWidget`:
+
+* 控制器放 `State` 字段, `initState` 建一次
+* `dispose()` 释放
+* 加 `FocusNode`: **用户正在输入时不覆盖他的内容**,
+  失去焦点后才同步外部新值(否则刷新会把用户输的字冲掉)
+
+## 3. 每行套一层 `Opacity`
+
+`Opacity` 会给**每一行**建独立的合成层(`OpacityLayer`) ——
+54 行 = 54 个额外图层, 滚动时 GPU 压力很大。
+
+改为调整 `DefaultTextStyle` 的 alpha —— **零成本**, 视觉效果一样。
+
+## 4. 表格一次构建 54 行
+
+`ListView(children: [...54 行...])` 是**急切构建**, 每次刷新重建全部 54 个
+widget(含输入框、开关)。
+
+改为 `Column + Expanded + ListView.builder` + `itemExtent` ——
+只构建**可见的那几行**。
+
+## 同时修的"看起来能用其实失效"
+
+### 前端硬编码了初值
+
+* `scheduleRule` 硬编码 `'Filter'` -> 即使后端是 `Priority`/`List`,
+  界面也会**误报**"顺序要生效需选列表优先"
+* 队列跑空后的下拉框没有当前值
+
+改为从 `/schema` 的 `list.current_mode` / `list.global_fields` 读
+(后端已同步补上, 见 OAS 仓库的 `97fd6743`)。
+
+### ★ 原型的「跑完循环整表」后端根本没有
+
+`Script.optimization` 里既没有 `loop_whole_list`, 也没有循环开关。
+
+**没有为了"界面上有这一项"就造一个假字段** —— 那会**静默失效**:
+`script_set_arg` 遇到不存在的字段返回 `False` 并记 error, 界面看不出来。
+
+换成**后端真实支持**的 `when_task_queue_empty`(队列跑空后:
+回庭院待命 / 关闭游戏), 缺口记在 OAS 的 `docs/ui-api-mapping.md` §5.1。
+
+## 验证
+
+* `dart analyze lib` —— **新增文件零问题**(剩余 11 个是既有 lint)
+* `flutter build windows --release` —— **通过**
+---
+ .../task_list/task_list_controller.dart       | 68 +++++++++++++--
+ lib/views/tasks/task_list_view.dart           | 87 ++++++++++++++-----
+ lib/views/tasks/task_row_view.dart            | 73 ++++++++++++++--
+ 3 files changed, 191 insertions(+), 37 deletions(-)
+
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index e46eac8..da1a635 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -47,9 +47,44 @@ class TaskListController extends GetxController {
+   bool onlyFixed = false;
+ 
+   // ---------------------------------------------------------------- 全局设置
+-  bool loopWholeList = false;
++  //
++  // ⚠ 原型的「跑完循环整表」**后端没有对应字段** ——
++  //   `Script.optimization` 里既没有 `loop_whole_list`, 也没有循环开关。
++  //
++  //   我没有为了"界面上有这一项"就造一个假字段(那会**静默失效** ——
++  //   `script_set_arg` 遇到不存在的字段会返回 False 并记 error, 界面看不出来)。
++  //
++  //   改为暴露**后端真实支持**的 `when_task_queue_empty`:
++  //   队列跑空之后要做什么(`goto_main` 回庭院 / `close_game` 关游戏)。
++  //   见 `docs/ui-api-mapping.md` 缺口清单。
++  //
++  //   若将来要真正实现"循环整表", 需要后端加字段 + 调度器支持。
++
++  /// 队列跑空之后的行为。
++  String whenQueueEmpty = 'goto_main';
++
++  /// 当前调度模式（初值只是占位，`refresh()` 会从 `/schema` 读真实值）。
+   String scheduleRule = 'Filter';
+ 
++  /// 可选值（来自 `/schema` 的 `global_fields`，为空时用内置兜底）。
++  List<Map<String, dynamic>> get queueEmptyChoices =>
++      ((schemaGlobalFields['when_task_queue_empty']?['choices'] as List?) ??
++              const [])
++          .map((e) => Map<String, dynamic>.from(e as Map))
++          .toList();
++
++  Map<String, dynamic> get schemaGlobalFields =>
++      (schemaList['global_fields'] as Map?)?.cast<String, dynamic>() ?? {};
++
++  /// 队列跑空后那个下拉框的标题（来自 `/schema`，不硬编码）。
++  String get queueEmptyLabel =>
++      '${schemaGlobalFields['when_task_queue_empty']?['label'] ?? '队列跑空后'}';
++
++  bool isQueueEmptyLoaded = false;
++
++  /// 调度模式是否已从后端读到（避免用硬编码默认值误报）。
++  bool isScheduleRuleLoaded = false;
++
+   Map<String, dynamic> get schemaList =>
+       (schema['list'] as Map?)?.cast<String, dynamic>() ?? {};
+ 
+@@ -161,6 +196,24 @@ class TaskListController extends GetxController {
+           .map((e) => Map<String, dynamic>.from(e as Map))
+           .toList();
+ 
++      // 全局设置: 当前值来自 `/schema` 的 `global_fields`
++      // ★ 只在**首次**读取时赋值 —— 否则用户刚改完、下次刷新又被打回去
++      //   (界面会看起来"改了不生效")
++      if (!isQueueEmptyLoaded) {
++        final qe = schemaGlobalFields['when_task_queue_empty'];
++        if (qe is Map && '${qe['current']}'.isNotEmpty) {
++          whenQueueEmpty = '${qe['current']}';
++          isQueueEmptyLoaded = true;
++        }
++        // 调度模式同理 —— 不能硬编码 'Filter', 否则会误报
++        // "顺序不生效"(实际用户早设成 List 了)
++        final cm = '${schemaList['current_mode'] ?? ''}';
++        if (cm.isNotEmpty) {
++          scheduleRule = cm;
++          isScheduleRuleLoaded = true;
++        }
++      }
++
+       // 已编排 -> 顺序由 entries 决定; 未编排 -> 用后端给的默认顺序
+       _applyFilter();
+     } catch (e) {
+@@ -331,13 +384,14 @@ class TaskListController extends GetxController {
+   }
+ 
+   // ---------------------------------------------------------------- 全局设置
+-  /// 循环模式 —— 跑完整表后是否从头再来。
+-  Future<void> setLoopWholeList(bool v) async {
+-    loopWholeList = v;
++  /// 队列跑空之后的行为。
++  ///
++  /// 字段名与取值都走既有通用配置接口, **不新开端点**。
++  Future<void> setWhenQueueEmpty(String v) async {
++    whenQueueEmpty = v;
+     update();
+-    // 复用既有的 Script.optimization 字段(若后端没有该字段会被忽略)
+-    await _api.putScriptArg(
+-        scriptName, 'script', 'optimization', 'loop_whole_list', 'boolean', v);
++    await _api.putScriptArg(scriptName, 'script', 'optimization',
++        'when_task_queue_empty', 'string', v);
+   }
+ 
+   /// 切调度模式。
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index cfb033d..1f592d8 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -145,12 +145,18 @@ class _OverviewTab extends StatelessWidget {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    return ListView(
+-      padding: const EdgeInsets.all(12),
++    // ★ 用 Column + Expanded + ListView.builder 而不是
++    //   `ListView(children: [...54 行...])` —— 后者**一次构建全部 54 行**,
++    //   每次刷新都重建 54 个 widget(含输入框、开关), 这是卡顿的主因之一。
++    //   改成 builder 后只构建**可见的那几行**。
++    return Column(
+       children: [
+-        _bulkPanel(context),
++        Padding(
++          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
++          child: _bulkPanel(context),
++        ),
+         const SizedBox(height: 12),
+-        _tablePanel(context),
++        Expanded(child: _tablePanel(context)),
+       ],
+     );
+   }
+@@ -236,20 +242,35 @@ class _OverviewTab extends StatelessWidget {
+       );
+     }
+     return Card(
+-      child: Padding(
+-        padding: const EdgeInsets.all(12),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            _panelTitle(context, '任务总览',
++      margin: const EdgeInsets.symmetric(horizontal: 12),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Padding(
++            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
++            child: _panelTitle(context, '任务总览',
+                 '目标次数在「任务列表」里改 · 空白 = 用任务默认值'),
+-            const SizedBox(height: 8),
+-            _tableHeader(context),
+-            const Divider(height: 1),
+-            for (final t in c.tasks)
+-              TaskRowView(task: t, mode: TaskRowMode.overview, controller: c),
+-          ],
+-        ),
++          ),
++          const SizedBox(height: 8),
++          Padding(
++            padding: const EdgeInsets.symmetric(horizontal: 12),
++            child: _tableHeader(context),
++          ),
++          const Divider(height: 1),
++          // ★ 懒加载 —— 只构建可见行
++          Expanded(
++            child: ListView.builder(
++              itemCount: c.tasks.length,
++              itemExtent: 48,
++              itemBuilder: (_, i) => TaskRowView(
++                key: ValueKey('${c.tasks[i]['name']}'),
++                task: c.tasks[i],
++                mode: TaskRowMode.overview,
++                controller: c,
++              ),
++            ),
++          ),
++        ],
+       ),
+     );
+   }
+@@ -314,11 +335,33 @@ class _ListTab extends StatelessWidget {
+               runSpacing: 8,
+               crossAxisAlignment: WrapCrossAlignment.center,
+               children: [
+-                FilterChip(
+-                  label: const Text('跑完循环整表'),
+-                  selected: c.loopWholeList,
+-                  onSelected: (_) => c.setLoopWholeList(!c.loopWholeList),
+-                ),
++                // 队列跑空后 —— **后端真实支持**的字段
++                // （原型的"跑完循环整表"后端没有, 见 controller 里的说明）
++                if (c.queueEmptyChoices.isNotEmpty)
++                  Row(
++                    mainAxisSize: MainAxisSize.min,
++                    children: [
++                      Text(c.queueEmptyLabel),
++                      const SizedBox(width: 8),
++                      DropdownButton<String>(
++                        value: c.queueEmptyChoices
++                                .any((e) => '${e['value']}' == c.whenQueueEmpty)
++                            ? c.whenQueueEmpty
++                            : '${c.queueEmptyChoices.first['value']}',
++                        isDense: true,
++                        items: [
++                          for (final e in c.queueEmptyChoices)
++                            DropdownMenuItem<String>(
++                              value: '${e['value']}',
++                              child: Text('${e['label']}'),
++                            ),
++                        ],
++                        onChanged: (v) {
++                          if (v != null) c.setWhenQueueEmpty(v);
++                        },
++                      ),
++                    ],
++                  ),
+                 Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+diff --git a/lib/views/tasks/task_row_view.dart b/lib/views/tasks/task_row_view.dart
+index 01dd4f9..36f386e 100644
+--- a/lib/views/tasks/task_row_view.dart
++++ b/lib/views/tasks/task_row_view.dart
+@@ -30,7 +30,7 @@ enum TaskRowMode {
+ ///    的静默矛盾（架构文档 §5.2）
+ /// 2. **总览页不隐藏停用状态** —— 停用的行显示 `⚠ 配置中已停用`,
+ ///    点一下即可到列表页启用, **不会静默不跑**
+-class TaskRowView extends StatelessWidget {
++class TaskRowView extends StatefulWidget {
+   const TaskRowView({
+     super.key,
+     required this.task,
+@@ -47,7 +47,50 @@ class TaskRowView extends StatelessWidget {
+ 
+   final VoidCallback? onTap;
+ 
+-  TaskListController get _c => controller;
++  @override
++  State<TaskRowView> createState() => _TaskRowViewState();
++}
++
++class _TaskRowViewState extends State<TaskRowView> {
++  /// ★ 必须是 State 字段, **不能**在 build 里 `new`。
++  ///
++  /// `TextEditingController` 是 `ChangeNotifier` —— 在 build 里新建且不
++  /// dispose 会**每帧泄漏一个监听器**。54 行任务 × 每次重建 = 卡顿。
++  /// (踩过: 第一版就写成 `final ctrl = TextEditingController(...)`。)
++  late final TextEditingController _targetCtrl;
++
++  Map<String, dynamic> get task => widget.task;
++  TaskRowMode get mode => widget.mode;
++  TaskListController get _c => widget.controller;
++  VoidCallback? get onTap => widget.onTap;
++
++  @override
++  void initState() {
++    super.initState();
++    _targetCtrl = TextEditingController(text: _targetText());
++  }
++
++  @override
++  void didUpdateWidget(covariant TaskRowView old) {
++    super.didUpdateWidget(old);
++    // 外部数据刷新后, 若输入框**没有焦点**(用户没在编辑), 同步一下新值;
++    // 有焦点时不动 —— 否则会把用户正在输的内容冲掉。
++    if (!_targetFocus.hasFocus) {
++      final t = _targetText();
++      if (_targetCtrl.text != t) _targetCtrl.text = t;
++    }
++  }
++
++  @override
++  void dispose() {
++    _targetCtrl.dispose();
++    super.dispose();
++  }
++
++  final _targetFocus = FocusNode();
++
++  String _targetText() =>
++      (task['count'] as num?)?.toInt().toString() ?? '';
+ 
+   @override
+   Widget build(BuildContext context) {
+@@ -101,10 +144,23 @@ class TaskRowView extends StatelessWidget {
+       ),
+     );
+ 
+-    return Opacity(
+-      // 停用的行整体压暗 —— 一眼能看出状态, 但**不隐藏**
+-      opacity: enabled ? 1.0 : 0.55,
+-      child: InkWell(onTap: onTap, child: row),
++    // ★ 停用的行用**文字透明度**压暗, 而不是套一层 `Opacity`。
++    //
++    // `Opacity` 会给**每一行**建一个独立的合成层(`OpacityLayer`),
++    // 54 行 = 54 个额外图层 —— 滚动时 GPU 压力很大。
++    // 直接调 `DefaultTextStyle` 的 alpha 是零成本的, 视觉效果一样。
++    return InkWell(
++      onTap: onTap,
++      child: DefaultTextStyle.merge(
++        style: TextStyle(
++          color: Theme.of(context)
++              .textTheme
++              .bodyMedium
++              ?.color
++              ?.withValues(alpha: enabled ? 1.0 : 0.45),
++        ),
++        child: row,
++      ),
+     );
+   }
+ 
+@@ -179,11 +235,12 @@ class TaskRowView extends StatelessWidget {
+       return Text(cur == null ? '默认' : '$cur',
+           style: Theme.of(context).textTheme.labelMedium);
+     }
+-    final ctrl = TextEditingController(text: cur?.toString() ?? '');
+     return SizedBox(
+       width: 68,
+       child: TextField(
+-        controller: ctrl,
++        // 复用 State 里的控制器 —— 不在 build 里新建(会每帧泄漏)
++        controller: _targetCtrl,
++        focusNode: _targetFocus,
+         keyboardType: TextInputType.number,
+         decoration: const InputDecoration(
+           isDense: true,
 -- 
 2.41.0.windows.1
 

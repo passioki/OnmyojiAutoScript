@@ -1,162 +1,159 @@
 # This Python file uses the following encoding: utf-8
 # @author runhey
 # github https://github.com/runhey
-# --------------------------------------------------------------------------- 配置模型
-#
-# 这个文件**不再手写任务字段声明**。
-#
-# 原先是 60 个 `from tasks.X.config import X` + 56 个
-# `x: X = Field(default_factory=X)` —— 共 113 行, 且**新增一个任务就要改这里**,
-# 漏改就静默少一个任务。现在改为**扫描 `tasks/*/config.py` 自动发现**。
-#
-# 这与 `tasks/<Name>/meta.py` 的自描述配套, 一起实现:
-#     **新增一个游戏活动 = 只写 `tasks/<New>/`, 零改动其它文件**
-#
-# 例外(真实契约里确实存在的, 显式列出比隐式猜更诚实):
-#   * `Component` / `General` —— 是共享组件目录, 不是任务
-#   * `Script` / `GlobalGame` —— 继承 `BaseModel` 而非 `ConfigBase`
-#   * 它们没有 `scheduler` 字段(是全局设置, 不是"任务")
-#
-# 见 `docs/architecture.md` §7.2(消除中心化注册)。
-import importlib
-import inspect
-import json
+from tasks.GuildActivityMonitor.config import GuildActivityMonitor
+from typing import Dict, Any
+
 import re
 import inflection
 
 from pathlib import Path
-from typing import Any, Dict
-
-from pydantic import BaseModel, Field, ValidationError, create_model
+from pydantic import BaseModel, ValidationError, Field
 
 from module.config.utils import *
 from module.logger import logger
 
 # 导入配置的Python文件
 from tasks.Component.config_base import ConfigBase, TimeDelta
+from tasks.Exploration.config import Exploration
+from tasks.RyouToppa.config import RyouToppa
+from tasks.Dokan.config import Dokan
+from tasks.Script.config import Script
+from tasks.Restart.config import Restart
+from tasks.GlobalGame.config import GlobalGame
+# 每日任务-----------------------------------------------------------------------------------------------------
+from tasks.AreaBoss.config import AreaBoss
+from tasks.ExperienceYoukai.config import ExperienceYoukai
+from tasks.GoldYoukai.config import GoldYoukai
+from tasks.Nian.config import Nian
+from tasks.KekkaiUtilize.config import KekkaiUtilize
+from tasks.KekkaiActivation.config import KekkaiActivation
+from tasks.DemonEncounter.config import DemonEncounter
+from tasks.DailyTrifles.config import DailyTrifles
+from tasks.TalismanPass.config import TalismanPass
+from tasks.Pets.config import Pets
+from tasks.SoulsTidy.config import SoulsTidy
+from tasks.Delegation.config import Delegation
+from tasks.WantedQuests.config import WantedQuests
+from tasks.Tako.config import Tako
+from tasks.AutoCheckinBigGod.config import AutoCheckinBigGod
+# ----------------------------------------------------------------------------------------------------------------------
+from tasks.Orochi.config import Orochi
+from tasks.OrochiMoans.config import OrochiMoans
+from tasks.Sougenbi.config import Sougenbi
+from tasks.FallenSun.config import FallenSun
+from tasks.EternitySea.config import EternitySea
+from tasks.SixRealms.config import SixRealms
+from tasks.OtherWorldTwilight.config import OtherWorldTwilight
+from tasks.RealmRaid.config import RealmRaid
+from tasks.CollectiveMissions.config import CollectiveMissions
+from tasks.Hunt.config import Hunt
+from tasks.AbyssShadows.config import AbyssShadows
+from tasks.GuildBanquet.config import GuildBanquet
+from tasks.DemonRetreat.config import DemonRetreat
+from tasks.GuildActivityMonitor.config import GuildActivityMonitor
 
+# 这一部分是活动的配置-----------------------------------------------------------------------------------------------------
+from tasks.ActivityShikigami.config import ActivityShikigami
+from tasks.MetaDemon.config import MetaDemon
+from tasks.FrogBoss.config import FrogBoss
+from tasks.FloatParade.config import FloatParade
+from tasks.Quiz.config import Quiz
+from tasks.KittyShop.config import KittyShop
+from tasks.DyeTrials.config import DyeTrials
+from tasks.BudokaiTournament.config import BudokaiTournament
+# ----------------------------------------------------------------------------------------------------------------------
 
-# 不是任务的目录(共享组件)
-NOT_A_TASK = {'Component', 'General'}
+# 肝帝专属---------------------------------------------------------------------------------------------------------------
+from tasks.BondlingFairyland.config import BondlingFairyland
+from tasks.EvoZone.config import EvoZone
+from tasks.GoryouRealm.config import GoryouRealm
+from tasks.Hyakkiyakou.config import Hyakkiyakou
+from tasks.HeroTest.config import HeroTest
+from tasks.FindJade.config import FindJade
+from tasks.MemoryScrolls.config import MemoryScrolls
+# ----------------------------------------------------------------------------------------------------------------------
 
-# 需要纳入但**没有 scheduler 字段**的全局设置类
-# (它们确实是特例: 没有 scheduler, 因此启发式找不到)
-EXTRA_GLOBAL = ('Script', 'GlobalGame')
+# 每周任务---------------------------------------------------------------------------------------------------------------
+from tasks.TrueOrochi.config import TrueOrochi
+from tasks.RichMan.config import RichMan
+from tasks.Secret.config import Secret
+from tasks.WeeklyTrifles.config import WeeklyTrifles
+from tasks.MysteryShop.config import MysteryShop
+from tasks.Duel.config import Duel
+# ----------------------------------------------------------------------------------------------------------------------
 
+class ConfigModel(ConfigBase):
+    config_name: str = "oas"
+    running_task: str = ''
+    script: Script = Field(default_factory=Script)
+    restart: Restart = Field(default_factory=Restart)
+    global_game: GlobalGame = Field(default_factory=GlobalGame)
 
-def _discover_config_classes() -> dict:
-    """
-    扫描 `tasks/*/config.py`, 返回 {字段名: 配置类}。
+    # 这些是每日任务的
+    area_boss: AreaBoss = Field(default_factory=AreaBoss)
+    experience_youkai: ExperienceYoukai = Field(default_factory=ExperienceYoukai)
+    gold_youkai: GoldYoukai = Field(default_factory=GoldYoukai)
+    nian: Nian = Field(default_factory=Nian)
+    realm_raid: RealmRaid = Field(default_factory=RealmRaid)
+    ryou_toppa: RyouToppa = Field(default_factory=RyouToppa)
+    kekkai_utilize: KekkaiUtilize = Field(default_factory=KekkaiUtilize)
+    kekkai_activation: KekkaiActivation = Field(default_factory=KekkaiActivation)
+    demon_encounter: DemonEncounter = Field(default_factory=DemonEncounter)
+    daily_trifles: DailyTrifles = Field(default_factory=DailyTrifles)
+    talisman_pass: TalismanPass = Field(default_factory=TalismanPass)
+    pets: Pets = Field(default_factory=Pets)
+    souls_tidy: SoulsTidy = Field(default_factory=SoulsTidy)
+    delegation: Delegation = Field(default_factory=Delegation)
+    exploration: Exploration = Field(default_factory=Exploration)
+    wanted_quests: WantedQuests = Field(default_factory=WantedQuests)
+    tako: Tako = Field(default_factory=Tako)
+    auto_checkin_big_god: AutoCheckinBigGod = Field(default_factory=AutoCheckinBigGod)
 
-    字段名的派生方式与原先手写声明**完全一致**:
-    `convert_to_underscore(ClassName)`(如 `GlobalGame` -> `global_game`)。
-    这保证了配置文件的键不变 —— 已用 3 个真实配置逐一验证解析结果差异为 0。
-    """
-    # 用 `Path.cwd()` 而不是 `__file__` —— 与同文件的 `read_json()` 保持一致,
-    # 且 PyInstaller 打包后 `__file__` 不可靠。
-    tasks_dir = Path.cwd() / 'tasks'
-    found = {}
+    # 这些是刷御魂的
+    orochi: Orochi = Field(default_factory=Orochi)
+    orochi_moans: OrochiMoans = Field(default_factory=OrochiMoans)
+    sougenbi: Sougenbi = Field(default_factory=Sougenbi)
+    fallen_sun: FallenSun = Field(default_factory=FallenSun)
+    eternity_sea: EternitySea = Field(default_factory=EternitySea)
+    six_realms: SixRealms = Field(default_factory=SixRealms)
+    other_world_twilight: OtherWorldTwilight = Field(default_factory=OtherWorldTwilight)
 
-    if not tasks_dir.is_dir():
-        logger.error(f'任务目录不存在: {tasks_dir}')
-        return found
+    # 这些是活动的
+    activity_shikigami: ActivityShikigami = Field(default_factory=ActivityShikigami)
+    meta_demon: MetaDemon = Field(default_factory=MetaDemon)
+    frog_boss: FrogBoss = Field(default_factory=FrogBoss)
+    float_parade: FloatParade = Field(default_factory=FloatParade)
+    quiz: Quiz = Field(default_factory=Quiz)
+    kitty_shop: KittyShop = Field(default_factory=KittyShop)
+    dye_trials: DyeTrials = Field(default_factory=DyeTrials)
 
-    for d in sorted(tasks_dir.iterdir()):
-        if not d.is_dir() or d.name in NOT_A_TASK or d.name.startswith(('_', '.')):
-            continue
-        if not (d / 'config.py').exists():
-            continue
-        try:
-            mod = importlib.import_module(f'tasks.{d.name}.config')
-        except Exception as exc:
-            logger.warning(f'{d.name}/config.py 导入失败'
-                           f'({type(exc).__name__}: {exc}), 已跳过')
-            continue
+    # 这些是肝帝专属
+    bondling_fairyland: BondlingFairyland = Field(default_factory=BondlingFairyland)
+    evo_zone: EvoZone = Field(default_factory=EvoZone)
+    goryou_realm: GoryouRealm = Field(default_factory=GoryouRealm)
+    hyakkiyakou: Hyakkiyakou = Field(default_factory=Hyakkiyakou)
+    hero_test: HeroTest = Field(default_factory=HeroTest)
+    find_jade: FindJade = Field(default_factory=FindJade)
+    memory_scrolls: MemoryScrolls = Field(default_factory=MemoryScrolls)
 
-        cls = _pick_config_class(mod, d.name)
-        if cls is None:
-            logger.warning(f'{d.name}/config.py 未找到配置类, 已跳过')
-            continue
-        found[convert_to_underscore(cls.__name__)] = cls
+    # 这些是每周任务
+    true_orochi: TrueOrochi = Field(default_factory=TrueOrochi)
+    rich_man: RichMan = Field(default_factory=RichMan)
+    secret: Secret = Field(default_factory=Secret)
+    weekly_trifles: WeeklyTrifles = Field(default_factory=WeeklyTrifles)
+    mystery_shop: MysteryShop = Field(default_factory=MysteryShop)
+    duel: Duel = Field(default_factory=Duel)
 
-    # 补上无 scheduler 的全局设置类
-    for name in EXTRA_GLOBAL:
-        try:
-            mod = importlib.import_module(f'tasks.{name}.config')
-            cls = getattr(mod, name, None)
-            if cls is not None:
-                found.setdefault(convert_to_underscore(name), cls)
-        except Exception as exc:
-            logger.warning(f'{name}/config.py 导入失败'
-                           f'({type(exc).__name__}: {exc})')
-
-    return found
-
-
-def _pick_config_class(mod, dirname):
-    """
-    从模块里挑出**任务配置类**。
-
-    ⚠ 并非所有配置类都继承 `ConfigBase` —— `Script` / `GlobalGame` 直接继承
-    `BaseModel`。只查 `ConfigBase` 会漏掉它们。
-
-    规则(按优先级):
-      1. 与目录同名的类
-      2. 带 `scheduler` 字段的类(任务配置类的标志)
-      3. 类名转下划线 == 目录名
-    """
-    def _is_cfg(o):
-        return (inspect.isclass(o) and issubclass(o, BaseModel)
-                and o is not BaseModel and o is not ConfigBase
-                # 只接受**本模块定义**的类, 排除 import 进来的
-                and o.__module__ == mod.__name__)
-
-    cands = [o for o in vars(mod).values() if _is_cfg(o)]
-
-    for c in cands:
-        if c.__name__ == dirname:
-            return c
-    for c in cands:
-        try:
-            keys = set(getattr(c, 'model_fields', None) or {})
-        except Exception:
-            keys = set()
-        if 'scheduler' in keys:
-            return c
-    for c in cands:
-        if convert_to_underscore(c.__name__) == convert_to_underscore(dirname):
-            return c
-    return None
-
-
-# 字段默认工厂。用闭包而不是 `default_factory=cls` ——
-# create_model 对可调用对象有额外校验, 闭包形式最稳妥。
-def _factory(cls):
-    return lambda: cls()
-
-
-_CONFIG_CLASSES = _discover_config_classes()
-logger.info(f'ConfigModel: 自动发现 {len(_CONFIG_CLASSES)} 个配置类')
-
-# 发现为空说明 `tasks/` 路径不对(如工作目录错) —— 必须**大声失败**。
-# 否则会静默生成一个没有任何任务字段的 ConfigModel, 所有任务的配置都读不出来,
-# 而报错点会离病因很远(在某个 getattr 上)。
-if not _CONFIG_CLASSES:
-    raise RuntimeError(
-        f'ConfigModel 自动发现到 0 个配置类 —— 请确认当前工作目录({Path.cwd()})'
-        f'下存在 tasks/ 且其中含 */config.py。')
-if len(_CONFIG_CLASSES) < 40:
-    logger.warning(f'ConfigModel 只发现 {len(_CONFIG_CLASSES)} 个配置类, '
-                   f'远少于预期的 ~56 个, 请检查 tasks/ 是否完整')
-
-_FIELDS = {name: (cls, Field(default_factory=_factory(cls)))
-           for name, cls in _CONFIG_CLASSES.items()}
-_FIELDS['config_name'] = (str, 'oas')
-_FIELDS['running_task'] = (str, '')
-
-
-class _ConfigModelBase(ConfigBase):
-    """只放方法, 字段由文件末尾的 `ConfigModel = create_model(...)` 动态注入。"""
+    # 阴阳寮
+    collective_missions: CollectiveMissions = Field(default_factory=CollectiveMissions)
+    hunt: Hunt = Field(default_factory=Hunt)
+    dokan: Dokan = Field(default_factory=Dokan)
+    abyss_shadows: AbyssShadows = Field(default_factory=AbyssShadows)
+    guild_banquet: GuildBanquet = Field(default_factory=GuildBanquet)
+    demon_retreat: DemonRetreat = Field(default_factory=DemonRetreat)
+    guild_activity_monitor: GuildActivityMonitor = Field(default_factory=GuildActivityMonitor)
+    budokai_tournament: BudokaiTournament = Field(default_factory=BudokaiTournament)
 
     def __init__(self, config_name: str=None) -> None:
         """
@@ -619,16 +616,3 @@ if __name__ == "__main__":
 
     print(c.script_task('GuildBanquet'))
 
-
-
-# ---------------------------------------------------------------------------
-# 动态构造 ConfigModel
-#
-# `_ConfigModelBase` 提供 `__init__` / `gui_args` / `save` 等方法, 字段则由
-# `create_model` 注入。这样既保留全部方法, 又不必手写字段声明。
-# ---------------------------------------------------------------------------
-ConfigModel = create_model(
-    'ConfigModel',
-    __base__=_ConfigModelBase,
-    **_FIELDS,
-)

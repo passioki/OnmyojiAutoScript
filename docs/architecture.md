@@ -754,8 +754,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 5 | 开放时段接入用户配置（`Scheduler` 四个 `window_*` 字段 + `build_window()`） | ✅ 已提交 |
 | 6 | 一次性迁移脚本 + `get_next()` 引入开放时段闸门 | ✅ 已提交 |
 | 7 | 任务自描述 `tasks/<Name>/meta.py`（54 个已生成 + 自动发现） | ✅ 已提交 |
-| 8 | `config_model` 自动发现（删 113 行手写声明） | ⬜ 下一步 |
-| 9 | i18n 改为生成 / `/schema` 提供 | ⬜ |
+| 8 | `config_model` 自动发现（替换 113 行手写声明） | ✅ 已提交 |
+| 9 | i18n 改为生成 / `/schema` 提供 | ⬜ 下一步 |
 | 10 | 休息 / 延后 / 暂停 | ⬜ |
 | 11 | 任务列表（`list_pos` / `mode`） | ⬜ |
 | 12 | `GET /{script}/schema` + `/overview` | ⬜ |

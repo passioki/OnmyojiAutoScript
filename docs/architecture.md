@@ -755,8 +755,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 6 | 一次性迁移脚本 + `get_next()` 引入开放时段闸门 | ✅ 已提交 |
 | 7 | 任务自描述 `tasks/<Name>/meta.py`（54 个已生成 + 自动发现） | ✅ 已提交 |
 | 8 | `config_model` 自动发现（替换 113 行手写声明） | ✅ 已提交 |
-| 9 | i18n 改为生成 / `/schema` 提供 | ⬜ 下一步 |
-| 10 | 休息 / 延后 / 暂停 | ⬜ |
+| 9 | i18n 从 `meta.py` 生成（修 39 处漂移）+ `/schema` 接口 | ✅ 已提交 |
+| 10 | 休息 / 延后 / 暂停 | ⬜ 下一步 |
 | 11 | 任务列表（`list_pos` / `mode`） | ⬜ |
 | 12 | `GET /{script}/schema` + `/overview` | ⬜ |
 | 13 | `StateProvider`（界面感知）+ `DeviceProvider` | ⬜ |

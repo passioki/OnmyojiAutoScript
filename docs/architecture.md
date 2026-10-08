@@ -622,6 +622,62 @@ def detect_capabilities() -> DeviceCapabilities:
 ★ 护栏**立刻抓到一处真实问题**：`tasks/Quiz/script_task.py` 有一个
 **从未使用**的 `from module.device.screenshot import Screenshot`（死 import）。已删。
 
+#### 7.4.1 非桌面平台：能做到什么程度
+
+**先分清三种"跨平台"** —— 它们难度完全不同：
+
+| 需求 | 现状 | 原因 |
+|---|---|---|
+| ① 后端跑在 **Linux/macOS**（连模拟器/真机）| ✅ **本来就能** | 只有 3 个**可选**能力是 Windows 专有；靠 ADB 截图/点击本来就跨平台 |
+| ② **界面**跨平台（桌面/移动/网页）| ✅ **OASX 已做到** | Flutter 天然跨平台 |
+| ③ 后端跑在**手机**上 | ❌ **不轻松** | **运行时问题**，不是设计问题 |
+
+**③ 的障碍（按硬度排序）**：
+
+| # | 障碍 | 能否靠改代码解决 |
+|---|---|---|
+| 1 | **Python + OpenCV + ONNX 在 Android 上没有轻量可行的运行时** | ❌ 平台能力问题。Chaquopy 能塞进去但要 +50~100MB 且慢 |
+| 2 | **`tasks/` 有 49,002 行过程式代码** | ❌ 换语言 = 重写；只能"只移植常用几个任务" |
+| 3 | 坐标硬编码 1280×720 | ✅ **已解决**（见下）|
+| 4 | `module/config` 耦合设备层 | ✅ **已解决**（架构护栏测试守着）|
+| 5 | iOS | ❌ **不可能**（不允许嵌入任意 Python 运行时，也无法注入输入）|
+
+**坐标问题为何已解决**（实测，见 `docs/android-feasibility.md` §A）：
+
+```
+手机画面 = 模拟器画面 × 1.5 ，居中
+    x_phone = 1.5 * x_emu + 210
+    y_phone = 1.5 * y_emu
+```
+
+* **1.5** 恰好 = 高度比 `1080/720`
+* **210** 恰好 = `(2340 − 1280×1.5) / 2 = 420 / 2`
+
+即游戏把 16:9 画面**等比放大居中**，**没有重排 UI**。
+所以 **1,935 条规则坐标 + 1,926 张模板图都不必重做** ——
+只需在**设备层**加一层"裁剪 + 缩放"（截图）与"缩放 + 平移"（点击）。
+
+★ 复算时注意顺序：反向是 `(x − 210) / 1.5`；
+写成 `(x / 1.5) − 210` **是错的**（差 `210/1.5 = 140` px）。
+
+**"轻松"的边界**：
+
+| 能做到 | 做不到 |
+|---|---|
+| ✅ 加新任务（只写 `tasks/<New>/`）| ❌ 后端跑到手机上（运行时是硬门槛）|
+| ✅ 换界面（消费 `/schema`）| ❌ 执行逻辑换语言（等于重写）|
+| ✅ 跑在 Linux/macOS | ❌ 后端跑到 iOS |
+| ✅ 换模拟器/真机（改 `serial`）| |
+| ✅ 换 1280×720 之外的屏幕（一次变换）| |
+
+★ **归根到底**：`module/config` 已经平台无关，任务**知识**也有了不依赖 Python
+的出口（`meta.py` + `/schema`）。真要继续移植，**元数据层不用重写**，
+只有那 49,002 行**执行逻辑**需要重写。
+
+★★ **`tasks/`（49,002 行）是"资产"，但以代码形式存在** ——
+这是"跨平台难"的**根本原因**。若将来要真跨平台，这一层必须变成**数据/DSL**，
+而不是 Python 过程式代码。
+
 ### 7.5 加一个游戏活动的操作清单
 
 ```bash
@@ -962,7 +1018,9 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 文件 | 内容 |
 |---|---|
 | `docs/team-coordination.md` | 跨账号组队协同详细设计（Availability Oracle） |
-| `docs/task-list-prototype.html` | 任务列表界面原型（可交互） |
+| `docs/android-feasibility.md` | **安卓端运行可行性**（含大狮 APK 逆向分析） |
+| `docs/ui-api-mapping.md` | **界面设计 ↔ 后端接口对照表** |
+| `docs/task-list-prototype.html` | 任务列表界面原型（可交互，设计稿） |
 | `module/config/task_catalog.py` | 任务元数据（运行时） |
 | `module/config/resource.py` | **`Resource` 资源规则**（interval / slots / window / period） |
 | `module/config/availability.py` | **`AvailabilityWindow` 开放时段 + `ObservedWindow` 自学习** |
@@ -971,3 +1029,10 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | `dev_tools/gen_resource_specs.py` | 为 54 个任务生成 `Resource` 定义 |
 | `tests/module/config/test_scheduler_core.py` | 调度核心测试（57 项） |
 | `tests/module/config/test_availability.py` | 开放时段与自学习测试（47 项） |
+| `module/config/run_control.py` | **暂停 / 休息 / 延后**（运行控制） |
+| `module/device/capabilities.py` | **平台能力**集中声明（跨平台） |
+| `module/server/schema_router.py` | **`/schema` `/overview` `/capabilities` `/run_control` 接口** |
+| `tests/test_architecture_guard.py` | **架构护栏**（AST 强制分层，破坏就红） |
+| `dev_tools/diag_android_layout.py` | 安卓布局诊断（求手机↔1280x720 坐标关系） |
+| `dev_tools/gen_i18n.py` | 任务名从 `meta.py` 生成到各 i18n 副本 |
+| `dev_tools/diag_dead_code.py` | 死代码扫描（只读诊断） |

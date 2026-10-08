@@ -170,6 +170,25 @@ def build_overview(config_name: str) -> dict:
     rows = []
     runnable = 0
 
+    # 充能类任务的存量(如金币妖怪 1/2) —— 从状态文件一次取全, 避免逐任务查询
+    #
+    # ⚠ `task_state.summarize()` 返回的键是**压缩小写**形式(如
+    #   `experienceyoukai`), 而 model_dump 的键是**下划线**形式
+    #   (`experience_youkai`)。两者不通用, 需归一化后再查(踩过:
+    #   直接查会全部拿不到, 但不会报错, 只是静默为空)。
+    charges_raw = {}
+    try:
+        from module.config import task_state
+        summary = task_state.summarize(config_name, now=now)
+        charges_raw = summary.get('charges') or {}
+    except Exception as exc:
+        logger.warning(f'overview: 充能状态获取失败({type(exc).__name__}: {exc})')
+
+    def _norm(k: str) -> str:
+        return str(k or '').lower().replace('_', '')
+
+    charges = {_norm(k): v for k, v in charges_raw.items()}
+
     for key, value in model_dump.items():
         if not isinstance(value, dict):
             continue
@@ -213,6 +232,9 @@ def build_overview(config_name: str) -> dict:
             'command': command,
             'name_zh': (meta.name_zh if meta else '') or command,
             'category': meta.category.value if meta else 'timed',
+            # 类别的中文标签 —— 界面不必自己维护一份映射
+            'category_label': TC.CATEGORY_LABEL.get(meta.category, '')
+                if meta else '',
             'enable': enabled,
             'priority': sch.get('priority'),
             'next_run': str(sch.get('next_run') or ''),
@@ -227,6 +249,16 @@ def build_overview(config_name: str) -> dict:
             'in_window': in_window,
             'countable': bool(meta.countable) if meta else False,
             'count': value.get('limit_count') if meta and meta.countable else None,
+            # ---- 界面渲染需要的补充字段(避免前端再发一次请求) ----
+            # 充能类任务的"存量 x / 上限 y"(如金币妖怪 1/2)
+            'charges': charges.get(_norm(key)),
+            # 列表里的位置(来自 meta.py 的 TaskSpec); 用户编排在 task_order
+            # ⚠ `list_pos` 在 **TaskSpec** 上, 不在 TaskMeta 上 ——
+            #   用 `getattr(meta, ...)` 会静默拿到 None(踩过)。
+            'list_pos': _spec_list_pos(meta),
+            'in_list': _spec_list_pos(meta) is not None,
+            # 该任务的效果说明(供界面展示"这个任务是干什么的")
+            'resource_describe': _resource_describe(meta),
         })
 
     # 按 可跑 -> 优先级 -> 名称 排序, 便于界面直接渲染
@@ -240,6 +272,44 @@ def build_overview(config_name: str) -> dict:
         'tasks': rows,
         'teams': _team_snapshot(config_name, now),
     }
+
+
+def _spec_of(meta):
+    """取任务的 `TaskSpec`(在 `tasks/<Name>/meta.py` 里声明的那个)。"""
+    if meta is None:
+        return None
+    try:
+        from module.config import task_catalog as TC
+        return TC.get_spec(meta.task)
+    except Exception:
+        return None
+
+
+def _spec_list_pos(meta):
+    """
+    任务在列表里的**默认位置**。
+
+    ⚠ 这个字段在 `TaskSpec` 上, 而**不在** `TaskMeta` 上。
+    写成 `getattr(meta, 'list_pos', None)` 会静默返回 None(踩过 ——
+    表现是"所有任务的 list_pos 都是 None", 很难发现)。
+    """
+    spec = _spec_of(meta)
+    return getattr(spec, 'list_pos', None) if spec else None
+
+
+def _resource_describe(meta) -> str:
+    """
+    任务资源规则的可读描述(如 "每天 00:00、12:00"、"每 3 小时")。
+
+    数据来自 `tasks/<Name>/meta.py` 的 `TaskSpec.resource`;
+    这里只做转发, **不重复定义知识**。
+    """
+    spec = _spec_of(meta)
+    res = getattr(spec, 'resource', None) if spec else None
+    try:
+        return res.describe() if res is not None else ''
+    except Exception:
+        return ''
 
 
 def _team_snapshot(config_name: str, now: datetime) -> list:

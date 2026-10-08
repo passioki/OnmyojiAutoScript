@@ -568,17 +568,25 @@ class GeneralBattle(BattleWait, GeneralBuff):
         return None
 
     def random_click_swipt(self):
+        """
+        防封的"随机动作" —— **只滑动, 不点击**(与 `battle_wait.py` 的
+        `_bw_randomclick_default` 保持一致)。
+
+        ## 为什么去掉了随机点击
+
+        原先三个分支里有一个是 `self.click(self.C_RANDOM_CLICK)`, 而
+        `C_RANDOM_CLICK` 的 `roi_front=(104,79,1050,507)` —— **覆盖整个战斗区**,
+        其中包括右上角的**自动战斗 / 加速**按钮。于是"随机点击"很容易
+        **误触**它们(用户实测反馈), 后果比"没防封"严重。
+
+        两个滑动区域都**避开按钮带**, 只扫过战斗画面中部;
+        且滑动本身也更接近真人的操作类型。
+        """
         if 0 <= random.randint(0, 500) <= 3:  # 百分之4的概率
-            rand_type = random.randint(0, 2)
-            match rand_type:
-                case 0:
-                    self.click(self.C_RANDOM_CLICK, interval=20)
-                case 1:
-                    self.swipe(self.S_BATTLE_RANDOM_LEFT, interval=20)
-                case 2:
-                    self.swipe(self.S_BATTLE_RANDOM_RIGHT, interval=20)
-            # 重新设置为长战斗
-            # self.device.stuck_record_add('BATTLE_STATUS_S')
+            if random.randint(0, 1) == 0:
+                self.swipe(self.S_BATTLE_RANDOM_LEFT, interval=20)
+            else:
+                self.swipe(self.S_BATTLE_RANDOM_RIGHT, interval=20)
         else:
             time.sleep(0.4)  # 这样的好像不对
 

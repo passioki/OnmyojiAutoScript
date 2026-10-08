@@ -308,6 +308,49 @@ POST /{script}/run_list/entry?index=2   body: {"kind":"rest","minutes":30}
 ★ 另一个坑：**按脚本名取配置**（`mm.config_cache(name)`），
   不要用 `config_cache_list()[0]` —— 那会读到**另一个账号**的配置。
 
+### 5.3 ★ `/{script}/Script/args` 曾经 500（已修）
+
+**症状**：点「脚本」菜单（以及任何走 `ArgsController.loadGroups` 的页面）报 500。
+
+**根因**（`module/config/config_model.py` 的 `merge_value()`）：
+
+```python
+item["default"] = value["default"]      # ← $ref 属性没有 default 键
+```
+
+pydantic 的 `model_json_schema()` 里，**带 `$ref` 的属性没有 `default` 键**
+（默认值在 `$defs` 里）。而 `Script` 顶层组的 4 个属性
+（`device` / `error` / `optimization` / `anti_ban`）**全是指向 `$defs` 的引用**，
+所以必然 `KeyError: 'default'`。
+
+★ 这是**原有 bug**（旧的生产版同样代码），不是本次改造引入的。
+  触发条件是"顶层组的属性是 `$ref`" —— 只有 `Script` 满足，所以一直没被发现。
+
+**修法**：`value.get("default", ...)`；同时把 `groups_value[key]` 也改成
+`.get()` + 跳过（同一个函数里另一处同类隐患）。
+
+**为什么值得记进文档**：这是"**静默型 vs 崩溃型**"的对照 ——
+`/overview` 与 `/schema` 都正常，只有这一个接口炸，很容易误判成"前端问题"。
+
+### 5.4 战斗中的"随机动作"改为**只滑动**
+
+| 项 | 改动 |
+|---|---|
+| 位置 | `battle_wait.py` 的 `_bw_randomclick_default` + `general_battle.py` 的 `random_click_swipt` |
+| 之前 | 1/3 概率 `click(C_RANDOM_CLICK)`，1/3 左滑，1/3 右滑 |
+| 现在 | **只有**左滑/右滑（各 1/2），**不再点击** |
+
+**理由**：`C_RANDOM_CLICK` 的 `roi_front=(104,79,1050,507)` ——
+**覆盖整个战斗区**，其中包括右上角的**自动战斗 / 加速**按钮。
+"随机点击"很容易误触它们（用户实测反馈），后果比"没防封"严重。
+
+两个滑动区域都**避开按钮带**，只扫过战斗画面中部；
+且滑动本身也更接近真人的操作类型。
+
+★ `C_RANDOM_CLICK` 这个资产**保留在 `assets.py`**（未删）——
+  它仍可用于"确实需要随机点击且区域安全"的场景。
+
+
 
 ---
 

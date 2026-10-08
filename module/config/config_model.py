@@ -335,12 +335,23 @@ class _ConfigModelBase(ConfigBase):
                 item["title"] = value["title"] if "title" in value else inflection.underscore(key)
                 if "description" in value:
                     item["description"] = value["description"]
-                item["default"] = value["default"]
-                item["value"] = jsons[key] if key in jsons else value["default"]
+                # ★ 不能直接 value["default"] —— pydantic 的 model_json_schema()
+                #   里**带 `$ref` 的属性没有 `default` 键**(默认值在 `$defs` 里),
+                #   直接取会 `KeyError: 'default'` -> 接口 500。
+                #
+                #   触发条件: 顶层组的属性是 `$ref`(如 `Script` 的
+                #   device/error/optimization/anti_ban 全是指向 $defs 的引用)。
+                #   于是点「脚本」菜单 -> `/{script}/Script/args` -> 500。
+                #
+                #   ★ 这是**原有 bug**(生产版同样代码), 不是本次改造引入的。
+                default_value = value.get("default", jsons.get(key, None))
+                item["default"] = default_value
+                item["value"] = jsons[key] if key in jsons else default_value
                 item["type"] = value["type"] if "type" in value else "enum"
                 if '$ref' in value:  # list
                     enum_key = re.search(r"/([^/]+)$", value['$ref']).group(1)
-                    item["enumEnum"] = definitions[enum_key]["enum"]
+                    # 只有枚举型 $defs 才有 'enum'; 结构体没有 -> 别硬取
+                    item["enumEnum"] = definitions.get(enum_key, {}).get("enum", [])
                 # if 'allOf' in value:
                 #     enum_key = re.search(r"/([^/]+)$", value['allOf'][0]['$ref']).group(1)
                 #     item["enumEnum"] = definitions[enum_key]["enum"]
@@ -357,7 +368,16 @@ class _ConfigModelBase(ConfigBase):
                 for group_name in groups.keys():
                     if group_name in key:
                         groups_value[key] = groups[group_name]
-            result[key] = merge_value(groups_value[key], value, schema["$defs"])
+            # ★ 同上: 找不到对应 group 时**跳过**该键, 而不是 KeyError。
+            #   (现有回退逻辑只做"子串匹配", 匹配不到就留着 key 不在
+            #    groups_value 里 —— 直接下标取就崩。)
+            group = groups_value.get(key)
+            if group is None:
+                logger.warning(
+                    f'script_task({task.__class__.__name__}): '
+                    f'字段 {key!r} 找不到对应的 schema 组, 已跳过')
+                continue
+            result[key] = merge_value(group, value, schema["$defs"])
 
         return result
 

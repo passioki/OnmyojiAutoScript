@@ -1549,12 +1549,34 @@ class BattleWait(BaseTask, GeneralBattleAssets):
 
     @randomclick_gate
     def _bw_randomclick_default(self, pub: PublicContext, pri: PrivateContext) -> HookSignal:
-        match random.randint(0, 2):
+        """
+        防封的"随机动作" —— **只滑动, 不点击**。
+
+        ## 为什么去掉了随机点击
+
+        原先三个分支里有一个是 `self.click(self.C_RANDOM_CLICK)`, 而
+        `C_RANDOM_CLICK` 的 `roi_front=(104,79,1050,507)` ——
+        **覆盖整个战斗区**, 其中包括:
+
+          * 右上角的**自动战斗 / 加速**按钮
+          * 左上角的**逃跑**按钮附近
+
+        于是"随机点击"很容易**误触**这些按钮(用户实测反馈), 后果是
+        改了战斗设置甚至直接逃跑 —— 比"没防封"严重得多。
+
+        ## 为什么滑动是安全的
+
+        两个滑动区域(`S_BATTLE_RANDOM_LEFT` / `S_BATTLE_RANDOM_RIGHT`)
+        都**避开按钮带**, 只扫过战斗画面中部。滑动对战斗的影响仅限于
+        可能的视角拖动, 不会触发任何按钮。
+
+        ★ 防封的目的是"让人机操作更像人", 而滑动本身就是更接近真人的
+          操作类型(真人战斗中更多是拖视角而不是乱点屏幕)。
+        """
+        match random.randint(0, 1):
             case 0:
-                self.click(self.C_RANDOM_CLICK, interval=20)
-            case 1:
                 self.swipe(self.S_BATTLE_RANDOM_LEFT, interval=20)
-            case 2:
+            case 1:
                 self.swipe(self.S_BATTLE_RANDOM_RIGHT, interval=20)
         return HookSignal.CONTINUE
 

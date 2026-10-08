@@ -4,9 +4,11 @@
     "name_zh": "狭间暗域",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -14,7 +16,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -22,7 +24,11 @@
     "name_zh": "当期爬塔",
     "category": "limited",
     "resource": {
-      "kind": "window"
+      "capacity": 1,
+      "consume": 1,
+      "refill": "window",
+      "period": "daily",
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -30,7 +36,7 @@
       "success_interval": "00 01:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -38,9 +44,17 @@
     "name_zh": "地域鬼王",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 6,
+        "minutes": 0
+      },
+      "interval_text": "6小时"
     },
     "_source": {
       "count_field": null,
@@ -48,7 +62,7 @@
       "success_interval": "00 06:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -56,9 +70,11 @@
     "name_zh": "大神签到",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -66,7 +82,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -74,9 +90,11 @@
     "name_zh": "契灵之境",
     "category": "fixed",
     "resource": {
-      "kind": "period",
+      "capacity": 30,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 30
+      "amount": 1
     },
     "_source": {
       "count_field": "limit_count",
@@ -84,7 +102,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -92,7 +110,11 @@
     "name_zh": "武道大会",
     "category": "limited",
     "resource": {
-      "kind": "window"
+      "capacity": 1,
+      "consume": 1,
+      "refill": "window",
+      "period": "daily",
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -100,7 +122,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -108,9 +130,11 @@
     "name_zh": "集体任务",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -118,7 +142,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -126,9 +150,17 @@
     "name_zh": "每日琐事",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -136,7 +168,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -144,9 +176,17 @@
     "name_zh": "式神委派",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 1,
+        "minutes": 0
+      },
+      "interval_text": "1小时"
     },
     "_source": {
       "count_field": null,
@@ -154,7 +194,7 @@
       "success_interval": "00 01:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -162,9 +202,17 @@
     "name_zh": "逢魔之时",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 1,
+        "minutes": 0
+      },
+      "interval_text": "1小时"
     },
     "_source": {
       "count_field": null,
@@ -172,7 +220,7 @@
       "success_interval": "00 01:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -180,9 +228,17 @@
     "name_zh": "首领退治",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -190,7 +246,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -198,9 +254,17 @@
     "name_zh": "道馆",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -208,7 +272,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -216,9 +280,17 @@
     "name_zh": "斗技",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -226,7 +298,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -234,7 +306,11 @@
     "name_zh": "灵染试炼",
     "category": "limited",
     "resource": {
-      "kind": "window"
+      "capacity": 1,
+      "consume": 1,
+      "refill": "window",
+      "period": "daily",
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -242,7 +318,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -250,9 +326,11 @@
     "name_zh": "永生之海",
     "category": "fixed",
     "resource": {
-      "kind": "period",
+      "capacity": 30,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 30
+      "amount": 1
     },
     "_source": {
       "count_field": "limit_count",
@@ -260,7 +338,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -268,9 +346,11 @@
     "name_zh": "觉醒副本",
     "category": "fixed",
     "resource": {
-      "kind": "period",
+      "capacity": 30,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 30
+      "amount": 1
     },
     "_source": {
       "count_field": "limit_count",
@@ -278,7 +358,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -286,20 +366,15 @@
     "name_zh": "经验妖怪",
     "category": "charge",
     "resource": {
-      "kind": "slots",
-      "slots": [
-        [
-          0,
-          0
-        ],
-        [
-          12,
-          0
-        ]
-      ],
-      "amount": 1,
       "capacity": 2,
-      "consume": 1
+      "consume": 1,
+      "refill": "slots",
+      "period": "none",
+      "amount": 1,
+      "slots": [
+        "00:00",
+        "12:00"
+      ]
     },
     "_source": {
       "count_field": null,
@@ -307,7 +382,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": "0,12",
       "charge_max": 2,
-      "charge_consume": 1
+      "manual_override": null
     }
   },
   {
@@ -315,9 +390,17 @@
     "name_zh": "探索",
     "category": "fixed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 30
+      "capacity": 30,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 1,
+        "minutes": 0
+      },
+      "interval_text": "1小时"
     },
     "_source": {
       "count_field": "minions_cnt",
@@ -325,7 +408,7 @@
       "success_interval": "00 01:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -333,9 +416,11 @@
     "name_zh": "日轮之陨",
     "category": "fixed",
     "resource": {
-      "kind": "period",
+      "capacity": 50,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 50
+      "amount": 1
     },
     "_source": {
       "count_field": "limit_count",
@@ -343,7 +428,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -351,9 +436,11 @@
     "name_zh": "寻找协作任务",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -361,7 +448,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -369,7 +456,11 @@
     "name_zh": "花车巡游",
     "category": "limited",
     "resource": {
-      "kind": "window"
+      "capacity": 1,
+      "consume": 1,
+      "refill": "window",
+      "period": "daily",
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -377,7 +468,7 @@
       "success_interval": "03 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -385,7 +476,11 @@
     "name_zh": "对弈竞猜",
     "category": "limited",
     "resource": {
-      "kind": "window"
+      "capacity": 1,
+      "consume": 1,
+      "refill": "window",
+      "period": "daily",
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -393,7 +488,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -401,20 +496,15 @@
     "name_zh": "金币妖怪",
     "category": "charge",
     "resource": {
-      "kind": "slots",
-      "slots": [
-        [
-          0,
-          0
-        ],
-        [
-          12,
-          0
-        ]
-      ],
-      "amount": 1,
       "capacity": 2,
-      "consume": 1
+      "consume": 1,
+      "refill": "slots",
+      "period": "none",
+      "amount": 1,
+      "slots": [
+        "00:00",
+        "12:00"
+      ]
     },
     "_source": {
       "count_field": null,
@@ -422,7 +512,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": "0,12",
       "charge_max": 2,
-      "charge_consume": 1
+      "manual_override": null
     }
   },
   {
@@ -430,9 +520,11 @@
     "name_zh": "御灵之境",
     "category": "fixed",
     "resource": {
-      "kind": "period",
+      "capacity": 30,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 30
+      "amount": 1
     },
     "_source": {
       "count_field": "limit_count",
@@ -440,7 +532,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -448,9 +540,11 @@
     "name_zh": "回到庭院",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -458,7 +552,7 @@
       "success_interval": null,
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -466,9 +560,11 @@
     "name_zh": "寮活动监控",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -476,7 +572,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -484,9 +580,11 @@
     "name_zh": "寮宴会",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -494,7 +592,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -502,9 +600,17 @@
     "name_zh": "英杰试炼",
     "category": "fixed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 100
+      "capacity": 100,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 1,
+        "minutes": 0
+      },
+      "interval_text": "1小时"
     },
     "_source": {
       "count_field": "limit_count",
@@ -512,7 +618,7 @@
       "success_interval": "00 01:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -520,9 +626,17 @@
     "name_zh": "狩猎战",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -530,7 +644,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -538,9 +652,17 @@
     "name_zh": "百鬼夜行",
     "category": "fixed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 10
+      "capacity": 10,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 12,
+        "minutes": 0
+      },
+      "interval_text": "12小时"
     },
     "_source": {
       "count_field": "hya_limit_count",
@@ -548,7 +670,7 @@
       "success_interval": "00 12:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -556,9 +678,11 @@
     "name_zh": "结界挂卡",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -566,7 +690,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -574,9 +698,17 @@
     "name_zh": "结界蹭卡",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -584,7 +716,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -592,7 +724,11 @@
     "name_zh": "猫咪铺子",
     "category": "limited",
     "resource": {
-      "kind": "window"
+      "capacity": 1,
+      "consume": 1,
+      "refill": "window",
+      "period": "daily",
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -600,7 +736,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -608,9 +744,11 @@
     "name_zh": "绘卷",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -618,7 +756,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -626,7 +764,11 @@
     "name_zh": "超鬼王",
     "category": "limited",
     "resource": {
-      "kind": "window"
+      "capacity": 1,
+      "consume": 1,
+      "refill": "window",
+      "period": "daily",
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -634,7 +776,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -642,9 +784,17 @@
     "name_zh": "神秘商店",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -652,7 +802,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -660,9 +810,11 @@
     "name_zh": "年兽",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -670,7 +822,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -678,9 +830,11 @@
     "name_zh": "八岐大蛇",
     "category": "fixed",
     "resource": {
-      "kind": "period",
+      "capacity": 30,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 30
+      "amount": 1
     },
     "_source": {
       "count_field": "limit_count",
@@ -688,7 +842,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -696,9 +850,11 @@
     "name_zh": "彼世逢魔",
     "category": "fixed",
     "resource": {
-      "kind": "period",
+      "capacity": 30,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 30
+      "amount": 1
     },
     "_source": {
       "count_field": "limit_count",
@@ -706,7 +862,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -714,9 +870,11 @@
     "name_zh": "小猫咪",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -724,7 +882,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -732,7 +890,11 @@
     "name_zh": "智力竞赛",
     "category": "limited",
     "resource": {
-      "kind": "window"
+      "capacity": 1,
+      "consume": 1,
+      "refill": "window",
+      "period": "daily",
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -740,7 +902,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -748,9 +910,17 @@
     "name_zh": "个人突破",
     "category": "toppa",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 30
+      "capacity": 30,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": "number_attack",
@@ -758,7 +928,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -766,9 +936,11 @@
     "name_zh": "重启",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -776,7 +948,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -784,9 +956,17 @@
     "name_zh": "大富翁",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -794,7 +974,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -802,9 +982,17 @@
     "name_zh": "寮突破",
     "category": "toppa",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 50
+      "capacity": 50,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": "limit_count",
@@ -812,7 +1000,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -820,9 +1008,11 @@
     "name_zh": "秘闻副本",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "weekly",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": null,
@@ -830,7 +1020,7 @@
       "success_interval": "07 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -838,9 +1028,11 @@
     "name_zh": "六道之门",
     "category": "fixed",
     "resource": {
-      "kind": "period",
+      "capacity": 1,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 1
+      "amount": 1
     },
     "_source": {
       "count_field": "limit_count",
@@ -848,7 +1040,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -856,9 +1048,11 @@
     "name_zh": "业原火",
     "category": "fixed",
     "resource": {
-      "kind": "period",
+      "capacity": 30,
+      "consume": 1,
+      "refill": "none",
       "period": "daily",
-      "capacity": 30
+      "amount": 1
     },
     "_source": {
       "count_field": "limit_count",
@@ -866,7 +1060,7 @@
       "success_interval": "01 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -874,9 +1068,17 @@
     "name_zh": "御魂整理",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -884,7 +1086,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -892,20 +1094,15 @@
     "name_zh": "石距",
     "category": "charge",
     "resource": {
-      "kind": "slots",
-      "slots": [
-        [
-          0,
-          0
-        ],
-        [
-          12,
-          0
-        ]
-      ],
-      "amount": 1,
       "capacity": 2,
-      "consume": 1
+      "consume": 1,
+      "refill": "slots",
+      "period": "none",
+      "amount": 1,
+      "slots": [
+        "00:00",
+        "12:00"
+      ]
     },
     "_source": {
       "count_field": null,
@@ -913,7 +1110,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": "0,12",
       "charge_max": 2,
-      "charge_consume": 1
+      "manual_override": null
     }
   },
   {
@@ -921,9 +1118,17 @@
     "name_zh": "花合战",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -931,7 +1136,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -939,9 +1144,11 @@
     "name_zh": "真八岐大蛇",
     "category": "timed",
     "resource": {
-      "kind": "period",
+      "capacity": 2,
+      "consume": 1,
+      "refill": "none",
       "period": "weekly",
-      "capacity": 2
+      "amount": 2
     },
     "_source": {
       "count_field": null,
@@ -949,7 +1156,14 @@
       "success_interval": "03 00:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": {
+        "capacity": 2,
+        "recharge": {
+          "kind": "none",
+          "period": "weekly",
+          "amount": 2
+        }
+      }
     }
   },
   {
@@ -957,9 +1171,17 @@
     "name_zh": "悬赏封印",
     "category": "fixed",
     "resource": {
-      "kind": "period",
-      "period": "daily",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 1,
+        "minutes": 30
+      },
+      "interval_text": "1小时30分"
     },
     "_source": {
       "count_field": null,
@@ -967,7 +1189,7 @@
       "success_interval": "00 01:30:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   },
   {
@@ -975,9 +1197,17 @@
     "name_zh": "每周琐事",
     "category": "timed",
     "resource": {
-      "kind": "period",
-      "period": "weekly",
-      "capacity": 1
+      "capacity": 1,
+      "consume": 1,
+      "refill": "interval",
+      "period": "none",
+      "amount": 1,
+      "interval": {
+        "days": 0,
+        "hours": 3,
+        "minutes": 0
+      },
+      "interval_text": "3小时"
     },
     "_source": {
       "count_field": null,
@@ -985,7 +1215,7 @@
       "success_interval": "00 03:00:00",
       "charge_slots": null,
       "charge_max": null,
-      "charge_consume": null
+      "manual_override": null
     }
   }
 ]

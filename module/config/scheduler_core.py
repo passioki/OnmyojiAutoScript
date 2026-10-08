@@ -123,6 +123,12 @@ def _credits_at(resource: Resource, state: RunState, at: datetime) -> int:
     credits = state.credits
 
     # ---- 1. 先追赶周期边界 ----
+    #
+    # 周期重置把池子**回满到 capacity**(而不是加 `amount`) ——
+    # 因为"每天/每周重置"的语义就是"新周期一池子满的":
+    #   * "每天打 50 次"  -> capacity=50 -> 回满 50
+    #   * "每周 2 次"     -> capacity=2  -> 回满 2
+    # `amount` 只用于 interval/slots 的**增量补充**(如金币妖怪 0/12 点各 +1)。
     if resource.is_periodic:
         while resource.next_period_start(cursor) <= at:
             cursor = resource.next_period_start(cursor)
@@ -134,6 +140,14 @@ def _credits_at(resource: Resource, state: RunState, at: datetime) -> int:
     # 已经计入 `state.credits`。因此只统计**严格晚于**锚点的补充事件。
     # (踩过: slots_between 用 [start, end) 会把锚点那个 slot 重复计算,
     #  导致 credits 多加一格。)
+    #
+    # 补充量有两种语义, 用 `refill_to_full` 区分:
+    #   * False(默认): 每次补充 **+amount** 格(增量式, 如逢魔每小时 +1)
+    #   * True:        每次补充**直接回满 capacity**
+    #                  (如金币妖怪 0/12 点各把次数补满到 2)
+    per_event = resource.capacity if resource.recharge.refill_to_full \
+        else resource.amount
+
     if resource.refill == 'interval':
         step = resource.interval_timedelta
         if step.total_seconds() > 0:
@@ -141,15 +155,14 @@ def _credits_at(resource: Resource, state: RunState, at: datetime) -> int:
             if elapsed > 0:
                 n = int(elapsed // step.total_seconds())
                 if n > 0:
-                    credits = min(resource.capacity,
-                                  credits + n * resource.capacity)
+                    credits = min(resource.capacity, credits + n * per_event)
     elif resource.refill == 'slots':
         # include_end=True: 若 `at` 恰好落在某个 slot 上, 那次补充**已发生**,
         # 必须计入 —— 否则额度要等到 slot 之后才生效, next_available 会跳到下一个
         # slot(踩过: 12:00 整不可行, 12:00:01 才行, 结果 next_available 返回次日)。
         n = resource.slots_between(cursor, at, include_end=True)
         if n > 0:
-            credits = min(resource.capacity, credits + n * resource.capacity)
+            credits = min(resource.capacity, credits + n * per_event)
 
     return min(credits, resource.capacity)
 

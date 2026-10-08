@@ -49,59 +49,56 @@ class Period(str, Enum):
 
 
 @dataclass(frozen=True)
-class Resource:
+class Recharge:
     """
-    任务的可运行资源。
+    池子如何补充 —— 三种**互斥**的方式(一次只用一种)。
 
-    语义模型:
-        有一个容量 `capacity` 的"池子"; 池子按 `refill` 规则补充;
-        每次运行消耗 `consume`; 池子里够 `consume` 就能跑。
+    为什么把它独立出来: 早期版本把 `refill` 与 `period` 平铺在 `Resource` 上,
+    结果出现 `refill='interval'` 与 `period=WEEKLY` **同时非默认**的组合
+    (真八岐大蛇: 每周回满 2 次, 同时"距上次运行 3 天"). 那种状态语义含糊 ——
+    读者无法判断"到底哪天能跑"。分层后每种方式**自带**它需要的参数,
+    不存在自相矛盾的组合。
 
-    字段:
-        capacity: 池子容量(能连续跑几次)
-        consume:  每次运行消耗几格(通常 1)
-        refill:   补充方式 —— 'interval'(按间隔) | 'slots'(按时刻) | 'none'
-        interval: (天, 时, 分) —— refill='interval' 时使用
-        slots:    ((时, 分), ...) —— refill='slots' 时使用
-        period:   周期重置(周期到时池子回满); Period.NONE 表示不重置
-        reset_at: 周期边界时刻(游戏每日重置点), 默认 0 点
+    | `kind`     | 含义               | 需要的参数        |
+    |------------|--------------------|-------------------|
+    | `NONE`     | 只在周期边界回满   | `period`          |
+    | `INTERVAL` | 距上次补充 N 时间   | `interval`,`period`+`amount` |
+    | `SLOTS`    | 在固定时刻补充      | `slots`,`period`+`amount` |
+    | `WINDOW`   | 只在活动期可做      | `period`          |
 
-    例:
-        日轮之陨(每天 50 次)   Resource(capacity=50)                      # period 默认 DAILY
-        逢魔之时(每小时 1 次)   Resource(capacity=1, interval=(0, 1, 0), period=NONE)
-        金币妖怪(0/12 点各1次)  Resource(capacity=2, refill='slots', slots=((0,0),(12,0)), period=NONE)
-        超鬼王(活动期)          Resource(refill='window', period=NONE)
+    `period` + `amount` 对 `INTERVAL`/`SLOTS` 可选: 指定后表示
+    "每周期至少回补 `amount` 次"(如真蛇每周 2 次)。
     """
 
-    capacity: int = 1
-    consume: int = 1
-    refill: Literal['interval', 'slots', 'none', 'window'] = 'none'
-    interval: tuple = (0, 0, 0)          # (days, hours, minutes)
-    slots: tuple = ()                    # ((hour, minute), ...)
-    period: Period = Period.DAILY
+    kind: Literal['none', 'interval', 'slots', 'window'] = 'none'
+    interval: tuple = (0, 0, 0)      # (days, hours, minutes), kind=INTERVAL
+    slots: tuple = ()                # ((hour, minute), ...), kind=SLOTS
+    period: Period = Period.NONE     # 周期边界重置
+    amount: int = 1                  # 每次补充/每周期回补几格(增量式)
+    refill_to_full: bool = False     # True: 每次补充直接**回满** capacity
     reset_at: time = time(0, 0)
-    window: 'AvailabilityWindow' = None  # 开放时段(硬约束); None = 不限时段
 
-    # ------------------------------------------------------------------ 校验
     def __post_init__(self):
-        if self.capacity < 1:
-            raise ValueError(f'capacity 必须 >= 1, 实际 {self.capacity}')
-        if self.consume < 1:
-            raise ValueError(f'consume 必须 >= 1, 实际 {self.consume}')
-        if self.consume > self.capacity:
-            raise ValueError(
-                f'consume({self.consume}) 不能大于 capacity({self.capacity}), '
-                f'否则永远跑不起来')
-        if self.refill not in ('interval', 'slots', 'none', 'window'):
-            raise ValueError(f'未知 refill: {self.refill!r}')
-        if self.refill == 'interval' and not any(self.interval):
-            raise ValueError("refill='interval' 需要非零的 interval")
-        if self.refill == 'slots' and not self.slots:
-            raise ValueError("refill='slots' 需要非空的 slots")
-        # slots 必须有序且合法
+        if self.kind not in ('none', 'interval', 'slots', 'window'):
+            raise ValueError(f'未知 recharge.kind: {self.kind!r}')
+        if self.kind == 'interval' and not any(self.interval):
+            raise ValueError("recharge.kind='interval' 需要非零 interval")
+        if self.kind == 'slots' and not self.slots:
+            raise ValueError("recharge.kind='slots' 需要非空 slots")
+        if self.amount < 1:
+            raise ValueError(f'amount 必须 >= 1, 实际 {self.amount}')
         for s in self.slots:
-            if len(s) != 2 or not (0 <= s[0] <= 23) or not (0 <= s[1] <= 59):
-                raise ValueError(f'非法 slot: {s!r}')
+            # 严格要求"二元组"。畸形输入(如 `slots=(25,)` —— 少了一层括号)
+            # 要给**清晰的 ValueError**, 而不是迭代出整数后抛 TypeError。
+            if not isinstance(s, (tuple, list)) or len(s) != 2:
+                raise ValueError(
+                    f'非法 slot: {s!r} —— 应为 (hour, minute) 二元组, '
+                    f'且 slots 需要外层再包一层: slots=((0, 0), (12, 0))')
+            h, m = s
+            if not (isinstance(h, int) and isinstance(m, int)):
+                raise ValueError(f'非法 slot: {s!r} —— 时分必须是整数')
+            if not (0 <= h <= 23) or not (0 <= m <= 59):
+                raise ValueError(f'非法 slot: {s!r} —— 小时 0-23, 分钟 0-59')
 
     # ------------------------------------------------------------ 便捷属性
     @property
@@ -111,20 +108,13 @@ class Resource:
 
     @property
     def is_periodic(self) -> bool:
-        """是否按周期重置容量(固定任务的"每天打 N 次")。"""
         return self.period != Period.NONE
 
     @property
     def is_activity_gated(self) -> bool:
-        """是否受活动期限制(限时活动)。"""
-        return self.refill == 'window'
+        return self.kind == 'window'
 
-    @property
-    def has_window(self) -> bool:
-        """是否配置了开放时段(硬约束)。"""
-        return self.window is not None and self.window.enabled
-
-    # ------------------------------------------------------------ 周期边界的纯函数
+    # ------------------------------------------------------------ 周期边界
     def period_start(self, now: datetime) -> datetime:
         """
         当前周期的起点。
@@ -141,7 +131,9 @@ class Resource:
         return anchor
 
     def next_period_start(self, now: datetime) -> datetime:
-        """下一个周期起点。"""
+        """下一个周期起点。period 为 NONE 时返回 now(无周期概念)。"""
+        if self.period == Period.NONE:
+            return now
         start = self.period_start(now)
         if self.period == Period.WEEKLY:
             return start + timedelta(days=7)
@@ -149,7 +141,7 @@ class Resource:
             return start + timedelta(days=1)
         return start
 
-    # ------------------------------------------------------------ slots 相关的纯函数
+    # ------------------------------------------------------------ slots
     def next_slot(self, now: datetime) -> datetime:
         """下一个补充时刻(严格大于 now)。"""
         if not self.slots:
@@ -159,7 +151,6 @@ class Resource:
             cand = now.replace(hour=h, minute=m, second=0, microsecond=0)
             if cand > now:
                 return cand
-        # 今天已过完所有 slot -> 明天的第一个
         h, m = ordered[0]
         return (now + timedelta(days=1)).replace(
             hour=h, minute=m, second=0, microsecond=0)
@@ -188,7 +179,6 @@ class Resource:
         * 统计"锚点到现在补充了几次": `start` 是**已结算点**(该时刻的补充已计入
           当前额度), 要排除; `end` 是当前时刻, 若恰在 slot 上则**该补充已发生**,
           要包含。
-        * 判断"某时刻是否已补充": 同上。
 
         曾用单一的 `[start, end)` 语义, 导致调用方在 `start` 上加 1 微秒来回避
         锚点重复计数 —— 结果把 `end` 侧恰好落在 slot 上的那次也排除了
@@ -197,7 +187,6 @@ class Resource:
         """
         if not self.slots or end <= start:
             return 0
-        # 从 start **之后**的第一个 slot 开始
         cur = self.next_slot(start)
         count = 0
         while cur < end or (include_end and cur == end):
@@ -206,6 +195,136 @@ class Resource:
             if count > 100000:      # 防御: 异常时间跨度不应无限循环
                 break
         return count
+
+    # ------------------------------------------------------------ 显示
+    def describe(self) -> str:
+        """人类可读描述, 供界面与日志使用。"""
+        if self.kind == 'window':
+            return '活动期'
+        parts = []
+        if self.kind == 'interval':
+            d, h, m = self.interval
+            txt = (f'{d}天' if d else '') + (f'{h}小时' if h else '') + \
+                  (f'{m}分' if m else '')
+            parts.append(f'每 {txt} 补 {self.amount}')
+        elif self.kind == 'slots':
+            parts.append('每天 ' + '、'.join(f'{h:02d}:{m:02d}' for h, m in sorted(self.slots)))
+        if self.is_periodic:
+            per = '每天' if self.period == Period.DAILY else '每周'
+            parts.append(f'{per}重置')
+        return '，'.join(parts) if parts else '不限'
+
+
+@dataclass(frozen=True)
+class Resource:
+    """
+    任务的可运行资源。
+
+    语义模型:
+        有一个容量 `capacity` 的"池子"; 池子按 `recharge` 规则补充;
+        每次运行消耗 `consume`; 池子里够 `consume` **且**落在 `window` 内才能跑。
+
+    字段:
+        capacity: 池子容量(能连续跑几次)
+        consume:  每次运行消耗几格(通常 1)
+        recharge: 补充规则(见 `Recharge`)
+        window:   开放时段(硬约束); None = 不限时段, 由用户在配置里填
+
+    例:
+        日轮之陨(每天 50 次)   Resource(capacity=50,
+                                       recharge=Recharge(period=Period.DAILY))
+        逢魔之时(每小时1次)     Resource(capacity=1,
+                                       recharge=Recharge(kind='interval',
+                                                         interval=(0, 1, 0)))
+        金币妖怪(0/12 点各1次)  Resource(capacity=2,
+                                       recharge=Recharge(kind='slots',
+                                                         slots=((0,0),(12,0))))
+        真八岐大蛇(每周2次)     Resource(capacity=2,
+                                       recharge=Recharge(period=Period.WEEKLY,
+                                                         amount=2))
+        超鬼王(活动期)          Resource(recharge=Recharge(kind='window',
+                                                            period=Period.DAILY))
+    """
+
+    capacity: int = 1
+    consume: int = 1
+    recharge: Recharge = None
+    window: AvailabilityWindow = None
+
+    def __post_init__(self):
+        if self.recharge is None:
+            object.__setattr__(self, 'recharge', Recharge())
+        if self.capacity < 1:
+            raise ValueError(f'capacity 必须 >= 1, 实际 {self.capacity}')
+        if self.consume < 1:
+            raise ValueError(f'consume 必须 >= 1, 实际 {self.consume}')
+        if self.consume > self.capacity:
+            raise ValueError(
+                f'consume({self.consume}) 不能大于 capacity({self.capacity}), '
+                f'否则永远跑不起来')
+
+    # ------------------------------------------------------------ 转发便捷属性
+    @property
+    def refill(self) -> str:
+        """补充方式(转发 `recharge.kind`, 便于调用方少写一层)。"""
+        return self.recharge.kind
+
+    @property
+    def period(self) -> Period:
+        return self.recharge.period
+
+    @property
+    def interval(self) -> tuple:
+        return self.recharge.interval
+
+    @property
+    def interval_timedelta(self) -> timedelta:
+        return self.recharge.interval_timedelta
+
+    @property
+    def slots(self) -> tuple:
+        return self.recharge.slots
+
+    @property
+    def reset_at(self) -> time:
+        return self.recharge.reset_at
+
+    @property
+    def amount(self) -> int:
+        """每个周期/每格补充时, 回补几次。"""
+        return self.recharge.amount
+
+    @property
+    def is_periodic(self) -> bool:
+        return self.recharge.is_periodic
+
+    @property
+    def is_activity_gated(self) -> bool:
+        return self.recharge.is_activity_gated
+
+    @property
+    def has_window(self) -> bool:
+        """是否配置了开放时段(硬约束)。"""
+        return self.window is not None and self.window.enabled
+
+    def period_start(self, now: datetime) -> datetime:
+        return self.recharge.period_start(now)
+
+    def next_period_start(self, now: datetime) -> datetime:
+        return self.recharge.next_period_start(now)
+
+    def next_slot(self, now: datetime) -> datetime:
+        return self.recharge.next_slot(now)
+
+    def prev_slot(self, now: datetime) -> datetime:
+        return self.recharge.prev_slot(now)
+
+    def slots_between(self, start: datetime, end: datetime,
+                      include_end: bool = True) -> int:
+        return self.recharge.slots_between(start, end, include_end)
+
+    def describe(self) -> str:
+        return self.recharge.describe()
 
     # ------------------------------------------------------------ 工厂: 从旧字段推导
     @classmethod
@@ -222,7 +341,8 @@ class Resource:
         # (注意: 不能给 capacity=0 —— 那会让任务永远跑不起来。
         #  也不能给 period=NONE —— 那额度用掉就再也补不回来。)
         if category == 'limited':
-            return cls(capacity=1, refill='window', period=Period.DAILY)
+            return cls(capacity=1,
+                       recharge=Recharge(kind='window', period=Period.DAILY))
 
         # 充能类: slots
         if charge_slots:
@@ -239,23 +359,30 @@ class Resource:
             return cls(
                 capacity=int(charge_max or max(1, len(slots))),
                 consume=int(charge_consume or 1),
-                refill='slots',
-                slots=tuple(sorted(slots)),
-                period=Period.NONE,
+                # 充能类的语义是"补充时刻**回满**可用次数", 不是增量加一 ——
+                # 金币妖怪 0 点、12 点各把次数补满到 2。
+                recharge=Recharge(kind='slots', slots=tuple(sorted(slots)),
+                                  refill_to_full=True),
             )
 
-        # interval 形态
-        iv = _parse_interval(success_interval)
         cap = int(count_default) if count_default else 1
+        iv = _parse_interval(success_interval)
         if iv and any(iv):
             days, hours, minutes = iv
-            # 整天的间隔 -> 用周期(每天/每周); 不足一天 -> 用 interval
-            if hours == 0 and minutes == 0 and days >= 1:
-                period = Period.WEEKLY if days >= 7 else Period.DAILY
-                return cls(capacity=cap, period=period)
-            return cls(capacity=cap, refill='interval', interval=iv,
-                       period=Period.NONE)
-        return cls(capacity=cap, period=Period.DAILY)
+            # 只有**恰好**一天/一周才归为周期重置 —— 因为周期意味着
+            # "每天 0 点(或每周一)池子回满", 与"隔 N 时间"语义不同。
+            # 3 天、3 小时这类间隔必须保留为 interval, 否则会丢掉间隔信息。
+            # (踩过: 曾把 days<7 一律归为 daily, 于是真蛇的"每 3 天"变成"每天",
+            #  3 小时的斗技变成"每天 1 次", 间隔信息全丢。)
+            if hours == 0 and minutes == 0 and days == 1:
+                return cls(capacity=cap,
+                           recharge=Recharge(period=Period.DAILY))
+            if hours == 0 and minutes == 0 and days == 7:
+                return cls(capacity=cap,
+                           recharge=Recharge(period=Period.WEEKLY))
+            return cls(capacity=cap,
+                       recharge=Recharge(kind='interval', interval=iv))
+        return cls(capacity=cap, recharge=Recharge(period=Period.DAILY))
 
 
 def _parse_interval(s):

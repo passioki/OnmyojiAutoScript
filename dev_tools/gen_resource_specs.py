@@ -1,63 +1,103 @@
 # -*- coding: utf-8 -*-
-"""生成 `Resource` 定义 —— 每个任务的"资源规则"。
+"""为 54 个任务生成 `Resource` 定义（"能跑几次 / 什么时候允许跑"的规则）。
 
-**这是把游戏知识从 54 个配置界面收归一处的那一步。**
+## 这个脚本的定位
 
-旧状态: "多久能跑一次"散在 `success_interval` / `charge_slots` / `charge_max` /
-`charge_consume` / `limit_count` 五个字段里, 且每个任务用哪些字段还不一样。
-新状态: 每个任务一条 `Resource`, 三种形态覆盖全部。
+**分类逻辑只存在一处** —— 全部委托给 `Resource.from_legacy()`，本脚本只负责：
+  1. 从 `task_catalog` 取各任务的原始字段
+  2. 套用**无法从代码推导**的游戏知识（`PERIOD_OVERRIDE`）
+  3. 输出 JSON 供人工核对
 
-形态判定依据(实测, 不靠猜):
-  slots   有 charge_slots           -> 金币妖怪/经验妖怪/石距
-  limited 分类为 limited 且无 slots -> 限时活动(活动期才跑, 无法用时间表达)
-  period  其余全部                   -> "每周期补满 N 次"
+★ 为什么强调"只存在一处"：早期版本本脚本自己写了一套分类判定，与
+`Resource.from_legacy` 不一致，导致 **6 个任务的"小时级间隔"被错归为 `period`**，
+丢掉了"每 3 小时/6 小时"的信息。这是"知识存在两处"的典型代价。
 
-period 形态的 `capacity` 与 `period` 从何而来:
-  capacity  <- 有目标次数的任务取 count_default(如日轮 50);
-               没有的取 1(表示"一次运行即打满")
-  period    <- 旧 success_interval 的语义: 1天 -> daily, 7天 -> weekly,
-               其余(3h/12h/6h 等) -> daily 但带 slots 式补充
+## 关于开放时段（window）
 
-输出: dev_tools/data/resource_specs.json (供 TaskSpec 使用, 也是人工核对表)
+**本脚本不填任何开放时段。** 理由见 `docs/architecture.md` §3.0 与 §8：
+
+* 开放时段是**游戏机制**，而代码里没有这份数据（`success_interval` 是用户
+  为了绕过"不确定何时开放"而设的轮询节奏，**不能当游戏机制读**）
+* 用户明确要求：**不写死时间段**、**全部开放出来由用户配置**
+* 因此时段由用户在配置界面填写，默认"不限时段"
+* 软件通过 `ObservedWindow` **自学习**实际时段并给出提示
+
+输出: `dev_tools/data/resource_specs.json`
 """
+import dataclasses
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
-REPO = Path(r'D:\OAS-dev\OnmyojiAutoScript')
+REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / 'dev_tools' / 'data' / 'resource_specs.json'
 
 sys.path.insert(0, str(REPO))
-import os
 os.chdir(REPO)
 
-from module.config import task_catalog as TC  # noqa: E402
-from module.config.task_catalog import Category  # noqa: E402
+from module.config import task_catalog as TC                        # noqa: E402
+from module.config.resource import Period, Recharge, Resource       # noqa: E402
 
-# 手工核定: 这些任务的"周期"无法从 success_interval 推出, 依据游戏规则。
-# 每一条都注明理由, 便于以后核对。
+
+# --------------------------------------------------------------------------- 手工核定
+# 只放**无法从现有代码字段推导**的游戏知识。每条注明依据。
+# 能推导的一律交给 from_legacy —— 避免两处逻辑不一致。
+#
+# `Resource` 的 `recharge` 是嵌套 dataclass, 故 override 要整块替换 Recharge。
 PERIOD_OVERRIDE = {
-    # 真蛇: 每周 2 次挑战机会(用户确认)
-    'TrueOrochi': dict(period='weekly', capacity=2),
-    # 秘闻副本: 每周一次(默认 interval 7 天)
-    'Secret': dict(period='weekly', capacity=1),
-    # 每周琐事: 每周一次
-    'WeeklyTrifles': dict(period='weekly', capacity=1),
-    # 伪神(活动期): 按活动周期, 无法用固定 period 表达 -> 见 LIMITED
-    # 金币/经验/石距: slots 形态, 见下
-}
-
-# 手工核定: slots 形态的补充时刻与容量(来源: 任务 config.py 的 charge_slots 等)
-SLOTS_OVERRIDE = {
-    'GoldYoukai': dict(slots=((0, 0), (12, 0)), amount=1, capacity=2, consume=1),
-    'ExperienceYoukai': dict(slots=((0, 0), (12, 0)), amount=1, capacity=2, consume=1),
-    'Tako': dict(slots=((0, 0), (12, 0)), amount=1, capacity=2, consume=1),
+    # 真八岐大蛇: 每周 2 次挑战机会(用户确认)。
+    # 现有配置只有 success_interval=3天, 推导不出"每周2次", 故手工核定。
+    'TrueOrochi': {
+        'capacity': 2,
+        'recharge': Recharge(period=Period.WEEKLY, amount=2),
+    },
 }
 
 
-def parse_interval(s: str):
-    """把 '00 03:00:00' 解析成 (days, hours, minutes)。"""
+def _dump(res: Resource) -> dict:
+    """把 Resource 序列化成可读 JSON(供人工核对与前端展示)。"""
+    out = {
+        'capacity': res.capacity,
+        'consume': res.consume,
+        'refill': res.refill,
+        'period': res.period.value,
+        'amount': res.amount,
+    }
+    if res.refill == 'interval':
+        d, h, mi = res.interval
+        out['interval'] = {'days': d, 'hours': h, 'minutes': mi}
+        out['interval_text'] = (f'{d}天' if d else '') + \
+                               (f'{h}小时' if h else '') + \
+                               (f'{mi}分' if mi else '')
+    if res.refill == 'slots':
+        out['slots'] = [f'{h:02d}:{m:02d}' for h, m in res.slots]
+    if res.has_window:
+        out['window'] = {
+            'start': f'{res.window.start:%H:%M}',
+            'end': f'{res.window.end:%H:%M}',
+            'days': list(res.window.days),
+        }
+    return out
+
+
+def _describe_override(override: dict) -> dict:
+    """把手工核定转成可 JSON 序列化的描述(Recharge 不是 JSON 友好的)。"""
+    out = {}
+    for k, v in override.items():
+        if isinstance(v, Recharge):
+            out[k] = {'kind': v.kind, 'period': v.period.value,
+                      'amount': v.amount}
+        elif isinstance(v, Period):
+            out[k] = v.value
+        else:
+            out[k] = v
+    return out
+
+
+def _interval_parts(s):
+    """'01 00:00:00' -> (days, hours, minutes)；解析失败返回 None。"""
     if not s:
         return None
     m = re.match(r'(\d+)\s+(\d+):(\d+):(\d+)', str(s).strip())
@@ -69,104 +109,110 @@ def parse_interval(s: str):
     return None
 
 
-def infer_period(interval):
-    """从 success_interval 推断 period 形态。"""
-    p = parse_interval(interval)
-    if p is None:
-        return 'daily'
-    days, hours, _ = p
-    if days >= 7:
-        return 'weekly'
-    return 'daily'
+def main() -> int:
+    rows = []
+    for meta in TC.all_meta():
+        # 统一走 from_legacy —— 分类逻辑只存在一处
+        res = Resource.from_legacy(
+            success_interval=meta.success_interval,
+            charge_slots=meta.charge_slots,
+            charge_max=meta.charge_max,
+            charge_consume=meta.charge_consume,
+            count_default=meta.count_default,
+            category=meta.category.value,
+        )
+        override = PERIOD_OVERRIDE.get(meta.task, {})
+        if override:
+            res = dataclasses.replace(res, **override)
 
+        rows.append({
+            'task': meta.task,
+            'name_zh': meta.name_zh,
+            'category': meta.category.value,
+            'resource': _dump(res),
+            # 溯源: 解释这个 resource 是怎么推导出来的, 便于人工核对
+            '_source': {
+                'count_field': meta.count_field,
+                'count_default': meta.count_default,
+                'success_interval': meta.success_interval,
+                'charge_slots': meta.charge_slots,
+                'charge_max': meta.charge_max,
+                'manual_override': (_describe_override(override)
+                                    if override else None),
+            },
+        })
 
-rows = []
-for meta in TC.all_meta():
-    task = meta.task
-    cat = meta.category
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + '\n',
+                   encoding='utf-8')
 
-    if cat == Category.LIMITED:
-        kind = 'window'
-        res = {'kind': 'window'}
-    elif task in SLOTS_OVERRIDE:
-        kind = 'slots'
-        res = {'kind': 'slots', **SLOTS_OVERRIDE[task]}
-    else:
-        kind = 'period'
-        if task in PERIOD_OVERRIDE:
-            res = {'kind': 'period', **PERIOD_OVERRIDE[task]}
+    # ------------------------------------------------------------------ 报告
+    from collections import Counter
+    print(f'已写出 {OUT.relative_to(REPO)}  ({len(rows)} 个任务)')
+    print()
+    print('补充方式分布:', dict(Counter(r['resource']['refill'] for r in rows)))
+    print()
+
+    print('=' * 110)
+    print(f'{"任务":<22}{"中文名":<12}{"类别":<9}{"补充方式":<10}{"周期":<8}'
+          f'{"容量":<5}{"参数"}')
+    print('=' * 110)
+    for r in rows:
+        res = r['resource']
+        if res.get('interval_text'):
+            params = res['interval_text']
+        elif res.get('slots'):
+            params = '时刻 ' + ', '.join(res['slots'])
         else:
-            capacity = meta.count_default if meta.countable and meta.count_default else 1
-            res = {
-                'kind': 'period',
-                'period': infer_period(meta.success_interval),
-                'capacity': capacity,
-            }
+            params = ''
+        print(f'{r["task"]:<22}{str(r["name_zh"] or "?"):<12}{r["category"]:<9}'
+              f'{res["refill"]:<10}{res.get("period", ""):<8}'
+              f'{res["capacity"]:<5}{params}')
 
-    rows.append({
-        'task': task,
-        'name_zh': meta.name_zh,
-        'category': cat.value,
-        'resource': res,
-        # 溯源: 这几个字段解释了 res 是怎么来的
-        '_source': {
-            'count_field': meta.count_field,
-            'count_default': meta.count_default,
-            'success_interval': meta.success_interval,
-            'charge_slots': meta.charge_slots,
-            'charge_max': meta.charge_max,
-            'charge_consume': meta.charge_consume,
-        },
-    })
+    # ------------------------------------------------------------------ 核对提示
+    print()
+    print('=' * 110)
+    print('需人工核对的点:')
+    print('=' * 110)
 
-OUT.parent.mkdir(parents=True, exist_ok=True)
-OUT.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-
-# ---------------------------------------------------------------- 报告
-from collections import Counter
-print(f'已写出 {OUT.relative_to(REPO)}  ({len(rows)} 个任务)')
-print()
-print('形态分布:', dict(Counter(r['resource']['kind'] for r in rows)))
-print()
-
-print('=' * 104)
-print(f'{"任务":<22}{"中文名":<12}{"类别":<9}{"形态":<9}{"参数"}')
-print('=' * 104)
-for r in rows:
-    res = r['resource']
-    if res['kind'] == 'period':
-        params = f"period={res['period']} capacity={res['capacity']}"
-    elif res['kind'] == 'slots':
-        params = f"slots={res['slots']} amount={res['amount']} cap={res['capacity']} consume={res['consume']}"
+    # 1) 被归为"周期"但原始 interval 是小时级 -> 可能丢信息(这是曾经的 bug)
+    suspect = []
+    for r in rows:
+        res, src = r['resource'], r['_source']
+        if res['refill'] != 'none':
+            continue
+        parts = _interval_parts(src['success_interval'])
+        if not parts:
+            continue
+        days, hours, _ = parts
+        if hours != 0 and days == 0:
+            suspect.append((r['task'], src['success_interval'], res['period']))
+    if suspect:
+        for t, iv, per in suspect:
+            print(f'  ⚠ {t:<22} interval={iv} 被归为 period={per} —— 可能丢信息')
     else:
-        params = '活动期判定由探针提供'
-    print(f'{r["task"]:<22}{str(r["name_zh"] or "?"):<12}{r["category"]:<9}{res["kind"]:<9}{params}')
+        print('  ✓ 无"小时级间隔被误归为周期"的情况')
 
-print()
-print('=' * 104)
-print('需要人工确认的点:')
-print('=' * 104)
-# period 形态且 interval 既不是 1 天也不是 7 天 -> capacity 推断可能不准
-suspect = []
-for r in rows:
-    res, src = r['resource'], r['_source']
-    if res['kind'] != 'period':
-        continue
-    iv = src['success_interval']
-    p = parse_interval(iv)
-    if p is None:
-        continue
-    days, hours, _ = p
-    # interval 不是整天/整周, 但被归为 period(意味着"每天补 N 次"语义可疑)
-    if hours != 0 and days == 0:
-        suspect.append((r['task'], iv, res))
-for t, iv, res in suspect:
-    print(f'  {t:<22} interval={iv} -> {res}   (小时级间隔离散: 确认是否该用 slots?)')
-if not suspect:
-    print('  无')
+    # 2) 手工核定的任务 -> 这些是人工判断, 需复核
+    print()
+    manual = [(r['task'], r['_source']['manual_override']) for r in rows
+              if r['_source'].get('manual_override')]
+    if manual:
+        print('  手工核定的任务(依据不可从代码推导, 请复核):')
+        for t, ov in manual:
+            print(f'    {t:<22} {ov}')
+    else:
+        print('  无手工核定')
 
-print()
-print('weekly 的任务:')
-for r in rows:
-    if r['resource'].get('period') == 'weekly':
-        print(f"  {r['task']:<22} capacity={r['resource']['capacity']}  (interval={r['_source']['success_interval']})")
+    # 3) 开放时段: 本脚本一个都不填
+    print()
+    print(f'  开放时段: 本脚本**不填任何时段**(共 {len(rows)} 个任务均未设置)')
+    print('    理由: 时段是游戏机制, 代码里没有这份数据;')
+    print('          且用户要求"不写死时间段、全部开放出来由用户配置"。')
+    print('    由用户在配置界面填写, 默认"不限时段";')
+    print('    软件通过 ObservedWindow 自学习实际时段并提示。')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

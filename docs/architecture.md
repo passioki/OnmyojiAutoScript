@@ -198,32 +198,66 @@ Resource(
 ★ 这样即使初始配置不准、或游戏改版，软件也能**自我纠正并告知**，
 而不是依赖某一次把数据填对。
 
-### 3.1 Resource —— 三种形态覆盖全部 54 个任务
+### 3.1 Resource —— 四种补充方式覆盖全部 54 个任务
+
+`Resource` 把"补充方式"独立成分层的 `Recharge`，避免出现**自相矛盾的状态**。
 
 ```python
 @dataclass(frozen=True)
+class Recharge:
+    """池子如何补充 —— 三种互斥的方式(一次只用一种)。"""
+    kind: Literal['none', 'interval', 'slots', 'window'] = 'none'
+    interval: tuple = (0, 0, 0)      # (天, 时, 分), kind=INTERVAL
+    slots: tuple = ()                # ((时, 分), ...), kind=SLOTS
+    period: Period = Period.NONE     # 周期边界重置
+    amount: int = 1                  # 增量补充几格
+    refill_to_full: bool = False     # True: 每次补充直接回满 capacity
+    reset_at: time = time(0, 0)
+
+@dataclass(frozen=True)
 class Resource:
-    kind: Literal['period', 'slots', 'window']
-
-    # kind='period' —— 每周期补满 N 次
-    period: str = 'daily'          # daily | weekly
     capacity: int = 1
-
-    # kind='slots' —— 在固定时刻补充
-    slots: tuple = ()              # 如 ((0, 0), (12, 0))
-    amount: int = 1
-
-    consume: int = 1               # 每次运行消耗几次
+    consume: int = 1
+    recharge: Recharge = None
+    window: AvailabilityWindow = None
 ```
 
-| kind | 用于 | 例 | 旧实现用了几个字段 |
-|---|---|---|---|
-| `period` | 固定任务 | 日轮之陨：每天 50 次 | `success_interval=1d` + `limit_count=50` → **2 个** |
-| `slots` | 充能任务 | 金币妖怪：0/12 点各 +1，上限 2 | `charge_slots`+`charge_max`+`charge_consume`+`success_interval` → **4 个** |
-| `window` | 限时活动 | 超鬼王：活动期内可跑 | **无**（旧代码靠推远 `next_run` 假装不存在） |
+★ **为什么分层**：早期版本把 `kind` 与 `period` **平铺**在 `Resource` 上，结果出现
+`kind='interval'` 与 `period=WEEKLY` **同时非默认**的组合（真八岐大蛇：每周回满 2 次，
+同时"距上次运行 3 天"）。那种状态**语义含糊** —— 读者判断不出到底哪天能跑。
+分层后每种方式自带它需要的参数，不存在自相矛盾的组合。
 
-★ `Resource(period='daily', capacity=50)` **一个概念同时表达**旧的
-`success_interval` 与 `limit_count` —— 这就是原则 1 的效果。
+★ **为什么需要 `refill_to_full`**：两种补充语义都真实存在，必须显式区分：
+
+| `refill_to_full` | 语义 | 例 |
+|---|---|---|
+| `False`（默认） | 每次补充 **+amount** 格（增量式） | 逢魔之时：每小时 +1 |
+| `True` | 每次补充**直接回满 capacity** | 金币妖怪：0/12 点各回满到 2 次 |
+
+**周期边界**（`period`）的语义固定为**回满 `capacity`** ——
+"每天/每周重置"就是"新周期一池子满的"。
+
+| 形态 | 用于 | 例 | 旧实现用了几个字段 |
+|---|---|---|---|
+| `none` + `period` | 固定任务 | 日轮之陨：每天 50 次 | `success_interval=1d` + `limit_count=50` → **2 个** |
+| `interval` | 按间隔补充 | 逢魔之时：每 1 小时 | `success_interval=1h` → 1 |
+| `slots` | 固定时刻补充 | 金币妖怪：0/12 点各回满，上限 2 | `charge_slots`+`charge_max`+`charge_consume`+`success_interval` → **4 个** |
+| `window` | 只在活动期 | 超鬼王：活动期内每天 1 次 | **无**（靠推远 `next_run` 假装不存在） |
+
+★ `Resource(capacity=50, recharge=Recharge(period=DAILY))` **一个概念**即表达旧的
+`success_interval=1d` + `limit_count=50`。
+
+**从旧字段推导**（`Resource.from_legacy`，迁移桥梁，已实测正确）：
+
+| 旧 `success_interval` | 推导结果 |
+|---|---|
+| `01 00:00:00`（1 天） | `Recharge(period=DAILY)` |
+| `07 00:00:00`（7 天） | `Recharge(period=WEEKLY)` |
+| `00 03:00:00`（3 小时） | `Recharge(kind='interval', interval=(0,3,0))` ← **不再是 period** |
+| `03 00:00:00`（3 天） | `Recharge(kind='interval', interval=(3,0,0))` ← **不再是 period** |
+
+★ 最后一行的修正很重要：早期版本把 `days<7` 一律归为 `daily`，于是真蛇的
+"每 3 天"变成"每天"、3 小时的斗技变成"每天 1 次"，**间隔信息全丢**。
 
 ### 3.2 RunState
 
@@ -716,8 +750,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 1 | `task_catalog` 任务元数据目录 | ✅ 已提交 `b004d6ed` |
 | 2 | `Resource` + `RunState` + `next_available()` 纯函数核心 | ✅ 已提交 `90f803de` |
 | 3 | **`AvailabilityWindow` 开放时段 + `ObservedWindow` 自学习** | ✅ 已提交（本步） |
-| 4 | `Resource` 加进 catalog（含各任务开放时段的元数据） | ⬜ |
-| 5 | 开放时段接入用户配置（`Scheduler` 加 `window_*` 字段） | ⬜ |
+| 4 | `Resource` 分层（`Recharge`）+ 修正误分类 + `resource_specs.json` | ✅ 已提交 |
+| 5 | 开放时段接入用户配置（`Scheduler` 加 `window_*` 字段） | ⬜ 下一步 |
 | 6 | 一次性迁移脚本 + 切换 `get_next()` 到新调度器 | ⬜ |
 | 7 | 一次性脚本为 54 个任务批量生成 `meta.py` 自描述 | ⬜ |
 | 8 | `config_model` 自动发现（删 113 行） | ⬜ |
@@ -735,9 +769,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | **完成记忆从未生效** | 所有任务 `period=none`；真实周期由 `success_interval` 控制 |
 | **`WantedQuests` 硬编码 30** | 用户无法配置次数 |
 | 4 处字段不统一 | `Exploration.minions_cnt` / `Hyakkiyakou.hya_limit_count` / `RealmRaid.number_attack` / 上述硬编码 |
-| **`gen_resource_specs.py` 误分类** | 6 个任务的"小时级间隔"被错误归为 `period`，丢失"3 小时/6 小时"信息，应保留为 `interval` |
 
-★ **第 2-3 步是安全支点**：新核心以**纯函数 + 单测**独立写完，不碰现有代码。
+★ **第 2-4 步是安全支点**：新核心以**纯函数 + 单测**独立写完，不碰现有代码。
 即使后续切换出问题，回退成本是"把 `get_next()` 指回旧实现"，
 而不是"拆掉半新半旧的东西"。
 

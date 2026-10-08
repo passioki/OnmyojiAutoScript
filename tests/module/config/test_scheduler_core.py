@@ -17,7 +17,7 @@ from datetime import datetime, time, timedelta
 
 import pytest
 
-from module.config.resource import Period, Resource
+from module.config.resource import Period, Recharge, Resource
 from module.config.scheduler_core import (
     RunState, cannot_run_reason, credits_at, next_available, remaining)
 
@@ -25,30 +25,32 @@ from module.config.scheduler_core import (
 # --------------------------------------------------------------------- 真实任务参数
 def R_fallen_sun() -> Resource:
     """日轮之陨: 每天打 50 次。旧代码 = success_interval=1d + limit_count=50。"""
-    return Resource(capacity=50, period=Period.DAILY)
+    return Resource(capacity=50, recharge=Recharge(period=Period.DAILY))
 
 
 def R_demon_encounter() -> Resource:
     """逢魔之时: 每 1 小时 1 次。旧代码 = success_interval=1h。"""
-    return Resource(capacity=1, refill='interval', interval=(0, 1, 0),
-                    period=Period.NONE)
+    return Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 1, 0)))
 
 
 def R_gold_youkai() -> Resource:
     """金币妖怪: 0 点 +1、12 点 +1, 上限 2。
-    旧代码 = charge_slots='0,12' + charge_max=2 + charge_consume=1。"""
-    return Resource(capacity=2, refill='slots', slots=((0, 0), (12, 0)),
-                    period=Period.NONE)
+    旧代码 = charge_slots='0,12' + charge_max=2 + charge_consume=1。
+
+    `refill_to_full=True`: 游戏语义是"补充时刻**回满**可用次数"。"""
+    return Resource(capacity=2,
+                    recharge=Recharge(kind='slots', slots=((0, 0), (12, 0)),
+                                      refill_to_full=True))
 
 
 def R_true_orochi() -> Resource:
     """真八岐大蛇: 每周 2 次(用户确认)。"""
-    return Resource(capacity=2, period=Period.WEEKLY)
+    return Resource(capacity=2, recharge=Recharge(period=Period.WEEKLY))
 
 
 def R_activity() -> Resource:
     """限时活动(如超鬼王): 活动期内每天 1 次额度。"""
-    return Resource(capacity=1, refill='window', period=Period.DAILY)
+    return Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY))
 
 
 D0 = datetime(2026, 10, 8, 0, 0)          # 周四 0 点
@@ -81,7 +83,8 @@ class TestFallenSun:
 
     def test_reset_at_respected(self):
         """自定义重置点 05:00: 04:00 仍属前一日, 06:00 才算新周期。"""
-        res = Resource(capacity=50, period=Period.DAILY, reset_at=time(5, 0))
+        res = Resource(capacity=50,
+                       recharge=Recharge(period=Period.DAILY, reset_at=time(5, 0)))
         st = RunState(credits=0, refill_anchor=datetime(2026, 10, 8, 5, 0))
         assert credits_at(res, st, datetime(2026, 10, 9, 4, 0)) == 0
         assert credits_at(res, st, datetime(2026, 10, 9, 6, 0)) == 50
@@ -241,22 +244,39 @@ class TestStateIsImmutable:
 
 
 class TestResourceValidation:
-    @pytest.mark.parametrize('kwargs', [
-        dict(capacity=0),
-        dict(consume=0),
-        dict(capacity=2, consume=3),          # consume > capacity 会永远跑不起来
-        dict(refill='interval'),               # 缺 interval
-        dict(refill='slots'),                  # 缺 slots
-        dict(refill='slots', slots=((25, 0),)),   # 非法小时
-        dict(refill='slots', slots=((0, 61),)),   # 非法分钟
-        dict(refill='unknown'),                # 未知 refill
+    """
+    非法构造必须给出 **ValueError**。
+
+    注意 `Recharge` 的校验发生在**构造时**, 所以这些用例必须把"构造动作"
+    推迟到 `pytest.raises` **内部**执行 —— 若把 `Recharge(...)` 直接写进
+    parametrize 列表, 异常会在**收集阶段**抛出, 导致整个模块 import 失败;
+    若在 `pytest.raises` 之前就调用, 则异常逃逸, 断言到的是外层错误。
+    因此统一传"零参构造函数"。
+    """
+
+    @pytest.mark.parametrize('make_kwargs', [
+        lambda: dict(capacity=0),
+        lambda: dict(consume=0),
+        lambda: dict(capacity=2, consume=3),   # consume > capacity 会永远跑不起来
+        # --- Recharge 自身的非法构造 ---
+        lambda: dict(recharge=Recharge(kind='interval')),               # 缺 interval
+        lambda: dict(recharge=Recharge(kind='slots')),                  # 缺 slots
+        lambda: dict(recharge=Recharge(kind='slots', slots=((25, 0),))),  # 非法小时
+        lambda: dict(recharge=Recharge(kind='slots', slots=((0, 61),))),  # 非法分钟
+        lambda: dict(recharge=Recharge(kind='unknown')),                # 未知 kind
+        lambda: dict(recharge=Recharge(amount=0)),                      # amount < 1
+        # --- 畸形 slot 也要 ValueError 而不是 TypeError ---
+        lambda: dict(recharge=Recharge(kind='slots', slots=(25,))),
+        lambda: dict(recharge=Recharge(kind='slots', slots=((1, 2, 3),))),
     ])
-    def test_invalid_raises(self, kwargs):
+    def test_invalid_raises(self, make_kwargs):
         with pytest.raises(ValueError):
+            kwargs = make_kwargs()
             Resource(**kwargs)
 
     def test_valid_minimal(self):
         assert Resource().capacity == 1
+        assert Resource().refill == 'none'
 
 
 class TestSlotsBetween:
@@ -321,7 +341,7 @@ class TestRobustness:
         assert credits_at(R_fallen_sun(), st, T10) == 0
 
     def test_consume_more_than_credit(self):
-        res = Resource(capacity=4, consume=2, period=Period.DAILY)
+        res = Resource(capacity=4, consume=2, recharge=Recharge(period=Period.DAILY))
         assert next_available(res, RunState(credits=1, refill_anchor=D0), T10) > T10
         assert next_available(res, RunState(credits=2, refill_anchor=D0), T10) == T10
 
@@ -370,7 +390,7 @@ class TestFromLegacy:
         res = Resource.from_legacy(success_interval='00 03:00:00', count_default=1)
         assert res.refill == 'interval'
         assert res.interval == (0, 3, 0)
-        assert res.period == Period.NONE
+        assert res.recharge.period == Period.NONE
 
     def test_charge_slots(self):
         res = Resource.from_legacy(charge_slots='0,12', charge_max=2,
@@ -378,7 +398,7 @@ class TestFromLegacy:
         assert res.refill == 'slots'
         assert res.slots == ((0, 0), (12, 0))
         assert res.capacity == 2
-        assert res.period == Period.NONE
+        assert res.recharge.period == Period.NONE
 
     def test_limited_becomes_window(self):
         res = Resource.from_legacy(category='limited')

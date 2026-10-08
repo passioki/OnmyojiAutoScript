@@ -18,7 +18,7 @@ import pytest
 
 from module.config.availability import (
     ALL_DAYS, DAY_NAMES, AvailabilityWindow, ObservedWindow)
-from module.config.resource import Period, Resource
+from module.config.resource import Period, Recharge, Resource
 from module.config.scheduler_core import (
     RunState, cannot_run_reason, next_available)
 
@@ -150,7 +150,7 @@ class TestWindowInScheduler:
     """窗口是**硬约束**: 不在时段内一律不跑。"""
 
     def res(self, **kw):
-        return Resource(capacity=1, period=Period.DAILY,
+        return Resource(capacity=1, recharge=Recharge(period=Period.DAILY),
                         window=AvailabilityWindow(True, time(17, 0), time(23, 0)),
                         **kw)
 
@@ -179,8 +179,8 @@ class TestWindowInScheduler:
         真正的允许时刻由 `window` 决定。
         """
         res = Resource(
-            capacity=1, period=Period.NONE,
-            refill='interval', interval=(0, 1, 0),
+            capacity=1,
+            recharge=Recharge(kind='interval', interval=(0, 1, 0)),
             window=AvailabilityWindow(True, time(17, 0), time(23, 0)),
         )
         st = RunState(credits=0, refill_anchor=at(THU, 20, 0))

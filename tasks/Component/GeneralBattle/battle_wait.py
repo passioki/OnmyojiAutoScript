@@ -120,6 +120,12 @@ _HOOKS_DEFAULT: tuple[str, ...] = (
 )
 _SEQUENCE_DEFAULT: str = 'completion > interrupt > prepare > preset > green > red > echo > success > failure >'
 
+# completion 阶段允许的兜底点击次数上限。
+# 兜底点击是"整屏随机点", 靠运气碰到关闭按钮; 而 device 的卡死看门狗会在
+# 60s 内无检测命中时抛 GameStuckError, 把**整局任务**判为卡死并重启游戏。
+# 取 6 次(约 48s)留出余量: 既能容忍几次没点中, 又能在看门狗之前主动收尾。
+_COMPLETION_FALLBACK_MAX_CLICKS: int = 6
+
 # 跨任务/跨战斗状态的初始
 @dataclass
 class PerTaskState:
@@ -369,6 +375,11 @@ class PerBattleCompletion:
     click_stage_2: RuleClickExclude | None = None
     # 兜底点击节拍器：进入 completion 起算，满 8s 才首次点击，之后每 8s 一次
     fallback_timer: Timer | None = None
+    # 进入 completion 的时间戳(0.0 = 尚未进入)，用于统计停留时长与节流诊断
+    entered_at: float = 0.0
+    # 已执行的兜底点击次数；达到上限仍未确认结束就放行退出，
+    # 避免与 device 的 60s 卡死看门狗互相触发(那会导致整局任务被判卡死并重启游戏)
+    fallback_clicks: int = 0
 
 
 @dataclass
@@ -1108,11 +1119,13 @@ class BattleWait(BaseTask, GeneralBattleAssets):
         return HookSignal.DONE
 
     def _bw_completion_default(self, pub: PublicContext, pri: PrivateContext) -> HookSignal:
-        logger.info('Battle completion process')
         state = pri.per_battle
         options = pri.options
         if not isinstance(state, PerBattleCompletion) or not isinstance(options, OptionCompletionDefault):
             raise
+        if state.entered_at == 0.0:
+            state.entered_at = time.time()
+            logger.info('Battle completion process')
         if options.check_imgs is None:
             pub.per_task.count += 1
             # self.current_count += 1  # 兼容旧的计数
@@ -1132,7 +1145,30 @@ class BattleWait(BaseTask, GeneralBattleAssets):
             raise
         if not state.fallback_timer.reached():
             return HookSignal.CONTINUE
+
         state.fallback_timer.reset()
+        state.fallback_clicks += 1
+        # 每 3 次兜底点击(约 24s)打一次诊断：这条日志是排查"战斗结束但识别不到"
+        # 的关键线索 —— 之前这里完全静默, 出问题时只能看到 60s 后看门狗的
+        # "Wait too long", 无从知道当时屏幕上到底有没有目标图。
+        if state.fallback_clicks % 3 == 1:
+            logger.warning(
+                f'Battle completion fallback: 第 {state.fallback_clicks} 次兜底点击, '
+                f'已停留 {time.time() - state.entered_at:.0f}s, '
+                f'check_imgs={len(options.check_imgs)} 个均未命中, '
+                f'excludes={len(options.excludes)} 个')
+
+        # 安全阀: 兜底点击达上限仍未确认结束, 就按"结束"放行退出本场。
+        # 为什么不继续兜底: device 的卡死看门狗会在 60s 内无检测命中时抛
+        # GameStuckError, 那会把**整局任务**判为卡死并重启游戏 —— 代价远大于
+        # 提前结束一场。这里主动收尾, 让上层去处理画面(重新进房间/退出任务)。
+        if state.fallback_clicks > _COMPLETION_FALLBACK_MAX_CLICKS:
+            logger.warning(
+                f'Battle completion fallback 已达 {_COMPLETION_FALLBACK_MAX_CLICKS} 次仍无法确认结束, '
+                f'放弃兜底并按战斗结束处理(避免触发卡死看门狗重启游戏)')
+            pub.per_task.count += 1
+            return HookSignal.DONE
+
         if state.click_stage_2 is None:
             state.click_stage_2 = PerBattleSuccess.reward_exclude_click(self, options.excludes, name='completion_exclude_click')
         x, y = state.click_stage_2.coord()

@@ -19,6 +19,14 @@ class Notifier:
     def __init__(self, _config: str, enable: bool=False) -> None:
         self.config_name: str = ""
         self.enable: bool = enable
+        # 这两个属性必须**始终**存在: __init__ 有多条提前返回的路径(未启用、
+        # 解析失败、未配置 provider), 而 push() 只按 self.enable 判断是否继续,
+        # 不看 __init__ 是否走完。若在这里不初始化, "启用但没配 provider" 时
+        # push() 会抛 AttributeError('Notifier' object has no attribute 'required'),
+        # 把调用方真正的异常(如 GameStuckError)顶掉, 让排查失去线索。
+        self.config: dict = {}
+        self.required: list[str] = []
+        self.notifier = None
 
         if not self.enable:
             return
@@ -49,6 +57,10 @@ class Notifier:
 
     def push(self, **kwargs) -> bool:
         if not self.enable:
+            return False
+        if self.notifier is None:
+            # 未配置 provider / 初始化失败: 没有可用的推送通道, 直接跳过。
+            # 这里刻意不再继续往下走 —— 否则会因为缺少必填参数而报错。
             return False
         # 更新配置
         kwargs["title"] = f"{self.config_name} {kwargs['title']}"

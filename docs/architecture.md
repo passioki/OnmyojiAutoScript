@@ -753,8 +753,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 4 | `Resource` 分层（`Recharge`）+ 修正误分类 + `resource_specs.json` | ✅ 已提交 |
 | 5 | 开放时段接入用户配置（`Scheduler` 四个 `window_*` 字段 + `build_window()`） | ✅ 已提交 |
 | 6 | 一次性迁移脚本 + `get_next()` 引入开放时段闸门 | ✅ 已提交 |
-| 7 | 一次性脚本为 54 个任务批量生成 `meta.py` 自描述 | ⬜ 下一步 |
-| 8 | `config_model` 自动发现（删 113 行） | ⬜ |
+| 7 | 任务自描述 `tasks/<Name>/meta.py`（54 个已生成 + 自动发现） | ✅ 已提交 |
+| 8 | `config_model` 自动发现（删 113 行手写声明） | ⬜ 下一步 |
 | 9 | i18n 改为生成 / `/schema` 提供 | ⬜ |
 | 10 | 休息 / 延后 / 暂停 | ⬜ |
 | 11 | 任务列表（`list_pos` / `mode`） | ⬜ |

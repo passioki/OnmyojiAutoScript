@@ -13,6 +13,7 @@ config/*.crt
 dev_tools/debug_tools
 .idea
 /screenshots
+/_shots
 /campaign/test/
 /toolkit
 *.lock

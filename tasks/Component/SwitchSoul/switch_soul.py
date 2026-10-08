@@ -17,6 +17,21 @@ from tasks.Component.GeneralInvite.config_invite import InviteConfig, InviteNumb
 from tasks.Component.SwitchSoul.assets import SwitchSoulAssets
 
 
+# switch_soul_by_name 里"按名字找目标阵容"的最大尝试次数。
+# 为什么需要: 这两处原本是 `while 1` 无界循环, 目标阵容名不在列表里时
+# (OCR 失配 / 配置写错 / 该阵容其实在别的分组)会一直滑动或点击, 直到 device 的
+# 卡死看门狗抛 GameStuckError 并把**整局任务**判死重启游戏。
+# 线上实测 2026-10-08 11:55(日轮之陨): 阵容列表为 ['安魂冢','真蛇'], 目标 '日轮'
+# 不在其中, 循环持续约 60s 后被看门狗判死并重启游戏。
+# 切换御魂本身是可选项 —— 找不到就跳过, 让任务继续跑, 远好于重启游戏。
+# 取 30 次: 每次含一次截图+OCR(约 0.4~1.1s), 相当于 20~30 秒的搜索预算。
+SS_TEAM_FIND_MAX_ATTEMPTS = 30
+
+# "切换御魂"阶段的兜底时限(秒)。正常流程是点 4 次, 约 6 秒完成;
+# 若 I_SOU_SWITCH_SURE 与目标阵容都识别不到, 原来的 `while 1` 会一直转。
+SS_SOUL_SWITCH_TIMEOUT = 30
+
+
 
 def switch_parser(switch_str: str) -> tuple:
     switch_list = switch_str.split(',')
@@ -211,26 +226,39 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         logger.info('Swipe to top of group')
 
         # 判断有无目标分组
-        while 1:
+        # 限次原因同下面"找目标阵容": 分组名不在列表里时会一直滑动,
+        # 直到看门狗把整局任务判死重启。找不到就跳过切换。
+        found_group = False
+        for _ in range(SS_TEAM_FIND_MAX_ATTEMPTS):
             self.screenshot()
             # 获取当前分组名
             results = self.O_SS_GROUP_NAME.detect_and_ocr(self.device.image)
             text1 = [result.ocr_text for result in results]
             # 判断当前分组有无目标分组
-            result = set(text1).intersection({groupName})
-            # 有则跳出检测
-            if result and len(result) > 0:
+            if set(text1).intersection({groupName}):
+                found_group = True
                 break
             self.swipe(self.S_SS_GROUP_SWIPE_DOWN)
             sleep(1.5)
+        if not found_group:
+            logger.warning(
+                f'切换御魂: 找了 {SS_TEAM_FIND_MAX_ATTEMPTS} 次仍未找到目标分组 '
+                f'{groupName!r} (当前列表 {text1}), 跳过本次切换'
+            )
+            return
         logger.info('Swipe down to find target group')
 
         # 选中分组
-        while 1:
+        selected_group = False
+        for _ in range(SS_TEAM_FIND_MAX_ATTEMPTS):
             self.screenshot()
             self.O_SS_GROUP_NAME.keyword = groupName
             if self.ocr_appear_click(self.O_SS_GROUP_NAME):
+                selected_group = True
                 break
+        if not selected_group:
+            logger.warning(f'切换御魂: 未能点中目标分组 {groupName!r}, 跳过本次切换')
+            return
         logger.info(f'Select group {groupName}')
 
         # 滑动至阵容最上层
@@ -248,32 +276,59 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         logger.info('Swipe to top of team')
 
         # 判断当前分组有无目标阵容
-        while 1:
+        # 必须限次: 若目标阵容名不在列表里(OCR 失配 / 配置写错 / 该阵容属于别的分组),
+        # 这里会无限滑动, 直到 device 的卡死看门狗抛 GameStuckError 并重启游戏。
+        # 线上实测 2026-10-08 11:55: 列表为 ['安魂冢','真蛇'], 目标 '日轮' 不在其中,
+        # 循环持续 60s 后被看门狗判死 -> 重启游戏。切御魂是可选项, 找不到就跳过即可。
+        found = False
+        for _ in range(SS_TEAM_FIND_MAX_ATTEMPTS):
             self.screenshot()
-            # 获取当前阵容名
             results = self.O_SS_TEAM_NAME.detect_and_ocr(self.device.image)
             text1 = [result.ocr_text for result in results]
             # 判断当前分组有无目标阵容
-            result = set(text1).intersection({teamName})
-            # 有则跳出检测
-            if result and len(result) > 0:
+            if set(text1).intersection({teamName}):
+                found = True
                 break
             self.swipe(self.S_SS_TEAM_SWIPE_UP, 0.3)
+        if not found:
+            logger.warning(
+                f'切换御魂: 在分组 {groupName!r} 中找了 {SS_TEAM_FIND_MAX_ATTEMPTS} 次'
+                f'仍未找到目标阵容 {teamName!r} (当前列表 {text1}), 跳过本次切换'
+            )
+            return
         logger.info('Swipe up to find target team')
 
         # 选中分组
-        while 1:
+        # 同样必须限次: 找不到目标时这里会一直点击, 直到看门狗重启游戏。
+        selected = False
+        for _ in range(SS_TEAM_FIND_MAX_ATTEMPTS):
             self.screenshot()
             self.O_SS_TEAM_NAME.keyword = teamName
             if self.ocr_appear_click(self.O_SS_TEAM_NAME):
+                selected = True
                 break
+        if not selected:
+            logger.warning(
+                f'切换御魂: 未能点中目标阵容 {teamName!r}, 跳过本次切换'
+            )
+            return
         logger.info(f'Select team {teamName}')
         # 切换御魂
+        # 这两个退出条件都依赖识别成功: cnt_click 只在 OCR 命中目标阵容时递增;
+        # I_SOU_SWITCH_SURE 也要识别到才会点击。若两者都识别不到, 循环会一直转,
+        # 直到看门狗判死重启游戏。加一个时间上限兜底(正常流程 4 次点击约 6s)。
         cnt_click: int = 0
         self.O_SS_TEAM_NAME.keyword = teamName
+        switch_timer = Timer(SS_SOUL_SWITCH_TIMEOUT).start()
         while 1:
             self.screenshot()
             if cnt_click >= 4:
+                break
+            if switch_timer.reached():
+                logger.warning(
+                    f'切换御魂: {SS_SOUL_SWITCH_TIMEOUT}s 内未能完成切换'
+                    f'(已点击 {cnt_click} 次), 放弃本次切换'
+                )
                 break
             if self.appear_then_click(self.I_SOU_SWITCH_SURE, interval=0.8):
                 continue

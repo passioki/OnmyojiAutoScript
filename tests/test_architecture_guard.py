@@ -66,6 +66,30 @@ def imported_modules(path: Path) -> set:
     return out
 
 
+def top_level_imports(path: Path) -> set:
+    """
+    **只取模块级** import(不含函数/类内部)。
+
+    ⚠ 为什么不能直接用 `imported_modules`: `ast.walk` 会遍历**所有嵌套节点**,
+    于是 `def f(): from x import y` 里的 import 也会被算进来。
+    踩过: 护栏因此误报 `schema_router` "顶层 import 设备层", 而那个 import
+    实际在函数内(那是刻意的延迟导入)。
+    """
+    try:
+        tree = ast.parse(path.read_text(encoding='utf-8', errors='replace'))
+    except SyntaxError:
+        return set()
+    out = set()
+    for node in tree.body:                       # 只看模块级语句
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                out.add(a.name)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and node.level == 0:
+                out.add(node.module)
+    return out
+
+
 class TestConfigLayerDoesNotImportDevice:
     """
     ★ 核心护栏: `module/config` 不得 import `module/device`。
@@ -88,17 +112,44 @@ class TestConfigLayerDoesNotImportDevice:
             'module/config 不得依赖 module/device(调度器必须能脱离设备运行):\n'
             + '\n'.join(f'  {f} -> {m}' for f, m in bad))
 
-    def test_no_device_imports_in_server_schema(self):
+    def test_schema_router_has_no_top_level_device_import(self):
         """
-        `/schema` 与 `/overview` 里, **静态 schema 部分**不得依赖设备。
+        `schema_router` 顶层不得 import 设备层 —— 设备相关的东西必须**延迟到
+        函数内**导入。
 
-        (`overview` 需要当前状态, 允许 import main_manager —— 那已经是服务层。)
+        理由: 这样"静态 schema 构造"就完全不牵连设备层, 可以脱离设备单测。
+        (`/capabilities` 端点确实需要设备层, 但它在函数内 import, 见该文件。)
         """
         f = REPO / 'module' / 'server' / 'schema_router.py'
-        mods = imported_modules(f)
+        mods = top_level_imports(f)
         bad = [m for m in mods
                if m == DEVICE_LAYER or m.startswith(DEVICE_LAYER + '.')]
-        assert bad == [], f'schema_router 不应顶层 import 设备层: {bad}'
+        assert bad == [], (
+            f'schema_router 顶层不应 import 设备层(请改为函数内导入): {bad}')
+
+    def test_top_level_vs_nested_distinction(self, tmp_path):
+        """
+        ★ 自检: 两个解析函数必须**语义不同** —— 函数内的 import 不算顶层。
+
+        用临时文件验证(而不是靠真实文件的巧合), 这样这条测试本身是可信的。
+        """
+        src = tmp_path / 'sample.py'
+        src.write_text(
+            'import os\n'
+            'from module.device.env import IS_WINDOWS\n'
+            '\n'
+            'def f():\n'
+            '    from module.device.capabilities import capabilities\n'
+            '    return capabilities()\n',
+            encoding='utf-8')
+
+        top = top_level_imports(src)
+        allm = imported_modules(src)
+
+        assert 'module.device.env' in top, '模块级 import 应被 top_level_imports 看到'
+        assert 'module.device.capabilities' in allm, '嵌套 import 应被 imported_modules 看到'
+        assert 'module.device.capabilities' not in top, \
+            '函数内的 import **不应**算作顶层(否则会误报延迟导入)'
 
 
 class TestTaskLayerUsesDeviceAbstraction:

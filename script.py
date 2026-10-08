@@ -105,14 +105,6 @@ class Script:
             logger.exception(e)
             exit(1)
 
-    @cached_property
-    def checker(self):
-        """
-        占位函数，在alas中是检查服务器是否正常的
-        :return:
-        """
-        return None
-
     def save_error_log(self):
         """
         Save last 60 screenshots in ./log/error/<timestamp>
@@ -324,11 +316,6 @@ class Script:
         while 1:
             if datetime.now() > future:
                 return True
-            # if self.stop_event is not None:
-            #     if self.stop_event.is_set():
-            #         logger.info("Update event detected")
-            #         logger.info(f"[{self.config_name}] exited. Reason: Update")
-            #         exit(0)
 
             time.sleep(5)
 
@@ -670,23 +657,6 @@ class Script:
                 with _log_switch_lock:
                     logger.set_file_logger(self.config_name, do_cleanup=True)
                 start_day = date.today()
-            # Check update event from GUI
-            # if self.stop_event is not None:
-            #     if self.stop_event.is_set():
-            #         logger.info("Update event detected")
-            #         logger.info(f"Alas [{self.config_name}] exited.")
-            #         break
-
-            # Check game server maintenance
-            # self.checker.wait_until_available()
-            # if self.checker.is_recovered():
-            #     # There is an accidental bug hard to reproduce
-            #     # Sometimes, config won't be updated due to blocking
-            #     # even though it has been changed
-            #     # So update it once recovered
-            #     del_cached_property(self, 'config')
-            #     logger.info('Server or network is recovered. Restart game client')
-            #     self.config.task_call('Restart')
 
             # Get task
             task = self.get_next_task()
@@ -722,10 +692,8 @@ class Script:
             self.anti_ban_guard.record_active((datetime.now() - _task_start).total_seconds())
 
             # Check failures
-            # failed = deep_get(self.failure_record, keys=task, default=0)
             failed = self.failure_record[task] if task in self.failure_record else 0
             failed = 0 if success else failed + 1
-            # deep_set(self.failure_record, keys=task, value=failed)
             self.failure_record[task] = failed
             if failed >= 3:
                 logger.critical(f"Task `{task}` failed 3 or more times.")
@@ -759,9 +727,7 @@ class Script:
                 del_cached_property(self, 'config')
                 continue
             elif self.config.script.error.handle_error:
-                # self.config.task_delay(success=False)
                 del_cached_property(self, 'config')
-                # self.checker.check_now()
                 continue
             else:
                 break

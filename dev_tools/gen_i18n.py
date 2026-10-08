@@ -195,9 +195,26 @@ def compile_qm(dry: bool) -> int:
     """
     用 `lrelease` 把 `zh_CN.xml` 编译成 `zh_CN.qm`。
 
-    为什么必须做: OAS 侧(Fluent/QML)读的是**编译产物** `.qm`, 不是 xml。
-    改了 xml 而忘记编译, 界面仍然显示旧译文 —— 这是"看起来改好了其实没生效"
-    的典型陷阱(README 也提醒"需要手动编译")。
+    ## ⚠ 定位说明(死代码清扫时核实)
+
+    **`.qm` 在生产代码里已经没有任何读者。** 核实结果:
+
+    | 谁读 `.qm` | 结论 |
+    |---|---|
+    | OAS 生产代码 | ❌ **无** —— Python 侧只用 `I18n.trans_zh_cn()`, 它读的是 `zh-CN.json` |
+    | OASX(Flutter) | ❌ 无 —— 它用自己的 Dart i18n, 并通过 `/home/chinese_translate` 把 map **推给** OAS |
+    | 测试 / 本生成器 | ✅ 有 |
+
+    原本的读者是**已删除的 PySide6/QML GUI**(QTranslator 是 Qt 的东西),
+    见提交 `7d980485`。
+
+    ## 那为什么还保留生成
+
+    因为 `zh_CN.qm` **已随仓库发布**, 无法排除旧版本 OASX 或第三方前端仍会读它。
+    删掉文件是**破坏性**的; 保留生成的代价很小。
+
+    ★ 因此这里的定位是: **仅为向后兼容而保留**。若确认无人在用, 可连同
+    `zh_CN.xml` 一起退役(那时 `meta.py` -> `zh_CN.xml` 这条链也可以简化)。
     """
     src = REPO / 'module' / 'config' / 'i18n' / 'zh_CN.xml'
     dst = REPO / 'module' / 'config' / 'i18n' / 'zh_CN.qm'
@@ -294,10 +311,14 @@ def check_qm(auth: dict) -> int:
     """
     校验**编译产物** `zh_CN.qm` 里的任务名是否为权威值。
 
-    为什么必须查编译产物: OAS 侧(Fluent/QML)读的是 `.qm`, 不是 xml。
-    改了 xml 却忘记 `lrelease`, 界面仍显示旧译文 —— 典型的
-    "看起来改好了其实没生效"。既有测试只抽查 `Period` / `Reset At` 等键,
-    **不覆盖任务名**, 所以任务名漂移测不出来。
+    ## ⚠ 定位说明
+
+    `.qm` 在生产代码里**已无读者**(原读者是已删除的 QML GUI) ——
+    详细核实见 `compile_qm()` 的文档。这里的校验是**向后兼容的守门**:
+    确保这个已发布的产物不会悄悄漂移。
+
+    为什么既有测试不够: `test_task_state.py` 只抽查 `Period` / `Reset At` 等键,
+    **完全不覆盖任务名**, 所以任务名漂移测不出来。
     """
     qm = REPO / 'module' / 'config' / 'i18n' / 'zh_CN.qm'
     print('--- 编译产物 zh_CN.qm ---')

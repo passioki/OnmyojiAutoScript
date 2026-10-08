@@ -112,11 +112,6 @@ def fastapi_app():
         "-k", "--key", type=str, help="Password of OAS. No password by default"
     )
     parser.add_argument(
-        "--cdn",
-        action="store_true",
-        help="Use jsdelivr cdn for pywebio static files (css, js). Self host cdn by default.",
-    )
-    parser.add_argument(
         "--run",
         nargs="+",
         type=str,

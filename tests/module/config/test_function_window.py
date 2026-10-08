@@ -118,10 +118,28 @@ class TestRobustness:
     """配置写错时退化为"不限时段", 不让任务卡死。"""
 
     def test_garbage_days_falls_back(self):
+        """
+        乱码的 `window_days` 应退化为"每天"。
+
+        ⚠ 注意: 这里必须把时段设成**覆盖全天**(00:00-23:59), 否则测试会
+        **依赖当前时刻** —— 默认时段是 17:00-23:00, 在 23:00 之后跑就会失败。
+        (踩过: 本测试曾在 23:06 失败, 原因是断言 `in_window() is True`,
+         而当时确实不在窗口内 —— 实现是对的, 是测试写得不稳。)
+        """
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_days='abc,xyz'))
-        assert set(f.window.days) == set(range(7))
+            window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
+            window_days='abc,xyz'))
+        assert set(f.window.days) == set(range(7)), '乱码应退化为每天'
+        assert f.window.enabled is True
+        # 时段覆盖全天 -> 与当前时刻无关
         assert f.in_window() is True
+
+    def test_garbage_days_keeps_window_active(self):
+        """退化的是 **days**, 不是整个时段开关。"""
+        f = Function('fallen_sun', make_node(
+            window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
+            window_days='abc,xyz'))
+        assert f.window.enabled is True, '不该因为 days 写错就整个禁用时段'
 
     def test_partially_valid_days_keeps_valid(self):
         f = Function('fallen_sun', make_node(

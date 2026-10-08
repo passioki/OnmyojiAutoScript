@@ -267,6 +267,40 @@ async def script_schema(script_name: str):
         return {'error': str(exc), 'tasks': {}}
 
 
+# --------------------------------------------------------------------------- 平台能力
+@schema_app.get('/capabilities')
+async def get_capabilities():
+    """
+    当前平台的设备能力(跨平台用)。
+
+    为什么要暴露: 有些功能在非 Windows 上**根本不存在**
+    (窗口消息点击、后台截图、模拟器管理都依赖 Windows API)。
+    此前是靠散落的 `if IS_WINDOWS` 判断, 且 `emulator.py` 顶层硬
+    `import winreg` —— 在 Linux/macOS 上**直接崩**。
+
+    现在前端可据此**明确禁用**相关控件, 而不是让用户点了没反应。
+    """
+    try:
+        from module.device.capabilities import (ALL_CAPABILITIES,
+                                                CAPABILITY_LABEL,
+                                                capabilities, platform_name,
+                                                startup_report)
+        caps = capabilities()
+        return {
+            'platform': platform_name(),
+            'report': startup_report(),
+            'capabilities': [
+                {'name': n,
+                 'label': CAPABILITY_LABEL.get(n, n),
+                 'available': caps.has(n)}
+                for n in ALL_CAPABILITIES
+            ],
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'platform': 'unknown', 'capabilities': []}
+
+
 # --------------------------------------------------------------------------- 运行控制
 @schema_app.get('/{script_name}/run_control')
 async def get_run_control(script_name: str):

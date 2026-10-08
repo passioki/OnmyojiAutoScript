@@ -18,7 +18,6 @@ from module.base.timer import Timer
 from module.atom.image_grid import ImageGrid
 from module.atom.image import RuleImage
 from module.atom.click import RuleClick
-from module.device.screenshot import Screenshot
 
 
 class NoTicket(Exception):

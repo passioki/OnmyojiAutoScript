@@ -74,6 +74,16 @@ async def on_startup():
     :return:
     """
     logger.info('OAS web service startup done')
+
+    # 平台能力报告 —— 让用户**知道**哪些功能在当前平台被降级了,
+    # 而不是事后困惑"为什么这个开关没用"。
+    try:
+        from module.device.capabilities import startup_report
+        for line in startup_report().splitlines():
+            logger.info(line)
+    except Exception as exc:
+        logger.warning(f'平台能力探测失败({type(exc).__name__}: {exc})')
+
     if app.state.script_instances:
         await mm.restart_processes(app.state.script_instances)
 

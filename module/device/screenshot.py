@@ -11,7 +11,7 @@ from PIL import Image
 from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.base.utils import get_color, image_size, limit_in, save_image
-from module.device.env import IS_WINDOWS
+from module.device.capabilities import WINDOW_BACKGROUND, capabilities
 from module.device.method.adb import Adb
 from module.device.method.windows import Window
 from module.device.method.droidcast import DroidCast
@@ -19,6 +19,10 @@ from module.device.method.scrcpy import Scrcpy
 from module.device.method.nemu_ipc import NemuIpc
 from module.exception import RequestHumanTakeover, ScriptError
 from module.logger import logger
+
+
+# 平台能力集中声明(见 module/device/capabilities.py), 取代散落的 IS_WINDOWS
+_HAS_WINDOW_BACKGROUND = capabilities().has(WINDOW_BACKGROUND)
 
 
 class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
@@ -44,7 +48,7 @@ class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
             'DroidCast': self.screenshot_droidcast,
             'DroidCast_raw': self.screenshot_droidcast_raw,
             'scrcpy': self.screenshot_scrcpy,
-            'window_background': self.screenshot_window_background if IS_WINDOWS else None,
+            'window_background': self.screenshot_window_background if _HAS_WINDOW_BACKGROUND else None,
             'nemu_ipc': self.screenshot_nemu_ipc
         }
 

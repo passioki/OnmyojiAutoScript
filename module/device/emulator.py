@@ -1,6 +1,5 @@
 import os
 import re
-import winreg
 import subprocess
 
 from adbutils.errors import AdbError
@@ -11,6 +10,30 @@ from module.device.connection import Connection
 from module.device.method.utils import get_serial_pair
 from module.exception import RequestHumanTakeover, EmulatorNotRunningError
 from module.logger import logger
+
+# ---------------------------------------------------------------------------
+# `winreg` 只在 Windows 上存在。
+#
+# 此前是**顶层 `import winreg`** —— 在 Linux/macOS 上只要 import 到本模块就
+# `ModuleNotFoundError`, 直接崩, 而不是"优雅地告诉用户这个功能不可用"。
+#
+# 现在改为可选导入, 并在真正需要注册表的地方检查能力
+# (见 `module/device/capabilities.py` 的 `EMULATOR_MANAGE`)。
+# ---------------------------------------------------------------------------
+try:
+    import winreg
+except ImportError:                                     # 非 Windows
+    winreg = None
+
+
+def _require_winreg(what: str):
+    """需要注册表却没装 -> 抛可读异常, 而不是 `None.something` 崩。"""
+    if winreg is None:
+        from module.device.capabilities import platform_name
+        raise EmulatorNotRunningError(
+            f'{what} 需要读取 Windows 注册表以定位模拟器安装路径, '
+            f'当前平台({platform_name()})不支持。'
+            f'你可以手动在配置里指定模拟器路径与启动命令。')
 
 
 class EmulatorInstance(VirtualBoxEmulator):
@@ -75,6 +98,7 @@ class Bluestacks5Instance(EmulatorInstance):
 
     @cached_property
     def id_and_serial(self):
+        _require_winreg('BlueStacks 自动发现')
         try:
             reg = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\BlueStacks_nxt")
         except FileNotFoundError:

@@ -164,6 +164,18 @@ try:
     put('/恋鸟树/run_control/rest?minutes=0')
     put('/恋鸟树/run_control/delay?minutes=0')
 
+    print()
+    print('--- 平台能力 /capabilities ---')
+    st9, body9 = get('/capabilities')
+    chk('状态码 200', st9 == 200, str(st9))
+    d9 = json.loads(body9)
+    chk('有 platform', bool(d9.get('platform')), str(d9.get('platform')))
+    caps = d9.get('capabilities') or []
+    chk('有 3 项能力', len(caps) == 3, str([c['name'] for c in caps]))
+    for c in caps:
+        chk(f'  能力 {c["name"]} 有 available', 'available' in c,
+            str(c.get('available')))
+
 finally:
     proc.terminate()
     try:

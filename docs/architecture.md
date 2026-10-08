@@ -552,39 +552,75 @@ fallen_sun / scheduler 子键一致    OK
 
 ### 7.4 跨平台
 
-**现状**：平台判断**已集中在设备层**，但靠 `if IS_WINDOWS` 散点判断：
-
-```
-module/device/env.py        IS_WINDOWS = sys.platform == 'win32'
-module/device/emulator.py   import winreg            ← 硬依赖 Windows 注册表
-module/device/control.py    'window_message': ... if IS_WINDOWS else None
-module/device/device.py     if IS_WINDOWS and ...emulatorinfo_type == 'auto'
-```
-
-**设计**：
+**改造前的状况**：平台判断已集中在设备层，但靠 `if IS_WINDOWS` 散点判断，
+且有一处是**硬阻塞**：
 
 ```python
+# module/device/emulator.py 顶层
+import winreg        # ← Linux/macOS 上直接 ModuleNotFoundError
+```
+
+也就是说：在非 Windows 上，只要 import 到 `emulator` 模块就**崩**，
+而不是"优雅地告诉用户这个功能不可用"。
+
+**现在**：
+
+```python
+# module/device/capabilities.py —— 能力集中声明
 class DeviceCapabilities(NamedTuple):
-    window_message: bool      # 窗口消息点击(仅 Windows)
-    emulator_manage: bool     # 启动/关闭模拟器(仅 Windows)
-    registry_probe: bool      # 读注册表找模拟器路径(仅 Windows)
+    window_message: bool = False      # 窗口消息点击/长按
+    window_background: bool = False   # 窗口后台截图
+    emulator_manage: bool = False     # 启动/关闭模拟器实例
 
-class DeviceProvider(Protocol):
-    def screenshot(self): ...
-    def click(self, x, y): ...
-    def capabilities(self) -> DeviceCapabilities: ...
+def detect_capabilities() -> DeviceCapabilities:
+    is_win = sys.platform == 'win32'
+    return DeviceCapabilities(is_win, is_win, is_win)
 ```
 
-任务侧**声明所需能力**，框架启动时校验并给出可读的降级提示：
+改动清单：
 
-```python
-SPEC = TaskSpec(..., requires=('emulator_manage',))
-# 启动时: [Task] MuMuEmulator 需要 emulator_manage 能力,
-#         当前平台(Linux)不支持, 已自动禁用
-```
+| 位置 | 改动 |
+|---|---|
+| `emulator.py` | `winreg` 改为**可选导入**；真正需要时 `_require_winreg()` 抛**可读异常**而不是崩 |
+| `control.py` / `screenshot.py` / `device.py` | `if IS_WINDOWS` → 读**能力** |
+| `provider.py` | `DeviceProvider` **Protocol**（截图 / 点击 / 能力） |
+| `app.py` | 启动时打印能力报告 |
+| `GET /capabilities` | 前端据此**明确禁用**不可用的控件 |
 
-★ **关键约束：`module/config`（调度器所在层）不得 import 任何 `module/device`。**
-写成**架构护栏测试**，防止以后有人图省事在调度器里直接读设备。
+#### ★ 一个实测后的**设计修正**（重要）
+
+设计文档最初设想"任务声明所需能力，能力不足则禁用该任务"。**实测后推翻**：
+
+> **没有任务真正需要这些能力。**
+
+| 能力 | 真实情况 |
+|---|---|
+| `window_message` | 截图/点击有**多条路径**（ADB / uiautomator2 / minitouch / DroidCast / scrcpy / nemu_ipc），窗口消息只是其中一种**可选方式** |
+| `window_background` | 同上 |
+| `emulator_manage` | 只在"任务队列空 → 关闭模拟器"这类**运行策略**里用（`script.py`），不是任何单个任务的前提 |
+| — | `Restart` 任务只是重启**游戏 app**（`app_stop`/`app_start`），与模拟器无关 |
+
+因此能力是**全局可用性**，不是**任务前提**。
+`TaskSpec.requires` 保留为**扩展点** —— 将来若真有任务强依赖某能力
+（如"必须用窗口消息才能操作"），在那里声明即可。
+**但现在不该假装已有这样的任务**，否则就是在声明不存在的约束。
+
+有一条测试专门守住这个判断（`test_no_task_declares_requires`）：
+若将来有人声明了 `requires`，测试会失败，**提醒他确认那是强依赖而非"有则更好"**。
+
+#### 架构护栏（写成测试，破坏就红）
+
+`tests/test_architecture_guard.py` 用 **AST 解析 import 关系**（比正则可靠，
+不会误匹配注释与字符串），强制三条：
+
+| # | 护栏 | 为什么 |
+|---|---|---|
+| 1 | **`module/config` 不得 import `module/device`** | 调度器必须能在**无设备**环境里被单测 —— 本项目大量调度测试正是这样跑的。一旦耦合，就会连带拉起 adbutils / cv2 / PySide6 |
+| 2 | 任务不得直接 import 设备层内部模块 | 应经 `self.device` 门面，换后端时不会漏改 |
+| 3 | `module/device` 下不得有散落的 `IS_WINDOWS` 分支 | 统一读能力。"**选平台实现**"是合法例外（如 `method/windows.py` 本身就是 Windows 版实现），已在 `ALLOWED` 里注明理由 |
+
+★ 护栏**立刻抓到一处真实问题**：`tasks/Quiz/script_task.py` 有一个
+**从未使用**的 `from module.device.screenshot import Screenshot`（死 import）。已删。
 
 ### 7.5 加一个游戏活动的操作清单
 
@@ -758,8 +794,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 9 | i18n 从 `meta.py` 生成（修 39 处漂移）+ `/schema` 接口 | ✅ 已提交 |
 | 10 | 休息 / 延后 / 暂停 | ⬜ 下一步 |
 | 11 | 任务列表（`list_pos` / `mode`） | ⬜ |
-| 12 | `GET /{script}/schema` + `/overview` | ⬜ |
-| 13 | `StateProvider`（界面感知）+ `DeviceProvider` | ⬜ |
+| 12 | `GET /{script}/schema` + `/overview` + `/capabilities` | ✅ 已提交 |
+| 13 | `DeviceProvider` 契约 + 平台能力集中化 + 架构护栏 | ✅ 已提交 |
 | 14 | OASX 前端页面（含开放时段配置 + 自学习提示） | ⬜ |
 
 ### 待修 bug（独立于上述路线图）

@@ -7,7 +7,7 @@ from module.device.pkg_resources import get_distribution
 # Just avoid being removed by import optimization
 _ = get_distribution
 
-from module.device.env import IS_WINDOWS
+from module.device.capabilities import EMULATOR_MANAGE, capabilities
 from module.base.timer import Timer
 from module.config.utils import get_server_next_update
 from module.device.app_control import AppControl
@@ -25,6 +25,17 @@ from module.logger import logger
 class Device(Platform, Screenshot, Control, AppControl):
     _screen_size_checked = False
     detect_record = set()
+
+    def capabilities(self):
+        """
+        当前平台支持的能力(见 `module/device/provider.py` 的 `DeviceProvider`)。
+
+        提供这个方法使 `Device` **结构化地满足** `DeviceProvider` 契约 ——
+        无需继承任何基类, 因此引入契约不带来重构风险。
+        """
+        from module.device.capabilities import capabilities as _caps
+        return _caps()
+
     # 持续豁免: stuck_record_clear() 之后会被自动恢复, 只能由 release_stuck_exempt()
     # 撤销。用于"战斗期间"这类**内部仍会频繁点击**的长耗时状态, 见 hold_stuck_exempt()。
     stuck_record_late = set()
@@ -61,7 +72,11 @@ class Device(Platform, Screenshot, Control, AppControl):
                     raise RequestHumanTakeover
 
         # Auto-fill emulator info
-        if IS_WINDOWS and self.config.script.device.emulatorinfo_type == 'auto':
+        #
+        # 这里读**能力**而不是 `IS_WINDOWS`: 自动发现模拟器需要注册表,
+        # 因此依赖 `emulator_manage` 能力(见 module/device/capabilities.py)。
+        if capabilities().has(EMULATOR_MANAGE) \
+                and self.config.script.device.emulatorinfo_type == 'auto':
             _ = self.emulator_instance
 
         self.screenshot_interval_set()

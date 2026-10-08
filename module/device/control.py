@@ -4,12 +4,20 @@ from module.base.timer import Timer
 from module.base.utils import *
 # from module.device.method.hermit import Hermit
 # from module.device.method.maatouch import MaaTouch
-from module.device.env import IS_WINDOWS
+from module.device.capabilities import WINDOW_MESSAGE, capabilities
 from module.device.method.minitouch import Minitouch
 from module.device.method.adb import Adb
 from module.device.method.scrcpy import Scrcpy
 from module.device.method.windows import Window
 from module.logger import logger
+
+
+# 平台能力(集中声明, 见 module/device/capabilities.py)。
+#
+# 此前这里是散落的 `if IS_WINDOWS`。改为读**能力**后, 上层任务可以声明
+# `requires=('window_message',)`, 框架据此明确告知"当前平台不支持",
+# 而不是静默地少一个可选的点击方式。
+_HAS_WINDOW_MESSAGE = capabilities().has(WINDOW_MESSAGE)
 
 
 class Control(Minitouch, Adb, Scrcpy, Window):
@@ -23,7 +31,7 @@ class Control(Minitouch, Adb, Scrcpy, Window):
             'ADB': self.click_adb,
             'uiautomator2': self.click_uiautomator2,
             'minitouch': self.click_minitouch,
-            'window_message': self.click_window_message if IS_WINDOWS else None,
+            'window_message': self.click_window_message if _HAS_WINDOW_MESSAGE else None,
             # 'Hermit': self.click_hermit,
             # 'MaaTouch': self.click_maatouch,
         }
@@ -34,7 +42,7 @@ class Control(Minitouch, Adb, Scrcpy, Window):
             'ADB': self.long_click_adb,
             'uiautomator2': self.long_click_uiautomator2,
             'minitouch': self.long_click_minitouch,
-            'window_message': self.long_click_window_message if IS_WINDOWS else None,
+            'window_message': self.long_click_window_message if _HAS_WINDOW_MESSAGE else None,
             'scrcpy': self.long_click_scrcpy
             # 'Hermit': self.click_hermit,
             # 'MaaTouch': self.click_maatouch,

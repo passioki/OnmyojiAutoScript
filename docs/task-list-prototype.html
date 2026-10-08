@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OAS 任务列表调度器 · 界面原型 v2</title>
+<style>
+  :root{
+    --bg:#12141a; --panel:#1a1d26; --panel2:#212533; --line:#2c3142;
+    --fg:#e6e9f0; --fg2:#9aa3b8; --fg3:#6b7489;
+    --accent:#4f8cff; --accent2:#2d5fbf;
+    --ok:#3ecf8e; --warn:#f0b429; --bad:#f2555a; --rest:#a06cff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:14px/1.5 "Microsoft YaHei",system-ui,-apple-system,sans-serif}
+  .wrap{max-width:1200px;margin:0 auto;padding:20px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--fg3);font-size:12px;margin-bottom:16px}
+  .tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+  .tab{padding:8px 16px;cursor:pointer;color:var(--fg2);border-bottom:2px solid transparent;user-select:none}
+  .tab:hover{color:var(--fg)}
+  .tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+  .panel h2{font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .hint{color:var(--fg3);font-size:12px;font-weight:400}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--fg3);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap}
+  td{padding:9px 10px;vertical-align:middle}
+  tbody tr{border-bottom:1px solid #232734}
+  tbody tr:hover{background:#ffffff06}
+  tbody tr.off{opacity:.45}
+  .num{width:74px;background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:4px 8px;font-size:13px;text-align:right}
+  .num:focus{outline:none;border-color:var(--accent)}
+  .sw{appearance:none;width:38px;height:21px;background:#3a4055;border-radius:11px;position:relative;cursor:pointer;transition:.15s;flex:none}
+  .sw:checked{background:var(--accent)}
+  .sw::after{content:'';position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.15s}
+  .sw:checked::after{transform:translateX(17px)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;line-height:1.7;white-space:nowrap}
+  .b-ok{background:#3ecf8e22;color:var(--ok)}
+  .b-wait{background:#f0b42922;color:var(--warn)}
+  .b-run{background:#4f8cff22;color:var(--accent)}
+  .b-off{background:#6b748922;color:var(--fg3)}
+  .b-rest{background:#a06cff22;color:var(--rest)}
+  .b-fixed{background:#4f8cff18;color:var(--accent)}
+  .b-charge{background:#f0b42918;color:var(--warn)}
+  .b-timer{background:#6b748918;color:var(--fg3)}
+  .b-warn{background:#f2555a22;color:var(--bad)}
+  .b-toppa{background:#a06cff18;color:var(--rest)}
+  .b-limit{background:#f0b42920;color:var(--warn)}
+  .b-delay{background:#3ecf8e18;color:var(--ok)}
+  .li.delay{background:#3ecf8e10;border-color:#3ecf8e38}
+  .bar{height:5px;background:#2c3142;border-radius:3px;overflow:hidden;margin-top:5px;width:104px}
+  .bar>i{display:block;height:100%;background:var(--ok)}
+  .grow{flex:1}
+  .row{display:flex;align-items:center;gap:10px}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--fg2);border-radius:6px;padding:5px 11px;cursor:pointer;font-size:12.5px}
+  .btn:hover{border-color:var(--accent);color:var(--fg)}
+  .btn.p{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+  .btn.p:hover{background:var(--accent2)}
+  .del{background:none;border:none;color:var(--fg3);cursor:pointer;font-size:16px;padding:2px 6px}
+  .del:hover{color:var(--bad)}
+  select,input[type=text]{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:5px 9px;font-size:13px}
+  select:focus,input[type=text]:focus{outline:none;border-color:var(--accent)}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+  .statusbar{display:flex;align-items:center;gap:14px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:10px;padding:13px 18px;margin-bottom:14px;flex-wrap:wrap}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.pause{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+  .stat{display:flex;gap:24px;flex-wrap:wrap;font-size:13px}
+  .stat b{display:block;font-size:19px;font-weight:600;margin-bottom:1px}
+  .stat span{color:var(--fg3);font-size:11.5px}
+  .li{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
+      border-radius:8px;padding:9px 12px;margin-bottom:7px;cursor:grab;transition:.12s}
+  .li:hover{border-color:#3a4258}
+  .li.drag{opacity:.35}
+  .li.over{border-color:var(--accent);background:#4f8cff14}
+  .li.disabled{opacity:.5}
+  .li.rest{background:#a06cff12;border-color:#a06cff40}
+  .li.cursor{border-color:var(--accent);background:#4f8cff1c}
+  .li .handle{color:var(--fg3);font-size:15px;letter-spacing:-2px;cursor:grab;user-select:none}
+  .li .pos{width:22px;color:var(--fg3);font-size:12px;text-align:center}
+  .li .nm{min-width:120px;font-weight:500}
+  .modal{position:fixed;inset:0;background:#000000aa;display:none;align-items:center;justify-content:center;z-index:9}
+  .modal.on{display:flex}
+  .mbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:560px;max-height:76vh;display:flex;flex-direction:column}
+  .mhead{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:600}
+  .mbody{padding:10px;overflow:auto}
+  .mitem{padding:9px 12px;border-radius:7px;cursor:pointer;display:flex;justify-content:space-between;font-size:13px}
+  .mitem:hover{background:var(--panel2)}
+  .mfoot{padding:12px 18px;border-top:1px solid var(--line);text-align:right}
+  code{background:var(--panel2);padding:1px 6px;border-radius:4px;font-size:12.5px;color:#8fb8ff}
+  .kbd{color:var(--fg3);font-size:12px}
+  .note{background:#4f8cff10;border-left:3px solid var(--accent);padding:9px 13px;border-radius:0 7px 7px 0;font-size:12.5px;color:var(--fg2);margin-bottom:14px}
+  .warnline{color:var(--bad);font-size:12px;cursor:pointer;text-decoration:underline dotted}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>OAS 任务列表调度器</h1>
+  <div class="sub">界面原型 <b>v3</b> · 任务目录为 <b>54 个任务实测数据</b>（中文名取自 OASX i18n，分类与次数字段实测）</div>
+
+  <div class="statusbar">
+    <div class="row"><span class="dot" id="rundot"></span><b id="runtext">运行中</b></div>
+    <div class="sep" style="height:26px"></div>
+    <div class="stat">
+      <div><b id="st-on">6</b><span>已启用任务</span></div>
+      <div><b id="st-list">9</b><span>列表条目</span></div>
+      <div><b>54</b><span>任务总数</span></div>
+      <div><b style="color:var(--ok)">庭院</b><span>当前界面</span></div>
+      <div><b>第 2 行</b><span>执行位置</span></div>
+    </div>
+    <div class="grow"></div>
+    <button class="btn" id="runbtn" onclick="toggleRun()">⏸ 暂停调度</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" data-v="overview">任务总览</div>
+    <div class="tab" data-v="list">任务列表（调度器）</div>
+  </div>
+
+  <!-- ============ 总览：只看 + 批量 ============ -->
+  <div id="v-overview">
+    <div class="note">
+      <b>总览页是监控面板</b>，不是开关来源。单个任务的启停统一在「任务列表」里管，
+      避免同一任务两处开关互相打脸。这里可以 <b>批量启停</b>、<b>调目标次数</b>、<b>看状态</b>。
+    </div>
+
+    <div class="panel">
+      <h2>批量操作 <span class="hint">改的是 <code>scheduler.enable</code>（任务级长期开关）</span></h2>
+      <div class="toolbar">
+        <button class="btn" onclick="bulk('all')">全部启用</button>
+        <button class="btn" onclick="bulk('none')">全部停用</button>
+        <button class="btn" onclick="bulk('invert')">反选</button>
+        <button class="btn" onclick="bulk('listonly')">只留列表里的</button>
+        <div class="sep"></div>
+        <input type="text" id="q" placeholder="搜索任务名…" oninput="renderOverview()" style="width:150px">
+        <label class="row kbd" style="gap:6px"><input type="checkbox" id="onlyon" onchange="renderOverview()">只看已启用</label>
+        <label class="row kbd" style="gap:6px"><input type="checkbox" id="onlyfixed" onchange="renderOverview()">只看固定任务</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>任务总览 <span class="hint">目标次数只对固定任务有效 · 空白 = 用任务默认值</span></h2>
+      <table>
+        <thead><tr>
+          <th>任务</th><th>类型</th><th>状态</th>
+          <th style="width:118px">目标次数</th><th>进度 / 存量</th>
+          <th>下次运行</th><th>对方</th><th style="width:70px">在列表</th>
+        </tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ 列表：唯一控制台 ============ -->
+  <div id="v-list" style="display:none">
+    <div class="note">
+      <b>这里是唯一的调度控制台。</b>顺序 = 优先级；每行的开关 = 该行是否参与；
+      行尾 <span class="warnline">⚠ 配置中已停用</span> 表示任务级开关被关了，点它可直接启用。<br>
+      <b>休息</b>（暂停 N 分钟，定时任务也不跑 —— 真休息）与 <b>延后</b>（只推迟列表推进 N 分钟，定时任务照常）
+      是两种不同的条目，都可插入到任意位置。
+    </div>
+
+    <div class="panel">
+      <h2>全局设置</h2>
+      <div class="toolbar">
+        <label class="row" style="gap:7px;font-size:13px">
+          <input type="checkbox" class="sw" id="loop"><span>跑完循环整表</span></label>
+        <div class="sep"></div>
+        <span class="kbd">优先级依据</span>
+        <select id="pmode">
+          <option value="timer">定时优先（时间到就走）</option>
+          <option value="list">列表优先（严格按顺序）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>执行顺序 <span class="hint">拖动 ⠿ 调整 · 序号即优先级 · 高亮行 = 当前执行位置</span></h2>
+      <div id="lb"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn p" onclick="openPicker('task')">＋ 添加任务</button>
+        <button class="btn" onclick="openPicker('rest')">＋ 添加休息 / 延后</button>
+        <div class="grow"></div>
+        <button class="btn" onclick="location.reload()">恢复默认</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>预期执行流程 <span class="hint">按当前列表与各任务周期推算</span></h2>
+      <div id="flow" style="font-size:13px;line-height:2.1"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="mbox">
+    <div class="mhead" id="mhead">选择任务</div>
+    <div class="mbody" id="mbody"></div>
+    <div class="mfoot"><button class="btn" onclick="closePicker()">取消</button></div>
+  </div>
+</div>
+
+<script>
+/* ============ 任务目录(由 task_catalog.json 生成, 54 个任务实测数据) ============
+   类别: fixed 固定任务 / charge 充能 / toppa 结界突破子类 / limited 限时活动 / timed 定时
+   f = "目标次数"字段名(实测判据: 脚本里 current_count >= X); u = 字段待统一 */
+const CATALOG = [{"t":"AbyssShadows","n":"狭间暗域","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"ActivityShikigami","n":"当期爬塔","c":"limited","f":null,"d":null,"cm":null,"cs":null,"iv":"00 01:00:00","u":false},{"t":"AreaBoss","n":"地域鬼王","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 06:00:00","u":false},{"t":"AutoCheckinBigGod","n":"大神签到","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"BondlingFairyland","n":"契灵之境","c":"fixed","f":"limit_count","d":"30","cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"BudokaiTournament","n":"武道大会","c":"limited","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"CollectiveMissions","n":"集体任务","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"DailyTrifles","n":"每日琐事","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"Delegation","n":"式神委派","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 01:00:00","u":false},{"t":"DemonEncounter","n":"逢魔之时","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 01:00:00","u":false},{"t":"DemonRetreat","n":"首领退治","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"Dokan","n":"道馆","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"Duel","n":"斗技","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"DyeTrials","n":"灵染试炼","c":"limited","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"EternitySea","n":"永生之海","c":"fixed","f":"limit_count","d":"30","cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"EvoZone","n":"觉醒副本","c":"fixed","f":"limit_count","d":"30","cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"ExperienceYoukai","n":"经验妖怪","c":"charge","f":null,"d":null,"cm":"2","cs":"0","iv":"00 03:00:00","u":false},{"t":"Exploration","n":"探索","c":"fixed","f":"minions_cnt","d":"30","cm":null,"cs":null,"iv":"00 01:00:00","u":true},{"t":"FallenSun","n":"日轮之陨","c":"fixed","f":"limit_count","d":"50","cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"FindJade","n":"寻找协作任务","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"FloatParade","n":"花车巡游","c":"limited","f":null,"d":null,"cm":null,"cs":null,"iv":"03 00:00:00","u":false},{"t":"FrogBoss","n":"对弈竞猜","c":"limited","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"GoldYoukai","n":"金币妖怪","c":"charge","f":null,"d":null,"cm":"2","cs":"0","iv":"00 03:00:00","u":false},{"t":"GoryouRealm","n":"御灵之境","c":"fixed","f":"limit_count","d":"30","cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"GotoMain","n":"回到庭院","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":null,"u":false},{"t":"GuildActivityMonitor","n":"寮活动监控","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"GuildBanquet","n":"寮宴会","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"HeroTest","n":"英杰试炼","c":"fixed","f":"limit_count","d":"100","cm":null,"cs":null,"iv":"00 01:00:00","u":false},{"t":"Hunt","n":"狩猎战","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"Hyakkiyakou","n":"百鬼夜行","c":"fixed","f":"hya_limit_count","d":"10","cm":null,"cs":null,"iv":"00 12:00:00","u":true},{"t":"KekkaiActivation","n":"结界挂卡","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"KekkaiUtilize","n":"结界蹭卡","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"KittyShop","n":"猫咪铺子","c":"limited","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"MemoryScrolls","n":"绘卷","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"MetaDemon","n":"超鬼王","c":"limited","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"MysteryShop","n":"神秘商店","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"Nian","n":"年兽","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"Orochi","n":"八岐大蛇","c":"fixed","f":"limit_count","d":"30","cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"OtherWorldTwilight","n":"彼世逢魔","c":"fixed","f":"limit_count","d":"30","cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"Pets","n":"小猫咪","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"Quiz","n":"智力竞赛","c":"limited","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"RealmRaid","n":"个人突破","c":"toppa","f":"number_attack","d":"30","cm":null,"cs":null,"iv":"00 03:00:00","u":true},{"t":"Restart","n":"重启","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"RichMan","n":"大富翁","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"RyouToppa","n":"寮突破","c":"toppa","f":"limit_count","d":"50","cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"Secret","n":"秘闻副本","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"07 00:00:00","u":false},{"t":"SixRealms","n":"六道之门","c":"fixed","f":"limit_count","d":"1","cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"Sougenbi","n":"业原火","c":"fixed","f":"limit_count","d":"30","cm":null,"cs":null,"iv":"01 00:00:00","u":false},{"t":"SoulsTidy","n":"御魂整理","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"Tako","n":"石距","c":"charge","f":null,"d":null,"cm":"2","cs":"0","iv":"00 03:00:00","u":false},{"t":"TalismanPass","n":"花合战","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false},{"t":"TrueOrochi","n":"真八岐大蛇","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"03 00:00:00","u":false},{"t":"WantedQuests","n":"悬赏封印","c":"fixed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 01:30:00","u":false},{"t":"WeeklyTrifles","n":"每周琐事","c":"timed","f":null,"d":null,"cm":null,"cs":null,"iv":"00 03:00:00","u":false}];
+
+const CAT_BY_TASK = {};
+CATALOG.forEach(x => CAT_BY_TASK[x.t] = x);
+
+/* 结界突破的两个子分类, UI 上归到同一个父分组 */
+const TOPPA_PARENT = 'KekkaiToppa';
+
+const CAT_LABEL = {
+  fixed:  ['固定',   'b-fixed',  '有目标次数, 可改'],
+  charge: ['充能',   'b-charge', '按存量, 不设次数'],
+  toppa:  ['结界突破','b-toppa',  '定点开放 + 次数上限'],
+  limited:['限时活动','b-limit',  '隔一段时间才推出'],
+  timed:  ['定时',   'b-timer',  '按周期调度'],
+};
+
+function meta(t){
+  const x = CAT_BY_TASK[t];
+  if(!x) return {name:t, kind:'timed', field:null, target:null};
+  return {
+    name: x.n || t,
+    kind: x.c,
+    field: x.f,
+    target: x.d != null ? parseInt(x.d) : null,
+    chargeMax: x.cm != null ? parseInt(x.cm) : null,
+    chargeSlots: x.cs,
+    interval: x.iv,
+    needsUnify: x.u,
+  };
+}
+function allTasks(){ return CATALOG.map(x => x.t); }
+/* 是否为"可设目标次数"的任务: 固定任务 + 结界突破(也有次数上限) */
+function hasTarget(t){
+  const m = meta(t);
+  return (m.kind === 'fixed' || m.kind === 'toppa') && !!m.field;
+}
+
+/* ============ 演示状态 ============ */
+let running = true;
+let enabled = {FallenSun:1,GoldYoukai:1,ExperienceYoukai:1,Tako:1,AreaBoss:1,RealmRaid:1,Exploration:1};
+let targets = {FallenSun:50,Orochi:30,Exploration:30};
+let done    = {FallenSun:12,Orochi:7,GoldYoukai:1,ExperienceYoukai:2,Tako:1,AreaBoss:3,Exploration:9};
+let nextRun = {FallenSun:'今天 21:30',GoldYoukai:'今天 24:00',ExperienceYoukai:'今天 24:00',
+               Tako:'明天 00:10',AreaBoss:'今天 20:15',RealmRaid:'今天 22:00',Exploration:'今天 19:45'};
+let peer    = {GoldYoukai:'伴生树 ✓',ExperienceYoukai:'伴生树 ✓',Tako:'伴生树 ✗',FallenSun:'伴生树 ✓'};
+
+let list = [
+  {type:'task', task:'Restart',          count:0, enabled:true,  note:'先重启保证环境干净'},
+  {type:'task', task:'FallenSun',        count:0, enabled:true,  note:''},
+  {type:'task', task:'Exploration',      count:0, enabled:true,  note:'探索也按次数'},
+  {type:'task', task:'Orochi',           count:30,enabled:true,  note:'本次只刷 30 次'},
+  {type:'rest', minutes:20,              enabled:true,           note:'中午休息'},
+  {type:'task', task:'GoldYoukai',       count:0, enabled:true,  note:''},
+  {type:'task', task:'ExperienceYoukai', count:0, enabled:true,  note:''},
+  {type:'task', task:'Tako',             count:0, enabled:false, note:'今天不打'},
+  {type:'task', task:'AreaBoss',         count:0, enabled:true,  note:''},
+  {type:'task', task:'Nian',             count:0, enabled:true,  note:'配置里已停用'},
+  {type:'delay',minutes:30,              enabled:true,           note:'等定时任务插进来'},
+  {type:'rest', minutes:180,             enabled:true,           note:'长休避开高峰'},
+  {type:'task', task:'RealmRaid',        count:0, enabled:true,  note:''},
+];
+
+/* ============ 总览 ============ */
+function inList(t){ return list.some(e=>e.type==='task'&&e.task===t); }
+
+function renderOverview(){
+  const q=(document.getElementById('q').value||'').trim().toLowerCase();
+  const onlyOn=document.getElementById('onlyon').checked;
+  const onlyFixed=document.getElementById('onlyfixed').checked;
+  const all=allTasks();
+  const rows=all.map(t=>{
+    const m=meta(t), on=!!enabled[t];
+    if(q && !(m.name.toLowerCase().includes(q)||t.toLowerCase().includes(q))) return '';
+    if(onlyOn && !on) return '';
+    if(onlyFixed && !hasTarget(t)) return '';
+
+    const cl = CAT_LABEL[m.kind] || CAT_LABEL.timed;
+    const typeHtml = `<span class="badge ${cl[1]}">${cl[0]}</span>`
+      + (m.field ? `<div class="kbd" style="font-size:11px">${m.field}${m.needsUnify?' ⚠':''}</div>` : '');
+
+    let st='已停用', sc='b-off';
+    if(on){
+      if(done[t]>0 && m.kind==='charge'){ st='本周期已完成'; sc='b-off'; }
+      else if(t==='FallenSun'){ st='运行中'; sc='b-run'; }
+      else { st='等待中'; sc='b-wait'; }
+    }
+    const statusHtml=`<span class="badge ${sc}">${st}</span>`
+      + (on?'':'<div class="kbd" style="font-size:11px">任务级开关关闭</div>');
+
+    let targetCell;
+    if(hasTarget(t)){
+      const v=(t in targets)?targets[t]:m.target;
+      targetCell=`<input class="num" type="number" min="0" value="${v}"
+        onchange="setTarget('${t}',this.value)" title="默认 ${m.target}（字段 ${m.field}${m.needsUnify?'，待统一':''}）">`;
+    } else if(m.kind==='charge'){
+      targetCell=`<span class="kbd" style="font-size:12px">存量上限 ${m.chargeMax}</span>
+        <div class="kbd" style="font-size:11px">${m.chargeSlots? m.chargeSlots+' 点刷新':'不设次数'}</div>`;
+    } else targetCell='<span class="kbd">—</span>';
+
+    let prog;
+    if(hasTarget(t)){
+      const tgt=(t in targets)?targets[t]:m.target, d=done[t]||0;
+      const pct=tgt?Math.min(100,d/tgt*100):0;
+      prog=`<b>${d}</b> / ${tgt}<div class="bar"><i style="width:${pct}%"></i></div>`;
+    } else if(m.kind==='charge'){
+      const left=Math.max(0,m.chargeMax-(done[t]||0));
+      prog=`存量 <b style="color:var(--warn)">${left}</b> / ${m.chargeMax}
+        <div class="kbd" style="font-size:11px">${m.chargeSlots||''} 点刷新</div>`;
+    } else if(m.kind==='limited'){
+      prog=`<span class="badge b-limit">活动期</span>
+        <div class="kbd" style="font-size:11px">非活动期自动跳过</div>`;
+    } else prog='<span class="kbd">—</span>';
+
+    return `<tr class="${on?'':'off'}">
+      <td><b>${m.name}</b><div class="kbd" style="font-size:11px">${t}</div></td>
+      <td>${typeHtml}</td>
+      <td>${statusHtml}</td>
+      <td>${targetCell}</td>
+      <td>${prog}</td>
+      <td class="kbd">${on?(nextRun[t]||'待排期'):'—'}</td>
+      <td class="kbd">${peer[t]||'—'}</td>
+      <td>${inList(t)?'<span class="badge b-ok">✓</span>':'<span class="kbd">—</span>'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tb').innerHTML=rows||'<tr><td colspan="8" class="kbd" style="padding:20px">没有匹配的任务</td></tr>';
+  document.getElementById('st-on').textContent=Object.values(enabled).filter(Boolean).length;
+}
+function setTarget(t,v){ targets[t]=Math.max(0,parseInt(v)||0); renderOverview(); renderFlow(); }
+function bulk(mode){
+  const all=allTasks();
+  if(mode==='all') all.forEach(t=>enabled[t]=1);
+  if(mode==='none') all.forEach(t=>enabled[t]=0);
+  if(mode==='invert') all.forEach(t=>enabled[t]=enabled[t]?0:1);
+  if(mode==='listonly') all.forEach(t=>enabled[t]=inList(t)?1:0);
+  renderOverview(); renderList(); renderFlow();
+}
+
+/* ============ 运行控制 ============ */
+function toggleRun(){
+  running=!running;
+  document.getElementById('runtext').textContent = running?'运行中':'暂停调度';
+  document.getElementById('runbtn').textContent  = running?'⏸ 暂停调度':'▶ 继续调度';
+  document.getElementById('rundot').className    = 'dot'+(running?'':' pause');
+  renderFlow();
+}
+
+/* ============ 列表 ============ */
+function renderList(){
+  const lb=document.getElementById('lb');
+  lb.innerHTML=list.map((e,i)=>{
+    const isPause=(e.type==='rest'||e.type==='delay');
+    const isDelay=(e.type==='delay');
+    const m=isPause?null:meta(e.task);
+    const cfgOff=!isPause && !enabled[e.task];
+    const cls=['li'];
+    if(e.type==='rest') cls.push('rest');
+    if(isDelay) cls.push('delay');
+    if(!e.enabled) cls.push('disabled');
+    if(i===1) cls.push('cursor');
+    return `<div class="${cls.join(' ')}" draggable="true" data-i="${i}">
+      <span class="handle">⠿</span>
+      <span class="pos">${i+1}</span>
+      ${isPause
+        ? `<span class="badge ${isDelay?'b-delay':'b-rest'}">${isDelay?'延后':'休息'}</span>
+           <span class="nm">${isDelay?'延后':'休息'} <input class="num" type="number" min="1" value="${e.minutes}"
+              onchange="setMin(${i},this.value)" style="width:62px"> 分钟
+              <span class="kbd">${isDelay?'定时任务照常':'定时任务也不跑'}</span></span>`
+        : `<span class="nm">${m.name}</span>
+           <span class="kbd">${e.task}</span>
+           ${hasTarget(e.task)
+             ? `<span class="kbd">次数</span><input class="num" type="number" min="0"
+                  value="${e.count}" onchange="setCount(${i},this.value)"
+                  title="0 = 用默认值 ${m.target}">`
+             : m.kind==='charge'
+               ? '<span class="badge b-charge">按存量</span>'
+               : m.kind==='limited'
+                 ? '<span class="badge b-limit">限时活动</span>'
+                 : '<span class="badge b-timer">按周期</span>'}
+           ${cfgOff?`<span class="warnline" onclick="enableTask('${e.task}')"
+              title="任务级开关已关闭，点此启用">⚠ 配置中已停用</span>`:''}`
+      }
+      <input type="text" class="grow" value="${e.note||''}" placeholder="备注"
+             onchange="setNote(${i},this.value)" style="text-align:left;max-width:170px">
+      <input type="checkbox" class="sw" ${e.enabled?'checked':''}
+             onchange="setOn(${i},this.checked)" title="该行是否参与">
+      <button class="del" onclick="del(${i})" title="删除该行">✕</button>
+    </div>`;
+  }).join('');
+  document.getElementById('st-list').textContent=list.filter(e=>e.enabled).length;
+  bindDrag();
+}
+function enableTask(t){ enabled[t]=1; renderOverview(); renderList(); renderFlow(); }
+function setCount(i,v){ list[i].count=Math.max(0,parseInt(v)||0); renderFlow(); }
+function setMin(i,v){ list[i].minutes=Math.max(1,parseFloat(v)||1); renderFlow(); }
+function setNote(i,v){ list[i].note=v; }
+function setOn(i,v){ list[i].enabled=v; renderList(); renderFlow(); }
+function del(i){ list.splice(i,1); renderList(); renderFlow(); }
+
+let dragI=null;
+function bindDrag(){
+  document.querySelectorAll('.li').forEach(el=>{
+    el.ondragstart=e=>{dragI=+el.dataset.i;el.classList.add('drag');};
+    el.ondragend=()=>{el.classList.remove('drag');
+      document.querySelectorAll('.li').forEach(x=>x.classList.remove('over'));};
+    el.ondragover=e=>{e.preventDefault();el.classList.add('over');};
+    el.ondragleave=()=>el.classList.remove('over');
+    el.ondrop=e=>{e.preventDefault();const to=+el.dataset.i;
+      if(dragI===null||dragI===to)return;
+      const m=list.splice(dragI,1)[0]; list.splice(to,0,m);
+      dragI=null; renderList(); renderFlow();};
+  });
+}
+
+/* ============ 选择器 ============ */
+function openPicker(mode){
+  document.getElementById('mhead').textContent =
+    mode==='rest'?'添加休息':'选择要加入列表的任务';
+  const body=document.getElementById('mbody');
+  if(mode==='rest'){
+    body.innerHTML=
+      `<div class="kbd" style="padding:9px 12px 4px">休息 · 全局暂停，定时任务也不跑</div>`+
+      [5,10,20,30,60,120,180,240].map(v=>
+        `<div class="mitem" onclick="addRest('rest',${v})">休息 ${v} 分钟
+          <span class="kbd">真休息</span></div>`).join('')+
+      `<div class="kbd" style="padding:14px 12px 4px">延后 · 只推迟列表推进，定时任务照常</div>`+
+      [5,10,20,30,60,120].map(v=>
+        `<div class="mitem" onclick="addRest('delay',${v})">延后 ${v} 分钟
+          <span class="kbd">定时任务不受影响</span></div>`).join('');
+  } else {
+    const order=['fixed','toppa','charge','limited','timed'];
+    body.innerHTML=order.map(cat=>{
+      const ts=CATALOG.filter(x=>x.c===cat).map(x=>x.t);
+      if(!ts.length) return '';
+      const cl=CAT_LABEL[cat];
+      return `<div class="kbd" style="padding:9px 12px 4px">${cl[0]} · ${cl[2]}（${ts.length}）</div>`
+        + ts.map(t=>{
+            const m=meta(t);
+            const right = hasTarget(t) ? `默认 ${m.target} 次 · ${m.field}${m.needsUnify?' ⚠':''}`
+                        : m.kind==='charge' ? `存量 ${m.chargeMax} · ${m.chargeSlots||''}点刷新`
+                        : m.kind==='limited' ? '限时活动'
+                        : `周期 ${m.interval||'-'}`;
+            const dup = inList(t)?' <span class="badge b-warn">已在列表</span>':'';
+            return `<div class="mitem" onclick="addTask('${t}')">
+              <span>${m.name}${dup}</span><span class="kbd">${right}</span></div>`;
+          }).join('');
+    }).join('');
+  }
+  document.getElementById('modal').classList.add('on');
+}
+function closePicker(){ document.getElementById('modal').classList.remove('on'); }
+function addTask(t){ list.push({type:'task',task:t,count:0,enabled:true,note:''});
+  closePicker(); renderList(); renderFlow(); }
+function addRest(kind,v){ list.push({type:kind,minutes:v,enabled:true,note:''});
+  closePicker(); renderList(); renderFlow(); }
+
+/* ============ 流程预览 ============ */
+function renderFlow(){
+  const out=[];
+  if(!running) out.push('<span class="badge b-warn">已暂停</span> 调度器暂停中，不会开始新任务（当前任务跑完才停）');
+  list.forEach((e,i)=>{
+    const isCur=(i===1);
+    const posTag=`<span class="badge ${isCur?'b-run':'b-off'}">${i+1}</span>`;
+    if(!e.enabled){
+      const nm = (e.type==='rest'||e.type==='delay')
+        ? (e.type==='rest'?'休息 ':'延后 ')+e.minutes+' 分钟' : meta(e.task).name;
+      out.push(`${posTag} <s class="kbd">${nm}</s> <span class="kbd">该行已关闭，跳过</span>`);
+      return;
+    }
+    if(e.type==='rest'||e.type==='delay'){
+      const isDelay=(e.type==='delay');
+      out.push(`${posTag} <span class="badge ${isDelay?'b-delay':'b-rest'}">${isDelay?'延后':'休息'}</span>
+        暂停 <b>${e.minutes}</b> 分钟
+        <span class="kbd">${isDelay?'（只推迟列表推进，定时任务照常）':'（全局暂停，定时任务也不跑）'}</span>`);
+      return;
+    }
+    const m=meta(e.task), cfgOff=!enabled[e.task];
+    let desc;
+    if(hasTarget(e.task)){
+      const tgt=e.count>0?e.count:((e.task in targets)?targets[e.task]:m.target);
+      const d=done[e.task]||0;
+      desc=`打 <b>${tgt}</b> 次（已完成 ${d}）`
+        + (d>=tgt?' <span class="badge b-ok">本周期已达标 → 跳过</span>':'');
+    } else if(m.kind==='charge'){
+      const left=Math.max(0,m.chargeMax-(done[e.task]||0));
+      desc=`按存量执行，剩余 <b>${left}</b> 次`
+        + (left===0?' <span class="badge b-ok">已用完 → 跳过</span>':'');
+    } else if(m.kind==='limited'){
+      desc='限时活动 —— 非活动期自动跳过';
+    } else desc='按周期调度';
+    out.push(`${posTag} <b>${m.name}</b> — ${desc}`
+      + (cfgOff?' <span class="badge b-warn">⚠ 任务级已停用 → 实际不跑</span>':'')
+      + (e.note?` <span class="kbd">「${e.note}」</span>`:'')
+      + (isCur?' <span class="badge b-run">← 当前</span>':''));
+  });
+  out.push(`<span class="kbd">列表跑完 → ${document.getElementById('loop').checked?'回到第 1 行继续':'等待下一周期 / 空闲'}</span>`);
+  document.getElementById('flow').innerHTML=out.join('<br>');
+}
+
+/* ============ 绑定 ============ */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    const v=t.dataset.v;
+    document.getElementById('v-overview').style.display=v==='overview'?'':'none';
+    document.getElementById('v-list').style.display=v==='list'?'':'none';
+  };
+});
+['loop','pmode'].forEach(id=>document.getElementById(id).onchange=renderFlow);
+document.getElementById('modal').onclick=e=>{ if(e.target.id==='modal') closePicker(); };
+
+renderOverview(); renderList(); renderFlow();
+</script>
+</body>
+</html>

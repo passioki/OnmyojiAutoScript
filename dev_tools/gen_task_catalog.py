@@ -205,6 +205,26 @@ def main() -> int:
     names = build_name_index()
     intervals, interval_src = read_intervals()
 
+    # --dump-names: 只导出"任务名 -> 权威中文名"对照表。
+    # 用途: OASX 仓库不可用时(未 clone / 环境变量没设), 仍能查看或人工核对
+    # 各任务的中文名。生成物是**派生产物**, 不应手工编辑。
+    if '--dump-names' in sys.argv:
+        out = REPO / 'dev_tools' / 'data' / 'task_names.json'
+        out.parent.mkdir(parents=True, exist_ok=True)
+        tasks = sorted(d.name for d in TASKS.iterdir()
+                       if d.is_dir() and (d / 'script_task.py').exists())
+        mapping = {}
+        for t in tasks:
+            mapping[t] = (names.get(t) or names.get(snake(t)) or names.get(camel(t))
+                          or MANUAL_NAMES.get(t))
+        out.write_text(json.dumps(mapping, ensure_ascii=False, indent=2) + '\n',
+                       encoding='utf-8')
+        missing = [k for k, v in mapping.items() if not v]
+        print(f'已写出 {out.relative_to(REPO)}  ({len(mapping)} 个任务)')
+        if missing:
+            print(f'!! 缺中文名: {", ".join(missing)}')
+        return 0
+
     rows = []
     for d in sorted(TASKS.iterdir()):
         if not d.is_dir() or not (d / 'script_task.py').exists():

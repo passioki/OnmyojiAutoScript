@@ -411,7 +411,7 @@ class Scheduler:
 | 页面 | 定位 | 能做什么 | 不能做什么 |
 |---|---|---|---|
 | **任务总览** | **监控面板** | 看状态/进度/下次运行<br>**批量**启停<br>调目标次数 | ❌ 单个任务的启停开关 |
-| **任务列表** | **唯一调度控制台** | 排序、每行启停、每行次数、休息/延后<br>全局模式、▶/⏸ | — |
+| **任务列表** | **唯一调度控制台** | 排序、每行启停、每行次数、全部停止/只停列表<br>全局模式、▶/⏸ | — |
 
 ★ **理由**：`enable` 放两处必然出现"列表行开着却不跑"的静默矛盾。
 所以只有一个开关（列表行），但**不隐藏**任务级状态 —— 行尾显示
@@ -425,6 +425,69 @@ class Scheduler:
 | `charge`（3） | 存量 x/y（如 `0,12 点刷新`），**不设次数** |
 | `limited`（8） | 活动期 / 非活动期 |
 | `timed`（28） | 下次运行时间 |
+
+---
+
+### 5.4 运行列表 = 有序**条目清单**（模型 B）
+
+列表不是"任务顺序"，而是**有序条目**的序列。条目三种，**按效果命名**：
+
+| 条目 | 界面名称 | 效果 | 阻塞列表 |
+|---|---|---|---|
+| `task` | 任务 | 执行某个任务 | ❌ **不阻塞** |
+| `rest` | **全部停止** | 暂停调度 N 分钟 —— **连定时任务一起停** | ✅ 阻塞 |
+| `delay` | **只停列表** | 只推迟列表 N 分钟 —— **定时任务照常** | ✅ 阻塞 |
+
+存储（`Script.optimization.run_list`，JSON 数组，顺序天然保留）：
+
+```json
+"run_list": [
+    {"kind": "task",  "task": "Exploration"},
+    {"kind": "task",  "task": "Orochi"},
+    {"kind": "rest",  "minutes": 30},
+    {"kind": "task",  "task": "GoldYoukai"}
+]
+```
+
+#### ★ 命名为什么按效果而不是"休息 / 延后"
+
+设计过程中用过"休息 / 延后"，但**两者都容易被误解**：
+"休息"像"我休息"（其实是软件停），"延后"像"任务延后"（其实是列表延后）。
+
+改为效果名后**一目了然**，且**唯一区别被写进名字**：
+一个"全部停止"（连定时停），一个"只停列表"（定时照常）。
+
+#### ★ `task` 为什么不阻塞
+
+若任务会阻塞，则"列表里第一个任务在 6 小时冷却中"会**卡死整个列表**。
+所以：
+
+* 列表提供的是**优先顺序**（排前面的先跑），不是"必须按顺序做完"
+* 真正的"在此处停下"由 `rest` / `delay` **显式表达**
+
+这与 `FILTER/FIFO/PRIORITY` 一致 —— 它们也是**排序**而非**阻塞**。
+
+#### ★ `rest` / `delay` 是一次性条目
+
+被"轮到时"生效，生效期间列表**停在该条目之前**；时间到后该条目
+**被移除并持久化**，列表继续。
+
+这样用户看到的是"这一行消失了"，而不是"每次循环都休息一次" ——
+后者会让人以为软件坏了。
+
+#### 与旧 `task_order` 的关系
+
+`task_order`（逗号分隔任务名）是**旧字段，已移除**。它**只能排任务**，
+无法表达"打完御魂后全部停止 30 分钟"这类**在序列中间发生的事**。
+
+`RunList.from_task_order()` 保留了一次性迁移能力，`TaskScheduler.list_order()`
+也能接受旧字符串（向后兼容）。
+
+#### 界面契约
+
+`/schema` 的 `list.entry_kinds` 直接给出条目类型、效果名、说明、
+`needs_minutes` / `needs_task` / `blocks_list` 标志 ——
+**前端不必自己维护一份映射**。
 
 ---
 
@@ -1029,7 +1092,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | `dev_tools/gen_resource_specs.py` | 为 54 个任务生成 `Resource` 定义 |
 | `tests/module/config/test_scheduler_core.py` | 调度核心测试（57 项） |
 | `tests/module/config/test_availability.py` | 开放时段与自学习测试（47 项） |
-| `module/config/run_control.py` | **暂停 / 休息 / 延后**（运行控制） |
+| `module/config/run_control.py` | **暂停 / 全部停止 / 只停列表**（运行控制状态） |
+| `module/config/run_list.py` | **运行列表 = 有序条目清单**（task / rest / delay） |
 | `module/device/capabilities.py` | **平台能力**集中声明（跨平台） |
 | `module/server/schema_router.py` | **`/schema` `/overview` `/capabilities` `/run_control` 接口** |
 | `tests/test_architecture_guard.py` | **架构护栏**（AST 强制分层，破坏就红） |

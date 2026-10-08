@@ -29,7 +29,7 @@
 """
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 
 from module.logger import logger
 
@@ -116,13 +116,39 @@ def _list_meta() -> dict:
     """
     任务列表的元信息(供界面渲染排序控件)。
 
-    顺序来源分两级:
-      1. `Script.optimization.task_order` —— **用户编排**(逗号分隔任务名)
-      2. 各任务 `meta.py` 的 `list_pos` —— 内置默认顺序
+    列表是**有序条目清单**(模型 B, 见 `module/config/run_list.py`),
+    条目三种 —— 按**效果**命名:
 
-    只改 pending(已到点)任务的先后; 没到点的任务本来就不参与。
+        task   执行某个任务
+        rest   **全部停止** N 分钟(连定时任务一起停)
+        delay  **只停列表** N 分钟(定时任务照常)
+
+    ★ 命名按效果而非"休息/延后": 效果名一目了然, 不会歧义。
+
+    顺序来源分两级:
+      1. `Script.optimization.run_list` —— **用户编排**(有序条目数组)
+      2. 各任务 `meta.py` 的 `list_pos` —— 内置默认顺序
     """
     from tasks.Script.config_optimization import ScheduleRule
+
+    try:
+        from module.config.run_list import (DURATION_CHOICES, EntryKind,
+                                            KIND_HELP, KIND_LABEL)
+        kinds = [
+            {'value': k.value,
+             'label': KIND_LABEL[k],
+             'help': KIND_HELP[k],
+             # 该条目是否需要 minutes(界面据此决定显示时长选择器还是任务选择器)
+             'needs_minutes': k != EntryKind.TASK,
+             'needs_task': k == EntryKind.TASK,
+             'blocks_list': k != EntryKind.TASK,
+             }
+            for k in EntryKind
+        ]
+        durations = list(DURATION_CHOICES)
+    except Exception:
+        kinds, durations = [], []
+
     return {
         # 列表模式的取值(界面把它填进 Script.optimization.schedule_rule)
         'mode_value': ScheduleRule.LIST.value,
@@ -132,11 +158,30 @@ def _list_meta() -> dict:
             {'value': ScheduleRule.PRIORITY.value, 'label': '优先级'},
             {'value': ScheduleRule.LIST.value, 'label': '列表优先(自定义顺序)'},
         ],
-        # 用户编排写入的字段(界面据此 PUT)
-        'order_field': 'task_order',
+        # 用户编排写入的字段
+        'order_field': 'run_list',
         'order_group': 'script.optimization',
-        'note': '顺序只影响已到点任务的先后; 未编排的任务排最后',
+        # 条目类型(界面据此渲染"添加条目"选择器)
+        'entry_kinds': kinds,
+        'duration_choices': durations,
+        # 当前用户编排(原始数组; 空表示未编排)
+        'entries': _current_run_list(),
+        'note': ('task 条目**不阻塞**列表(未就绪就跳过); '
+                 'rest/delay 条目**阻塞**列表, 生效后自动移除'),
     }
+
+
+def _current_run_list() -> list:
+    """读当前配置的 `run_list`(取第一个可用配置; 界面会按账号再拉一次)。"""
+    try:
+        from module.server.main_manager import mm
+        configs = mm.config_cache_list() if hasattr(mm, 'config_cache_list') else []
+        if configs:
+            return list(getattr(configs[0].model.script.optimization,
+                                'run_list', []) or [])
+    except Exception:
+        pass
+    return []
 
 
 # --------------------------------------------------------------------------- 动态总览
@@ -232,9 +277,12 @@ def build_overview(config_name: str) -> dict:
             'command': command,
             'name_zh': (meta.name_zh if meta else '') or command,
             'category': meta.category.value if meta else 'timed',
-            # 类别的中文标签 —— 界面不必自己维护一份映射
-            'category_label': TC.CATEGORY_LABEL.get(meta.category, '')
-                if meta else '',
+            # 类别的中文标签 —— 界面不必自己维护一份映射。
+            #
+            # ★ 元数据缺失的任务(如尚未写 `meta.py` 的)也要给出标签,
+            #   否则界面会出现"类型"列为空的行。用 FALLBACK_CATEGORY 兜底。
+            'category_label': TC.CATEGORY_LABEL.get(
+                meta.category if meta else TC.FALLBACK_CATEGORY, ''),
             'enable': enabled,
             'priority': sch.get('priority'),
             'next_run': str(sch.get('next_run') or ''),
@@ -369,6 +417,147 @@ async def get_capabilities():
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc), 'platform': 'unknown', 'capabilities': []}
+
+
+# --------------------------------------------------------------------------- 运行列表
+@schema_app.get('/{script_name}/run_list')
+async def get_run_list(script_name: str):
+    """
+    读当前**运行列表**(用户编排的有序条目清单)。
+
+    返回: `{entries: [...], task_order: [...], blocking: {...}|null}`
+
+    `entries` 里可以有三种条目(按**效果**命名):
+      * `{"kind":"task","task":"FallenSun"}`   执行任务
+      * `{"kind":"rest","minutes":30}`         **全部停止** 30 分钟(连定时任务一起停)
+      * `{"kind":"delay","minutes":30}`        **只停列表** 30 分钟(定时任务照常)
+    """
+    try:
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        rl = config.build_run_list()
+        b = rl.blocking_entry()
+        return {
+            'script': script_name,
+            'entries': rl.to_list(),
+            'task_order': rl.task_order(),
+            'blocking': b.to_dict() if b is not None else None,
+            'count': len(rl),
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'entries': [], 'count': 0}
+
+
+@schema_app.put('/{script_name}/run_list')
+async def put_run_list(script_name: str, entries: list = Body(...)):
+    """
+    **整体替换**运行列表。
+
+    为什么是整体替换而不是逐条增删:
+      界面拖拽后拿到的是**完整清单**(含控制条目的位置), 整体写入最简单可靠,
+      也不会出现"拖到一半只写了一半"的中间态。
+
+    ★ 坏条目会被**跳过**并记 warning(列表是用户编辑的内容,
+      一条写坏不该让整份配置加载失败); 返回体里会给出跳过了几条。
+    """
+    try:
+        from module.config.run_list import RunList
+        from module.server.main_manager import mm
+
+        bad = []
+        rl = RunList.from_list(entries, on_bad=lambda i, e: bad.append(
+            {'entry': i, 'error': str(e)}))
+        config = mm.config_cache(script_name)
+        ok = config.save_run_list(rl)
+        if not ok:
+            return {'error': '保存失败(见日志)', 'entries': rl.to_list()}
+        return {
+            'script': script_name,
+            'entries': rl.to_list(),
+            'count': len(rl),
+            'skipped': bad,
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.post('/{script_name}/run_list/entry')
+async def post_run_list_entry(script_name: str,
+                              entry: dict = Body(...),
+                              index: int = -1):
+    """
+    在指定位置**插入一个条目**。
+
+    :param index: 插入位置(0 起); `-1`(默认)表示追加到末尾。
+                  ★ 模型 B 的关键能力: 控制条目可插到**任意位置**。
+    """
+    try:
+        from module.config.run_list import RunEntry
+        from module.server.main_manager import mm
+
+        e = RunEntry.from_dict(entry)
+        config = mm.config_cache(script_name)
+        rl = config.build_run_list()
+        rl.add(e, index=None if index < 0 else index)
+        if not config.save_run_list(rl):
+            return {'error': '保存失败(见日志)'}
+        return {'entries': rl.to_list(), 'count': len(rl)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.delete('/{script_name}/run_list/entry')
+async def delete_run_list_entry(script_name: str, index: int):
+    """删除指定位置的条目。"""
+    try:
+        from module.server.main_manager import mm
+
+        config = mm.config_cache(script_name)
+        rl = config.build_run_list()
+        removed = rl.remove_at(index)
+        if removed is None:
+            return {'error': f'下标越界: {index}'}
+        if not config.save_run_list(rl):
+            return {'error': '保存失败(见日志)'}
+        return {'entries': rl.to_list(), 'count': len(rl),
+                'removed': removed.to_dict()}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.get('/{script_name}/run_list/preview')
+async def get_run_list_preview(script_name: str):
+    """
+    「预期执行流程」的**推算**。
+
+    ★ 这是推算, 不是保证 —— 实际还受体力/网络/开放时段影响。
+      界面必须标注"推算", 不能让用户以为精确。
+    """
+    try:
+        from datetime import datetime
+
+        from module.server.main_manager import mm
+
+        config = mm.config_cache(script_name)
+        rl = config.build_run_list()
+        running = str(getattr(config.model, 'running_task', '') or '')
+        pv = rl.preview(datetime.now(),
+                        running_lookup=lambda t: t == running)
+        return {
+            'script': script_name,
+            'at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'disclaimer': '推算, 不是保证 —— 实际还受体力/网络/开放时段影响',
+            'flow': [{'at': p['at'].strftime('%Y-%m-%d %H:%M:%S'),
+                      'kind': p['kind'], 'text': p['text'], 'note': p['note']}
+                     for p in pv],
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'flow': []}
 
 
 # --------------------------------------------------------------------------- 运行控制

@@ -20,12 +20,13 @@ class TaskScheduler:
 
     @staticmethod
     def schedule(rule: ScheduleRule, pending: list["Function"],
-                 task_order: str = '') -> list["Function"]:
+                 run_list=None) -> list["Function"]:
         """
         执行 任务的调度
         :param rule:
         :param pending:
-        :param task_order: 用户编排的列表顺序(逗号分隔任务名); 仅 LIST 规则使用
+        :param run_list: 用户编排的**条目清单**(`module/config/run_list.py` 的
+                         `RunList`); 也可传旧的逗号分隔字符串, 会被自动兼容
         :return:
         """
         if rule not in (ScheduleRule.FILTER, ScheduleRule.FIFO,
@@ -51,17 +52,18 @@ class TaskScheduler:
             pending_task = TaskScheduler.priority(pending)
             return pending_task
 
-        # 第四种: 用户编排的任务列表
+        # 第四种: 用户编排的条目清单
         if rule == ScheduleRule.LIST:
-            return TaskScheduler.list_order(pending, task_order)
+            return TaskScheduler.list_order(pending, run_list)
 
     @staticmethod
-    def list_order(pending: list["Function"], task_order: str = '') -> list["Function"]:
+    def list_order(pending: list["Function"], run_list=None) -> list["Function"]:
         """
-        **列表模式**: 按用户编排的任务列表顺序调度(见 docs/architecture.md §5)。
+        **列表模式**: 按用户编排的**条目清单**顺序调度
+        (见 `module/config/run_list.py` 与 docs/architecture.md §5)。
 
         顺序来源(优先级从高到低):
-          1. `task_order` 参数 —— 界面写入的**用户编排**(逗号分隔任务名)
+          1. `run_list` 里的 **task 条目** —— 用户编排
           2. 各任务 `meta.py` 的 `TaskSpec.list_pos` —— 内置默认顺序
              (源自原先硬编码在 `config_manual.py` 的 `SCHEDULER_PRIORITY`)
           3. 都没给 -> 排最后, 按名称稳定排序
@@ -70,16 +72,21 @@ class TaskScheduler:
           本方法按列表位置, 是真正的"列表优先"。
         ★ 与 FILTER 的区别: FILTER 的顺序**用户改不了**; 本方法可改。
 
-        只影响 **pending**(已到点)任务的先后 —— 没到点的任务本来就不参与。
+        ★ 只影响 **pending**(已到点)任务的先后 —— 没到点的任务本来就不参与。
+          `rest` / `delay` 条目的**阻塞**效果不在这里处理, 而在
+          `Config.get_next()` 里(见 `blocking_entry` 的用法) ——
+          因为"阻塞整个调度"是调度器级别的事, 不是排序能表达的。
         """
-        # 用户编排
+        from module.config.run_list import RunList
         from module.config.utils import convert_to_underscore
 
-        explicit = []
-        for part in str(task_order or '').split(','):
-            part = part.strip()
-            if part:
-                explicit.append(part)
+        # 兼容: 允许传旧的逗号分隔字符串
+        if isinstance(run_list, str):
+            run_list = RunList.from_task_order(run_list)
+        if run_list is None:
+            run_list = RunList()
+
+        explicit = run_list.task_order()
         order_index = {}
         for i, name in enumerate(explicit):
             order_index[name] = i

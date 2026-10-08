@@ -83,28 +83,75 @@
 
 ## 2. 任务列表页（原型 tab `list`）
 
-### 2.1 执行顺序（拖拽）
+### 2.1 执行顺序 = **有序条目清单**（模型 B）
 
-| 原型 | 实现 |
-|---|---|
-| 拖动 `⠿` 调整 | 前端拖拽 → 生成新顺序 |
-| 序号即优先级 | 写入 `script.optimization.task_order` |
-| 高亮行 = 当前执行位置 | `overview.tasks[].slot == 'pending'` + `priority` |
-| 默认顺序 | `schema.tasks[].list_pos`（来自 `meta.py`）|
+★ 列表**不只是任务顺序**，而是**有序条目**的序列。条目三种：
 
-**写入方式**（既有通用接口，无需新端点）：
+| 条目 | 界面名称 | 效果 | 阻塞列表 |
+|---|---|---|---|
+| `task` | 任务 | 执行某个任务 | ❌ 不阻塞（未就绪就跳过）|
+| `rest` | **全部停止** | 暂停调度 N 分钟 —— **连定时任务一起停** | ✅ |
+| `delay` | **只停列表** | 只推迟列表 N 分钟 —— **定时任务照常** | ✅ |
+
+**命名按效果**（用户要求）：不叫"休息/延后"，因为那两个词都容易误解。
+名字里就写着**唯一区别**：一个连定时停，一个只停列表。
+
+#### 读
 
 ```
-PUT /{script}/script/optimization/task_order/value?types=string&value=A,B,C
+GET /{script}/run_list
+→ {entries: [...], task_order: [...], blocking: {...}|null, count: N}
 ```
 
-**同时必须设置调度模式**，否则顺序不生效：
+#### 写（整体替换 —— 界面拖拽走这条）
+
+```
+PUT /{script}/run_list        body: [{"kind":"task","task":"A"}, {"kind":"rest","minutes":30}]
+```
+
+★ 为什么**整体替换**而不是逐条增删：界面拖拽后拿到的是**完整清单**
+（含控制条目的位置），整体写入最简单可靠，也不会出现"拖到一半只写了一半"。
+
+#### 单条增删（可选，用于"＋ 添加"按钮）
+
+```
+POST   /{script}/run_list/entry?index=2   body: {"kind":"rest","minutes":30}
+DELETE /{script}/run_list/entry?index=2
+```
+
+★ `index=-1`（默认）表示追加到末尾。**能插到任意位置**才是模型 B 的意义 ——
+原型说的"都可插入到任意位置"就是这个。
+
+#### 预期执行流程
+
+```
+GET /{script}/run_list/preview
+→ {flow: [{at, kind, text, note}], disclaimer: "推算, 不是保证…"}
+```
+
+★ 必须向用户显示 `disclaimer` —— 实际还受体力/网络/开放时段影响。
+
+#### 同时必须设置调度模式
 
 ```
 PUT /{script}/script/optimization/schedule_rule/value?types=string&value=List
 ```
 
-★ `schema.list.mode_value` 就是 `'List'`，`schema.list.modes` 给出四个可选模式的标签。
+★ `schema.list.mode_value` 就是 `'List'`。
+
+#### ★ 前端不该硬编码的东西
+
+`schema.list` 已给出：
+
+| 字段 | 用途 |
+|---|---|
+| `entry_kinds[].value/label/help` | 条目类型的值、**效果名**、说明 |
+| `entry_kinds[].needs_task` / `needs_minutes` / `blocks_list` | 界面据此决定显示任务选择器还是时长选择器 |
+| `duration_choices` | 时长可选项（分钟）|
+| `order_field` / `order_group` | 写入位置（`script.optimization.run_list`）|
+| `modes` | 四个调度模式的标签 |
+
+**前端一行映射都不该自己写。**
 
 ### 2.2 每行控制
 
@@ -126,15 +173,28 @@ PUT /{script}/script/optimization/schedule_rule/value?types=string&value=List
 
 ### 2.3 休息 / 延后
 
-| 原型控件 | 接口 | 语义 |
+运行控制有**两个层次**：
+
+#### 层次 1：全局按钮（不在列表里）
+
+| 控件 | 接口 | 语义 |
 |---|---|---|
-| `addRest('rest', N)` | `PUT /{script}/run_control/rest?minutes=N` | **全局**暂停 N 分钟（定时任务也停）|
-| `addRest('delay', N)` | `PUT /{script}/run_control/delay?minutes=N` | 只推迟**列表**推进（定时任务照常）|
-| `openPicker('rest')` | 前端弹窗选时长 | ✅ |
+| 全部停止 N 分钟 | `PUT /{script}/run_control/rest?minutes=N` | **全局**暂停（定时任务也停）|
+| 只停列表 N 分钟 | `PUT /{script}/run_control/delay?minutes=N` | 只推迟**列表**（定时任务照常）|
 | 取消 | `minutes=0` | ✅ |
 
+#### 层次 2：列表里的**条目**（模型 B 的核心）
+
+上面两个动作可以**作为条目插入列表的任意位置**：
+
+```
+POST /{script}/run_list/entry?index=2   body: {"kind":"rest","minutes":30}
+```
+
+★ 区别：层次 1 是"**现在**就停"；层次 2 是"**执行到这一行时**才停"。
+
 ★ **这是两个不同概念，不是"作用范围"参数**（设计过程中曾混淆过）。
-测试里专门有一条断言"延后不阻止定时任务"。
+测试里专门断言：`rest` 连定时任务一起停、`delay` 不阻止定时任务。
 
 ### 2.4 顶部运行控制
 

@@ -78,9 +78,9 @@ class Scheduler(ConfigBase):
     #
     # 任务列表就是**调度器的一种模式**, 不是新子系统(见 docs/architecture.md §5)。
     # 相关概念:
-    #   * 列表顺序 -> `tasks/<Name>/meta.py` 的 `TaskSpec.list_pos`
+    #   * 列表顺序 -> `tasks/<Name>/meta.py` 的 `TaskSpec.list_pos`(默认顺序)
+    #   * 用户编排 -> `Script.optimization.run_list`(本文件只放**每行**的东西)
     #   * 每行次数 -> 本类的 `target`
-    #   * 列表优先 / 定时优先 -> `Script` 全局组的 `scheduler_mode`
 
     # 本任务的目标次数。0 = 用默认值(即任务配置里的 limit_count)。
     #

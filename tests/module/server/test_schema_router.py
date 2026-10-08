@@ -35,11 +35,19 @@ def have_config():
     return CONFIG
 
 
-class TestSchema:
-    @pytest.fixture(scope='class')
-    def schema(self):
-        return build_schema(CONFIG)
+# 模块级 fixture —— 多个测试类都要用
+# (类内 fixture 只有该类能看见, 第二个类用会出现 "fixture not found")
+@pytest.fixture(scope='module')
+def schema():
+    return build_schema(CONFIG)
 
+
+@pytest.fixture(scope='module')
+def overview():
+    return build_overview(CONFIG)
+
+
+class TestSchema:
     def test_covers_all_tasks(self, schema):
         assert schema['count'] == len(TC.all_tasks())
         assert set(schema['tasks']) == set(TC.all_tasks())
@@ -106,10 +114,6 @@ class TestSchema:
 
 
 class TestOverview:
-    @pytest.fixture(scope='class')
-    def overview(self, have_config):
-        return build_overview(CONFIG)
-
     def test_no_error(self, overview):
         assert 'error' not in overview, overview.get('error')
 
@@ -156,6 +160,70 @@ class TestOverview:
                       'reason', 'in_window'):
                 assert k in r, f'{r.get("name")} 缺字段 {k}'
 
+    def test_has_ui_rendering_fields(self, overview):
+        """
+        界面渲染所需的补充字段。
+
+        ★ 这些字段存在是为了让前端**不必内置任务知识** ——
+          类别中文标签、列表位置、存量、资源描述全部由后端给出。
+        """
+        for r in overview['tasks']:
+            for k in ('category_label', 'charges', 'list_pos', 'in_list',
+                      'resource_describe'):
+                assert k in r, f'{r.get("name")} 缺界面字段 {k}'
+
+    def test_category_label_is_chinese(self, overview):
+        """
+        类别标签应是中文, 前端直接显示。
+
+        ★ 元数据缺失的任务(还没写 `meta.py` 的)也要有标签 ——
+          否则界面会出现"类型"列为空的行。
+        """
+        for r in overview['tasks']:
+            lb = r['category_label']
+            assert lb, f'{r["name"]} 的 category_label 为空'
+            assert any('\u4e00' <= ch <= '\u9fff' for ch in lb), \
+                f'类别标签应是中文: {lb!r}'
+
+    def test_list_pos_comes_from_spec(self, overview):
+        """
+        `list_pos` 应来自 `TaskSpec`(带默认顺序), 而不是全为 None。
+
+        ⚠ 踩过的坑: 写成 `getattr(meta, 'list_pos', None)` 会**静默返回 None**
+          (`list_pos` 在 `TaskSpec` 上, 不在 `TaskMeta` 上), 表现是
+          "所有任务的 list_pos 都是 None", 很难发现。
+        """
+        have = [r for r in overview['tasks'] if r['list_pos'] is not None]
+        assert len(have) > 40, \
+            f'应有 40+ 个任务带 list_pos, 实际 {len(have)} —— 疑似又取错对象'
+
+    def test_in_list_matches_list_pos(self, overview):
+        for r in overview['tasks']:
+            assert r['in_list'] == (r['list_pos'] is not None), \
+                f'{r["name"]}: in_list 与 list_pos 不一致'
+
+    def test_charges_shape_when_present(self, overview):
+        """
+        `charges` 的键名必须能对上 —— 归一化过的。
+
+        ⚠ 踩过的坑: `task_state.summarize()` 的键是**压缩小写**
+          (`experienceyoukai`), 而 `model_dump` 是**下划线**
+          (`experience_youkai`)。直接查**不报错、只是为空**。
+        """
+        for r in overview['tasks']:
+            c = r['charges']
+            if c is None:
+                continue
+            assert isinstance(c, dict)
+            assert 'count' in c and 'max' in c, f'{r["name"]} 的 charges 结构不对'
+
+    def test_charge_tasks_can_find_charges(self, overview):
+        """至少有一个充能任务能拿到存量(证明键名归一化生效)。"""
+        got = [r for r in overview['tasks']
+               if r['category'] == 'charge' and r['charges']]
+        assert got, ('所有充能任务的 charges 都是空的 —— '
+                     '疑似键名归一化失效(压缩小写 vs 下划线)')
+
     def test_in_window_defaults_true(self, overview):
         """未配置开放时段时, 所有任务都应 in_window=True。"""
         assert all(r['in_window'] for r in overview['tasks'])
@@ -165,6 +233,75 @@ class TestOverview:
 
     def test_at_is_timestamp(self, overview):
         datetime.strptime(overview['at'], '%Y-%m-%d %H:%M:%S')
+
+
+class TestRunListSection:
+    """
+    `/schema` 的 `list` 段 —— 运行列表(条目清单 / 模型 B)的界面契约。
+
+    列表是**有序条目**的序列, 条目三种(按**效果**命名):
+
+        task   执行某个任务
+        rest   **全部停止** N 分钟(连定时任务一起停)
+        delay  **只停列表** N 分钟(定时任务照常)
+    """
+
+    @pytest.fixture
+    def lst(self, schema):
+        return schema['list']
+
+    def test_has_expected_keys(self, lst):
+        for k in ('mode_value', 'modes', 'order_field', 'order_group',
+                  'entry_kinds', 'duration_choices', 'note'):
+            assert k in lst, f'list 段缺 {k}'
+
+    def test_order_field_is_run_list(self, lst):
+        """用户编排写进 `run_list`, 不再是旧的 `task_order`。"""
+        assert lst['order_field'] == 'run_list'
+        assert lst['order_group'] == 'script.optimization'
+
+    def test_mode_value_is_list(self, lst):
+        assert lst['mode_value'] == 'List'
+
+    def test_modes_have_value_and_label(self, lst):
+        assert len(lst['modes']) >= 4
+        for m in lst['modes']:
+            assert 'value' in m and 'label' in m
+
+    def test_entry_kinds_cover_three(self, lst):
+        kinds = {k['value'] for k in lst['entry_kinds']}
+        assert kinds == {'task', 'rest', 'delay'}, kinds
+
+    def test_entry_kind_flags_are_consistent(self, lst):
+        """`needs_task` / `needs_minutes` / `blocks_list` 必须自洽。"""
+        for k in lst['entry_kinds']:
+            if k['value'] == 'task':
+                assert k['needs_task'] and not k['needs_minutes']
+                assert not k['blocks_list'], 'task 条目**不该**阻塞列表'
+            else:
+                assert k['needs_minutes'] and not k['needs_task']
+                assert k['blocks_list'], f'{k["value"]} 应阻塞列表'
+
+    def test_effect_based_naming(self, lst):
+        """
+        ★ 按**效果**命名(用户明确要求), 不叫"休息/延后"。
+        """
+        label = {k['value']: k['label'] for k in lst['entry_kinds']}
+        assert label['rest'] == '全部停止'
+        assert label['delay'] == '只停列表'
+
+    def test_help_explains_timed_task_difference(self, lst):
+        """说明必须写明对**定时任务**的不同处理 —— 这是两者唯一区别。"""
+        help_ = {k['value']: k['help'] for k in lst['entry_kinds']}
+        assert '定时任务一起停' in help_['rest']
+        assert '定时任务照常' in help_['delay']
+
+    def test_duration_choices_positive_sorted(self, lst):
+        d = lst['duration_choices']
+        assert d and all(m > 0 for m in d) and d == sorted(d)
+
+    def test_note_mentions_blocking(self, lst):
+        assert '阻塞' in lst['note']
 
 
 class TestRobustness:

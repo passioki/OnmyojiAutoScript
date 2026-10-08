@@ -42,6 +42,7 @@ from module.config.config import Config
 from module.config.config_model import ConfigModel
 from module.config.instance_guard import InstanceGuard
 from module.config.anti_ban import AntiBanGuard
+from module.config import run_control
 from module.device.device import Device
 from module.device.env import IS_WINDOWS
 from module.base.utils import load_module
@@ -328,6 +329,23 @@ class Script:
         :return:
         """
         while True:
+            # ---- 运行列表的阻塞条目(rest / delay) ----
+            #
+            # 这是模型 B(条目清单)的落地: 列表里可以插「全部停止 / 只停列表」条目,
+            # 它们**阻塞列表推进**, 而不是像任务那样只影响排序。
+            #
+            # 放在派发之前检查, 所以:
+            #   rest  -> 连定时任务一起停(实现为全局暂停)
+            #   delay -> 只停列表, 定时任务照常
+            try:
+                if self.config.apply_run_list_blocker():
+                    time.sleep(run_control.wait_seconds() or 15)
+                    del_cached_property(self, "config")
+                    continue
+            except Exception as exc:
+                logger.warning(f'运行列表阻塞检查失败({type(exc).__name__}: {exc}), '
+                               f'按不阻塞处理')
+
             task = self.config.get_next()
             self.config.task = task
             if self.state_queue:

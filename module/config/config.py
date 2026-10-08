@@ -278,7 +278,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             pending_task = TaskScheduler.schedule(
                 rule=_opt.schedule_rule,
                 pending=pending_task,
-                task_order=getattr(_opt, 'task_order', '') or '')
+                run_list=self.build_run_list())
             # 防止正在运行的任务被新上来的pending队列中的任务给顶替掉
             if self.model.running_task and pending_task:
                 for i, obj in enumerate(pending_task):
@@ -294,6 +294,90 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         self.pending_task = pending_task
         self.waiting_task = waiting_task
+
+    # ------------------------------------------------------------------ 运行列表
+    def build_run_list(self):
+        """
+        把配置里的 `run_list`(原始 JSON 数组)解析成 `RunList`。
+
+        坏条目**跳过**并记 warning —— 列表是用户编辑的内容,
+        一条写坏不该让整个配置加载失败。
+        """
+        from module.config.run_list import RunList
+
+        raw = getattr(self.model.script.optimization, 'run_list', None) or []
+
+        def _on_bad(item, exc):
+            logger.warning(f'运行列表里有无法解析的条目, 已跳过: {item!r} ({exc})')
+
+        return RunList.from_list(raw, on_bad=_on_bad)
+
+    def save_run_list(self, run_list) -> bool:
+        """把 `RunList` 写回配置(供界面排序 / 条目增减调用)。"""
+        try:
+            self.model.script.optimization.run_list = run_list.to_list()
+            self.save()
+            logger.info(f'运行列表已保存({len(run_list)} 个条目)')
+            return True
+        except Exception as exc:
+            logger.error(f'保存运行列表失败({type(exc).__name__}: {exc})')
+            return False
+
+    def apply_run_list_blocker(self, now=None) -> bool:
+        """
+        处理运行列表里的**阻塞条目**(`rest` / `delay`)。
+
+        语义(见 `module/config/run_list.py`):
+
+        | 条目 | 效果 | 是否影响定时任务 |
+        |---|---|---|
+        | `rest`  | **全部停止** N 分钟 | ✅ 连定时任务一起停 |
+        | `delay` | **只停列表** N 分钟 | ❌ 定时任务照常 |
+
+        实现: `rest` 写 `run_control.rest_until`(全局暂停, 与手动"全部停止"同一处),
+        `delay` 写 `run_control.list_resume_at`。
+
+        :return: True 表示"现在被阻塞, 不该派发任务"
+        """
+        from datetime import datetime
+
+        from module.config import run_control
+
+        now = now or datetime.now()
+        rl = self.build_run_list()
+        blocker = rl.blocking_entry()
+        if blocker is None:
+            return False
+
+        from module.config.run_list import EntryKind
+
+        if blocker.kind == EntryKind.REST:
+            until = run_control.rest_until()
+            if until is None:
+                # 该条目还没生效 -> 起算并写状态
+                run_control.rest(minutes=blocker.minutes)
+                until = run_control.rest_until()
+                logger.info(f'运行列表: 「{blocker.describe()}」生效')
+            if until is not None and now < until:
+                return True
+            # 到点了 -> 移除条目, 列表继续
+            rl.remove_blocker()
+            self.save_run_list(rl)
+            logger.info(f'运行列表: 「{blocker.describe()}」已结束, 条目移除')
+            return False
+
+        # delay: 只停列表, 不影响定时任务
+        until = run_control.list_resume_at()
+        if until is None:
+            run_control.delay(minutes=blocker.minutes)
+            until = run_control.list_resume_at()
+            logger.info(f'运行列表: 「{blocker.describe()}」生效(定时任务照常)')
+        if until is not None and now < until:
+            return True
+        rl.remove_blocker()
+        self.save_run_list(rl)
+        logger.info(f'运行列表: 「{blocker.describe()}」已结束, 条目移除')
+        return False
 
     def _skip_by_period(self, task_key: str, task_value: dict) -> bool:
         """

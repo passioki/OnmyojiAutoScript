@@ -2,6 +2,8 @@
 # @author runhey
 # github https://github.com/runhey
 from enum import Enum
+from typing import Any, Dict, List
+
 from pydantic import BaseModel, ValidationError, validator, Field
 
 from module.logger import logger
@@ -40,15 +42,29 @@ class Optimization(BaseModel):
     emulator_startup_lead_time: Time = Field(default=Time(minute=2),
                                             description='emulator_startup_lead_time_help')
     schedule_rule: ScheduleRule = Field(default=ScheduleRule.FILTER, description='schedule_rule_help')
-    # 任务列表顺序(仅 schedule_rule=List 时生效): 逗号分隔的任务名。
+
+    # ------------------------------------------------------------ 运行列表
     #
-    # 留空表示用**内置默认顺序** —— 源自原先硬编码在 `config_manual.py` 的
-    # `SCHEDULER_PRIORITY`, 现已迁到各任务 `meta.py` 的 `list_pos`。
-    # 用户拖拽后由界面把新顺序写入本字段。
+    # **用户编排的有序条目清单**(见 module/config/run_list.py)。
     #
-    # ★ 用逗号分隔的字符串而非列表: 与既有 `charge_slots='0,12'` 风格一致,
-    #   也便于 GUI 直接输入与在 git diff 里阅读。
-    task_order: str = Field(default='', description='task_order_help')
+    # 与旧的 `task_order`(逗号分隔任务名)的区别: 这里能表达
+    # **在序列中间发生的事** —— 例如"打完御魂后全部停止 30 分钟"。
+    #
+    # 条目三种(按**效果**命名):
+    #   {"kind": "task",  "task": "Exploration"}   执行任务
+    #   {"kind": "rest",  "minutes": 30}           **全部停止** 30 分钟(连定时任务一起停)
+    #   {"kind": "delay", "minutes": 30}           **只停列表** 30 分钟(定时任务照常)
+    #
+    # ★ 数组顺序天然保留插入位置, 不需要额外的 `pos` 字段 ——
+    #   这是把列表存成 JSON 数组而不是逗号字符串的理由。
+    #
+    # 留空表示**未编排** -> 回退到内置默认顺序
+    # (源自原先硬编码的 `SCHEDULER_PRIORITY`, 已迁到各任务 `meta.py` 的 `list_pos`)。
+    run_list: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description='run_list_help',
+        title='运行列表')
+
     # 排队模式：多个实例排队依次执行任务，避免同时执行造成服务器压力
     queue_mode: bool = Field(default=False, description='queue_mode_help')
     # 释放执行权的空闲阈值（分钟），仅 queue_mode=True 时生效

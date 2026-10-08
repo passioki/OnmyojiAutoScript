@@ -175,11 +175,47 @@ class TestSchedulerTargetField:
         assert Scheduler(target=999).target == 999
 
 
-class TestTaskOrderField:
+class TestRunListField:
+    """
+    `Script.optimization.run_list` —— 用户编排的**条目清单**(模型 B)。
+
+    取代了早期的 `task_order`(逗号分隔任务名) —— 后者只能排任务,
+    无法表达"打完御魂后全部停止 30 分钟"。
+    """
+
     def test_defaults_empty(self):
         """默认空 -> 用内置 list_pos 顺序, 行为不变。"""
         from tasks.Script.config_optimization import Optimization
-        assert Optimization().task_order == ''
+        assert Optimization().run_list == []
+
+    def test_accepts_entry_list(self):
+        from tasks.Script.config_optimization import Optimization
+        o = Optimization(run_list=[
+            {'kind': 'task', 'task': 'A'},
+            {'kind': 'rest', 'minutes': 30},
+            {'kind': 'delay', 'minutes': 60},
+        ])
+        assert len(o.run_list) == 3
+        assert o.run_list[1]['kind'] == 'rest'
+
+    def test_order_is_preserved(self):
+        """
+        顺序必须保留 —— 这是存成 **JSON 数组**而不是逗号字符串的理由:
+        数组天然保留插入位置, 不需要额外的 `pos` 字段。
+        """
+        from tasks.Script.config_optimization import Optimization
+        raw = [
+            {'kind': 'task', 'task': 'A'},
+            {'kind': 'rest', 'minutes': 10},
+            {'kind': 'task', 'task': 'B'},
+        ]
+        o = Optimization(run_list=list(raw))
+        assert [e['kind'] for e in o.run_list] == ['task', 'rest', 'task']
+
+    def test_old_task_order_field_removed(self):
+        """旧字段应已移除(不留双轨)。"""
+        from tasks.Script.config_optimization import Optimization
+        assert not hasattr(Optimization(), 'task_order')
 
     def test_list_mode_in_enum(self):
         from tasks.Script.config_optimization import Optimization

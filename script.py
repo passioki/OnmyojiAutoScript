@@ -796,26 +796,65 @@ class Script:
             self.is_first_task = False
             self.anti_ban_guard.record_active((datetime.now() - _task_start).total_seconds())
 
-            # Check failures
-            failed = self.failure_record[task] if task in self.failure_record else 0
-            failed = 0 if success else failed + 1
-            self.failure_record[task] = failed
-            if failed >= 3:
-                logger.critical(f"Task `{task}` failed 3 or more times.")
-                logger.critical("Possible reason #1: You haven't used it correctly. "
-                                "Please read the help text of the options.")
-                logger.critical("Possible reason #2: There is a problem with this task. "
-                                "Please contact developers or try to fix it yourself.")
-                logger.critical('Request human takeover')
-                # 添加失败三次的推送通知
-                self.config.notifier.push(
-                    title=f'{I18n.trans_zh_cn(task)}{task}',
-                    content=f"<{self.config_name}> 任务连续失败三次，请上线查看"
-                )
-                # 关闭模拟器
-                if self.config.script.error.error_repeated:
-                    self.device.emulator_stop()
-                exit(1)
+            # ---- 失败记录：落盘 + 冷却（**不再 exit(1)**）----
+            #
+            # ★★ 改造前的行为是错的 ★★
+            #
+            # 原实现:
+            #     self.failure_record[task] = failed      # 内存字典
+            #     if failed >= 3:
+            #         ...
+            #         exit(1)                            # 整个子进程退出
+            #
+            # `failure_record` 是 `Script` 实例上的内存字段。进程一退出,
+            # 服务器就重新拉起一个（`module/server/script_process.py`）,
+            # **新进程的计数是空的** —— 于是:
+            #
+            #   失败 3 次 -> exit -> 重启 -> 计数归零 -> 又能失败 3 次 -> 再重启 ...
+            #
+            # **永远停不下来。** 真实日志里 7 小时有 97 次 `START` 块
+            # （90+ 次进程重启）, `RyouToppa` 被派发 25 次一次都没打成。
+            #
+            # 现在: 计数**落盘**、到阈值**不退出进程**而是给该任务加冷却。
+            # 详见 `module/config/failure_state.py`。
+            try:
+                from module.config import failure_state
+
+                if success:
+                    failure_state.record_success(self.config_name, task)
+                    # 成功后**同时**清掉内存里的旧计数（保持两者一致）
+                    self.failure_record.pop(task, None)
+                else:
+                    res = failure_state.record_failure(self.config_name, task)
+                    self.failure_record[task] = res['count']
+                    if res['should_notify']:
+                        minutes = failure_state.cooldown_remaining_minutes(
+                            self.config_name, task)
+                        logger.critical(
+                            f'任务 `{task}` 连续失败 {res["count"]} 次, '
+                            f'进入冷却 {minutes} 分钟（不再重启进程）。'
+                            f'可能原因: 配置不对 / 素材与游戏界面不匹配 / '
+                            f'任务本身有 bug。')
+                        self.config.notifier.push(
+                            title=f'{I18n.trans_zh_cn(task)}{task}',
+                            content=f'<{self.config_name}> 任务连续失败, '
+                                    f'已冷却 {minutes} 分钟；修正后可点'
+                                    f'「清除失败」立刻重试'
+                        )
+                        # 把这个任务推到冷却结束之后, 免得调度器反复选中它
+                        try:
+                            self.config.task_delay(
+                                task,
+                                success=False,
+                                server=True,
+                                target=res['cooldown_until'])
+                        except Exception as exc:
+                            logger.warning(
+                                f'设置 {task} 冷却失败({type(exc).__name__}: '
+                                f'{exc}), 靠 update_scheduler 的冷却检查兜底')
+            except Exception as exc:
+                # ★ 失败记录本身出问题**绝不能**影响任务调度
+                logger.warning(f'失败记录处理失败({type(exc).__name__}: {exc}), 忽略')
 
             # ---- 运行控制: 暂停 / 休息 ----
             #

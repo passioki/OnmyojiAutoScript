@@ -865,6 +865,83 @@ finally:
 
 ---
 
+### 5.8 连续失败与冷却（**不再 `exit(1)`**）
+
+#### 改造前的无限重启循环
+
+`script.py` 原先的逻辑：
+
+```python
+self.failure_record[task] = failed     # Script 实例上的**内存**字典
+if failed >= 3:
+    logger.critical("Task `{task}` failed 3 or more times.")
+    ...
+    exit(1)                            # 整个子进程退出
+```
+
+`failure_record` **不在磁盘上**。进程一退出，服务器就重新拉起一个
+（`module/server/script_process.py`），**新进程的计数是空的** —— 于是：
+
+    失败 3 次 → exit → 重启 → 计数归零 → 又能失败 3 次 → 再重启 → …
+
+**永远停不下来。**
+
+#### 这是从真实日志读出来的
+
+`log/2026-10-09_伴生树.txt`（7 小时）：
+
+| 现象 | 计数 |
+|---|---|
+| `START` 块（进程重启）| **97 次** |
+| `RyouToppa` 被派发 | **25 次**，一次都没打成（每 14 秒一轮）|
+| `Duel` / `WantedQuests` 连续触发 | 各 20 次 |
+
+#### 现在的做法
+
+`module/config/failure_state.py`，落盘 `log/.failure_state.json`：
+
+| 事件 | 行为 |
+|---|---|
+| 成功 | **清零**（含冷却）—— 完全恢复正常调度 |
+| 失败 1、2 次 | 计数 +1，照常按 `failure_interval` 重试 |
+| 失败到 **3** 次 | `CRITICAL` 日志 + **推送通知** + **冷却 1 小时** + **计数减半** |
+| 冷却到期 | **允许再试**（不是永久拉黑）|
+| 冷却中 | `update_scheduler()` **不入 pending** —— 不会被反复选中 |
+
+★ **计数减半而不是清零**：清零等于又给满 3 次机会，持续故障会变成
+"每 1 小时重启 3 次"的慢速循环；减半是**逐步升级**，同时不会
+一次失败就永久放弃。
+
+★ **为什么不用进程级手段**：「重启进程」是**用户可见且昂贵**的动作
+（模拟器要重新连、界面要重开）。对一个**任务级**失败用进程级手段，
+既不匹配也不安全。
+
+★ `update_scheduler()` 里的冷却检查是**兜底** —— 即使 `task_delay()`
+那一步失败（配置保存异常），也不会变成热循环。
+
+#### 界面
+
+| 端点 | 作用 |
+|---|---|
+| `GET /{script}/failure_state` | 哪些任务在冷却、还剩几分钟 |
+| `DELETE /{script}/failure_state?task=X` | **清除失败 + 解除冷却** |
+
+★ "清除失败"的用途：用户修好了问题（改配置 / 换素材）之后
+**不想等 1 小时**，点一下就能立刻重试。
+
+`/schema` 的 `list.failure_state` 也带一份。
+
+#### 回归守卫
+
+`tests/module/config/test_failure_state.py` 里有一组**源码级**断言：
+
+* 失败分支**不再出现** `exit(1)` / `exit(-1)` / `sys.exit`
+* 必须调用 `record_success` 与 `record_failure`
+* 计数与冷却都**落盘**（跨重启不丢）
+* 成功能清零、冷却到期能再试（**自愈**）
+
+---
+
 ## 6. 运行控制
 
 ### 6.1 暂停（⏸）
@@ -1470,6 +1547,7 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | `module/config/run_list.py` | **运行列表 = 固定任务 + 休息**（`task` / `rest`） |
 | `module/config/timed_schedule.py` | **固定/定时分开管理**：总开关、穿插判定、定时排序（纯函数） |
 | `module/config/run_record.py` | **运行记录与归档**（次数 + 耗时；重置 = 归档后重开） |
+| `module/config/failure_state.py` | **连续失败与冷却**（落盘；到阈值冷却而非退出进程） |
 | `module/config/manual_run.py` | **「运行一次」队列**（按点击顺序插队，跑一次出队） |
 | `module/device/capabilities.py` | **平台能力**集中声明（跨平台） |
 | `module/server/schema_router.py` | **`/schema` `/overview` `/capabilities` `/run_control` 接口** |
@@ -1478,6 +1556,7 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | `tests/tasks/test_effective_target.py` | 次数的三级回落与别名适配 |
 | `tests/module/config/test_run_record.py` | 运行记录/归档的语义（重置 ≠ 删除） |
 | `tests/test_run_record_wiring.py` | 记录点必须在 `finally`（覆盖 TaskEnd 与异常） |
+| `tests/module/config/test_failure_state.py` | 失败冷却语义 + **源码级断言"不再 exit(1)"** |
 | `dev_tools/diag_android_layout.py` | 安卓布局诊断（求手机↔1280x720 坐标关系） |
 | `dev_tools/gen_i18n.py` | 任务名从 `meta.py` 生成到各 i18n 副本 |
 | `dev_tools/diag_dead_code.py` | 死代码扫描（只读诊断） |

@@ -269,6 +269,15 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             if not self._category_enabled(func.command):
                 waiting_task.append(func)
                 continue
+            # ★ 连续失败冷却（见 `module/config/failure_state.py`）:
+            #   在冷却中的任务**不入 pending**, 并把 next_run 推到冷却结束。
+            #
+            #   这是"到阈值不退出进程"之后的**兜底**: 即使
+            #   `task_delay()` 那一步失败了（比如配置保存异常）,
+            #   也不会被调度器反复选中 -> 不会变成热循环。
+            if self._in_failure_cooldown(func.command):
+                waiting_task.append(func)
+                continue
             if not isinstance(func.next_run, datetime):
                 error.append(func)
             elif func.next_run < self.scheduler_update_dt:
@@ -633,6 +642,35 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             logger.warning(f'{task_command}: 判断类别开关失败'
                            f'({type(exc).__name__}: {exc}), 按放行处理')
             return True
+
+    def _in_failure_cooldown(self, task_command: str) -> bool:
+        """
+        该任务是否处于**连续失败冷却**中。
+
+        在冷却中的任务不入 pending —— 这样调度器不会反复选中它,
+        也就不会变成热循环。
+
+        ★ 这是"到阈值**不退出进程**"之后的**兜底**: 即使
+          `task_delay()` 那一步失败了（配置保存异常等），也不会热循环。
+
+        ★ 任何读取异常都返回 `False`（照常调度）——
+          失败记录坏了不该让任务跑不起来。
+        """
+        try:
+            from module.config import failure_state
+
+            until = failure_state.cooldown_until(self.config_name, task_command)
+            if until is None:
+                return False
+            minutes = failure_state.cooldown_remaining_minutes(
+                self.config_name, task_command)
+            logger.info(f'{task_command}: 处于失败冷却中, 还剩 {minutes} 分钟'
+                        f'（到 {until:%Y-%m-%d %H:%M}）')
+            return True
+        except Exception as exc:
+            logger.warning(f'{task_command}: 判断失败冷却时出错'
+                           f'({type(exc).__name__}: {exc}), 按未冷却处理')
+            return False
 
     def rest_remaining_minutes(self, now=None) -> int:
         """休息还剩多少分钟（不在休息则 0）。供"休息时穿插"判定。"""

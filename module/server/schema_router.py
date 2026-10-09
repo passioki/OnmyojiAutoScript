@@ -185,7 +185,21 @@ def _list_meta(config_name: str = '') -> dict:
         'run_record': _run_record_summary(config_name),
         # 「运行一次」当前队列 —— 界面据此显示"排队中"与取消按钮
         'manual_run': _manual_run_summary(config_name),
+        # 失败冷却 —— 界面据此显示"哪些任务在冷却"与"清除失败"
+        'failure_state': _failure_summary(config_name),
     }
+
+
+def _failure_summary(config_name: str = '') -> dict:
+    """失败冷却摘要（**失败返回空**, 不影响页面）。"""
+    if not config_name:
+        return {}
+    try:
+        from module.config import failure_state
+        return failure_state.summarize(config_name)
+    except Exception as exc:
+        logger.warning(f'失败状态读取失败({type(exc).__name__}: {exc}), 忽略')
+        return {}
 
 
 def _manual_run_summary(config_name: str = '') -> dict:
@@ -873,6 +887,52 @@ async def delete_manual_run(script_name: str, task: str = ''):
         manual_run.clear(script_name)
         return {'script': script_name, 'cleared': True,
                 **manual_run.summarize(script_name)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+# --------------------------------------------------------------------------- 失败冷却
+@schema_app.get('/{script_name}/failure_state')
+async def get_failure_state(script_name: str):
+    """
+    读**连续失败 / 冷却**状态（供界面显示"哪些任务在冷却"）。
+
+    ★ 为什么需要它: `script.py` 原先在任务连续失败 3 次时 `exit(1)`
+      退出整个子进程, 而计数在**内存**里 —— 进程一重启计数归零,
+      于是"失败 3 次 -> 重启 -> 计数归零 -> 又失败 3 次"**无限循环**。
+      一次 7 小时的运行有 90+ 次进程重启。
+
+      现在计数**落盘**, 到阈值只给该任务加冷却（默认 1 小时）,
+      界面上要能看到这件事。
+    """
+    try:
+        from module.config import failure_state
+
+        return {'script': script_name,
+                'tasks': failure_state.summarize(script_name)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'tasks': {}}
+
+
+@schema_app.delete('/{script_name}/failure_state')
+async def delete_failure_state(script_name: str, task: str = ''):
+    """
+    清除失败记录（**同时解除冷却**）。
+
+    * `task` 留空 -> 清空该账号全部
+    * 给了 `task` -> 只清那一个
+
+    ★ 用途: 用户修好了问题（改配置 / 换素材）之后
+      **不想等 1 小时冷却**, 点一下就能立刻重试。
+    """
+    try:
+        from module.config import failure_state
+
+        failure_state.clear(script_name, task or None)
+        return {'script': script_name, 'cleared': task or 'all',
+                'tasks': failure_state.summarize(script_name)}
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}

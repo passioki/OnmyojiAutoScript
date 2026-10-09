@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 01/14] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 01/15] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 02/14] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 02/15] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 03/14] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 03/15] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 04/14] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 04/15] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 05/14] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 05/15] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 06/14] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
+Subject: [PATCH 06/15] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
  =?UTF-8?q?=E6=9C=AC=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8?=
  =?UTF-8?q?=E4=B9=85=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20?=
  =?UTF-8?q?=E8=B4=A6=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 07/14] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 07/15] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 08/14] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 08/15] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6256,7 +6256,7 @@ index ea36b95..4ce7384 100644
 From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:58:58 +0800
-Subject: [PATCH 09/14] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+Subject: [PATCH 09/15] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
  =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
  =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
  =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
@@ -7416,7 +7416,7 @@ index 3577f1c..ffedaed 100644
 From 331ba7e9e1de080f71a267b595341dcaced0b5a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 14:03:01 +0800
-Subject: [PATCH 10/14] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
+Subject: [PATCH 10/15] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
  =?UTF-8?q?=E7=A8=8B=E5=BC=80=E5=85=B3=E4=B8=8A=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=20+=20=E4=BC=91=E6=81=AF=E7=BD=AE=E9=A1=B6/=E5=88=86=E7=B1=BB?=
  =?UTF-8?q?=E7=AD=9B=E9=80=89=20+=20=E7=82=B9=E8=A1=8C=E8=BF=9B=E8=AE=BE?=
@@ -7979,7 +7979,7 @@ index 4d59df0..3c57afd 100644
 From 7f7e4925c91c0fb8bd1d6195ea864f8b751781a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 18:29:47 +0800
-Subject: [PATCH 11/14] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
+Subject: [PATCH 11/15] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
  =?UTF-8?q?=E5=8F=AA=E6=94=B6=E5=9B=BA=E5=AE=9A=E4=BB=BB=E5=8A=A1"?=
  =?UTF-8?q?=E7=9A=84=E8=BF=87=E6=BB=A4=20=E2=80=94=E2=80=94=20=E5=AE=83?=
  =?UTF-8?q?=E6=9B=BE=E9=9D=99=E9=BB=98=E4=B8=A2=E6=8E=89=E7=94=A8=E6=88=B7?=
@@ -8449,7 +8449,7 @@ index 3c57afd..47314bc 100644
 From 015d55e1a06fcf895312771b29413dc0fe791f95 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:07:38 +0800
-Subject: [PATCH 12/14] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
+Subject: [PATCH 12/15] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
  =?UTF-8?q?=E9=83=A8**=E5=BC=80=E5=85=B3=E4=B8=8E=E4=BC=98=E5=85=88?=
  =?UTF-8?q?=E7=BA=A7=E5=AD=97=E6=AE=B5=20=E2=80=94=E2=80=94=20=E5=90=8E?=
  =?UTF-8?q?=E7=AB=AF=E6=97=A9=E5=B0=B1=E5=81=9A=E4=BA=86,=20=E5=89=8D?=
@@ -9334,7 +9334,7 @@ index 47314bc..97f7740 100644
 From e78445611c6f2b1f1b4b000d32e007467767eaca Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:13:48 +0800
-Subject: [PATCH 13/14] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
+Subject: [PATCH 13/15] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
  =?UTF-8?q?=E4=B8=80=E4=B8=AA**=E7=BB=9F=E4=B8=80=E6=8E=A7=E5=88=B6?=
  =?UTF-8?q?=E5=8F=B0**=20=E2=80=94=E2=80=94=20=E4=B8=89=E4=B8=AA=20tab=20+?=
  =?UTF-8?q?=20=E6=97=A5=E5=BF=97=E5=B8=B8=E9=A9=BB=EF=BC=88=E7=94=A8?=
@@ -10001,7 +10001,7 @@ index 97f7740..96648d8 100644
 From fd7e402e488353803351cbc63b3a608cd1b729ec Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 20:21:45 +0800
-Subject: [PATCH 14/14] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E5=AE=9E?=
+Subject: [PATCH 14/15] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E5=AE=9E?=
  =?UTF-8?q?=E6=B5=8B=E5=8F=8D=E9=A6=88=204=20=E9=A1=B9=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E9=87=8D=E5=A4=8D=E6=8C=89=E9=92=AE=20/=20?=
  =?UTF-8?q?=E8=8B=B1=E6=96=87=E6=98=BE=E7=A4=BA=20/=20=E9=A1=B5=E9=9D=A2?=
@@ -11162,6 +11162,2442 @@ index 96648d8..7a0420a 100644
      expect(nav.contains("selectedMenu.value = 'TaskList';"), isTrue,
          reason: '进账号后默认应进统一控制台');
    });
+-- 
+2.41.0.windows.1
+
+
+From 94756b714d018ba91e3bbbefdf2cc4020badd2a1 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 21:20:48 +0800
+Subject: [PATCH 15/15] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E7=AC=AC?=
+ =?UTF-8?q?=E4=BA=8C=E8=BD=AE=E5=8F=8D=E9=A6=88=20=E2=80=94=E2=80=94=20?=
+ =?UTF-8?q?=E7=8A=B6=E6=80=81=E8=B0=8E=E6=8A=A5=20/=20=E5=8E=BB=E6=8C=89?=
+ =?UTF-8?q?=E9=92=AE=20/=20=E9=98=9F=E5=88=97=E5=90=88=E5=B9=B6=20/=20?=
+ =?UTF-8?q?=E5=8F=AF=E6=8B=96=E6=8B=BD=E9=9D=A2=E6=9D=BF?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+用户实测后反馈 5 点, 逐条处理。
+
+## 1. ★ 修 `● 运行中` 的**谎报**（真 bug）
+
+用户: "虽然未暂停调度就绿色运行中，但是脚本进程停止时这个还显示运行中啊。"
+
+**根因**: `RunControlBar` 的状态只看 `run_control` 的 `paused`
+（**调度是否被暂停**）, **完全没看脚本进程** —— 没暂停就画绿点,
+哪怕进程根本没跑。
+
+**修法**: 圆点与文字先看**进程**（WebSocket 的 `ScriptModel.state`）:
+
+| 进程 | 圆点 | 文字 |
+|---|---|---|
+| 未跑 | 灰 | **脚本未启动** |
+| 在跑 · 休息中 | 橙 | 休息中 至 … |
+| 在跑 · 已暂停 | 橙 | 已暂停调度 |
+| 在跑 · 未暂停 | 绿 | 运行中 |
+
+★ 进程没跑时「暂停调度」**置灰** —— 暂停一个没在跑的东西没意义,
+而且会让人以为"点了有用"。
+
+## 2. 运行控制条去掉「本轮跑完再停」
+
+用户要求。现在只有 `[暂停调度]` / 暂停后 `[继续调度]`。
+
+★ 后端 `pause_mode='round'` 这个**能力保留不动**,
+只是界面不再暴露入口 —— 与「只停列表」的处理一致。
+**文档决策台账 1.2（当初"要第二个按钮"）已作废。**
+
+## 3. ★ 「监控」与「预期流程」合并成一个 tab
+
+用户: "监控窗口和预期流程不应该是一种东西吗，都是计划和预期啊，应该合在一起啊。"
+
+**用户是对的** —— 这四块回答**同一个问题**:"接下来会发生什么":
+
+| 窗口 | 回答 |
+|---|---|
+| 调度器 | 现在什么状态 |
+| 正在运行 | 此刻在跑什么 |
+| **待执行** | 马上要跑什么（**计划**）|
+| **等待中** | 还要等多久（**预期**）|
+| **预期执行流程** | 按列表推算的完整流程（**也是预期**）|
+
+我第一版把它们拆成两个 tab, 是把一体两面的东西硬分开 —— 用户看不到全貌。
+现在合成 `[调度] [监控 / 计划]`。
+
+## 4. ★ 执行顺序统一到「执行队列」（可拖拽）
+
+用户: "待执行、等待中这类就是预期执行流程，也相当于包含所有任务的执行顺序，
+也应该可以拖拽排列顺序"
+
+原先把「待执行」「等待中」做成两个**只读**观察窗, 问题是:
+
+* 它们是"**到没到点**"的划分（由**时间**决定）, 不是"顺序"
+* 用户真正想管的是**顺序** —— 而顺序只能拖
+
+现在是一个**有序队列**:
+
+```
+执行队列（拖 ⠿ 改执行顺序 · 每行的次数/预期耗时可直接改）
+  ⠿ 1 探索          [待执行]   次数[5] 预期耗时[10] 优先级[5]
+  ⠿ 2 御魂          [待执行]
+  ⠿ 3 日轮之陨      [等待中 18:00]
+  ⠿ 4 契灵之境      [冷却中 42 分]
+  ⠿ 5 休息 30 分钟
+  ─── 未编排（共 N 个 · 拖上来或点「加入」进队列）───
+  ⠿ 探索寮突        [待执行]   [加入]
+```
+
+* **有序部分** = 运行列表, 拖完直接存回后端
+* **未编排部分** = 启用了但没进列表的任务
+* **状态徽标** = 后端给的 `slot` / `reason` / `in_cooldown`
+  —— 前端**不重新推导**调度规则
+* **每行的次数 / 预期耗时 / 优先级可直接改**（用户要求"放在任务上边"）
+
+### ★ 任务表格的 ↑↓ 去掉了（用户纠正我）
+
+用户: "这个位次列执行顺序和我的想法不相符，我要的 ↑↓ 是为了像 EXCEL
+那样方便查看和管理任务（如启停和运行一次的测试），
+**这个任务表格不涉及执行顺序的改变**"
+
+所以表格那一列改成**只读的 `✓ / —`**（在队列 / 不在）,
+↑↓ 与"位次"全部删除。分工变清楚了:
+
+| 面板 | 管什么 |
+|---|---|
+| **任务表格** | Excel 式的**批量查看与管理**: 启停 / 运行一次 / 排序 / 筛选 |
+| **执行队列** | **执行顺序**（拖拽）+ 每行的次数 / 预期耗时 / 优先级 |
+
+### 删除 `RunListPanel`
+
+内容被 `QueuePanel` 取代（含"休息"条目与任务选择器）。
+`run_list_panel.dart` 已删除。
+
+## 5. ★ 全局开关提到**顶部**
+
+原来埋在页面最底部 —— 用户反馈"开关什么的都没有了"（其实是**没滚到底**）。
+现在 `调度` tab 从上到下:
+
+```
+1. 状态行（紧凑）
+2. 批量操作（脚本进程开关 + 启停/运行一次/重置/搜索/筛选）
+3. ★ 全局开关（两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据）
+4. 任务表格
+5. 执行队列
+```
+
+## 6. 左右分栏宽度**可拖拽调整** + 持久记忆
+
+用户要求"日志面板和别的面板占用大小应改为可以拖动调整的"。
+
+* 分界线上有一根 **7px 拖拽条**（3px 热区, 好点中）, 光标变 `resizeColumn`
+* 范围钳制 `[420, 可用宽度-320]` —— **任一侧都不会被拖没**
+  （用户说过"看不到就以为功能没了", 这点必须防住）
+* 松手存进偏好（`task_prefs`, 按账号隔离）—— 下次打开保持
+* 拖动过程中**不写存储**, 只在 `onDragEnd` 写一次
+
+## 测试 83/83
+
+* 控件级测试**重写**（原来测的是旧 `RunListPanel`: "启用"按钮、
+  "添加「休息」"、模式警告 —— 那些 UI 已不存在）
+* 新增守卫: 状态看脚本进程（含"脚本未启动"字样与 `!procRunning` 置灰）、
+  没有 `mode: 'round'` 入口、监控/计划 tab 含四个窗 + 预期流程、
+  **全局开关在表格之前**（防再次埋到底部）、拖拽条 + 持久记忆
+* 假控制器补了 4 个新接口的覆盖（`zhNameOf` / `taskRowOf` /
+  `queueStatusOf` / `unqueuedEnabledTasks`）——
+  不覆盖会让任务名变空串, 表现成"Found 0 widgets", 很容易误判成面板坏了
+
+### ★ 一个会崩的 bug（测试抓到的）
+
+`DefaultTabController(length: 3)` 我只改了 `TabBar` 与 `TabBarView`
+却忘了改 `length` —— tab 数与 `TabBarView.children` 不匹配会**运行时崩**。
+
+`flutter test` **83/83**；`flutter build windows --release` 通过。
+---
+ .../task_list/task_list_controller.dart       |  79 ++-
+ lib/views/tasks/queue_panel.dart              | 513 +++++++++++++++++
+ lib/views/tasks/run_control_bar.dart          | 127 +++--
+ lib/views/tasks/run_list_panel.dart           | 520 ------------------
+ lib/views/tasks/task_list_view.dart           | 310 +++++++++--
+ lib/views/tasks/task_row_view.dart            | 110 ++--
+ test/task_list_panel_test.dart                | 282 +++++++---
+ 7 files changed, 1181 insertions(+), 760 deletions(-)
+ create mode 100644 lib/views/tasks/queue_panel.dart
+ delete mode 100644 lib/views/tasks/run_list_panel.dart
+
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index b7af441..7baaa5d 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -871,12 +871,83 @@ class TaskListController extends GetxController with LogMixin {
+ 
+   /// 某个任务命令名在运行列表里的**位次**（1 起; 不在则 0）。
+   ///
+-  /// 界面用它在任务表格里显示"排第几" —— 这就是**执行顺序**。
++  /// ★ 用途仅限于**任务表格的"队列"列**（只读展示"这个任务在不在队列里"）。
++  ///
++  ///   ⚠ 它**不是**执行顺序的编辑入口 —— 用户明确说过:
++  ///     "这个位次列执行顺序和我的想法不相符, 我要的 ↑↓ 是为了像 EXCEL 那样
++  ///      方便查看和管理任务（如启停和运行一次的测试）,
++  ///      这个任务表格**不涉及执行顺序的改变**"
++  ///
++  ///   执行顺序统一在「执行队列」面板里拖拽。
+   int entryPositionOf(String command) {
+     final i = _entryIndex(command);
+     return i < 0 ? 0 : i + 1;
+   }
+ 
++  // ---------------------------------------------------------------- 执行队列
++  //
++  // ★★ 用户要求: "待执行、等待中这类就是预期执行流程, 也相当于包含所有任务的
++  //    执行顺序, 也应该可以拖拽排列顺序" ★★
++  //
++  // 所以不再把「待执行」「等待中」做成两个**只读**观察窗 ——
++  // 而是一个**有序、可拖拽**的队列, 每行带一个状态徽标说明它为什么在等。
++  //
++  // 队列 = 运行列表（ordered=true, 拖拽即改执行顺序）
++  //      + 未编排的启用任务（ordered=false, 拖上来即加入队列）
++
++  /// 该任务的运行态（待执行 / 等待中 / 冷却中 / 休息中 / 未启用 / 未编排）。
++  ///
++  /// 数据来自 `/overview` 的 `slot` / `reason` / `in_cooldown` ——
++  /// **前端不重新推导调度规则**（那会与后端漂移）。
++  ({String label, int tone}) queueStatusOf(String command) {
++    for (final t in _allTasks) {
++      if ('${t['command']}' != command) continue;
++      if (t['in_cooldown'] == true) {
++        final m = (t['cooldown_minutes'] as num?)?.toInt() ?? 0;
++        return (label: m > 0 ? '冷却中 $m 分' : '冷却中', tone: 3);
++      }
++      if (t['enable'] != true) return (label: '未启用', tone: 2);
++      if (t['slot'] == 'pending') return (label: '待执行', tone: 0);
++      final reason = '${t['reason'] ?? ''}';
++      return (label: reason.isEmpty ? '等待中' : reason, tone: 1);
++    }
++    return (label: '未知', tone: 2);
++  }
++
++  /// 不在运行列表里的**启用**任务（可作为"未编排"候选）。
++  List<Map<String, dynamic>> get unqueuedEnabledTasks {
++    final inList = {
++      for (final e in entries)
++        if ('${e['kind']}' == 'task') '${e['task']}',
++    };
++    return _allTasks
++        .where((t) => t['enable'] == true && !inList.contains('${t['command']}'))
++        .toList();
++  }
++
++  /// 命令名 -> `/overview` 那一行（拿不到给空 map）。
++  Map<String, dynamic> taskRowOf(String command) {
++    for (final t in _allTasks) {
++      if ('${t['command']}' == command) return t;
++    }
++    return const {};
++  }
++
++  /// 把「未编排」的任务**移出**队列（= 从运行列表删除）。
++  Future<void> removeFromQueue(String command) async {
++    final i = _entryIndex(command);
++    if (i < 0) return;
++    entries.removeAt(i);
++    update();
++    await _saveEntries();
++  }
++
++  /// 把「未编排」的任务**加入**队列末尾。
++  Future<void> appendToQueue(String command) async {
++    if (_entryIndex(command) >= 0) return;
++    await addEntry({'kind': 'task', 'task': command});
++  }
++
+   /// 添加条目。`index = -1` 追加到末尾。
+   ///
+   /// ★ 模型 B 的关键能力: 控制条目可插到**任意位置**。
+@@ -899,6 +970,12 @@ class TaskListController extends GetxController with LogMixin {
+     await reload();
+   }
+ 
++  /// 保存运行列表到后端（**公开** —— 执行队列面板也需要它）。
++  ///
++  /// 为什么不直接暴露 `_saveEntries`: 队列面板在另一个 part 文件里,
++  /// 虽然同属一个库（能调私有成员）, 但**公开名字更清楚地表达"这是对外契约"**。
++  Future<void> saveEntriesNow() => _saveEntries();
++
+   Future<void> _saveEntries() async {
+     final res = await _api.putRunList(scriptName, entries);
+     if (res.containsKey('error')) {
+diff --git a/lib/views/tasks/queue_panel.dart b/lib/views/tasks/queue_panel.dart
+new file mode 100644
+index 0000000..c9d3ab4
+--- /dev/null
++++ b/lib/views/tasks/queue_panel.dart
+@@ -0,0 +1,513 @@
++part of task_list;
++
++/// **执行队列** —— 有序、可拖拽、每行带状态徽标。
++///
++/// ## 为什么是"一个队列"而不是"两个只读观察窗"
++///
++/// 用户原话:
++///
++/// > 待执行、等待中这类就是预期执行流程，也相当于包含所有任务的执行顺序，
++/// > 也应该可以拖拽排列顺序
++///
++/// 原先把「待执行」和「等待中」做成两个**只读**观察窗，问题是:
++///
++/// * 它们是"**到没到点**"的划分（由**时间**决定），不是"顺序"
++/// * 用户想管的其实是**顺序** —— 而顺序只能拖
++///
++/// 所以合并成一个 **有序队列**:
++///
++/// ```
++/// 执行队列（拖拽即改执行顺序）
++///   ⠿  1  探索          [待执行]  [5 次] [10 分]
++///   ⠿  2  御魂          [待执行]  [30 次][--]
++///   ⠿  3  日轮之陨      [等待中 18:00] [9 次]
++///   ⠿  4  契灵之境      [冷却中 42 分]
++///   ⠿  5  [休息 30 分钟]
++///   ─── 未编排（拖上来即加入队列）───
++///   ⠿  探索寮突         [待执行]
++///   ⠿  金币妖怪         [等待中]
++/// ```
++///
++/// * **有序部分** = 运行列表（`run_list`）—— 拖完直接存回后端
++/// * **未编排部分** = 启用了但还没进列表的任务
++/// * **状态徽标** = 后端给的 `slot` / `reason` / `in_cooldown` ——
++///   前端**不重新推导**调度规则
++/// * **每行的次数 / 预期耗时**可直接改（用户要求"把次数/分钟设置也放在任务上边"）
++///
++/// ## 与「任务表格」的分工（用户明确过）
++///
++/// | 面板 | 管什么 |
++/// |---|---|
++/// | **任务表格** | Excel 式的**批量查看与管理**（启停 / 运行一次 / 排序 / 筛选）—— **不改执行顺序** |
++/// | **执行队列** | **执行顺序**（拖拽）+ 每任务的次数与预期耗时 |
++class QueuePanel extends StatefulWidget {
++  const QueuePanel({super.key, required this.controller});
++
++  final TaskListController controller;
++
++  @override
++  State<QueuePanel> createState() => _QueuePanelState();
++}
++
++class _QueuePanelState extends State<QueuePanel> {
++  TaskListController get c => widget.controller;
++
++  @override
++  Widget build(BuildContext context) {
++    final ordered = c.entries;
++    final rest = c.unqueuedEnabledTasks;
++
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Row(
++              children: [
++                Expanded(
++                  child: _panelTitle(
++                    context,
++                    '执行队列',
++                    '拖 ⠿ 改执行顺序 · 每行的次数/预期耗时可直接改',
++                  ),
++                ),
++                // 加入队列（从全部任务里挑, 也能加「休息」）
++                TextButton.icon(
++                  onPressed: () => _pickAndAdd(context),
++                  icon: const Icon(Icons.add, size: 16),
++                  label: const Text('添加'),
++                ),
++              ],
++            ),
++            const SizedBox(height: 4),
++            if (ordered.isEmpty && rest.isEmpty)
++              const Padding(
++                padding: EdgeInsets.symmetric(vertical: 12),
++                child: Text('（没有启用的任务）'),
++              )
++            else
++              // ★ 用 `ReorderableListView` 拖拽 ——
++              //   `shrinkWrap` + `NeverScrollableScrollPhysics`:
++              //   它住在外层 `ListView` 里, 自己不该再滚。
++              ReorderableListView.builder(
++                shrinkWrap: true,
++                physics: const NeverScrollableScrollPhysics(),
++                buildDefaultDragHandles: false,
++                itemCount: ordered.length,
++                onReorder: c.reorderEntries,
++                itemBuilder: (_, i) => _queueRow(context, i),
++              ),
++            if (rest.isNotEmpty) ...[
++              const SizedBox(height: 6),
++              const Divider(height: 1),
++              const SizedBox(height: 6),
++              Text(
++                '未编排（共 ${rest.length} 个 · 拖上来或点「加入」进队列）',
++                style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                      color: Theme.of(context).disabledColor,
++                    ),
++              ),
++              const SizedBox(height: 4),
++              for (final t in rest) _unqueuedRow(context, t),
++            ],
++          ],
++        ),
++      ),
++    );
++  }
++
++  // ---------------------------------------------------------------- 已编排行
++
++  Widget _queueRow(BuildContext context, int i) {
++    final e = c.entries[i];
++    final isTask = '${e['kind']}' == 'task';
++    final cmd = isTask ? '${e['task']}' : '';
++    // 「休息」条目给不同底色 —— 一眼看出"这里会停"
++    final bg = isTask
++        ? null
++        : Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.3);
++
++    return Container(
++      key: ValueKey('queue-$i-${isTask ? cmd : 'rest-${e['minutes']}'}'),
++      color: bg,
++      child: Padding(
++        padding: const EdgeInsets.symmetric(vertical: 2),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Row(
++              children: [
++                // 拖拽把手
++                ReorderableDragStartListener(
++                  index: i,
++                  child: const Padding(
++                    padding: EdgeInsets.symmetric(horizontal: 4),
++                    child: Icon(Icons.drag_handle, size: 18),
++                  ),
++                ),
++                SizedBox(
++                  width: 22,
++                  child: Text('${i + 1}',
++                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                            fontWeight: FontWeight.bold,
++                            color: Theme.of(context).colorScheme.primary,
++                          )),
++                ),
++                Expanded(
++                  child: Text(
++                    isTask ? _zhName(cmd) : '休息 ${e['minutes']} 分钟',
++                    style: Theme.of(context).textTheme.labelLarge,
++                    overflow: TextOverflow.ellipsis,
++                  ),
++                ),
++                if (isTask) _statusBadge(context, cmd),
++                // 移出队列
++                IconButton(
++                  icon: const Icon(Icons.remove_circle_outline, size: 16),
++                  tooltip: '移出队列',
++                  visualDensity: VisualDensity.compact,
++                  onPressed: () async {
++                    if (isTask) {
++                      await c.removeFromQueue(cmd);
++                    } else {
++                      c.entries.removeAt(i);
++                      await c.saveEntriesNow();
++                    }
++                    await c.reload();
++                  },
++                ),
++              ],
++            ),
++            // 次数 / 预期耗时 —— 就在任务下面（用户要求"放在任务上边"）
++            if (isTask) _settingsRow(context, cmd),
++          ],
++        ),
++      ),
++    );
++  }
++
++  /// 一行的**次数 / 预期耗时 / 优先级**（内联可编辑）。
++  ///
++  /// ★ 复用 `_NumberCell` —— 与任务表格里用的是**同一个组件**
++  ///   （失焦/回车才提交、有焦点时不覆盖用户输入、正确 dispose）。
++  ///
++  /// ⚠ 写入接口要的是**下划线键**（`row['name']`，如 `experience_youkai`），
++  ///   不是大驼峰命令名（`ExperienceYoukai`）—— 踩过这个混淆。
++  Widget _settingsRow(BuildContext context, String cmd) {
++    final row = c.taskRowOf(cmd);
++    final key = '${row['name']}';
++    final countable = row['countable'] == true;
++    final target = (row['target'] as num?)?.toInt() ?? 0;
++    final fallback = (row['count'] as num?)?.toInt();
++    final expected = (row['expected_minutes'] as num?)?.toInt() ?? 0;
++    final priority = (row['priority'] as num?)?.toInt() ?? 5;
++
++    return Padding(
++      padding: const EdgeInsets.only(left: 50, bottom: 4, top: 2),
++      child: Wrap(
++        spacing: 10,
++        runSpacing: 4,
++        crossAxisAlignment: WrapCrossAlignment.center,
++        children: [
++          if (countable) ...[
++            Text('次数', style: Theme.of(context).textTheme.labelSmall),
++            _NumberCell(
++              key: ValueKey('q-count-$cmd-$target'),
++              value: target,
++              width: 60,
++              hint: fallback == null ? '默认' : '默认 $fallback',
++              min: 0,
++              max: 999,
++              onCommit: (n) async {
++                await c.setTarget(key, n);
++                await c.reload();
++              },
++            ),
++          ],
++          Text('预期耗时(分)', style: Theme.of(context).textTheme.labelSmall),
++          _NumberCell(
++            key: ValueKey('q-expected-$cmd-$expected'),
++            value: expected,
++            width: 60,
++            hint: '未知',
++            min: 0,
++            max: 1440,
++            onCommit: (n) async {
++              await c.setTaskExpectedMinutes(key, n);
++              await c.reload();
++            },
++          ),
++          // 优先级 —— 定时任务排序的最终裁判（数字小的先跑）
++          Text('优先级', style: Theme.of(context).textTheme.labelSmall),
++          _NumberCell(
++            key: ValueKey('q-pri-$cmd-$priority'),
++            value: priority,
++            width: 44,
++            hint: '5',
++            min: 1,
++            max: 9,
++            onCommit: (n) async {
++              await c.setTaskPriority(key, n);
++              await c.reload();
++            },
++          ),
++        ],
++      ),
++    );
++  }
++
++  // ---------------------------------------------------------------- 未编排行
++
++  Widget _unqueuedRow(BuildContext context, Map<String, dynamic> t) {
++    final cmd = '${t['command']}';
++    return Padding(
++      key: ValueKey('unqueued-$cmd'),
++      padding: const EdgeInsets.symmetric(vertical: 1),
++      child: Row(
++        children: [
++          const SizedBox(width: 48),
++          Expanded(
++            child: Text(_zhName(cmd),
++                style: Theme.of(context).textTheme.labelMedium,
++                overflow: TextOverflow.ellipsis),
++          ),
++          _statusBadge(context, cmd),
++          TextButton(
++            onPressed: () async {
++              await c.appendToQueue(cmd);
++              await c.reload();
++            },
++            child: const Text('加入'),
++          ),
++        ],
++      ),
++    );
++  }
++
++  // ---------------------------------------------------------------- 徽标 / 工具
++
++  /// **状态徽标** —— 说明这个任务为什么在等。
++  ///
++  /// 数据来自后端（`slot` / `reason` / `in_cooldown`）,
++  /// 前端**不重新推导**调度规则。
++  Widget _statusBadge(BuildContext context, String cmd) {
++    final s = c.queueStatusOf(cmd);
++    final scheme = Theme.of(context).colorScheme;
++    final color = switch (s.tone) {
++      0 => Colors.green,          // 待执行
++      1 => scheme.primary,        // 等待中
++      3 => scheme.error,          // 冷却中
++      _ => Theme.of(context).disabledColor, // 未启用 / 未知
++    };
++    return Padding(
++      padding: const EdgeInsets.symmetric(horizontal: 4),
++      child: Text(
++        s.label,
++        style: Theme.of(context)
++            .textTheme
++            .labelSmall
++            ?.copyWith(color: color, fontWeight: FontWeight.w600),
++      ),
++    );
++  }
++
++  String _zhName(String command) {
++    final zh = c.zhNameOf(command);
++    return zh.isEmpty ? command : zh;
++  }
++
++  /// 从**全部任务**里挑一个加入队列（也能加「休息」）。
++  Future<void> _pickAndAdd(BuildContext context) async {
++    final picked = await showDialog<_PickedEntry>(
++      context: context,
++      builder: (ctx) => _TaskPickerDialog(controller: c),
++    );
++    if (picked == null) return;
++    if (picked.isRest) {
++      if (!context.mounted) return;
++      await _addRest(context);
++      return;
++    }
++    await c.appendToQueue(picked.task);
++    await c.reload();
++  }
++
++  Future<void> _addRest(BuildContext context) async {
++    final rest = c.entryKinds.firstWhere(
++      (k) => '${k['value']}' == 'rest',
++      orElse: () => const {'value': 'rest', 'label': '休息', 'help': ''},
++    );
++    final minutes = await showDialog<int>(
++      context: context,
++      builder: (ctx) => SimpleDialog(
++        title: Text('添加「${rest['label']}」'),
++        children: [
++          Padding(
++            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
++            child: Text('${rest['help']}',
++                style: Theme.of(ctx).textTheme.labelMedium),
++          ),
++          for (final m in c.durationChoices)
++            SimpleDialogOption(
++              onPressed: () => Navigator.pop(ctx, m),
++              child: Text(m >= 60 && m % 60 == 0 ? '${m ~/ 60} 小时' : '$m 分钟'),
++            ),
++        ],
++      ),
++    );
++    if (minutes == null) return;
++    await c.addEntry({'kind': '${rest['value']}', 'minutes': minutes});
++  }
++}
++
++/// 选择器的返回值 —— 要么是一个任务，要么是「休息」。
++class _PickedEntry {
++  const _PickedEntry.task(this.task) : isRest = false;
++  const _PickedEntry.rest()
++      : task = '',
++        isRest = true;
++
++  final String task;
++  final bool isRest;
++}
++
++/// 任务选择对话框。
++///
++/// ## 三条规则
++///
++/// 1. **「休息」置顶** —— 它是唯一的控制条目
++/// 2. **不按任务类型过滤** —— 列表**接受任意任务名**
++///    （曾经按 `countable` 过滤, 把用户 7 个条目全丢了, 见
++///    `module/config/run_list.py` 的"踩过的坑"）
++/// 3. **分类筛选** —— 类别标签来自 `/schema` 的 `category_label`
++class _TaskPickerDialog extends StatefulWidget {
++  const _TaskPickerDialog({required this.controller});
++
++  final TaskListController controller;
++
++  @override
++  State<_TaskPickerDialog> createState() => _TaskPickerDialogState();
++}
++
++class _TaskPickerDialogState extends State<_TaskPickerDialog> {
++  String _q = '';
++  String _cat = '';
++
++  @override
++  Widget build(BuildContext context) {
++    final all = widget.controller.allTasks;
++    final inList = widget.controller.entries
++        .where((e) => '${e['kind']}' == 'task')
++        .map((e) => '${e['task']}')
++        .toSet();
++
++    // 类别去重（保持出现顺序）
++    final cats = <String, String>{};
++    for (final t in all) {
++      final v = '${t['category'] ?? ''}';
++      if (v.isNotEmpty) cats.putIfAbsent(v, () => '${t['category_label'] ?? v}');
++    }
++
++    var list = all;
++    if (_cat.isNotEmpty) {
++      list = list.where((t) => '${t['category']}' == _cat).toList();
++    }
++    if (_q.isNotEmpty) {
++      final q = _q.toLowerCase();
++      list = list
++          .where((t) =>
++              '${t['name_zh']}'.contains(_q) ||
++              '${t['command']}'.toLowerCase().contains(q))
++          .toList();
++    }
++
++    return AlertDialog(
++      title: const Text('添加条目'),
++      content: SizedBox(
++        width: 460,
++        height: 480,
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            // ---------- 「休息」置顶 ----------
++            Card(
++              margin: EdgeInsets.zero,
++              color: Theme.of(context).colorScheme.secondaryContainer,
++              child: ListTile(
++                dense: true,
++                leading: const Icon(Icons.hotel, size: 20),
++                title: const Text('休息（去庭院待着）'),
++                subtitle: const Text('到这一行会停下来等 N 分钟'),
++                onTap: () => Navigator.pop(context, const _PickedEntry.rest()),
++              ),
++            ),
++            const Divider(height: 16),
++            TextField(
++              autofocus: true,
++              decoration: const InputDecoration(
++                isDense: true,
++                prefixIcon: Icon(Icons.search, size: 18),
++                hintText: '搜索任务名…',
++                border: OutlineInputBorder(),
++              ),
++              onChanged: (v) => setState(() => _q = v.trim()),
++            ),
++            const SizedBox(height: 8),
++            if (cats.length > 1)
++              Wrap(
++                spacing: 6,
++                children: [
++                  FilterChip(
++                    label: const Text('全部'),
++                    selected: _cat.isEmpty,
++                    onSelected: (_) => setState(() => _cat = ''),
++                    visualDensity: VisualDensity.compact,
++                  ),
++                  for (final e in cats.entries)
++                    FilterChip(
++                      label: Text(e.value),
++                      selected: _cat == e.key,
++                      onSelected: (_) => setState(() => _cat = e.key),
++                      visualDensity: VisualDensity.compact,
++                    ),
++                ],
++              ),
++            const SizedBox(height: 8),
++            Expanded(
++              child: list.isEmpty
++                  ? const Center(child: Text('没有匹配的任务'))
++                  : ListView.builder(
++                      itemCount: list.length,
++                      itemBuilder: (_, i) {
++                        final t = list[i];
++                        final cmd = '${t['command']}';
++                        final already = inList.contains(cmd);
++                        return ListTile(
++                          dense: true,
++                          enabled: !already,
++                          title: Text('${t['name_zh']}'),
++                          subtitle: Text('${t['category_label']} · $cmd'),
++                          trailing: already
++                              ? Text('已在队列',
++                                  style:
++                                      Theme.of(context).textTheme.labelSmall)
++                              : null,
++                          onTap: already
++                              ? null
++                              : () => Navigator.pop(
++                                  context, _PickedEntry.task(cmd)),
++                        );
++                      },
++                    ),
++            ),
++          ],
++        ),
++      ),
++      actions: [
++        TextButton(
++            onPressed: () => Navigator.pop(context), child: const Text('取消')),
++      ],
++    );
++  }
++}
+diff --git a/lib/views/tasks/run_control_bar.dart b/lib/views/tasks/run_control_bar.dart
+index 0d0bdc2..6e9ecc6 100644
+--- a/lib/views/tasks/run_control_bar.dart
++++ b/lib/views/tasks/run_control_bar.dart
+@@ -71,74 +71,89 @@ class _RunControlBarState extends State<RunControlBar> {
+   Widget build(BuildContext context) {
+     final paused = _state['paused'] == true;
+     final restUntil = _state['rest_until'];
+-    final pauseLabel = '${_state['pause_mode_label'] ?? '运行中'}';
+ 
+     return Card(
+       margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+       child: Padding(
+         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+-        child: Wrap(
+-          spacing: 8,
+-          runSpacing: 4,
+-          crossAxisAlignment: WrapCrossAlignment.center,
+-          children: [
+-            // ---- 当前状态 ----
+-            Container(
+-              width: 10,
+-              height: 10,
+-              decoration: BoxDecoration(
+-                color: paused ? Colors.orange : Colors.green,
+-                shape: BoxShape.circle,
+-              ),
+-            ),
+-            const SizedBox(width: 4),
+-            Text(pauseLabel),
+-            // 「休息」条目生效时它会写 `rest_until` —— 显示出来,
+-            // 否则用户只看到"什么都不跑"会困惑。
+-            if (restUntil != null)
+-              Chip(
+-                label: Text('休息中 至 $restUntil'),
+-                visualDensity: VisualDensity.compact,
++        // ★★ 状态必须同时看**脚本进程**与**调度暂停**（修一个真 bug）★★
++        //
++        // 用户反馈: "虽然未暂停调度就绿色运行中，但是脚本进程停止时
++        //            这个还显示运行中啊"
++        //
++        // 根因: 这里原先只看 `run_control` 的 `paused`（调度是否被暂停）,
++        // **完全没看脚本进程** —— 没暂停就画绿点, 哪怕进程根本没跑。
++        //
++        // 修法: 圆点与文字先看**进程**（WebSocket 的 `ScriptModel.state`）,
++        // 再看调度暂停。进程停了就一定是灰的, 不会再谎报。
++        child: Obx(() {
++          final svc = Get.find<ScriptService>();
++          final sm = svc.scriptModelMap[_c.script];
++          final procRunning = sm?.state.value == ScriptState.running;
++
++          final Color dot;
++          final String label;
++          if (!procRunning) {
++            dot = Colors.grey;
++            label = '脚本未启动';
++          } else if (restUntil != null) {
++            dot = Colors.orange;
++            label = '休息中 至 $restUntil';
++          } else if (paused) {
++            dot = Colors.orange;
++            label = '已暂停调度';
++          } else {
++            dot = Colors.green;
++            label = '运行中';
++          }
++
++          return Wrap(
++            spacing: 8,
++            runSpacing: 4,
++            crossAxisAlignment: WrapCrossAlignment.center,
++            children: [
++              // ---- 当前状态 ----
++              Container(
++                width: 10,
++                height: 10,
++                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+               ),
+-            const SizedBox(width: 12),
++              const SizedBox(width: 4),
++              Text(label),
+ 
+-            // ---- 三个调度按钮 ----
+-            if (!paused) ...[
+-              Tooltip(
+-                message: '跑完当前这场战斗后不再开新任务\n'
+-                    '（安全停，不会卡在半途）\n'
+-                    '★ 固定任务与定时任务**都会**暂停',
+-                child: FilledButton.icon(
+-                  onPressed: _busy
+-                      ? null
+-                      : () => _do(() => ApiClient()
+-                          .pauseScript(_c.script, mode: 'battle')),
+-                  icon: const Icon(Icons.pause, size: 18),
+-                  label: const Text('暂停调度'),
++              // ---- 暂停 / 继续 ----
++              //
++              // ★ 用户要求**去掉「本轮跑完再停」**（此前的决策台账 1.2 已作废）。
++              //   后端 `pause_mode='round'` 这个**能力保留不动**, 只是界面不再
++              //   暴露入口 —— 与「只停列表」的处理一致。
++              const SizedBox(width: 12),
++              if (!paused)
++                Tooltip(
++                  message: '跑完当前这场战斗后不再开新任务\n'
++                      '（安全停，不会卡在半途）\n'
++                      '★ 固定任务与定时任务**都会**暂停',
++                  child: FilledButton.icon(
++                    // ★ 进程没跑时置灰 —— 暂停一个没在跑的东西没意义,
++                    //   而且会让用户以为"点了有用"
++                    onPressed: (_busy || !procRunning)
++                        ? null
++                        : () => _do(() => ApiClient()
++                            .pauseScript(_c.script, mode: 'battle')),
++                    icon: const Icon(Icons.pause, size: 18),
++                    label: const Text('暂停调度'),
++                  ),
+                 ),
+-              ),
+-              Tooltip(
+-                message: '本任务本轮打满目标次数后再停',
+-                child: OutlinedButton.icon(
++              if (paused)
++                FilledButton.icon(
+                   onPressed: _busy
+                       ? null
+-                      : () => _do(() => ApiClient()
+-                          .pauseScript(_c.script, mode: 'round')),
+-                  icon: const Icon(Icons.skip_next, size: 18),
+-                  label: const Text('本轮跑完再停'),
++                      : () => _do(() => ApiClient().resumeScript(_c.script)),
++                  icon: const Icon(Icons.play_arrow, size: 18),
++                  label: const Text('继续调度'),
+                 ),
+-              ),
+             ],
+-            if (paused)
+-              FilledButton.icon(
+-                onPressed: _busy
+-                    ? null
+-                    : () => _do(() => ApiClient().resumeScript(_c.script)),
+-                icon: const Icon(Icons.play_arrow, size: 18),
+-                label: const Text('继续调度'),
+-              ),
+-          ],
+-        ),
++          );
++        }),
+       ),
+     );
+   }
+diff --git a/lib/views/tasks/run_list_panel.dart b/lib/views/tasks/run_list_panel.dart
+deleted file mode 100644
+index 1339db9..0000000
+--- a/lib/views/tasks/run_list_panel.dart
++++ /dev/null
+@@ -1,520 +0,0 @@
+-part of task_list;
+-
+-/// 「执行顺序」面板 —— **模型 B 的核心界面，也是唯一的调度控制台**。
+-///
+-/// ## 与"只是任务顺序"的区别
+-///
+-/// 列表是**有序条目**的序列，里面可以混入控制条目:
+-///
+-///     1. 探索              [次数 5]  [✓启用]
+-///     2. 御魂              [次数 0]  [✓启用]
+-///     3. [全部停止 30 分钟]                    ← 会**停在这里**
+-///     4. 金币妖怪          [次数 2]  [✓启用]
+-///
+-/// ★ 控制条目能**插到任意位置**（原型说的"都可插入到任意位置"）。
+-///
+-/// ## 每个任务行都带"次数"与"启用"（对应原型）
+-///
+-/// 原型的 `renderList()` 里, 任务行直接内嵌:
+-///   * `<input class="num">` 次数 —— 就是 `scheduler.target`
+-///   * `⚠ 配置中已停用` 可点击启用 —— 就是 `scheduler.enable`
+-///
+-/// ★ 所以**不需要单独的"任务列表"面板** —— 这一块就是控制台。
+-///   (我第一版漏了这两个控件, 用户反馈"找不到启停和次数"。)
+-///
+-/// ## 条目类型不硬编码
+-///
+-/// 效果名(全部停止 / 只停列表)、说明、以及 `needs_minutes` /
+-/// `needs_task` / `blocks_list` 标志全部从 `/schema` 的
+-/// `list.entry_kinds` 读 —— 后端改名前端自动跟上。
+-class RunListPanel extends StatefulWidget {
+-  const RunListPanel({super.key, required this.c});
+-
+-  final TaskListController c;
+-
+-  @override
+-  State<RunListPanel> createState() => _RunListPanelState();
+-}
+-
+-class _RunListPanelState extends State<RunListPanel> {
+-  TaskListController get c => widget.c;
+-
+-  /// 记录每行"次数"输入框的控制器 —— **不能在 build 里 new**
+-  /// （`TextEditingController` 是 ChangeNotifier, 每帧 new 会泄漏）。
+-  final Map<String, TextEditingController> _countCtrls = {};
+-  final Map<String, FocusNode> _countFocus = {};
+-
+-  TextEditingController _ctrlFor(String key, String initial) {
+-    final e = _countCtrls[key];
+-    if (e != null) return e;
+-    final made = TextEditingController(text: initial);
+-    _countCtrls[key] = made;
+-    _countFocus[key] = FocusNode();
+-    return made;
+-  }
+-
+-  @override
+-  void dispose() {
+-    for (final e in _countCtrls.values) {
+-      e.dispose();
+-    }
+-    for (final e in _countFocus.values) {
+-      e.dispose();
+-    }
+-    super.dispose();
+-  }
+-
+-  /// 行 key（同一个任务在列表里只应出现一次，所以任务名就够）。
+-  String _keyOf(Map<String, dynamic> e) =>
+-      e['kind'] == 'task' ? 'task:${e['task']}' : 'ctl:${e['kind']}';
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return Card(
+-      child: Padding(
+-        padding: const EdgeInsets.all(12),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            Text('执行顺序', style: Theme.of(context).textTheme.titleSmall),
+-            const SizedBox(height: 4),
+-            Text(
+-              '拖动 ⠿ 调整 · 序号即优先级 · 这里是**唯一**的调度控制台',
+-              style: Theme.of(context).textTheme.labelSmall,
+-            ),
+-            const SizedBox(height: 8),
+-            if (c.entries.isEmpty)
+-              _empty(context)
+-            else
+-              ReorderableListView.builder(
+-                shrinkWrap: true,
+-                physics: const NeverScrollableScrollPhysics(),
+-                buildDefaultDragHandles: false,
+-                itemCount: c.entries.length,
+-                onReorder: c.reorderEntries,
+-                itemBuilder: (_, i) => _entryRow(context, i),
+-              ),
+-            const SizedBox(height: 12),
+-            _actions(context),
+-            const SizedBox(height: 8),
+-            _hint(context),
+-          ],
+-        ),
+-      ),
+-    );
+-  }
+-
+-  Widget _empty(BuildContext context) {
+-    return Container(
+-      width: double.infinity,
+-      padding: const EdgeInsets.symmetric(vertical: 20),
+-      child: Column(
+-        children: [
+-          Text('（未编排 —— 正在用内置默认顺序）',
+-              style: Theme.of(context).textTheme.labelMedium),
+-          const SizedBox(height: 4),
+-          Text('点下面的「添加任务」开始编排',
+-              style: Theme.of(context).textTheme.labelSmall),
+-        ],
+-      ),
+-    );
+-  }
+-
+-  Widget _entryRow(BuildContext context, int i) {
+-    final e = c.entries[i];
+-    final isTask = c.isTaskEntry(e);
+-    final isRest = '${e['kind']}' == 'rest';
+-    // ★ 阻塞条目给不同底色 —— 用户一眼看出"这里会停"
+-    final bg = isTask
+-        ? null
+-        : (isRest
+-            ? Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.35)
+-            : Theme.of(context)
+-                .colorScheme
+-                .tertiaryContainer
+-                .withValues(alpha: 0.35));
+-
+-    return Container(
+-      key: ValueKey('entry-$i-${_keyOf(e)}'),
+-      color: bg,
+-      child: Padding(
+-        padding: const EdgeInsets.symmetric(vertical: 3),
+-        child: Row(
+-          children: [
+-            ReorderableDragStartListener(
+-              index: i,
+-              child: const Padding(
+-                padding: EdgeInsets.symmetric(horizontal: 6),
+-                child: Icon(Icons.drag_handle, size: 20),
+-              ),
+-            ),
+-            SizedBox(
+-              width: 26,
+-              child: Text('${i + 1}',
+-                  style: Theme.of(context).textTheme.labelMedium),
+-            ),
+-            Icon(
+-              isTask ? Icons.play_circle_outline : Icons.pause_circle_outline,
+-              size: 18,
+-              color: isTask ? null : Theme.of(context).colorScheme.error,
+-            ),
+-            const SizedBox(width: 8),
+-            Expanded(
+-              child: Text(c.describeEntry(e),
+-                  style: Theme.of(context).textTheme.bodyMedium),
+-            ),
+-            if (isTask) ..._taskControls(context, e),
+-            if (!isTask)
+-              Text('${c.kindOf('${e['kind']}')['label']}',
+-                  style: Theme.of(context).textTheme.labelSmall),
+-            IconButton(
+-              tooltip: '删除此条目',
+-              icon: const Icon(Icons.close, size: 18),
+-              onPressed: () => c.removeEntry(i),
+-            ),
+-          ],
+-        ),
+-      ),
+-    );
+-  }
+-
+-  /// 任务行右侧的**次数**与**启用开关** —— 对应原型行内的
+-  /// `<input class="num">` 与可点击的 `⚠ 配置中已停用`。
+-  List<Widget> _taskControls(BuildContext context, Map<String, dynamic> e) {
+-    final taskName = '${e['task']}';
+-    final row = c.findTask(taskName);
+-    final countable = row?['countable'] == true;
+-    final enabled = row?['enable'] == true;
+-    final target = '${row?['count'] ?? ''}';
+-    final key = _keyOf(e);
+-    final ctrl = _ctrlFor(key, target);
+-    final focus = _countFocus[key];
+-
+-    return [
+-      if (countable) ...[
+-        Text('次数', style: Theme.of(context).textTheme.labelSmall),
+-        const SizedBox(width: 4),
+-        SizedBox(
+-          width: 62,
+-          child: TextField(
+-            controller: ctrl,
+-            focusNode: focus,
+-            keyboardType: TextInputType.number,
+-            decoration: const InputDecoration(
+-              isDense: true,
+-              hintText: '默认',
+-              border: OutlineInputBorder(),
+-              contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+-            ),
+-            onSubmitted: (v) async {
+-              final n = int.tryParse(v.trim()) ?? 0;
+-              await c.setTarget(taskName, n);
+-              await c.reload();
+-            },
+-          ),
+-        ),
+-        const SizedBox(width: 8),
+-      ] else
+-        Padding(
+-          padding: const EdgeInsets.only(right: 8),
+-          child: Text('（按存量/周期）',
+-              style: Theme.of(context).textTheme.labelSmall),
+-        ),
+-      // ★ 启用开关 —— 用户反馈"任务列表里也没有启用/停用选项"
+-      Tooltip(
+-        message: enabled ? '已启用（点击停用）' : '⚠ 配置中已停用（点击启用）',
+-        child: TextButton.icon(
+-          onPressed: () async {
+-            await c.setEnabled(taskName, !enabled);
+-            await c.reload();
+-          },
+-          icon: Icon(
+-            enabled ? Icons.check_circle : Icons.error_outline,
+-            size: 16,
+-            color: enabled ? Colors.green : Colors.orange,
+-          ),
+-          label: Text(
+-            enabled ? '启用' : '已停用',
+-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+-                color: enabled ? null : Colors.orange),
+-          ),
+-        ),
+-      ),
+-    ];
+-  }
+-
+-  Widget _actions(BuildContext context) {
+-    return Wrap(
+-      spacing: 8,
+-      runSpacing: 4,
+-      children: [
+-        FilledButton.icon(
+-          onPressed: () => _pickTask(context),
+-          icon: const Icon(Icons.add, size: 18),
+-          label: const Text('添加任务'),
+-        ),
+-        // ★ 为**每一种带时长的条目**各生成一个按钮 —— 不硬编码"休息/延后"
+-        for (final k in c.entryKinds)
+-          if (k['needs_minutes'] == true)
+-            OutlinedButton.icon(
+-              onPressed: () => _addControlEntry(context, k),
+-              icon: const Icon(Icons.pause_circle_outline, size: 18),
+-              label: Text('添加「${k['label']}」'),
+-            ),
+-        TextButton(
+-          onPressed: c.entries.isEmpty ? null : c.resetToDefault,
+-          child: const Text('恢复默认'),
+-        ),
+-      ],
+-    );
+-  }
+-
+-  /// 提示: 顺序要生效必须先切成"列表优先"。
+-  ///
+-  /// ★ 这是用户反馈"添加了任务后并没有执行"的**最可能原因** ——
+-  ///   调度模式还是"优先级/定时优先"时, `run_list` 的顺序**根本不参与调度**。
+-  Widget _hint(BuildContext context) {
+-    final need = c.scheduleRule != c.listModeValue;
+-    return Container(
+-      width: double.infinity,
+-      padding: const EdgeInsets.all(8),
+-      decoration: BoxDecoration(
+-        color: need
+-            ? Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.4)
+-            : Theme.of(context).colorScheme.surfaceContainerHighest
+-                .withValues(alpha: 0.4),
+-        borderRadius: BorderRadius.circular(6),
+-      ),
+-      child: Text(
+-        need
+-            ? '⚠ 当前调度模式是「${c.scheduleRuleLabel}」，**这个列表不生效**。'
+-                '请在上面的「全局设置 → 优先级依据」里改成'
+-                '「${c.listModeLabel}」。'
+-            : '当前是「${c.listModeLabel}」，列表顺序生效。'
+-                '未出现在列表里的任务**仍需进入列表**才会被调度。',
+-        style: Theme.of(context).textTheme.labelSmall,
+-      ),
+-    );
+-  }
+-
+-  /// 选一个任务加进列表（可指定插入位置）。
+-  ///
+-  /// ★ 只能选**固定任务**（`countable == true`）—— 定时任务有自己的
+-  ///   window / 存量 / 周期, "放进列表按顺序执行" 与那些机制冲突。
+-  ///   这是**后端定的规则**（`run_list.is_list_task()`），
+-  ///   前端只负责不给出无效选项。
+-  ///
+-  /// ★ 选择器里也提供「休息」—— 见 `_TaskPickerDialog`。
+-  Future<void> _pickTask(BuildContext context) async {
+-    final picked = await showDialog<_PickedEntry>(
+-      context: context,
+-      builder: (ctx) => _TaskPickerDialog(controller: c),
+-    );
+-    if (picked == null) return;
+-    if (picked.isRest) {
+-      // 选了「休息」-> 接着问时长（与"添加休息"按钮同一条路）
+-      final restKind = c.entryKinds.firstWhere(
+-        (k) => '${k['value']}' == 'rest',
+-        orElse: () => const {'value': 'rest', 'label': '休息', 'help': ''},
+-      );
+-      if (context.mounted) await _addControlEntry(context, restKind);
+-      return;
+-    }
+-    await c.addEntry({'kind': 'task', 'task': picked.task});
+-  }
+-
+-  /// 添加一个控制条目（v2 只有「休息」）。
+-  ///
+-  /// ★ 时长可选项来自 `/schema` 的 `duration_choices`。
+-  /// ★ 说明文字来自 `entry_kinds[].help` —— 里面写着**去庭院待着**。
+-  Future<void> _addControlEntry(
+-      BuildContext context, Map<String, dynamic> kind) async {
+-    final minutes = await showDialog<int>(
+-      context: context,
+-      builder: (ctx) => SimpleDialog(
+-        title: Text('添加「${kind['label']}」'),
+-        children: [
+-          Padding(
+-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+-            child: Text('${kind['help']}',
+-                style: Theme.of(ctx).textTheme.labelMedium),
+-          ),
+-          for (final m in c.durationChoices)
+-            SimpleDialogOption(
+-              onPressed: () => Navigator.pop(ctx, m),
+-              child: Text(m >= 60 && m % 60 == 0 ? '${m ~/ 60} 小时' : '$m 分钟'),
+-            ),
+-        ],
+-      ),
+-    );
+-    if (minutes == null) return;
+-    await c.addEntry({'kind': '${kind['value']}', 'minutes': minutes});
+-  }
+-}
+-
+-/// 选择器的返回值 —— 要么是一个任务，要么是「休息」。
+-class _PickedEntry {
+-  const _PickedEntry.task(this.task) : isRest = false;
+-  const _PickedEntry.rest()
+-      : task = '',
+-        isRest = true;
+-
+-  final String task;
+-  final bool isRest;
+-}
+-
+-/// 任务选择对话框。
+-///
+-/// ## 三条规则
+-///
+-/// 1. **「休息」置顶** —— 用户明确要求。它是唯一的控制条目,
+-///    放进列表的频次不低，藏在"添加休息"按钮里不如直接可选。
+-/// 2. **只列固定任务**（`countable`）—— 定时任务不该进列表
+-///    （见 `_pickTask` 的说明）。给无效选项比不给更糟。
+-/// 3. **分类筛选** —— 54 个任务里翻找很累；类别标签来自 `/schema`
+-///    的 `category_label`，前端不硬编码。
+-class _TaskPickerDialog extends StatefulWidget {
+-  const _TaskPickerDialog({required this.controller});
+-
+-  final TaskListController controller;
+-
+-  @override
+-  State<_TaskPickerDialog> createState() => _TaskPickerDialogState();
+-}
+-
+-class _TaskPickerDialogState extends State<_TaskPickerDialog> {
+-  String _q = '';
+-  String _cat = '';
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    // ★★ **不过滤任务类型**（踩过的坑）★★
+-    //
+-    // 曾经这里写 `.where((t) => t['countable'] == true)` —— "只列固定任务"。
+-    // 结果是**静默丢用户的配置**:
+-    // `countable` 只覆盖 54 个任务里的 **14 个**, 于是
+-    // `DemonEncounter` / `WantedQuests` / `MysteryShop` / `Duel` /
+-    // `ExperienceYoukai` / `TrueOrochi` / `WeeklyTrifles` 全被排除,
+-    // 而且后端过滤后还会把结果写回配置。
+-    //
+-    // 现在: **列表接受任意任务名**。"固定/定时分开管理"是**调度器**的事
+-    // （两个总开关 + `timed_priority`），不由列表的准入规则承担。
+-    // 详见 `module/config/run_list.py` 的"踩过的坑"。
+-    final all = widget.controller.allTasks;
+-    final inList = widget.controller.entries
+-        .where((e) => e['kind'] == 'task')
+-        .map((e) => '${e['task']}')
+-        .toSet();
+-
+-    // 类别去重（保持稳定顺序: 按出现顺序）
+-    final cats = <String, String>{};
+-    for (final t in all) {
+-      final v = '${t['category'] ?? ''}';
+-      if (v.isNotEmpty) cats.putIfAbsent(v, () => '${t['category_label'] ?? v}');
+-    }
+-
+-    var list = all;
+-    if (_cat.isNotEmpty) {
+-      list = list.where((t) => '${t['category']}' == _cat).toList();
+-    }
+-    if (_q.isNotEmpty) {
+-      final q = _q.toLowerCase();
+-      list = list
+-          .where((t) =>
+-              '${t['name_zh']}'.contains(_q) ||
+-              '${t['command']}'.toLowerCase().contains(q))
+-          .toList();
+-    }
+-
+-    return AlertDialog(
+-      title: const Text('添加条目'),
+-      content: SizedBox(
+-        width: 460,
+-        height: 480,
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            // ---------- 「休息」置顶 ----------
+-            Card(
+-              margin: EdgeInsets.zero,
+-              color: Theme.of(context).colorScheme.secondaryContainer,
+-              child: ListTile(
+-                dense: true,
+-                leading: const Icon(Icons.hotel, size: 20),
+-                title: const Text('休息（去庭院待着）'),
+-                subtitle: const Text('唯一的控制条目 —— 到这一行会停下来等 N 分钟'),
+-                onTap: () =>
+-                    Navigator.pop(context, const _PickedEntry.rest()),
+-              ),
+-            ),
+-            const Divider(height: 16),
+-
+-            TextField(
+-              autofocus: true,
+-              decoration: const InputDecoration(
+-                isDense: true,
+-                prefixIcon: Icon(Icons.search, size: 18),
+-                hintText: '搜索任务名…',
+-                border: OutlineInputBorder(),
+-              ),
+-              onChanged: (v) => setState(() => _q = v.trim()),
+-            ),
+-            const SizedBox(height: 8),
+-            // ---------- 分类筛选 ----------
+-            if (cats.length > 1)
+-              Wrap(
+-                spacing: 6,
+-                children: [
+-                  FilterChip(
+-                    label: const Text('全部'),
+-                    selected: _cat.isEmpty,
+-                    onSelected: (_) => setState(() => _cat = ''),
+-                    visualDensity: VisualDensity.compact,
+-                  ),
+-                  for (final e in cats.entries)
+-                    FilterChip(
+-                      label: Text(e.value),
+-                      selected: _cat == e.key,
+-                      onSelected: (_) => setState(() => _cat = e.key),
+-                      visualDensity: VisualDensity.compact,
+-                    ),
+-                ],
+-              ),
+-            const SizedBox(height: 8),
+-            Expanded(
+-              child: list.isEmpty
+-                  ? const Center(child: Text('没有匹配的任务'))
+-                  : ListView.builder(
+-                      itemCount: list.length,
+-                      itemBuilder: (_, i) {
+-                        final t = list[i];
+-                        final cmd = '${t['command']}';
+-                        final already = inList.contains(cmd);
+-                        return ListTile(
+-                          dense: true,
+-                          enabled: !already,
+-                          title: Text('${t['name_zh']}'),
+-                          subtitle: Text('${t['category_label']} · $cmd'),
+-                          trailing: already
+-                              ? Text('已在列表',
+-                                  style:
+-                                      Theme.of(context).textTheme.labelSmall)
+-                              : null,
+-                          onTap: already
+-                              ? null
+-                              : () => Navigator.pop(
+-                                  context, _PickedEntry.task(cmd)),
+-                        );
+-                      },
+-                    ),
+-            ),
+-          ],
+-        ),
+-      ),
+-      actions: [
+-        TextButton(
+-            onPressed: () => Navigator.pop(context), child: const Text('取消')),
+-      ],
+-    );
+-  }
+-}
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 654726b..ad88a2e 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -59,7 +59,7 @@ import 'package:oasx/service/task_prefs.dart';
+ import 'package:oasx/views/nav/view_nav.dart';part '../../controller/task_list/task_list_controller.dart';
+ part './task_row_view.dart';
+ part './run_control_bar.dart';
+-part './run_list_panel.dart';
++part './queue_panel.dart';
+ 
+ class TaskListView extends StatefulWidget {
+   const TaskListView({super.key, required this.scriptName});
+@@ -102,21 +102,58 @@ class _TaskListViewState extends State<TaskListView> {
+   ///   （`TextEditingController` 是 `ChangeNotifier`，每帧新建会泄漏监听器）。
+   final _searchCtrl = TextEditingController();
+ 
++  /// **左面板宽度**（右半栏是日志）—— 可拖拽调整。
++  ///
++  /// 用户要求"日志面板和别的面板占用大小应改为可以拖动调整的"。
++  /// 拖完存进偏好 —— 下次打开保持（按账号隔离）。
++  double _splitWidth = 700;
++
++  static const _splitKey = 'split_left_width';
++
+   @override
+   void initState() {
+     super.initState();
+     _bindController();
++    _loadSplit();
+     _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+       if (mounted) setState(() => _now = DateTime.now());
+     });
+   }
+ 
++  /// 读回上次拖好的宽度（**在 `_bindController` 之后调**）。
++  void _loadSplit() {
++    try {
++      final c = _c;
++      if (c == null) return;
++      final box = c.prefsStore.read('${widget.scriptName}:layout');
++      final v = box[_splitKey];
++      if (v is num && v > 0) _splitWidth = v.toDouble();
++    } catch (_) {
++      // 偏好读不到 -> 用默认宽度（不是错误）
++    }
++  }
++
++  /// 松手时存盘（拖动过程中不写, 免得每帧一个 IO）。
++  void _saveSplit() {
++    try {
++      final c = _c;
++      if (c == null) return;
++      final key = '${widget.scriptName}:layout';
++      final box = c.prefsStore.read(key);
++      box[_splitKey] = _splitWidth;
++      c.prefsStore.write(key, box);
++    } catch (_) {
++      // 存不下只影响"下次是否记得", 不影响使用
++    }
++  }
++
+   @override
+   void didUpdateWidget(covariant TaskListView old) {
+     super.didUpdateWidget(old);
+     // 账号切换 -> 换控制器, 让面板显示**该账号自己**的列表
+     if (old.scriptName != widget.scriptName) {
+       _bindController(previous: old.scriptName);
++      _loadSplit();
+     }
+   }
+ 
+@@ -203,33 +240,76 @@ class _TaskListViewState extends State<TaskListView> {
+             _header(context, c),
+             const TabBar(
+               tabs: [
+-                // ★ 从 3 个 tab 减到 2 个（用户要求合并）:
+-                //   「执行顺序」与「监控」都并进「调度面板」——
+-                //   在调度监控的地方就能控制次数与顺序, 不再需要单独的执行顺序页。
+-                //   这个 tab 只留**推算结果**（看完再决定的东西）。
+-                Tab(text: '调度面板'),
+-                Tab(text: '预期流程'),
++                // ★ 用户指出: 「监控」与「预期流程」是**一回事**
++                //   （都是"计划和预期"）—— 所以合成一个 tab。
++                //
++                //   * 调度 —— 批量操作 / 全局开关 / 任务表格 / **执行队列**（拖拽）
++                //   * 监控/计划 —— 调度器 · 正在运行 · 待执行 · 等待中 · 预期流程
++                Tab(text: '调度'),
++                Tab(text: '监控 / 计划'),
+               ],
+             ),
+             Expanded(
+               child: wide
+-                  ? Row(
+-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+-                      children: [
+-                        // 左: 主面板
+-                        SizedBox(
+-                          width: 700,
+-                          child: TabBarView(
+-                            children: [
+-                              _ScheduleTab(c: c, searchCtrl: _searchCtrl),
+-                              _FlowTab(c: c),
+-                            ],
+-                          ),
+-                        ),
+-                        const VerticalDivider(width: 1),
+-                        // 右半: 日志
+-                        Expanded(child: logs),
+-                      ],
++                  // ★ 左右分栏宽度**可拖拽调整**（用户要求）
++                  //
++                  //   用 `Stack` + 一个 6px 宽的拖拽条, 而不是
++                  //   `Row` + 固定 `SizedBox` —— 后者没法调。
++                  //
++                  //   范围限制在 [420, 可用宽度-320]: 任一侧都不会被拖没。
++                  //   （用户说过"看不到就以为功能没了", 这点必须防住。）
++                  ? LayoutBuilder(
++                      builder: (_, box) {
++                        final maxLeft =
++                            (box.maxWidth - 320).clamp(420.0, box.maxWidth);
++                        final left = _splitWidth.clamp(420.0, maxLeft);
++                        return Stack(
++                          children: [
++                            Positioned.fill(
++                              child: Row(
++                                crossAxisAlignment:
++                                    CrossAxisAlignment.stretch,
++                                children: [
++                                  SizedBox(
++                                    width: left,
++                                    child: TabBarView(
++                                      children: [
++                                        _ScheduleTab(
++                                            c: c, searchCtrl: _searchCtrl),
++                                        _FlowTab(c: c),
++                                      ],
++                                    ),
++                                  ),
++                                  const VerticalDivider(width: 1),
++                                  Expanded(child: logs),
++                                ],
++                              ),
++                            ),
++                            // 拖拽条 —— 压在分界线上（左右各 3px 热区, 好点中）
++                            Positioned(
++                              left: left - 3,
++                              top: 0,
++                              bottom: 0,
++                              width: 7,
++                              child: MouseRegion(
++                                cursor: SystemMouseCursors.resizeColumn,
++                                child: GestureDetector(
++                                  behavior: HitTestBehavior.translucent,
++                                  onHorizontalDragUpdate: (d) {
++                                    setState(() {
++                                      _splitWidth = (_splitWidth + d.delta.dx)
++                                          .clamp(420.0, maxLeft);
++                                    });
++                                  },
++                                  // 松手才存盘 —— 拖动过程中不要每帧写存储
++                                  onHorizontalDragEnd: (_) => _saveSplit(),
++                                  child: const SizedBox.expand(),
++                                ),
++                              ),
++                            ),
++                          ],
++                        );
++                      },
+                     )
+                   // 窄屏: 退化成一列（否则会挤成一团）
+                   : Column(
+@@ -341,27 +421,33 @@ class _ScheduleTab extends StatelessWidget
+     // > 执行顺序和监控的功能不能合在一起吗，调度监控里就能作为入口来控制
+     // > 次数、顺序，不需要单独整个执行顺序页面
+     //
+-    // 从上到下依次是:
++    // 用户第二轮又明确了两件事:
++    //
++    // * **全局开关放顶部**（原来埋在页面最底部, 会让人以为"功能没了"）
++    // * **执行顺序统一在「执行队列」里拖**;
++    //   任务表格是 Excel 式的**批量查看与管理**（启停 / 运行一次 / 排序 / 筛选）,
++    //   **不涉及执行顺序的改变**
+     //
+-    //   1. **实时监控条**（紧凑）—— 调度器状态 / 正在运行 / 待执行 / 等待中 / 冷却
+-    //   2. **批量操作卡片** —— 脚本进程开关 + 搜索 / 筛选 / 批量启停 / 运行一次 / 重置
+-    //   3. **任务表格** —— 次数 / 优先级 / 预期耗时 / **执行顺序位次** 都能直接改
+-    //   4. **执行顺序**（`RunListPanel`）—— 拖拽微调 + 增删条目（含「休息」）
+-    //   5. **全局设置** —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据
++    // 从上到下:
+     //
+-    // 整页**一个滚动条**。表格用预算高度的内层滚动, 避免嵌套滚动手势打架。
++    //   1. **脚本进程开关**（进程级硬停）
++    //   2. **全局开关** —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据
++    //   3. **批量操作** —— 批量启停 / 运行一次 / 重置选中 / 搜索 / 筛选
++    //   4. **任务表格** —— Excel 式管理, 不改执行顺序
++    //   5. **执行队列** —— 拖拽改执行顺序 + 每行次数/预期耗时/优先级
+     return ListView(
+       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+       children: [
++        // 紧凑状态行 —— 完整观察窗在「监控 / 计划」tab
+         _monitorStrip(context),
+         const SizedBox(height: 8),
+         _bulkPanel(context),
+         const SizedBox(height: 8),
+-        _tablePanel(context),
++        _globalPanel(context),
+         const SizedBox(height: 8),
+-        RunListPanel(c: c),
++        _tablePanel(context),
+         const SizedBox(height: 8),
+-        _globalPanel(context),
++        QueuePanel(controller: c),
+       ],
+     );
+   }
+@@ -768,6 +854,11 @@ class _ScheduleTab extends StatelessWidget
+       child: Row(
+         children: [
+           const SizedBox(width: 28),
++          // 与任务行的「队列」格对齐（只读 ✓/—）
++          Expanded(
++            flex: 8,
++            child: Text('队列', style: s, textAlign: TextAlign.center),
++          ),
+           _sortableHeader(context, 'name', '任务', 22, s),
+           _sortableHeader(context, 'category', '类型', 12, s),
+           _sortableHeader(context, 'state', '状态', 18, s),
+@@ -892,12 +983,33 @@ mixin _FlowPanelMixin {
+   }
+ }
+ 
+-/// **预期执行流程** tab。
++/// **监控 / 计划** —— 实时观察窗 + 待执行 + 等待中 + 预期执行流程。
++///
++/// ## ★ 为什么把它们合成一个 tab（用户指出）
++///
++/// > 监控窗口和预期流程不应该是一种东西吗，都是计划和预期啊，应该合在一起啊。
++///
++/// **用户是对的** —— 这四块回答的是**同一个问题**："接下来会发生什么":
++///
++/// | 窗口 | 回答 |
++/// |---|---|
++/// | 调度器 | 现在是什么状态 |
++/// | 正在运行 | 此刻在跑什么 |
++/// | **待执行** | 马上要跑什么（**计划**）|
++/// | **等待中** | 还要等多久（**预期**）|
++/// | **预期执行流程** | 按列表推算的完整流程（**也是预期**）|
++///
++/// 我第一版把它们拆成两个 tab, 是把一体两面的东西硬分开 —— 用户看不到全貌。
+ ///
+-/// ★ 原来「执行顺序」与「监控」是两个独立 tab, 现已合并进「调度面板」
+-///   （用户要求: 调度监控里就能作为入口控制次数与顺序）。
+-///   这个 tab 只留**推算结果** —— 它是"看完再决定"的东西,
+-///   放进主面板会占掉表格的位置。
++/// ## 与「执行队列」的区别
++///
++/// | 面板 | 性质 |
++/// |---|---|
++/// | **本 tab** | **只读**的计划视图（现在/马上/稍后/推算）|
++/// | **执行队列**（调度 tab）| **可拖拽**的顺序编辑 |
++///
++/// 两者数据同源（`scriptModelMap` + `/overview` + `/run_list/preview`）,
++/// 只是一个看、一个改。
+ class _FlowTab extends StatelessWidget with _FlowPanelMixin {
+   const _FlowTab({required this.c});
+ 
+@@ -906,11 +1018,129 @@ class _FlowTab extends StatelessWidget with _FlowPanelMixin {
+ 
+   @override
+   Widget build(BuildContext context) {
++    final svc = Get.find<ScriptService>();
++    final sm = svc.scriptModelMap[c.script];
++
+     return ListView(
+       padding: const EdgeInsets.all(12),
+-      children: [_flowPanel(context)],
++      children: [
++        // ---------- 调度器 + 正在运行 ----------
++        _obxPanel(context, '调度器 / 正在运行', () {
++          final state = sm?.state.value;
++          final running = state == ScriptState.running;
++          final cur = sm?.runningTask.value;
++          final curName = (cur == null) ? '' : cur.taskName;
++          return Column(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              Row(
++                children: [
++                  Icon(
++                    running ? Icons.play_circle : Icons.pause_circle_outline,
++                    size: 18,
++                    color: running ? Colors.green : Colors.grey,
++                  ),
++                  const SizedBox(width: 6),
++                  // ★ 中文标签 —— `'$state'` 会打印英文枚举名
++                  Text(_stateLabel(state)),
++                ],
++              ),
++              const SizedBox(height: 4),
++              Text('正在运行: ${curName.isEmpty ? "（空闲）" : _zhName(context, curName)}'),
++            ],
++          );
++        }),
++
++        // ---------- 待执行（马上要跑 = **计划**）----------
++        _obxPanel(context, '待执行（马上要跑）', () {
++          final list = sm?.pendingTaskList ?? const [];
++          if (list.isEmpty) return const Text('（无）');
++          return Column(
++            children: [for (final t in list) _monitorRow(context, t)],
++          );
++        }),
++
++        // ---------- 等待中（还没到点 = **预期**）----------
++        _obxPanel(context, '等待中（还没到点）', () {
++          final list = sm?.waitingTaskList ?? const [];
++          if (list.isEmpty) return const Text('（无）');
++          return Column(
++            children: [for (final t in list) _monitorRow(context, t)],
++          );
++        }),
++
++        // ---------- 预期执行流程（**推算**）----------
++        _flowPanel(context),
++      ],
+     );
+   }
++
++  /// 一个带标题的观察窗。
++  ///
++  /// ★ `Obx` 必须包住**直接读 Rx** 的那一小块 —— 反面例子（回调里只构造
++  ///   组件、没读 Rx）会让 GetX 抛 `improper use of a GetX` 并**整页白屏**。
++  Widget _obxPanel(BuildContext context, String title, Widget Function() body) {
++    return Card(
++      margin: const EdgeInsets.only(bottom: 12),
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Text(title, style: Theme.of(context).textTheme.titleSmall),
++            const Divider(height: 12),
++            // ★ 固定最大高度 + 内部滚动 —— 等待中的任务可能有几十个,
++            //   不能把页面撑爆（用户反馈过"看不到"就是怕这种情况）。
++            ConstrainedBox(
++              constraints: const BoxConstraints(maxHeight: 220),
++              child: SingleChildScrollView(child: Obx(body)),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  /// 一行任务（**中文名** + 下次运行 + 任务设置入口）。
++  Widget _monitorRow(BuildContext context, dynamic t) {
++    final name = '${t.taskName}';
++    if (name.isEmpty) return const SizedBox.shrink();
++    final zh = _zhName(context, name);
++    return Padding(
++      padding: const EdgeInsets.symmetric(vertical: 2),
++      child: Row(
++        children: [
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                Text(zh, style: Theme.of(context).textTheme.labelLarge),
++                // 中文名与命令名不同时补上命令名（方便核对 / 搜日志）
++                if (zh != name)
++                  Text(name,
++                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                            color: Theme.of(context).disabledColor,
++                          )),
++                if ('${t.nextRun}'.isNotEmpty)
++                  Text('${t.nextRun}',
++                      style: Theme.of(context).textTheme.labelSmall),
++              ],
++            ),
++          ),
++          TextButton(
++            onPressed: () => Get.find<NavCtrl>().openTaskSettings(name),
++            child: const Text('任务设置'),
++          ),
++        ],
++      ),
++    );
++  }
++
++  /// 命令名 -> 中文名（拿不到回退命令名）。
++  String _zhName(BuildContext context, String command) {
++    final zh = c.zhNameOf(command);
++    return zh.isEmpty ? command : zh;
++  }
+ }
+ 
+ /// **`_globalPanel` 的共享实现**（`_ScheduleTab` 用）。
+diff --git a/lib/views/tasks/task_row_view.dart b/lib/views/tasks/task_row_view.dart
+index ae0afc5..b344233 100644
+--- a/lib/views/tasks/task_row_view.dart
++++ b/lib/views/tasks/task_row_view.dart
+@@ -122,12 +122,16 @@ class _TaskRowViewState extends State<TaskRowView> {
+             )
+           else
+             const SizedBox(width: 28),
+-          // ★ **执行顺序位次 + ↑↓** —— 用户要求"调度面板里就能控制顺序,
+-          //   不需要单独的「执行顺序」页面"。
++          // ★ **队列** —— 只读展示"这个任务在不在执行队列里"。
+           //
+-          //   位次 = 该任务在运行列表里的位置（1 起; 0 = 未编排）。
+-          //   `↑` 把已在列表里的任务上移; 未编排时 `↑` 的作用是**加入列表**。
+-          if (isOverview) _orderCell(context) else const SizedBox(width: 56),
++          //   ⚠ 用户明确纠正过我:
++          //     "这个位次列执行顺序和我的想法不相符，我要的 ↑↓ 是为了像 EXCEL
++          //      那样方便查看和管理任务（如启停和运行一次的测试），
++          //      这个任务表格**不涉及执行顺序的改变**"
++          //
++          //   所以这里只有 **✓ / —**（在队列 / 不在），**没有 ↑↓**。
++          //   执行顺序统一在「执行队列」面板里拖拽。
++          Expanded(flex: 8, child: _inQueueCell(context)),
+           Expanded(flex: 22, child: _nameCell(context)),
+           Expanded(
+               flex: 12,
+@@ -188,82 +192,38 @@ class _TaskRowViewState extends State<TaskRowView> {
+     );
+   }
+ 
+-  /// **执行顺序位次 + 上移/下移/加入**。
++  /// **队列** —— 只读展示"在不在执行队列里"。
++  ///
++  /// ## ★ 这里**故意不放 ↑↓**（用户纠正过我）
++  ///
++  /// 我第一版在这里放了"位次 + ↑↓"来调执行顺序, 用户明确说:
+   ///
+-  /// ## 为什么放在任务表格里（用户要求）
++  /// > 这个位次列执行顺序和我的想法不相符，我要的 ↑↓ 是为了像 EXCEL 那样
++  /// > 方便查看和管理任务（如启停和运行一次的测试），
++  /// > **这个任务表格不涉及执行顺序的改变**
+   ///
+-  /// > 执行顺序和监控的功能不能合在一起吗，调度监控里就能作为入口来控制
+-  /// > 次数、顺序，不需要单独整个执行顺序页面
++  /// 所以:
+   ///
+-  /// 所以每个任务行直接能调顺序:
++  /// | 面板 | 管什么 |
++  /// |---|---|
++  /// | **任务表格**（这里）| Excel 式的**批量查看与管理**: 启停 / 运行一次 / 排序 / 筛选 |
++  /// | **执行队列** | **执行顺序**（拖拽）+ 每行次数 / 预期耗时 / 优先级 |
+   ///
+-  /// * 位次 `3` = 它在运行列表里排第 3（这就是**执行顺序**）
+-  /// * `—`   = 未编排（调度器用内置默认顺序）
+-  /// * `↑`   = 上移一位; **未编排时 = 加入列表**（追加到末尾）
+-  /// * `↓`   = 下移一位; 未编排时禁用（用"下移"来加入语义反了）
+-  Widget _orderCell(BuildContext context) {
++  /// 这一格只回答"在不在队列里" —— `✓` 在, `—` 不在。
++  Widget _inQueueCell(BuildContext context) {
+     final cmd = '${task['command'] ?? ''}';
+-    final pos = _c.entryPositionOf(cmd);
+-    final total = _c.entries.length;
+-    final inList = pos > 0;
+-    return SizedBox(
+-      width: 56,
+-      child: Row(
+-        mainAxisSize: MainAxisSize.min,
+-        children: [
+-          Tooltip(
+-            message: inList
+-                ? '执行顺序第 $pos 位（共 $total 个条目）'
+-                : '未编排 —— 调度器用内置默认顺序',
+-            child: Text(inList ? '$pos' : '—',
+-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+-                      fontWeight: inList ? FontWeight.bold : null,
+-                      color: inList
+-                          ? Theme.of(context).colorScheme.primary
+-                          : Theme.of(context).disabledColor,
+-                    )),
+-          ),
+-          _orderBtn(
+-            icon: Icons.keyboard_arrow_up,
+-            tip: inList ? '上移一位' : '加入执行顺序（追加到末尾）',
+-            onTap: () async {
+-              await _c.moveEntryUp(cmd);
+-              await _c.reload();
+-            },
+-          ),
+-          _orderBtn(
+-            icon: Icons.keyboard_arrow_down,
+-            tip: inList ? '下移一位' : '先加入执行顺序再下移',
+-            enabled: inList && pos < _c.entries.length,
+-            onTap: () async {
+-              await _c.moveEntryDown(cmd);
+-              await _c.reload();
+-            },
+-          ),
+-        ],
+-      ),
+-    );
+-  }
+-
+-  /// 一个小小的顺序调整按钮（无内边距, 免得把行撑高）。
+-  Widget _orderBtn({
+-    required IconData icon,
+-    required String tip,
+-    required Future<void> Function() onTap,
+-    bool enabled = true,
+-  }) {
++    final inQueue = _c.entryPositionOf(cmd) > 0;
+     return Tooltip(
+-      message: tip,
+-      child: InkWell(
+-        onTap: enabled ? () => onTap() : null,
+-        child: Padding(
+-          padding: const EdgeInsets.symmetric(horizontal: 1),
+-          child: Icon(icon,
+-              size: 16,
+-              color: enabled
+-                  ? null
+-                  : Theme.of(context).disabledColor.withValues(alpha: 0.4)),
+-        ),
++      message: inQueue
++          ? '在「执行队列」里（顺序请在队列面板拖拽调整）'
++          : '不在执行队列里 —— 调度器会把它排在已编排的任务之后',
++      child: Text(
++        inQueue ? '✓' : '—',
++        textAlign: TextAlign.center,
++        style: Theme.of(context).textTheme.labelSmall?.copyWith(
++              color: inQueue ? Colors.green : Theme.of(context).disabledColor,
++              fontWeight: inQueue ? FontWeight.bold : null,
++            ),
+       ),
+     );
+   }
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 7a0420a..35c14b9 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -67,7 +67,7 @@ class FakeTaskListController extends TaskListController {
+         },
+         {
+           'value': 'rest',
+-          'label': '全部停止',
++          'label': '休息',
+           'help': '暂停调度 N 分钟 —— 连定时任务一起停',
+           'needs_minutes': true,
+           'needs_task': false,
+@@ -124,6 +124,63 @@ class FakeTaskListController extends TaskListController {
+     return null;
+   }
+ 
++  // ---- 监控/队列面板需要的新接口 ----
++  //
++  // ★ 假控制器**必须覆盖它们**: 真实现在 `_allTasks`（从 `/overview` 加载）
++  //   上做映射, 而假控制器的 `_allTasks` 是**空的** ——
++  //   不覆盖就会让任务名变成空串, 行全部不渲染
++  //   （表现是测试报 `Found 0 widgets with text "探索"`, 很容易误判成面板坏了）。
++
++  /// 命令名 -> 中文名（队列 / 监控用）。
++  @override
++  String zhNameOf(String command) => '${findTask(command)?['name_zh'] ?? ''}';
++
++  /// 命令名 -> `/overview` 那一行。
++  @override
++  Map<String, dynamic> taskRowOf(String command) =>
++      findTask(command) ?? const {};
++
++  /// 运行态徽标（待执行 / 等待中 / 冷却中 / 未启用）。
++  ///
++  /// ★ 必须覆盖: 真实现在 `_allTasks`（从 `/overview` 加载）上查,
++  ///   假控制器的 `_allTasks` 是空的 —— 不覆盖就一律返回"未知"。
++  @override
++  ({String label, int tone}) queueStatusOf(String command) {
++    final t = findTask(command);
++    if (t == null) return (label: '未知', tone: 2);
++    if (t['enable'] != true) return (label: '未启用', tone: 2);
++    if (t['in_cooldown'] == true) {
++      final m = (t['cooldown_minutes'] as num?)?.toInt() ?? 0;
++      return (label: m > 0 ? '冷却中 $m 分' : '冷却中', tone: 3);
++    }
++    if (t['slot'] == 'pending') return (label: '待执行', tone: 0);
++    final reason = '${t['reason'] ?? ''}';
++    return (label: reason.isEmpty ? '等待中' : reason, tone: 1);
++  }
++
++  /// 在不在队列里（1 起; 不在则 0）。
++  @override
++  int entryPositionOf(String command) {
++    for (var i = 0; i < _entries.length; i++) {
++      final e = _entries[i];
++      if ('${e['kind']}' == 'task' && '${e['task']}' == command) return i + 1;
++    }
++    return 0;
++  }
++
++  /// 未编排的启用任务。
++  @override
++  List<Map<String, dynamic>> get unqueuedEnabledTasks {
++    final inList = {
++      for (final e in _entries)
++        if ('${e['kind']}' == 'task') '${e['task']}',
++    };
++    return _tasks
++        .where((t) =>
++            t['enable'] == true && !inList.contains('${t['command']}'))
++        .toList();
++  }
++
+   // ---- 写操作: 测试里只记录, 不联网 ----
+   @override
+   Future<void> reload() async {}
+@@ -216,16 +273,42 @@ void _runControlV2Tests() {
+     }
+   });
+ 
+-  test('运行控制条保留三个调度按钮', () {
++  test('运行控制条只保留 暂停调度 / 继续调度', () {
++    // ★ 用户第二轮实测后要求**去掉「本轮跑完再停」** ——
++    //   所以决策台账 1.2（当初"要第二个按钮"）已作废。
++    //
++    //   后端 `pause_mode='round'` 这个**能力保留不动**,
++    //   只是界面不再暴露入口（与「只停列表」的处理一致）。
+     final src = codeOnly('lib/views/tasks/run_control_bar.dart');
+-    for (final kept in ['暂停调度', '本轮跑完再停', '继续调度']) {
++    for (final kept in ['暂停调度', '继续调度']) {
+       expect(src.contains(kept), isTrue, reason: '应保留「$kept」');
+     }
++    expect(src.contains('本轮跑完再停'), isFalse,
++        reason: '用户要求去掉「本轮跑完再停」');
++    expect(src.contains("mode: 'round'"), isFalse,
++        reason: '不该再有 round 模式的入口');
+     // 不提供"立即停" —— 会卡在半途
+     expect(src.contains('立即停'), isFalse,
+         reason: '「立即停」会卡在半途，明确不提供');
+   });
+ 
++  test('运行控制条的状态看**脚本进程**, 不是只看暂停', () {
++    // ★★ 修一个真 bug ★★
++    //
++    // 用户反馈: "虽然未暂停调度就绿色运行中，但是脚本进程停止时
++    //            这个还显示运行中啊"
++    //
++    // 根因: 原先只看 `run_control` 的 `paused`, 没看脚本进程。
++    final src = codeOnly('lib/views/tasks/run_control_bar.dart');
++    expect(src.contains('scriptModelMap'), isTrue,
++        reason: '状态必须同时看脚本进程（WebSocket 的 ScriptModel.state）');
++    expect(src.contains('ScriptState.running'), isTrue);
++    expect(src.contains('脚本未启动'), isTrue,
++        reason: '进程停时要明确显示"脚本未启动"，不能显示"运行中"');
++    // 进程没跑时"暂停调度"应置灰
++    expect(src.contains('!procRunning'), isTrue);
++  });
++
+   test('脚本进程开关已从运行控制条移出', () {
+     final src = codeOnly('lib/views/tasks/run_control_bar.dart');
+     // "开始/停止脚本"是**进程级**操作, 已移到任务总览页
+@@ -236,7 +319,7 @@ void _runControlV2Tests() {
+   });
+ 
+   test('运行列表面板不再出现 delay 条目', () {
+-    final src = codeOnly('lib/views/tasks/run_list_panel.dart');
++    final src = codeOnly('lib/views/tasks/queue_panel.dart');
+     expect(src.contains("'delay'"), isFalse,
+         reason: 'v2 的列表只有 task 与 rest');
+     expect(src.contains('只停列表'), isFalse);
+@@ -406,7 +489,7 @@ void _round4Tests() {
+   });
+ 
+   test('任务选择器：休息置顶 + 分类筛选', () {
+-    final src = codeOnly('lib/views/tasks/run_list_panel.dart');
++    final src = codeOnly('lib/views/tasks/queue_panel.dart');
+     final i = src.indexOf('class _TaskPickerDialogState');
+     expect(i, greaterThan(-1));
+     final body = src.substring(i, i + 2600);
+@@ -426,7 +509,7 @@ void _round4Tests() {
+     // 而且过滤结果会被 `save_run_list()` 写回配置 -> 静默的数据破坏。
+     //
+     // 现在**列表接受任意任务名**。选择器也不该再自己过滤。
+-    final src = codeOnly('lib/views/tasks/run_list_panel.dart');
++    final src = codeOnly('lib/views/tasks/queue_panel.dart');
+     final i = src.indexOf('class _TaskPickerDialogState');
+     final body = src.substring(i, i + 2600);
+     expect(body.contains("t['countable'] == true"), isFalse,
+@@ -434,7 +517,7 @@ void _round4Tests() {
+   });
+ 
+   test('休息选项排在其他任务之前', () {
+-    final src = File('lib/views/tasks/run_list_panel.dart').readAsStringSync();
++    final src = File('lib/views/tasks/queue_panel.dart').readAsStringSync();
+     final restIdx = src.indexOf('_PickedEntry.rest');
+     final listIdx = src.indexOf('ListView.builder', restIdx);
+     expect(restIdx, greaterThan(-1));
+@@ -614,29 +697,75 @@ void _phase1Tests() {
+ 
+ // ============================================================ Phase 2: 合并页面
+ void _phase2Tests() {
+-  test('统一控制台: 两个 tab + 日志常驻右侧', () {
+-    // ★★ 用户要求"合并, 不要两套监控" ★★
++  test('统一控制台: 两个 tab + 日志常驻右侧（可拖宽）', () {
++    // ★★ 用户三轮反馈后的最终结构 ★★
+     //
+     // 第一版: 我另建了一个「总览 tab」, 与旧总览页重复 ——
+-    // 两套监控界面, 且新代码路径引入了一批 bug
+-    // （GetX 白屏 / 搜索不复位 / 卡顿）。
++    //         两套监控界面, 且新代码路径引入了一批 bug。
++    // 第二版: 「执行顺序」并进主面板（"调度监控里就能控制次数、顺序"）。
++    // 第三版（用户指出）: 「监控」与「预期流程」是**一回事**（都是计划和预期）,
++    //         应该合在一起 —— 于是变成:
+     //
+-    // 第二版（用户进一步要求）: 「执行顺序」与「监控」也不该是独立页面 ——
+-    // "调度监控里就能作为入口来控制次数、顺序"。
+-    // 于是最终只剩**两个** tab:
+-    //
+-    //   * 调度面板 —— 监控条 + 批量操作 + 任务表格 + 执行顺序 + 全局设置
+-    //   * 预期流程 —— 只留推算结果
++    //   * 调度     —— 状态行 + 批量操作 + 全局开关 + 任务表格 + **执行队列**
++    //   * 监控/计划 —— 调度器 · 正在运行 · 待执行 · 等待中 · 预期流程
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    expect(view.contains("Tab(text: '调度面板')"), isTrue);
+-    expect(view.contains("Tab(text: '预期流程')"), isTrue);
++    expect(view.contains("Tab(text: '调度')"), isTrue);
++    expect(view.contains("Tab(text: '监控 / 计划')"), isTrue);
+     expect(view.contains('length: 2'), isTrue, reason: '应该是 2 个 tab');
++
+     // 日志在 build() 里创建一次、常驻右侧（不再放在某个 tab 里）
+     final buildIdx = view.indexOf('Widget build(BuildContext context)');
+-    final body = view.substring(buildIdx, buildIdx + 2600);
++    final body = view.substring(buildIdx, buildIdx + 3600);
+     expect(body.contains('LogWidget('), isTrue,
+         reason: '日志应在 build 里常驻（右半栏 / 窄屏底部）');
+     expect(body.contains('Expanded(child: logs)'), isTrue);
++
++    // ★ 左右宽度**可拖拽调整**（用户要求）+ 持久记忆
++    expect(body.contains('onHorizontalDragUpdate'), isTrue,
++        reason: '缺左右分栏的拖拽条');
++    expect(body.contains('resizeColumn'), isTrue,
++        reason: '拖拽条要有 resize 光标, 否则用户不知道能拖');
++    expect(view.contains('_splitWidth'), isTrue);
++    expect(view.contains('_saveSplit'), isTrue, reason: '宽度要持久记忆');
++  });
++
++  test('监控/计划 tab 含四个观察窗 + 预期流程（用户指出它们是一回事）', () {
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    final i = view.indexOf('class _FlowTab');
++    expect(i, greaterThan(-1));
++    final end = (i + 5200 < view.length) ? i + 5200 : view.length;
++    final body = view.substring(i, end);
++    for (final w in ['调度器', '正在运行', '待执行', '等待中']) {
++      expect(body.contains(w), isTrue, reason: '监控/计划缺「$w」');
++    }
++    // 预期流程也在同一个 tab 里（共用 `_FlowPanelMixin`）
++    expect(body.contains('_flowPanel(context)'), isTrue,
++        reason: '预期执行流程应与监控窗同一个 tab');
++    // 实时数据来自 WebSocket
++    expect(body.contains('scriptModelMap'), isTrue);
++    expect(body.contains('pendingTaskList'), isTrue);
++    expect(body.contains('waitingTaskList'), isTrue);
++    // 中文状态
++    expect(body.contains('_stateLabel('), isTrue);
++    // "任务设置"要走 openTaskSettings（不用白名单）
++    expect(body.contains('openTaskSettings'), isTrue);
++    expect(body.contains('switchContent'), isFalse);
++  });
++
++  test('全局开关在**顶部**（用户要求, 不许埋在页底）', () {
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    final i = view.indexOf('class _ScheduleTab');
++    final b = view.indexOf('return ListView(', i);
++    expect(b, greaterThan(-1));
++    final body = view.substring(b, b + 700);
++    final iGlobal = body.indexOf('_globalPanel(context)');
++    final iTable = body.indexOf('_tablePanel(context)');
++    final iQueue = body.indexOf('QueuePanel(');
++    expect(iGlobal, greaterThan(-1), reason: '缺全局开关');
++    expect(iTable, greaterThan(iGlobal),
++        reason: '全局开关必须在任务表格**之前**（提到顶部）');
++    expect(iQueue, greaterThan(iTable),
++        reason: '执行队列在表格之后（顺序编辑与批量管理分开）');
+   });
+ 
+   test('旧的三个 tab / 类名都已消失', () {
+@@ -665,7 +794,8 @@ void _phase2Tests() {
+     expect(body.contains('_monitorStrip'), isTrue, reason: '缺监控条');
+     expect(body.contains('_bulkPanel'), isTrue, reason: '缺批量操作');
+     expect(body.contains('_tablePanel'), isTrue, reason: '缺任务表格');
+-    expect(body.contains('RunListPanel'), isTrue, reason: '缺执行顺序（拖拽）');
++    expect(body.contains('QueuePanel(controller: c)'), isTrue,
++        reason: '缺执行队列（拖拽改顺序）');
+     expect(body.contains('_globalPanel'), isTrue, reason: '缺全局设置');
+   });
+ 
+@@ -692,12 +822,13 @@ void _phase2Tests() {
+   test('点数/顺序的入口都在调度面板里（用户要求）', () {
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+     // 执行顺序面板就在主面板里
+-    expect(view.contains('RunListPanel(c: c)'), isTrue);
++    expect(view.contains('QueuePanel(controller: c)'), isTrue);
+     // 表格行里有执行顺序位次 + ↑↓
+     final row = codeOnly('lib/views/tasks/task_row_view.dart');
+-    expect(row.contains('_orderCell'), isTrue, reason: '缺执行顺序位次列');
+-    expect(row.contains('moveEntryUp'), isTrue);
+-    expect(row.contains('moveEntryDown'), isTrue);
++    expect(row.contains('_inQueueCell'), isTrue,
++        reason: '缺队列列（只读, 表格不管执行顺序）');
++    expect(row.contains('moveEntryUp'), isFalse);
++    expect(row.contains('moveEntryDown'), isFalse);
+     // 全局设置与预期流程用 mixin 共享实现（避免两份）
+     expect(view.contains('mixin _GlobalPanelMixin'), isTrue);
+     expect(view.contains('mixin _FlowPanelMixin'), isTrue);
+@@ -714,7 +845,14 @@ void _phase2Tests() {
+ }
+ 
+ void main() {
+-  testWidgets('只含任务条目时能正常渲染', (tester) async {
++  // ============================================================ 执行队列
++  //
++  // ★ 这些测试原本是给**旧的 `RunListPanel`** 写的（那时面板里有"启用"按钮、
++  //   "添加「休息」"按钮、模式警告等）。用户第二轮要求合并后,
++  //   队列面板变成了「执行队列」—— 每行带状态徽标 + 内联的次数/耗时/优先级。
++  //   所以断言跟着改, **不是**把测试削弱。
++
++  testWidgets('队列渲染: 中文名 + 内联的次数/耗时/优先级', (tester) async {
+     final c = FakeTaskListController(
+       entries: [
+         {'kind': 'task', 'task': 'Exploration'},
+@@ -722,88 +860,96 @@ void main() {
+       ],
+       tasks: [taskRow('Exploration', zh: '探索'), taskRow('Orochi', zh: '八岐大蛇')],
+     );
+-    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+     await tester.pump();
+ 
+-    expect(find.text('执行顺序'), findsOneWidget);
++    expect(find.text('执行队列'), findsOneWidget);
++    // ★ 中文名（由 `zhNameOf` 翻译）—— 不是 `Exploration`
+     expect(find.text('探索'), findsOneWidget);
+     expect(find.text('八岐大蛇'), findsOneWidget);
+-    // 每行应有"次数"输入框与启用按钮
++    // ★ 每行下面有次数 / 预期耗时 / 优先级三个内联输入
+     expect(find.text('次数'), findsNWidgets(2));
+-    expect(find.text('启用'), findsNWidgets(2));
++    expect(find.text('预期耗时(分)'), findsNWidgets(2));
++    expect(find.text('优先级'), findsNWidgets(2));
+   });
+ 
+-  testWidgets('任务 + 控制条目混合时能正常渲染（模型 B 核心）', (tester) async {
++  testWidgets('队列里「休息」条目用分钟显示（不是"rest 30分钟"）', (tester) async {
+     final c = FakeTaskListController(
+       entries: [
+         {'kind': 'task', 'task': 'Exploration'},
+         {'kind': 'rest', 'minutes': 30},
+         {'kind': 'task', 'task': 'Orochi'},
+-        {'kind': 'delay', 'minutes': 60},
+       ],
+       tasks: [taskRow('Exploration', zh: '探索'), taskRow('Orochi', zh: '八岐大蛇')],
+     );
+-    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+     await tester.pump();
+ 
+-    // 效果名来自 schema, 不是硬编码
+-    expect(find.text('全部停止'), findsWidgets);
+-    expect(find.text('只停列表'), findsWidgets);
+-    // 两个控制条目的描述
+-    expect(find.textContaining('rest 30分钟'), findsOneWidget);
+-    expect(find.textContaining('delay 60分钟'), findsOneWidget);
+-    // 添加按钮也应按 entry_kinds 生成
+-    expect(find.text('添加「全部停止」'), findsOneWidget);
+-    expect(find.text('添加「只停列表」'), findsOneWidget);
++    expect(find.textContaining('休息 30 分钟'), findsOneWidget);
++    // 序号 1/2/3 就是执行顺序
++    expect(find.text('1'), findsWidgets);
++    expect(find.text('2'), findsWidgets);
++    expect(find.text('3'), findsWidgets);
+   });
+ 
+-  testWidgets('空列表时显示提示且不崩', (tester) async {
++  testWidgets('未编排的启用任务显示在下方, 可点「加入」', (tester) async {
+     final c = FakeTaskListController(
+-      entries: [],
+-      tasks: [taskRow('Exploration', zh: '探索')],
++      entries: [
++        {'kind': 'task', 'task': 'Exploration'},
++      ],
++      tasks: [
++        taskRow('Exploration', zh: '探索'),
++        taskRow('Orochi', zh: '八岐大蛇'),   // 未编排
++      ],
+     );
+-    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+     await tester.pump();
+ 
+     expect(find.textContaining('未编排'), findsOneWidget);
+-    expect(find.text('添加任务'), findsOneWidget);
++    expect(find.text('八岐大蛇'), findsOneWidget);
++    expect(find.text('加入'), findsOneWidget);
+   });
+ 
+-  testWidgets('停用的任务显示"已停用"而不是"启用"', (tester) async {
+-    final c = FakeTaskListController(
+-      entries: [
+-        {'kind': 'task', 'task': 'Exploration'},
+-      ],
+-      tasks: [taskRow('Exploration', zh: '探索', enable: false)],
+-    );
+-    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++  testWidgets('空队列不崩, 给出提示', (tester) async {
++    final c = FakeTaskListController(entries: [], tasks: []);
++    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+     await tester.pump();
+ 
+-    expect(find.text('已停用'), findsOneWidget);
+-    expect(find.text('启用'), findsNothing);
++    expect(find.text('执行队列'), findsOneWidget);
++    expect(find.textContaining('没有启用'), findsOneWidget);
+   });
+ 
+-  testWidgets('不可计数的任务不显示次数输入框', (tester) async {
++  testWidgets('不可计数的任务**不显示**次数输入（但仍显示耗时/优先级）', (tester) async {
+     final c = FakeTaskListController(
+       entries: [
+         {'kind': 'task', 'task': 'Tako'},
+       ],
+       tasks: [taskRow('Tako', zh: '章鱼', countable: false)],
+     );
+-    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+     await tester.pump();
+ 
+-    expect(find.text('次数'), findsNothing);
+-    expect(find.textContaining('按存量'), findsOneWidget);
++    expect(find.text('次数'), findsNothing,
++        reason: '不可计数 -> 没有"次数"这回事');
++    expect(find.text('预期耗时(分)'), findsOneWidget);
++    expect(find.text('优先级'), findsOneWidget);
+   });
+ 
+-  testWidgets('模式不是"列表优先"时给出醒目警告', (tester) async {
+-    // 用一个把 scheduleRule 改成 Priority 的子类
+-    final c = _WrongModeController();
+-    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++  testWidgets('状态徽标反映"为什么在等"（中文）', (tester) async {
++    final c = FakeTaskListController(
++      entries: [
++        {'kind': 'task', 'task': 'Exploration'},
++      ],
++      tasks: [
++        taskRow('Exploration', zh: '探索'),
++      ],
++    );
++    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+     await tester.pump();
+ 
+-    expect(find.textContaining('这个列表不生效'), findsOneWidget);
++    // `taskRow` 默认 `can_run: true` / `slot: 'pending'` -> 待执行
++    expect(find.text('待执行'), findsOneWidget,
++        reason: '队列每行要有中文状态徽标（用户要求把待执行/等待中变成徽标）');
+   });
+ 
+   _accountSwitchTests();
+@@ -886,12 +1032,12 @@ void _accountSwitchTests() {
+     expect(b.entries.length, 1);
+ 
+     // 渲染两个 tag 的面板, 内容各自独立
+-    await tester.pumpWidget(wrap(RunListPanel(c: a)));
++    await tester.pumpWidget(wrap(QueuePanel(controller: a)));
+     await tester.pump();
+     expect(find.text('逢魔之时'), findsOneWidget);
+     expect(find.text('金币妖怪'), findsNothing);
+ 
+-    await tester.pumpWidget(wrap(RunListPanel(c: b)));
++    await tester.pumpWidget(wrap(QueuePanel(controller: b)));
+     await tester.pump();
+     expect(find.text('金币妖怪'), findsOneWidget);
+     expect(find.text('逢魔之时'), findsNothing);
 -- 
 2.41.0.windows.1
 

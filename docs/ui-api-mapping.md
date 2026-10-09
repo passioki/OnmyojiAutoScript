@@ -431,37 +431,37 @@ pydantic 的 `model_json_schema()` 里，**带 `$ref` 的属性没有 `default` 
 
 ---
 
-## 7. 统一控制台（v2 · 用户反馈后的合并）
+## 7. 统一控制台（三轮用户反馈后的最终结构）
 
-### 从两个页面合并成一个
+### 两个 tab + 日志常驻（宽度可拖）
 
-第一版有**两个**带监控的页面（旧「总览」+ 新「任务列表」），重复且
-引入了 GetX 白屏 / 搜索不复位 / 卡顿等 bug。现在**一个控制台，三个 tab**。
-
-### 前端需要的接口
-
-| tab | 接口 |
+| tab | 内容 |
 |---|---|
-| **调度面板** | `GET /{script}/schema`（含 `list.global_fields` / `entry_kinds` / `run_record` / `manual_run` / `failure_state`）<br>`GET /{script}/overview`（每任务: `can_run` / `priority` / `expected_minutes` / `count` / `effective_target` / `failure_count` / `in_cooldown`）<br>`PUT /{script}/script/optimization/...`<br>`PUT /{script}/{task}/scheduler/{target,priority,expected_minutes}/value` |
-| **执行顺序** | `GET/PUT /{script}/run_list`、`POST/DELETE /{script}/run_list/entry`、`GET /{script}/run_list/preview` |
-| **监控** | **WebSocket** 推送（`state` / `running` / `pending` / `waiting`）—— **不是 REST** |
+| **调度** | 状态行 · 批量操作（进程开关/启停/运行一次/重置/搜索/筛选）<br>**全局开关（顶部）** · 任务表格 · **执行队列（拖拽）** |
+| **监控 / 计划** | 调度器 · 正在运行 · 待执行 · 等待中 · 预期执行流程 |
 
-### 其他
+### 各面板需要的接口
 
-| 功能 | 接口 |
+| 面板 | 接口 |
 |---|---|
-| 运行记录 / 归档 | `GET /{script}/run_record`、`PUT /{script}/run_record/reset` |
-| 运行一次 | `GET/PUT/DELETE /{script}/manual_run` |
-| 失败冷却 | `GET/DELETE /{script}/failure_state` |
-| 运行控制 | `PUT /{script}/run_control/{pause,resume}`、`GET /{script}/run_control` |
+| **全局开关** | `GET /{script}/schema` 的 `list.global_fields`（标签/类型/当前值/可选值/说明）<br>`PUT /{script}/script/optimization/{field}/value` |
+| **任务表格** | `GET /{script}/overview`（每任务: `can_run`/`slot`/`reason`/`priority`/`expected_minutes`/`count`/`effective_target`/`failure_count`/`in_cooldown`）<br>`PUT /{script}/{task}/scheduler/{enable,target,priority,expected_minutes}/value` |
+| **执行队列** | `GET/PUT /{script}/run_list` · `POST/DELETE /{script}/run_list/entry` |
+| **监控 / 计划** | **WebSocket** 推送（`state`/`running`/`pending`/`waiting`）—— **不是 REST**<br>`GET /{script}/run_list/preview`（预期流程）|
+| **运行控制** | `GET /{script}/run_control` · `PUT /{script}/run_control/{pause,resume}` |
+| **其他** | 运行记录 / 运行一次 / 失败冷却（见 §2.6 §2.7）|
 
-### ★ 三个易错点
+### ★ 五个易错点
 
-1. **`effective_target` vs `count`** —— 界面上显示**前者**
+1. **`effective_target` vs `count`** —— 界面显示**前者**
    （`count` 只是任务配置里的默认值；用户改的是 `scheduler.target`）
-2. **`priority` / `expected_minutes` 在 `/{task}/scheduler/` 分组**，
+2. **`priority` / `expected_minutes` 在 `/{task}/scheduler/` 分组**,
    不在 `script.optimization`
-3. **日志用订阅**（`ScriptService.subscribeLog`），**不要另开 WebSocket 连接**
+3. **写入要传下划线键**（`row['name']`, 如 `experience_youkai`）,
+   不是大驼峰命令名（`ExperienceYoukai`）—— 踩过这个混淆
+4. **日志用订阅**（`ScriptService.subscribeLog`）,**不要另开 WebSocket 连接**
+5. **运行控制条的状态要看脚本进程**（`ScriptModel.state`）,
+   不能只看 `run_control.paused` —— 否则进程停了还显示"运行中"（踩过）
 
 ## 附：字段命名对照（前端易错点）
 

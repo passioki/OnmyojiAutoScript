@@ -17,6 +17,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GoryouRealmAssets):
 
     def run(self):
         con = self.config.goryou_realm
+        # ★ 次数走统一入口 `bind_counter()`(恢复磁盘计数 + 设定本行目标次数)。
+        #   改造前本任务只**读** `current_count` 而从不 bind,
+        #   于是计数既不落盘也不恢复 -> 重启后从头再打。
+        self.bind_counter()
         limit_time = con.goryou_config.limit_time
         self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute,
                                                seconds=limit_time.second)
@@ -52,7 +56,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GoryouRealmAssets):
             if not self.appear(self.I_GR_FIRE):
                 continue
 
-            if self.current_count >= con.goryou_config.limit_count:
+            if self.current_count >= self.limit_count:
                 logger.info('GoryouRealm count limit out')
                 break
             if datetime.now() - self.start_time >= self.limit_time:

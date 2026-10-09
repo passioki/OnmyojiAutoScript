@@ -57,8 +57,17 @@ class ScriptTask(GameUi, GeneralInvite, GeneralRoom, BondlingBattle, SwitchSoul,
         logger.hr('第三步, 前往契灵主界面', 2)
         self.goto_page(page_bondling_fairyland)
         logger.hr('第四步, 开始战斗准备', 2)
+        # ★ 上限走**统一入口** `effective_target()`
+        #   (= `scheduler.target` 或任务配置里的 `limit_count`)。
+        #   改造前直接读配置, 界面上的"次数"输入框完全无效。
+        #
+        # ⚠ 这里**故意不用 `bind_counter()`**: 本任务有 handoff 双人模式,
+        #   一人各打一半(见下面 `//= 2`), 下半场要**从 0 重新计数**
+        #   (L79/L194 的清零是刻意行为)。
+        #   `bind_counter()` 的语义是"跨重启恢复同一个计数",
+        #   套在这里会把上半场的计数带到下半场。
+        self.limit_count = self.effective_target() or 0
         self.current_count = 0
-        self.limit_count = cong.bondling_config.limit_count  # 默认limit_count值
         logger.hr('Goto bondling area')
         self.goto_ball_area(BondlingClass.get_index(cong.bondling_config.bondling_stone_class))
 

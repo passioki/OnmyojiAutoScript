@@ -120,6 +120,9 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
     # ------------------------------------------------------------------------------------------------------------------
     def run_2(self):
         con = self.config.realm_raid
+        # ★ 次数走统一入口 `bind_counter()`(恢复磁盘计数 + 设定本行目标次数)。
+        #   改造前本任务从不 bind -> 计数既不落盘也不恢复, 重启后从头再打。
+        self.bind_counter()
         if con.switch_soul_config.enable:
             self.goto_page(page_shikigami_records)
             self.run_switch_soul(con.switch_soul_config.switch_group_team)
@@ -165,8 +168,13 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
             if not self.check_ticket(con.raid_config.number_base):
                 break
             # 挑战次数
-            if self.current_count >= con.raid_config.number_attack:
-                logger.info(f'Current count {self.current_count}, max count {con.raid_config.number_attack}')
+            #
+            # ★ 走统一入口: `self.limit_count` 由 `run_2()` 开头的
+            #   `bind_counter()` 设定(= `scheduler.target` 或任务配置里的
+            #   `number_attack`)。改造前这里直接读配置, 界面改不到。
+            if self.current_count >= self.limit_count:
+                logger.info(f'Current count {self.current_count}, '
+                            f'max count {self.limit_count}')
                 break
             # ----------------------------------------开始进攻
             medal, index = self.find_one(False)

@@ -23,10 +23,15 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
 
     def run(self) -> bool:
 
-        limit_count = self.config.evo_zone.evo_zone_config.limit_count
+        # ★ 次数走**统一入口** `bind_counter()`:
+        #   * 从磁盘恢复已打次数(进程重启/暂停后继续 -> 真继续, 不从头打)
+        #   * 同时设定 `self.limit_count` = `scheduler.target`(用户编排)
+        #     或任务配置里的 `limit_count`(能力默认)
+        #
+        #   改造前是 `self.current_count = 0` + 自己读配置 ——
+        #   既毁掉磁盘恢复, 又让界面上的"次数"输入框(scheduler.target)完全无效。
+        self.bind_counter()
         limit_time = self.config.evo_zone.evo_zone_config.limit_time
-        self.current_count = 0
-        self.limit_count: int = limit_count
         self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute,
                                                seconds=limit_time.second)
         con = self.config.evo_zone

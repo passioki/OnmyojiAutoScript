@@ -510,6 +510,86 @@ class Scheduler:
 
 ---
 
+### 5.5 次数：**统一到一个入口**
+
+#### 改造前的"双轨"（坏的）
+
+| 来源 | 位置 | 问题 |
+|---|---|---|
+| `scheduler.target` | 界面上的"次数"输入框 | **全仓无人读取** —— 空壳 |
+| `limit_count` 等 | 各任务配置里 | 界面**改不到**；且字段名有别名 |
+
+于是"设置次数"这个功能实际上是坏的：**改了界面上的次数，什么都不会发生**。
+
+字段名还不统一：
+
+| 任务 | 实际字段 |
+|---|---|
+| 多数 | `limit_count` |
+| `Exploration` | `minions_cnt` |
+| `Hyakkiyakou` | `hya_limit_count` |
+| `RealmRaid` | `number_attack` |
+
+#### 改造后：`BaseTask.effective_target()`
+
+```python
+def effective_target(self) -> int | None:
+    # 1) scheduler.target > 0  ->  用它（用户编排，优先级最高）
+    # 2) 否则                  ->  任务配置里的值（能力默认）
+    # 3) 再否则                ->  meta.py 的 count_default
+```
+
+`TaskMeta.count_field_effective` 负责把**别名统一**成 `limit_count`，
+所以上层（API / 界面 / 调度器）只需认一个名字。
+
+#### `bind_counter()` 现在做两件事
+
+```python
+self.bind_counter()          # ① 从磁盘恢复 current_count
+                             # ② 设定 self.limit_count = effective_target()
+```
+
+★ **这是"次数统一"的关键** —— 任务里只调一行，不必再自己读配置。
+
+#### ★ 顺带修掉的"计数不落盘"
+
+`commit_count()` 在**没调过 `bind_counter()` 时是空操作**
+（`_counter_task` 是 `None`）。而改造前有 12 个可计数任务**从不 bind**：
+
+* 它们只读 `current_count`，递增发生在通用战斗类里
+* 于是计数**既不落盘、也不从磁盘恢复**
+* 表现：进程重启后从头再打，**永远打不满 N**
+
+`FallenSun` 早就修了（它是唯一 bind 的），其余 11 个这次一并接上。
+
+#### ★ 哪些任务**不能**用 `bind_counter()`
+
+| 任务 | 原因 |
+|---|---|
+| `BondlingFairyland` | handoff 双人模式**分两段**（一人打一半，`//= 2`），下半场要**从 0 重新计数**。套 `bind_counter()` 会把上半场的计数带进来 |
+
+这类任务用 `effective_target()` 只统一"上限从哪来"，保留自己的清零。
+
+#### 防回归
+
+`tests/tasks/test_count_wiring.py` **读源码**检查：
+
+* 每个可计数任务都必须出现 `bind_counter()` 或 `effective_target()`
+* 不允许无条件 `self.current_count = 0`（除非在白名单里**并写明原因**）
+
+★ 这条守卫写完后**立刻抓到一个我漏掉的任务**（`SixRealms`）——
+说明"靠人肉盘点"不可靠，必须让机器盯着。
+
+#### 引导式约定
+
+| 场景 | 该用 |
+|---|---|
+| 单段任务（多数） | `self.bind_counter()` |
+| 分段计数（handoff 等） | `self.limit_count = self.effective_target() or 0` |
+| 只是想读一次上限 | `self.effective_target()` |
+
+---
+
 ## 6. 运行控制
 
 ### 6.1 暂停（⏸）
@@ -1116,6 +1196,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | `module/device/capabilities.py` | **平台能力**集中声明（跨平台） |
 | `module/server/schema_router.py` | **`/schema` `/overview` `/capabilities` `/run_control` 接口** |
 | `tests/test_architecture_guard.py` | **架构护栏**（AST 强制分层，破坏就红） |
+| `tests/tasks/test_count_wiring.py` | **次数接线护栏**（可计数任务必须走统一入口） |
+| `tests/tasks/test_effective_target.py` | 次数的三级回落与别名适配 |
 | `dev_tools/diag_android_layout.py` | 安卓布局诊断（求手机↔1280x720 坐标关系） |
 | `dev_tools/gen_i18n.py` | 任务名从 `meta.py` 生成到各 i18n 副本 |
 | `dev_tools/diag_dead_code.py` | 死代码扫描（只读诊断） |

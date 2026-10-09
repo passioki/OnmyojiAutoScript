@@ -31,6 +31,10 @@ class ScriptTask(GameUi, SwitchSoul, MoonSea):
         return self.config.model.six_realms
 
     def run(self):
+        # ★ 上限走**统一入口** `effective_target()`
+        #   (= `scheduler.target` 或任务配置里的 `limit_count`)。
+        #   改造前 `moon_sea._run_moon_sea()` 直接读配置, 界面改不到。
+        self.limit_count = self.effective_target() or 0
         if self._config.switch_soul_config.enable:
             self.goto_page(page_shikigami_records)
             self.run_switch_soul(self._config.switch_soul_config.switch_group_team)

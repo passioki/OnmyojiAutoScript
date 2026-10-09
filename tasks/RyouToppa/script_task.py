@@ -83,6 +83,10 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RyouToppaAssets):
         :return:
         """
         ryou_config = self.config.ryou_toppa
+        # ★ 次数走统一入口 `bind_counter()`(恢复磁盘计数 + 设定本行目标次数)。
+        #   改造前本任务只**读** `current_count` 而从不 bind,
+        #   于是计数既不落盘也不恢复 -> 重启后从头再打。
+        self.bind_counter()
         time_limit: Time = ryou_config.raid_config.limit_time
         time_delta = timedelta(hours=time_limit.hour, minutes=time_limit.minute, seconds=time_limit.second)
         self.medal_grid = ImageGrid([RealmRaidAssets.I_MEDAL_5, RealmRaidAssets.I_MEDAL_4, RealmRaidAssets.I_MEDAL_3,
@@ -166,7 +170,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RyouToppaAssets):
                 logger.info("We have no chance to attack. Try again after 1 hour.")
                 success = False
                 break
-            if self.current_count >= ryou_config.raid_config.limit_count:
+            if self.current_count >= self.limit_count:
                 logger.warning("We have attacked the limit count.")
                 break
             if datetime.now() >= self.start_time + time_delta:

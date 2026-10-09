@@ -34,7 +34,11 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
                 minutes=self.limit_time.minute,
                 seconds=self.limit_time.second,
             )
-        self.limit_count = self.conf.herotest.limit_count
+        # ★ 次数走统一入口 `bind_counter()`:
+        #   恢复磁盘计数 + 设定 `self.limit_count`
+        #   (= `scheduler.target` 或任务配置默认值)。
+        #   改造前这里只读配置, 界面上的"次数"输入框完全无效。
+        self.bind_counter()
         self.check_and_switch_soul()
         self.open_exp_buff()
         self.switch_hero(self.conf.herotest.layer)

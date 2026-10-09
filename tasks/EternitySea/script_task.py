@@ -37,6 +37,13 @@ class ScriptTask(
             self.run_switch_soul_by_name(config.group_name, config.team_name)
 
     def run(self) -> None:
+        # ★ 次数走统一入口 `bind_counter()` —— **在分发之前 bind 一次**,
+        #   下面 run_leader / run_member / run_alone 三处都直接比较
+        #   `self.limit_count`。
+        #
+        #   改造前三个模式各自内联读配置, 且从不 bind ->
+        #   计数既不落盘也不恢复, 且界面上的"次数"输入框完全无效。
+        self.bind_counter()
         self._two_teams_switch_sous(self._task_config.switch_soul_config_1)
         self._two_teams_switch_sous(self._task_config.switch_soul_config_2)
         match self._task_config.eternity_sea_config.user_status:
@@ -88,7 +95,7 @@ class ScriptTask(
                 continue
 
             #限制
-            if self.current_count >= self._task_config.eternity_sea_config.limit_count:
+            if self.current_count >= self.limit_count:
                 logger.info("EternitySea count limit out")
                 break
             if datetime.now() - self.start_time >= self._limit_time:
@@ -196,7 +203,7 @@ class ScriptTask(
             self.device.keep_stuck_exempt('BATTLE_STATUS_S')
 
             #限制
-            if self.current_count >= self._task_config.eternity_sea_config.limit_count:
+            if self.current_count >= self.limit_count:
                 logger.info("EternitySea count limit out")
                 break
             if datetime.now() - self.start_time >= self._limit_time:
@@ -251,7 +258,7 @@ class ScriptTask(
             if not self._is_in_eternity_sea():
                 continue
 
-            if self.current_count >= self._task_config.eternity_sea_config.limit_count:
+            if self.current_count >= self.limit_count:
                 logger.info("EternitySea count limit out")
                 break
             if datetime.now() - self.start_time >= self._limit_time:

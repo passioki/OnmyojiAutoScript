@@ -20,6 +20,7 @@ from module.atom.ocr import RuleOcr
 from module.atom.swipe import RuleSwipe
 from module.base.timer import Timer
 from module.config.config import Config
+from module.config.utils import convert_to_underscore
 from module.device.device import Device
 from module.exception import ScriptError, TaskEnd
 from module.logger import logger
@@ -75,6 +76,122 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         self._pause_requested = False
 
     # ---------------------------------------------------------------- 战斗计数持久化
+
+    #: 统一后的次数字段名（见 `module/config/task_catalog.py` 的
+    #: `UNIFIED_COUNT_FIELD`）。历史上有 `minions_cnt` / `hya_limit_count` /
+    #: `number_attack` 等别名，`TaskMeta.count_field_effective` 会把它们
+    #: 统一成这个名字，所以上层与任务侧都只认它。
+    LIMIT_COUNT = 'limit_count'
+
+    def effective_target(self, task: str = None) -> int or None:
+        """
+        本任务这一次要打几次 —— **统一的次数入口**。
+
+        ## 两个来源
+
+        | 来源 | 字段 | 语义 |
+        |---|---|---|
+        | 用户编排 | `scheduler.target` | "这次跑几次"（调度决策）|
+        | 任务默认 | 任务配置里的 `count_field` | "最多能跑几次"（能力上限）|
+
+        优先级: `target > 0` 时用 `target`；否则回落到任务配置的默认值；
+        再没有就用 `meta.py` 的 `count_default`。
+
+        ## 为什么要有这个方法
+
+        改造前"次数"是**双轨**的:
+
+        * 界面有个 `scheduler.target` 输入框 —— 但**全仓无人读取它**（空壳）
+        * 真正生效的是各任务配置里的 `limit_count`，而**界面上改不到它**
+
+        于是"设置次数"这个功能实际上是坏的。
+
+        本方法把它收敛成**一个**入口: 任务只调它, 不必关心
+        用户设了什么、字段叫什么名字。
+
+        :param task: 任务名; 留空用目录名推断
+        :return: 目标次数; `None` 表示该任务没有次数概念
+        """
+        try:
+            from module.config import task_catalog as TC
+
+            name = str(task or self.get_task_name())
+            meta = TC.get(name)
+            if meta is None or not meta.countable:
+                # 不可计数(定时/充能/限时) -> 没有"次数"这回事
+                return None
+
+            # 1) 用户编排的 target
+            #
+            # ★ 这里**不能**写 `except Exception: pass` —— 那会把真正的 bug
+            #   (比如漏 import 导致的 NameError)吞掉, 表现成"次数设置没生效",
+            #   极难排查。改为一律记 warning。
+            try:
+                sub = getattr(self.config, convert_to_underscore(name), None)
+                sch = getattr(sub, 'scheduler', None) if sub is not None else None
+                target = int(getattr(sch, 'target', 0) or 0)
+                if target > 0:
+                    return target
+            except Exception as exc:
+                logger.warning(f'{name}: 读取 scheduler.target 失败'
+                               f'({type(exc).__name__}: {exc}), 回落到任务默认值')
+
+            # 2) 任务配置里的默认值(按统一后的字段名取)
+            field = meta.count_field_effective or self.LIMIT_COUNT
+            found = self._find_count_field(field)
+            if found is not None:
+                return found
+
+            # 3) 元数据里的默认值
+            return meta.count_default
+        except Exception as exc:
+            logger.warning(f'解析目标次数失败({type(exc).__name__}: {exc}), 忽略')
+            return None
+
+    def _find_count_field(self, field: str) -> int or None:
+        """
+        在本任务的**配置对象树**里找 `field` 并返回整数值。
+
+        为什么要遍历: 各任务把 `limit_count` 放在不同层级 ——
+        `orochi_config.limit_count` / `bondling_config.limit_count` /
+        `fallen_sun_config.limit_count` … 有的一层有的两层。
+        遍历比在每个任务里硬编码路径更不容易漏。
+        """
+        from pydantic import BaseModel
+
+        name = convert_to_underscore(str(self.get_task_name()))
+        root = getattr(self.config, name, None)
+        if root is None:
+            return None
+
+        seen = set()
+        queue = [root]
+        while queue:
+            obj = queue.pop(0)
+            if id(obj) in seen:
+                continue
+            seen.add(id(obj))
+            try:
+                value = getattr(obj, field, None)
+            except Exception:
+                value = None
+            if value is not None:
+                try:
+                    return int(value)
+                except (TypeError, ValueError):
+                    pass
+            if isinstance(obj, BaseModel):
+                for fname in type(obj).model_fields:
+                    try:
+                        child = getattr(obj, fname, None)
+                    except Exception:
+                        continue
+                    if isinstance(child, BaseModel):
+                        queue.append(child)
+            elif isinstance(obj, (list, tuple)):
+                queue.extend([x for x in obj if isinstance(x, BaseModel)])
+        return None
+
     def bind_counter(self, task: str = None, period='none', reset_at=None) -> int:
         """
         把 `current_count` 绑定到状态文件, 并返回恢复到内存的计数。
@@ -83,11 +200,13 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         进程一旦重启(手动重启 / 崩溃后 restart / 任务被中断)计数就归零, 于是
         "我今天要打 N 次"这类固定任务会从头再打, 永远打不满 N。
 
-        用法(在 run() 里, 取代 `self.current_count = 0`):
+        用法(在 run() 里, 取代 `self.current_count = 0` 和读 `limit_count`):
 
-            self.current_count = self.bind_counter('FallenSun', period='daily')
+            self.bind_counter()          # 恢复计数 + 设定本次目标
+            # 之后 self.current_count / self.limit_count 都已就绪
 
-        之后每次战斗结束调 `self.commit_count()` 写盘。
+        ★ 本方法**同时设定 `self.limit_count`**（来自 `effective_target()`）,
+          所以任务里不必再自己读配置 —— 这是"次数统一到一个入口"的关键。
 
         :param task: 任务名; 留空则用目录名推断(见 get_task_name)
         :param period: 周期类型('daily'/'weekly'/'none'), 决定何时自动清零
@@ -95,10 +214,13 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         :return: 恢复后的计数
         """
         from module.config import task_state
-        self._counter_task = str(task or self.get_task_name()).lower()
+        name = str(task or self.get_task_name())
+        self._counter_task = name.lower()
         self._counter_period = str(getattr(period, 'value', period) or 'none').lower()
         self._counter_reset_at = reset_at if isinstance(reset_at, dt_time) \
             else task_state.DEFAULT_RESET_AT
+
+        # 恢复磁盘计数
         try:
             self.current_count = task_state.get_count(
                 self.config.config_name, self._counter_task,
@@ -109,6 +231,14 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         self._counter_persisted = self.current_count
         if self.current_count:
             logger.info(f'从状态恢复战斗计数: {self.current_count}')
+
+        # ★ 设定本次目标次数(统一入口)
+        target = self.effective_target(name)
+        if target is not None:
+            self.limit_count = int(target)
+            logger.info(f'本次目标次数: {self.limit_count} '
+                        f'(已跑 {self.current_count})')
+
         return self.current_count
 
     def commit_count(self) -> None:

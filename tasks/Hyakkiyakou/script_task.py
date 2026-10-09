@@ -119,7 +119,12 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
 
     def run(self):
         hya_count: int = 0
-        self.limit_count: int = self._config.hyakkiyakou_config.hya_limit_count
+        # ★ 次数走统一入口 `bind_counter()`:
+        #   恢复磁盘计数 + 设定 `self.limit_count`
+        #   (= `scheduler.target` 或任务配置里的 `hya_limit_count`)。
+        #   改造前这里只读配置, 界面上的"次数"输入框完全无效。
+        self.bind_counter()
+        self.limit_count = int(self.limit_count or 0)
         limit_time = self._config.hyakkiyakou_config.hya_limit_time
         self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute,
                                                seconds=limit_time.second)

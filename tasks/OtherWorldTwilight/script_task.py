@@ -27,6 +27,13 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
 
     def run(self) -> bool:
         self.conf = self.config.other_world_twilight
+        # ★ 次数走统一入口 `bind_counter()` —— **在分发之前 bind 一次**,
+        #   下面 run_leader / run_member / run_alone 三处都直接比较
+        #   `self.limit_count`。
+        #
+        #   改造前三个模式各自内联读配置, 且从不 bind ->
+        #   计数既不落盘也不恢复, 且界面上的"次数"输入框完全无效。
+        self.bind_counter()
         if self.conf.switch_soul.enable:
             self.goto_page(page_shikigami_records)
             self.run_switch_soul(self.conf.switch_soul.switch_group_team)
@@ -74,7 +81,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
             # 区别在于，失败的话不会出现那个勾选默认邀请的框
             if self.check_and_invite(self.conf.invite_config.default_invite):
                 continue
-            if self.current_count >= self.conf.other_world_twilight_config.limit_count:
+            if self.current_count >= self.limit_count:
                 if self.is_in_room():
                     logger.info('Count limit out')
                     break
@@ -127,7 +134,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
                 logger.info(f'OtherWorldTwilight 暂停请求: 本轮结束')
                 break
             self.device.keep_stuck_exempt('BATTLE_STATUS_S')
-            if self.current_count >= self.conf.other_world_twilight_config.limit_count:
+            if self.current_count >= self.limit_count:
                 logger.info('Count limit out')
                 break
             if datetime.now() - self.start_time >= self.conf.other_world_twilight_config.limit_time_v:
@@ -162,7 +169,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralRoom, GameUi, SwitchSoul, 
         self.check_lock(self.conf.general_battle_config.lock_team_enable, self.I_OWT_LOCK, self.I_OWT_UNLOCK)
         unknown_page_timer = Timer(10)
         while 1:
-            if self.current_count >= self.conf.other_world_twilight_config.limit_count:
+            if self.current_count >= self.limit_count:
                 logger.info('Count limit out')
                 break
             if datetime.now() - self.start_time >= self.conf.other_world_twilight_config.limit_time_v:

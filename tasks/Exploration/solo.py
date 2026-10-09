@@ -439,6 +439,15 @@ class SoloExploration(BaseExploration):
 class ScriptTask(SoloExploration):
     def run(self):
         logger.hr('exploration')
+        # ★ 上限走**统一入口** `effective_target()`
+        #   (= `scheduler.target` 或任务配置里的 `minions_cnt`)。
+        #
+        #   改造前 `check_exit()` 直接读 `exploration_config.minions_cnt`,
+        #   界面上的"次数"输入框完全无效。
+        #
+        # ⚠ 本任务用 `self.minions_cnt` 计数(`base.py` 里递增), 不是
+        #   `limit_count` —— 所以这里**不改计数方式**, 只统一"上限从哪来"。
+        self.limit_count = self.effective_target() or 0
         random_click_cnt = 0
         while 1:
             self.screenshot()

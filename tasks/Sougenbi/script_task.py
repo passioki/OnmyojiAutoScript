@@ -18,6 +18,14 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, SougenbiAssets):
     def run(self):
         con = self.config.sougenbi
         s_con: SougenbiConfig = con.sougenbi_config
+        # ★ 次数走统一入口 `bind_counter()`:
+        #   从磁盘恢复已打次数 + 设定 `self.limit_count`
+        #   (= `scheduler.target` 或任务配置默认值)。
+        #
+        #   改造前本任务**只读** `current_count` 而从不 `bind_counter()`,
+        #   于是: 计数既不落盘(`commit_count()` 是空操作)、也不从磁盘恢复
+        #   -> 进程重启后从头再打, 永远打不满 N。
+        self.bind_counter()
         limit_time = con.sougenbi_config.limit_time
         self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute,
                                                seconds=limit_time.second)
@@ -85,7 +93,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, SougenbiAssets):
 
             if not self.appear(self.I_S_CHECK_SOUGENBI):
                 continue
-            if self.current_count >= con.sougenbi_config.limit_count:
+            if self.current_count >= self.limit_count:
                 logger.info('Sougenbi count limit out')
                 break
             if datetime.now() - self.start_time >= self.limit_time:

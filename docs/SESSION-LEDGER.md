@@ -132,14 +132,28 @@ meta = TC.get_by_key(key) if hasattr(TC, 'get_by_key') else None
 
 ---
 
-## 3. 步3 · 前端队列
+## 3. 步3 · 前端队列 —— ✅ **已完成**
 
 | # | 子项 | 状态 | 证据 |
 |---|---|---|---|
-| 3.1 | 四类分区（正在运行第0行不可拖 / 可跑 / 未到窗口灰 / 未编排） | ⬜ | — |
-| 3.2 | 添加任务过滤 + 空态提示 | ⬜ | — |
-| 3.3 | 移除弹窗确认 + 提示 | ⬜ | — |
-| 3.4 | 测试 + 全量 | ⬜ | — |
+| 3.1 | **四类分区** | ✅ | `queue_panel.dart` `build()`：分类 0 `_statusBlock`（正在运行）→ 分类 1/2 可拖列表（`可跑 N · 未到窗口 N`）→ 只读明细（待执行/等待中）→ 分类 3 **只给指引不罗列** |
+| 3.2 | **权威在后端**（前端不推导）| ✅ | 控制器 `isQueued`/`isAutoQueue`/`queuedTasks`/`enabledNotQueuedTasks` 全部读 `/overview` 的 `queued`/`auto_queue` |
+| 3.3 | **【添加任务】走后端候选端点** | ✅ | 选择器改调 `fetchAddCandidates()` → `GET /{script}/queue/candidates`；**删掉**前端自己的 `allTasks` 过滤（守卫断言 `widget.controller.allTasks` **不得出现**）|
+| 3.4 | 空态给**原因与出路** | ✅ | 文案说明"只列已启用的次数任务；定时类会自动进队列；次数任务要先在任务列表启用" |
+| 3.5 | **移除 = 弹窗 + 后端停用 + 提示** | ✅ | `_confirmAndRemove()`：`AlertDialog`（按 `auto_queue` 给不同说明）→ `c.removeFromQueue()` → `Get.snackbar` |
+| 3.6 | **第 3 类不堆在队列下面** | ✅ | **删除** `_unqueuedRow`（26 行）与"未编排（共 N 个）"标题；改为一句指引 + 「去添加」按钮 |
+| 3.7 | 测试 + 全量 | ✅ | 前端 **79 passed**（75 + 4 新守卫）；后端 **1481 passed**；release 构建通过 |
+
+### 测试守卫（新增 4 个）
+
+* 四类分区的**权威字段**（`queued` / `auto_queue` 必须从后端读）
+* 第 3 类**不堆在队列下面**（`_unqueuedRow` 与"未编排（共" 必须已消失）
+* 控件测试：**队列只渲染 `queued` 的任务**（第 3 类不出现，但有指引）
+* 移除必须**确认弹窗 + 后端停用 + 提示**
+
+★ 顺带发现并修正：假控制器/假数据**必须覆盖新方法**（`queuedTasks` 等），
+否则队列渲染成空，测试报 `Found 0 widgets` —— 很容易误判成"面板坏了"。
+已在假控制器里写明这个坑。
 
 ---
 

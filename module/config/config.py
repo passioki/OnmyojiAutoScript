@@ -24,6 +24,12 @@ from module.notify.notify import Notifier
 from module.exception import RequestHumanTakeover, ScriptError
 from module.logger import logger
 
+#: 排序兜底值 —— `next_run` 缺失时用它把该任务压到最后。
+#:
+#: ★ 为什么不能直接用 `None`: 排序键里混入 `None` 与 `datetime`
+#:   会在 Python 3 抛 `TypeError: '<' not supported between instances`。
+_FAR_FUTURE = datetime(2099, 1, 1)
+
 
 class Function:
     def __init__(self, key: str, data: dict):
@@ -289,6 +295,8 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 rule=_opt.schedule_rule,
                 pending=pending_task,
                 run_list=self.build_run_list())
+            # ★ 定时任务**内部**排序 + 定时优先时提到最前（见 docs §5.4.1）
+            pending_task = self._order_by_timed_priority(pending_task)
             # 防止正在运行的任务被新上来的pending队列中的任务给顶替掉
             if self.model.running_task and pending_task:
                 for i, obj in enumerate(pending_task):
@@ -304,6 +312,80 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         self.pending_task = pending_task
         self.waiting_task = waiting_task
+
+    # ------------------------------------------------------------------ 定时任务排序
+    def _order_by_timed_priority(self, pending):
+        """
+        定时任务排序, 并在 `timed_priority=timed` 时**提到最前**。
+
+        ## 为什么定时任务要单独排
+
+        固定任务由**用户拖拽的顺序**决定（`run_list`）；
+        定时任务有 window / 存量 / 周期, 该按 `timed_sort_key` 排
+        （能否跑 > 到点程度 > 窗口快关 > 耗时短 > 用户优先级）。
+
+        把两者混在一个序列里用同一个规则排, 必然有一方不合理。
+
+        ## 为什么 `timed` 模式下要提到最前
+
+        定时任务有 **window 约束** —— 错过了今天就做不了；
+        而固定任务什么时候跑都行。所以定时优先时让它们先跑。
+
+        ★ 这是"让位"的**调度侧**实现（谁排在前面）；
+          "什么时候切过去"仍由 `script.py` 在**战斗边界**判断 ——
+          这里只决定顺序, 不会打断正在跑的战斗。
+        """
+        try:
+            from module.config import task_catalog as TC
+            from module.config import timed_schedule as TS
+
+            def cat_of(cmd):
+                m = TC.get(cmd)
+                return m.category.value if m else ''
+
+            def meta_of(cmd):
+                return TC.get(cmd)
+
+            timed, others = TS.partition_pending(pending, cat_of)
+            if not timed:
+                return pending
+
+            # 定时任务内部排序
+            #
+            # ⚠ 排序键里**不要混入不可比较的对象**（如 `None` 与 `datetime`）——
+            #   Python 3 会抛 `TypeError`。`next_run` 缺失时用一个远期值兜底。
+            def key_of(item):
+                cmd = getattr(item, 'command', '') or ''
+                nr = getattr(item, 'next_run', None) or _FAR_FUTURE
+                exp = 0
+                pri = getattr(item, 'priority', 5)
+                try:
+                    sub = getattr(self, convert_to_underscore(cmd), None)
+                    sch = getattr(sub, 'scheduler', None) if sub else None
+                    exp = int(getattr(sch, 'expected_minutes', 0) or 0)
+                    pri = int(getattr(sch, 'priority', pri) or pri)
+                except Exception:
+                    pass
+                return TS.timed_sort_key(
+                    next_run=nr,
+                    # 能进 pending 就说明已经过了"在不在 window"这道关
+                    in_window=True,
+                    window_end=None,
+                    expected_minutes=exp,
+                    priority=pri)
+
+            timed = TS.sort_timed(timed, key_of)
+
+            if str(self.opt_value('timed_priority', 'timed')).lower() == 'timed':
+                logger.info('定时优先: 定时任务排到固定任务之前'
+                            f'（{len(timed)} 个）')
+                return timed + others
+            # 列表优先: 保持固定任务的用户顺序, 定时任务附在后面
+            return others + timed
+        except Exception as exc:
+            logger.warning(f'定时任务排序失败({type(exc).__name__}: {exc}), '
+                           f'保持原顺序')
+            return pending
 
     # ------------------------------------------------------------------ 运行列表
     def build_run_list(self):

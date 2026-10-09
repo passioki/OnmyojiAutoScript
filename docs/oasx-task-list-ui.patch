@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 1/7] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 1/8] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 2/7] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 2/8] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 3/7] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 3/8] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 4/7] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 4/8] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 5/7] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 5/8] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 6/7] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A=E6=9C=AC?=
+Subject: [PATCH 6/8] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A=E6=9C=AC?=
  =?UTF-8?q?=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8=E4=B9=85?=
  =?UTF-8?q?=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20=E8=B4=A6?=
  =?UTF-8?q?=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E4=B8=B2?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 7/7] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 7/8] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5667,6 +5667,585 @@ index 8916990..ea36b95 100644
    _accountSwitchTests();
 +
 +  _runControlV2Tests();
+ }
+ 
+ /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
+-- 
+2.41.0.windows.1
+
+
+From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 13:52:34 +0800
+Subject: [PATCH 8/8] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+ =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
+ =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
+ =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
+ =?UTF-8?q?=E3=80=8D?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+按用户确认的设计补齐总览页。
+
+## 1. 「运行一次」与「重置选中」并排放在「停用选中」旁
+
+用户明确要求:
+
+> 可以把这个和重置一样，放在**停用选中**旁边，**运行一次**选用。
+
+| 按钮 | 行为 | 二次确认 |
+|---|---|---|
+| **运行一次 (N)** | 按选中顺序排队，跑完当前任务/战斗后依次插队 | 不需要（可撤销：点队列 chip 的 × ）|
+| **重置选中** | **归档**当前记录后从零重开 | ✅ 需要 —— 它会改计数，不能误点 |
+
+★ 两个按钮的 tooltip 都写清了**为什么不是立即停 / 为什么不是删除** ——
+  这类"看起来危险"的操作，说明文字比颜色更重要。
+
+## 2. 排队中的「运行一次」可见、可取消
+
+用 `InputChip` 显示「排队中 N」，tooltip 列出完整队列（点击顺序），
+点 × 清空。★ **不是立即打断** —— 插队点在任务边界。
+
+## 3. 筛选补齐（用户要求）
+
+    ☐ 只看已启用   ☐ 只看固定任务   ☐ 只看定时任务   ☐ 只看限时活动
+
+★ 四个"只看 X"是**互斥**的 —— 同时勾"只看固定"和"只看定时"结果必为空，
+  用户会以为坏了。勾一个就清掉另外两个。
+
+筛选依据是后端给的 `category`（`timed`/`charge`/`limited`），
+**前端不重新定义知识**。
+
+## 4. 新增「运行记录」列（次数 + 耗时）
+
+    ┌──────────────┐
+    │ 运行记录      │
+    ├──────────────┤
+    │ 12 次 · 1 小时 │   <- 或只有耗时（0 次但有耗时）
+    └──────────────┘
+
+* 数据来自 `/schema` 的 `list.run_record`（**不额外请求**）
+* ★ 耗时用后端给的 `seconds_text` —— **前端不重复实现一遍中文格式化**
+  （否则两处实现必然漂移）
+* tooltip 里额外显示「已归档 N 轮」——
+  **否则用户会以为"重置"把数据删了**
+
+## 5. `ApiClient` 补 6 个方法
+
+`getRunRecord` / `getRunArchive` / `resetRunRecord` /
+`requestRunOnce` / `getRunOnceQueue` / `cancelRunOnce`
+
+## 6. 测试 18/18
+
+新增 6 条守卫:
+
+* 总览页有「重置选中」与「运行一次」按钮（且**调用真实方法**，不是空按钮）
+* 补齐四个筛选
+* 「只看 X」**互斥**（逐个检查方法体，不是全文 contains）
+* 「重置选中」**有二次确认**，且文案说「归档」而不是「删除」
+* 有「运行记录」列（表头 + row 都有）
+* 运行记录显示归档轮数
+
+### ★ 又修掉一个自己写的"假测试"
+
+第一版"互斥"测试写的是:
+
+    for (final pair in [...]) {
+      final idx = src.indexOf('void toggle');   // 只查第一次出现!
+      expect(idx, greaterThan(-1));            // 永远为真
+    }
+
+`indexOf` 只返回**第一次**出现的位置，循环里三个 `pair` 完全没用到 ——
+这个断言**永远通过**，什么也没验证。
+
+改成逐个检查**方法体**（截取 `substring(i, i+400)`）。
+
+`flutter test` 18/18；`flutter build windows --release` 通过。
+---
+ lib/api/api_client.dart                       |  62 ++++++++
+ .../task_list/task_list_controller.dart       | 149 +++++++++++++++++-
+ lib/views/tasks/task_list_view.dart           |  50 ++++++
+ lib/views/tasks/task_row_view.dart            |  29 ++++
+ test/task_list_panel_test.dart                |  71 +++++++++
+ 5 files changed, 360 insertions(+), 1 deletion(-)
+
+diff --git a/lib/api/api_client.dart b/lib/api/api_client.dart
+index 3749009..6ac65db 100644
+--- a/lib/api/api_client.dart
++++ b/lib/api/api_client.dart
+@@ -333,6 +333,68 @@ class ApiClient {
+     return res.data ?? {};
+   }
+ 
++// -------------------------   运行记录 / 归档 / 运行一次   -------------------------
++//
++// ★ 「重置」= **归档后重开**（不是删除）—— 用户明确要求:
++//   "点击重置选中后不是清除记录, 而是归档记录后开始新的记录。
++//    这样后续可以分析运行记录和展示运行结果"。
++//
++// ★ 「运行一次」= 按**点击顺序**插队, 跑完当前任务/战斗后才切过去
++//   （不是立即打断）。
++
++  /// 读运行记录（不传 `task` 返回全部任务汇总）。
++  Future<Map<String, dynamic>> getRunRecord(String scriptName,
++      {String task = ''}) async {
++    final res = await request(() => get(
++          '/$scriptName/run_record',
++          queryParameters: task.isEmpty ? null : {'task': task},
++        ));
++    return res.data ?? {};
++  }
++
++  /// 读某任务的**归档明细**。
++  Future<Map<String, dynamic>> getRunArchive(
++      String scriptName, String task) async {
++    final res = await request(() => get('/$scriptName/run_record/$task/archive'));
++    return res.data ?? {};
++  }
++
++  /// 「重置选中」—— 归档后重开。`tasks` 为任务名数组。
++  Future<Map<String, dynamic>> resetRunRecord(
++      String scriptName, List<String> tasks) async {
++    final res = await request(() => put(
++          '/$scriptName/run_record/reset',
++          data: tasks,
++        ));
++    return res.data ?? {};
++  }
++
++  /// 「运行一次」—— 按**数组顺序**（= 点击顺序）排队。
++  Future<Map<String, dynamic>> requestRunOnce(
++      String scriptName, List<String> tasks) async {
++    final res = await request(() => put(
++          '/$scriptName/manual_run',
++          data: tasks,
++        ));
++    return res.data ?? {};
++  }
++
++  /// 读「运行一次」队列。
++  Future<Map<String, dynamic>> getRunOnceQueue(String scriptName) async {
++    final res = await request(() => get('/$scriptName/manual_run'));
++    return res.data ?? {};
++  }
++
++  /// 取消「运行一次」排队（`task` 留空则清空）。
++  Future<Map<String, dynamic>> cancelRunOnce(String scriptName,
++      {String task = ''}) async {
++    final res = await request(() => delete(
++          '/$scriptName/manual_run',
++          queryParameters: task.isEmpty ? null : {'task': task},
++        ));
++    return res.data ?? {};
++  }
++
+ // -------------------------   运行列表(有序条目清单)   --------------------------
+ //
+ // 列表不只是"任务顺序", 而是**有序条目**的序列。条目三种(按**效果**命名):
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index aa4eee8..02f2074 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -67,6 +67,17 @@ class TaskListController extends GetxController with LogMixin {
+   String query = '';
+   bool onlyEnabled = false;
+   bool onlyFixed = false;
++  /// 只看**定时任务**（`timed` / `charge` / `limited`）—— v2 补齐
++  bool onlyTimed = false;
++  /// 只看**限时活动**（`limited`）—— v2 补齐
++  bool onlyLimited = false;
++
++  // ---------------------------------------------------------------- 运行记录
++  /// `task(command) -> {runs, seconds, seconds_text, archived_rounds, ...}`
++  Map<String, dynamic> runRecord = {};
++
++  /// 「运行一次」队列（按点击顺序）。
++  List<String> runOnceQueue = [];
+ 
+   // ---------------------------------------------------------------- 脚本进程
+   //
+@@ -314,6 +325,14 @@ class TaskListController extends GetxController with LogMixin {
+           .map((e) => Map<String, dynamic>.from(e as Map))
+           .toList();
+ 
++      // 运行记录与「运行一次」队列 —— `/schema` 里已经带了, 不必多请求。
++      final rr = schemaList['run_record'];
++      runRecord = rr is Map ? rr.cast<String, dynamic>() : {};
++      final mq = schemaList['manual_run'];
++      runOnceQueue = ((mq is Map ? mq['tasks'] : null) as List?) == null
++          ? <String>[]
++          : ((mq as Map)['tasks'] as List).map((e) => '$e').toList();
++
+       // 全局设置: 当前值来自 `/schema` 的 `global_fields`
+       // ★ 只在**首次**读取时赋值 —— 否则用户刚改完、下次刷新又被打回去
+       //   (界面会看起来"改了不生效")
+@@ -357,6 +376,32 @@ class TaskListController extends GetxController with LogMixin {
+ 
+   void toggleOnlyFixed() {
+     onlyFixed = !onlyFixed;
++    // 四个"只看 X"是**互斥**的 —— 同时勾"只看固定"和"只看定时"结果必为空,
++    // 用户会以为坏了。勾一个就取消其他的。
++    if (onlyFixed) {
++      onlyTimed = false;
++      onlyLimited = false;
++    }
++    _applyFilter();
++    update();
++  }
++
++  void toggleOnlyTimed() {
++    onlyTimed = !onlyTimed;
++    if (onlyTimed) {
++      onlyFixed = false;
++      onlyLimited = false;
++    }
++    _applyFilter();
++    update();
++  }
++
++  void toggleOnlyLimited() {
++    onlyLimited = !onlyLimited;
++    if (onlyLimited) {
++      onlyFixed = false;
++      onlyTimed = false;
++    }
+     _applyFilter();
+     update();
+   }
+@@ -367,9 +412,18 @@ class TaskListController extends GetxController with LogMixin {
+       all = all.where((t) => t['enable'] == true).toList();
+     }
+     if (onlyFixed) {
+-      // "固定任务"= countable(fixed / toppa), 由后端给的标志决定
++      // "固定任务"由后端给的 `countable` 决定（= fixed / toppa）
+       all = all.where((t) => t['countable'] == true).toList();
+     }
++    if (onlyTimed) {
++      // "定时任务"= 不是 countable 的**且有次数以外的时间语义**
++      // 后端给的 `category` 是权威来源, 这里只做筛选, 不重新定义知识。
++      all = all.where((t) =>
++          ['timed', 'charge', 'limited'].contains('${t['category']}')).toList();
++    }
++    if (onlyLimited) {
++      all = all.where((t) => '${t['category']}' == 'limited').toList();
++    }
+     if (query.isNotEmpty) {
+       final q = query.toLowerCase();
+       all = all.where((t) =>
+@@ -383,6 +437,99 @@ class TaskListController extends GetxController with LogMixin {
+     selected.removeWhere((n) => !names.contains(n));
+   }
+ 
++  // ---------------------------------------------------------------- 运行记录
++  //
++  // ★ 「重置」= **归档后重开**（不是删除）—— 后端 `run_record` 的语义。
++  //   界面上要给二次确认弹窗（用户明确要求）。
++
++  /// 某任务的运行记录（读不到给空）。
++  Map<String, dynamic> recordOf(String command) {
++    final r = runRecord[command];
++    return r is Map ? r.cast<String, dynamic>() : const {};
++  }
++
++  /// 某任务的"跑了多久"可读文本（后端已格式化好）。
++  String durationTextOf(String command) =>
++      '${recordOf(command)['seconds_text'] ?? ''}';
++
++  /// 某任务累计跑了几次。
++  int runsOf(String command) =>
++      (recordOf(command)['runs'] as num?)?.toInt() ?? 0;
++
++  /// **重置选中** —— 归档后重开（会弹二次确认）。
++  ///
++  /// :return: 是否真的执行了
++  Future<bool> resetSelected() async {
++    final names = selected.map(nameToCommand).where((s) => s.isNotEmpty).toList();
++    if (names.isEmpty) return false;
++    final ok = await _confirm(
++      '重置选中（${names.length} 个）',
++      '会把它们的**当前运行记录归档**，然后从零重新计数。\n'
++      '历史记录**不会删除**，仍可在归档里查看。\n\n'
++      '确定继续吗？',
++    );
++    if (!ok) return false;
++    busy = true;
++    update();
++    try {
++      final r = await _api.resetRunRecord(scriptName, names);
++      if (r.containsKey('error')) {
++        Get.snackbar('重置失败', '${r['error']}');
++        return false;
++      }
++      Get.snackbar('已重置', '归档了 ${r['archived_rounds'] ?? 0} 轮');
++      selected.clear();
++      return true;
++    } finally {
++      busy = false;
++      update();
++    }
++  }
++
++  /// **运行一次** —— 按选中顺序排队（跑完当前任务/战斗后插队）。
++  Future<bool> runOnceSelected() async {
++    final names = selected.map(nameToCommand).where((s) => s.isNotEmpty).toList();
++    if (names.isEmpty) return false;
++    busy = true;
++    update();
++    try {
++      final r = await _api.requestRunOnce(scriptName, names);
++      if (r.containsKey('error')) {
++        Get.snackbar('排队失败', '${r['error']}');
++        return false;
++      }
++      runOnceQueue = ((r['tasks'] as List?) ?? const [])
++          .map((e) => '$e')
++          .toList();
++      Get.snackbar('已排队', '${names.length} 个任务将在当前任务结束后依次运行');
++      selected.clear();
++      return true;
++    } finally {
++      busy = false;
++      update();
++    }
++  }
++
++  /// 取消一个排队中的「运行一次」。
++  Future<void> cancelRunOnce(String command) async {
++    await _api.cancelRunOnce(scriptName, task: command);
++    await reload();
++  }
++
++  /// 清空「运行一次」队列。
++  Future<void> clearRunOnce() async {
++    await _api.cancelRunOnce(scriptName);
++    await reload();
++  }
++
++  /// `name`（下划线键）-> `command`（大驼峰）。找不到原样返回。
++  String nameToCommand(String name) {
++    for (final t in _allTasks) {
++      if ('${t['name']}' == name) return '${t['command']}';
++    }
++    return name;
++  }
++
+   // ---------------------------------------------------------------- 批量选择
+   void selectAll() {
+     selected
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 1708ff1..3c03bb1 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -296,6 +296,44 @@ class _OverviewTab extends StatelessWidget {
+                   child: const Text('停用选中'),
+                 ),
+                 const SizedBox(width: 8),
++                // ★ 「运行一次」与「重置选中」并排放在「停用选中」旁（用户要求）
++                Tooltip(
++                  message: '按选中顺序排队，**跑完当前任务/战斗后**依次插队运行\n'
++                      '（不是立即打断 —— 那会卡在半途）',
++                  child: OutlinedButton.icon(
++                    onPressed: c.selected.isEmpty || c.busy
++                        ? null
++                        : c.runOnceSelected,
++                    icon: const Icon(Icons.playlist_play, size: 18),
++                    label: Text('运行一次 (${c.selected.length})'),
++                  ),
++                ),
++                Tooltip(
++                  message: '把当前运行记录**归档**后从零重新计数\n'
++                      '历史不会删除，仍可在归档里查看',
++                  child: OutlinedButton.icon(
++                    onPressed: c.selected.isEmpty || c.busy
++                        ? null
++                        : c.resetSelected,
++                    icon: const Icon(Icons.archive_outlined, size: 18),
++                    label: const Text('重置选中'),
++                  ),
++                ),
++                // 排队中的「运行一次」—— 显示出来并可取消
++                if (c.runOnceQueue.isNotEmpty) ...[
++                  const SizedBox(width: 8),
++                  Tooltip(
++                    message: '排队中（按点击顺序）:\n${c.runOnceQueue.join('\n')}',
++                    child: InputChip(
++                      avatar: const Icon(Icons.playlist_add_check, size: 16),
++                      label: Text('排队中 ${c.runOnceQueue.length}'),
++                      onDeleted: c.clearRunOnce,
++                      deleteIcon: const Icon(Icons.close, size: 16),
++                      visualDensity: VisualDensity.compact,
++                    ),
++                  ),
++                ],
++                const SizedBox(width: 8),
+                 SizedBox(
+                   width: 180,
+                   child: TextField(
+@@ -313,11 +351,22 @@ class _OverviewTab extends StatelessWidget {
+                   selected: c.onlyEnabled,
+                   onSelected: (_) => c.toggleOnlyEnabled(),
+                 ),
++                // 四个"只看 X"互斥（同时勾两个结果必为空，用户会以为坏了）
+                 FilterChip(
+                   label: const Text('只看固定任务'),
+                   selected: c.onlyFixed,
+                   onSelected: (_) => c.toggleOnlyFixed(),
+                 ),
++                FilterChip(
++                  label: const Text('只看定时任务'),
++                  selected: c.onlyTimed,
++                  onSelected: (_) => c.toggleOnlyTimed(),
++                ),
++                FilterChip(
++                  label: const Text('只看限时活动'),
++                  selected: c.onlyLimited,
++                  onSelected: (_) => c.toggleOnlyLimited(),
++                ),
+               ],
+             ),
+           ],
+@@ -385,6 +434,7 @@ class _OverviewTab extends StatelessWidget {
+           Expanded(flex: 16, child: Text('下次运行', style: s)),
+           Expanded(flex: 12, child: Text('对方', style: s)),
+           Expanded(flex: 12, child: Text('在列表', style: s)),
++          Expanded(flex: 20, child: Text('运行记录', style: s)),
+         ],
+       ),
+     );
+diff --git a/lib/views/tasks/task_row_view.dart b/lib/views/tasks/task_row_view.dart
+index 3178e51..7db2100 100644
+--- a/lib/views/tasks/task_row_view.dart
++++ b/lib/views/tasks/task_row_view.dart
+@@ -129,6 +129,8 @@ class _TaskRowViewState extends State<TaskRowView> {
+                   style: Theme.of(context).textTheme.labelSmall)),
+           Expanded(flex: 12, child: _peerCell(context)),
+           Expanded(flex: 12, child: _inListCell(context, isOverview)),
++          // 运行记录（累计次数 + 耗时）—— v2 新增
++          Expanded(flex: 20, child: _recordCell(context)),
+           // 列表页多一格:启停开关
+           if (!isOverview)
+             Switch(
+@@ -299,6 +301,33 @@ class _TaskRowViewState extends State<TaskRowView> {
+             color: inList ? Colors.green : null));
+   }
+ 
++  /// **运行记录** —— 累计次数 + 耗时（v2 新增）。
++  ///
++  /// 数据来自 `/schema` 的 `list.run_record`（后端已格式化好 `seconds_text`，
++  /// 前端不重复实现一遍中文格式化）。
++  Widget _recordCell(BuildContext context) {
++    final cmd = '${task['command'] ?? ''}';
++    final rec = _c.recordOf(cmd);
++    if (rec.isEmpty) {
++      return Text('—', style: Theme.of(context).textTheme.labelSmall);
++    }
++    final runs = _c.runsOf(cmd);
++    final text = _c.durationTextOf(cmd);
++    final rounds = (rec['archived_rounds'] as num?)?.toInt() ?? 0;
++    if (runs == 0 && text.isEmpty) {
++      return Text('—', style: Theme.of(context).textTheme.labelSmall);
++    }
++    return Tooltip(
++      message: '累计 $runs 次，$text'
++          '${rounds > 0 ? '\n已归档 $rounds 轮（重置不会删除历史）' : ''}',
++      child: Text(
++        runs > 0 ? '$runs 次 · $text' : text,
++        style: Theme.of(context).textTheme.labelSmall,
++        overflow: TextOverflow.ellipsis,
++      ),
++    );
++  }
++
+   Widget _dot(Color color) => Container(
+         width: 8,
+         height: 8,
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index ea36b95..4ce7384 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -243,6 +243,75 @@ void _runControlV2Tests() {
+   });
+ }
+ 
++// ============================================================ 总览页 v2 补齐
++//
++// 用户要求补齐的项:
++//   * 「重置选中」（归档后重开）
++//   * 「运行一次」（点击顺序插队）
++//   * 筛选: 只看定时任务 / 只看限时活动
++void _overviewV2Tests() {
++  test('总览页有「重置选中」与「运行一次」按钮', () {
++    final src = codeOnly('lib/views/tasks/task_list_view.dart')
++        .replaceAll("\n", '');
++    expect(src.contains('重置选中'), isTrue);
++    expect(src.contains('运行一次'), isTrue);
++    // 两个按钮都调控制器上对应的方法（不是空按钮）
++    expect(src.contains('resetSelected'), isTrue);
++    expect(src.contains('runOnceSelected'), isTrue);
++  });
++
++  test('总览页补齐了四个筛选', () {
++    final src = codeOnly('lib/views/tasks/task_list_view.dart');
++    for (final f in ['只看已启用', '只看固定任务', '只看定时任务', '只看限时活动']) {
++      expect(src.contains(f), isTrue, reason: '缺筛选「$f」');
++    }
++  });
++
++  test('「只看 X」筛选互斥（同时勾两个结果必为空）', () {
++    final src = File('lib/controller/task_list/task_list_controller.dart')
++        .readAsStringSync();
++    // 三个 toggle 里都该清掉另外两个 —— 逐个检查**方法体**,
++    // 而不是全文 contains（后者会被别处的赋值蒙混过关）。
++    for (final entry in {
++      'void toggleOnlyFixed': ['onlyTimed = false', 'onlyLimited = false'],
++      'void toggleOnlyTimed': ['onlyFixed = false', 'onlyLimited = false'],
++      'void toggleOnlyLimited': ['onlyFixed = false', 'onlyTimed = false'],
++    }.entries) {
++      final i = src.indexOf(entry.key);
++      expect(i, greaterThan(-1), reason: '找不到 ${entry.key}');
++      final body = src.substring(i, i + 400);
++      for (final need in entry.value) {
++        expect(body.contains(need), isTrue,
++            reason: '${entry.key} 里应清掉另一个: $need');
++      }
++    }
++  });
++
++  test('「重置选中」有二次确认（归档会改计数, 不能误点）', () {
++    final src = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    final i = src.indexOf('Future<bool> resetSelected');
++    expect(i, greaterThan(-1));
++    final body = src.substring(i, i + 900);
++    expect(body.contains('_confirm'), isTrue,
++        reason: '重置会改变计数，必须有二次确认');
++    expect(body.contains('归档'), isTrue,
++        reason: '确认文案要说清"归档"而不是"删除"');
++  });
++
++  test('总览页有「运行记录」列（次数 + 耗时）', () {
++    final row = codeOnly('lib/views/tasks/task_row_view.dart');
++    expect(row.contains('_recordCell'), isTrue);
++    final header = codeOnly('lib/views/tasks/task_list_view.dart');
++    expect(header.contains('运行记录'), isTrue);
++  });
++
++  test('运行记录显示归档轮数（重置不删历史）', () {
++    final src = codeOnly('lib/views/tasks/task_row_view.dart');
++    expect(src.contains('archived_rounds'), isTrue,
++        reason: '要能看出"已归档 N 轮"—— 否则用户以为重置把数据删了');
++  });
++}
++
+ void main() {
+   testWidgets('只含任务条目时能正常渲染', (tester) async {
+     final c = FakeTaskListController(
+@@ -339,6 +408,8 @@ void main() {
+   _accountSwitchTests();
+ 
+   _runControlV2Tests();
++
++  _overviewV2Tests();
  }
  
  /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。

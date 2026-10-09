@@ -144,6 +144,23 @@ class TestRest:
 
 
 class TestDelay:
+    """
+    `delay()`（**只停列表**）—— v2 里界面上不再暴露，但后端能力保留。
+
+    ## 为什么保留
+
+    它是"手动临时只停列表"的后端能力（`run_list` 的 `delay` **条目类型**
+    已删除，因为固定与定时分开管理后各有总开关）。
+
+    ## ★ 为什么 `state()` 里不再有 `delayed` / `list_resume_at`
+
+    `state()` 是**给界面看的**。v2 之后前端不再需要这两个字段
+    （运行控制条只剩三个调度按钮），所以把它们从公开状态里去掉 ——
+    **断言"不该出现"比断言"出现了"更能防回退**。
+
+    下面的用例改成直接查 `list_delayed()` / `list_resume_at()`（能力本身）。
+    """
+
     def test_not_delayed_by_default(self, rc):
         assert rc.list_delayed() is False
         assert rc.list_resume_at() is None
@@ -151,17 +168,15 @@ class TestDelay:
     def test_delay_does_not_block_dispatch(self, rc):
         """
         关键区别: **延后只推迟列表推进, 定时任务照常** ——
-        因此 `can_run` 仍为 True(与"休息"相反)。
+        因此 `can_run` 仍为 True（与"休息"相反）。
         """
         st = rc.delay(minutes=20)
-        assert st['delayed'] is True
         assert rc.list_delayed() is True
         assert st['can_run'] is True, '延后不应阻止定时任务派发'
 
     def test_cancel_delay(self, rc):
         rc.delay(minutes=20)
-        st = rc.delay(minutes=0)
-        assert st['delayed'] is False
+        rc.delay(minutes=0)
         assert rc.list_delayed() is False
 
     def test_expired_delay(self, rc):
@@ -175,11 +190,22 @@ class TestDelay:
         rc.delay(minutes=30)
         st = rc.state()
         assert st['rest_until'] is not None
-        assert st['list_resume_at'] is not None
+        assert rc.list_delayed() is True
         # 取消休息, 延后仍在
         st = rc.rest(minutes=0)
         assert st['rest_until'] is None
-        assert st['delayed'] is True
+        assert rc.list_delayed() is True
+
+    def test_state_no_longer_exposes_delay_fields(self, rc):
+        """
+        ★ 回归守卫: `state()` 不该再返回 v1 的「只停列表」字段。
+
+        它们对前端已经没有意义 —— 留着会让前端以为"还要处理这一项"。
+        """
+        rc.delay(minutes=20)
+        st = rc.state()
+        for gone in ('delayed', 'list_resume_at', 'list_remaining'):
+            assert gone not in st, f'v2 的 state() 不该再有 {gone}'
 
 
 class TestWaitSeconds:
@@ -223,7 +249,8 @@ class TestRobustness:
         st = rc.state()
         assert st['paused'] is False
         assert st['rest_until'] is None
-        assert st['delayed'] is False
+        # `delay` 不在 `state()` 里了（v2），查能力本身
+        assert rc.list_delayed() is False
 
 
 class TestBaseTaskIntegration:

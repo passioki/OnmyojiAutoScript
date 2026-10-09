@@ -210,8 +210,15 @@ def state() -> dict:
 
     返回:
         {paused, pause_mode, pause_mode_label, pause_at, pause_reason,
-         rest_until, rest_remaining, delayed, list_resume_at, list_remaining,
-         can_run}
+         rest_until, rest_remaining, can_run}
+
+    ★ v2 去掉了 `delayed` / `list_resume_at` / `list_remaining` ——
+      那是 v1「只停列表」的字段。固定与定时分开管理后
+      （各有总开关），这个概念在前端不再需要。
+
+      `delay()` / `list_resume_at()` **函数本身保留** ——
+      它们是后端"手动临时只停列表"的能力，
+      只是**界面上不再暴露**（见 `docs/architecture.md` §5.1）。
     """
     rc = _load()
     now = datetime.now()
@@ -221,8 +228,6 @@ def state() -> dict:
 
     ru = _parse_dt(rc.get('rest_until'))
     ru = ru if (ru and ru > now) else None
-    lu = _parse_dt(rc.get('list_resume_at'))
-    lu = lu if (lu and lu > now) else None
 
     def _remain(t):
         if t is None:
@@ -237,9 +242,6 @@ def state() -> dict:
         'pause_reason': rc.get('pause_reason') or '',
         'rest_until': ru.strftime('%Y-%m-%d %H:%M:%S') if ru else None,
         'rest_remaining': _remain(ru),
-        'delayed': lu is not None,
-        'list_resume_at': lu.strftime('%Y-%m-%d %H:%M:%S') if lu else None,
-        'list_remaining': _remain(lu),
         # 现在能不能派发新任务(暂停或休息都不行)
         'can_run': (m == PAUSE_NONE) and (ru is None),
     }

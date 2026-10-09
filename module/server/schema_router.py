@@ -882,10 +882,14 @@ async def delete_manual_run(script_name: str, task: str = ''):
 @schema_app.get('/{script_name}/run_control')
 async def get_run_control(script_name: str):
     """
-    当前运行控制状态(暂停 / 休息 / 延后)。
+    当前运行控制状态（暂停 / 休息）。
 
-    返回: {paused, pause_mode, pause_mode_label, rest_until, rest_remaining,
-           delayed, list_resume_at, list_remaining, can_run}
+    返回: `{paused, pause_mode, pause_mode_label, pause_at, pause_reason,
+            rest_until, rest_remaining, can_run}`
+
+    ★ v2 去掉了 `delayed` / `list_resume_at` / `list_remaining` ——
+      那是 v1「只停列表」的字段；固定与定时分开管理后（各有总开关），
+      前端不再需要它（见 `docs/architecture.md` §5.1）。
     """
     try:
         from module.config import run_control

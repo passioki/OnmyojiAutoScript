@@ -451,13 +451,18 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         语义(见 `module/config/run_list.py`):
 
-        | 条目 | 效果 | 是否影响定时任务 |
-        |---|---|---|
-        | `rest`  | **全部停止** N 分钟 | ✅ 连定时任务一起停 |
-        | `delay` | **只停列表** N 分钟 | ❌ 定时任务照常 |
+        | 条目 | 效果 |
+        |---|---|
+        | `rest` | **休息** —— 去庭院待着 N 分钟（阻塞列表）|
+        | `task` | 跑一个固定任务（**不阻塞**，未就绪就跳过）|
 
-        实现: `rest` 写 `run_control.rest_until`(全局暂停, 与手动"全部停止"同一处),
-        `delay` 写 `run_control.list_resume_at`。
+        ★ v1 还有一个 `delay`（"只停列表"，定时任务照常）——
+          v2 之后**固定与定时分开管理**（各有总开关），
+          这个概念不再需要，条目类型已删除。
+          `run_control.delay()` 留着只是"手动临时只停列表"的
+          后端能力，**界面上不再暴露**（见 `docs/architecture.md` §5.1）。
+
+        实现: `rest` 写 `run_control.rest_until`（与手动暂停同一处）。
 
         :return: True 表示"现在被阻塞, 不该派发任务"
         """

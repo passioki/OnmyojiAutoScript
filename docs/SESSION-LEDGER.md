@@ -315,13 +315,18 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
 | 3 | **Hunt** | ✅ | 删 `check_datetime` 里的"太早/太晚"分支（20 行）+ `plan_tomorrow_hunt` + `con_time` + 未用的 `time` import。<br>**关键洞察**: 窗口 23:00 结束 -> 23:00 后**不会被派发** -> 原来 `>23:00` 分支是**死代码**。<br>实测窗口对齐: 周一 22:30 跑完 +3h = 周二 01:30 → **对齐到周二 06:00** |
 | 4 | **RyouToppa** | ⛔ **阻塞（需你决策）** | 只有 2 处, 但它**没有 window**（`window=None`, `auto_queue=False` 的次数任务）。<br>`_align_to_window` 对无 window 的任务**原样返回** -> 删掉 `custom_next_run` 后, `next_ryoutoppa_time`（默认 7:00, **用户可配**）这个"次日几点跑"的意图**会丢失**。<br>**这需要"给 RyouToppa 新增 window"这个行为决策, 不是安全重构** —— 不擅自做。 |
 | 5 | **GuildBanquet** | ⬜ | 3 处（L133/136/139），宴会日由用户配置（`banquet_day_1/_2`）, 需单独核实 |
-| 6 | **Restart** | ⬜ | 3 处（L50/53/56）—— 领体力时刻（12:00/20:00）, 可能保留 |
+| 6 | **Restart** | ⬜ | 3 处（L50/53/56）—— 领体力时刻（12:00/20:00）。<br>⚠ 用的是 `Time(12, 0)`（大写 `Time`）, 不是标准 `time`, 需单独看 |
 | 7 | **MemoryScrolls** | ⬜ | 1 处（L63）—— 给**别的任务**（Exploration）排期, 语义特殊 |
-| — | 其余（Dokan / MysteryShop / Secret / Tako / DemonEncounter / GuildActivityMonitor / AreaBoss …）| ⬜ | 用 `weekday()` 但**不**调 `custom_next_run`（选 boss/选区域等正当用途）, 需逐个确认 |
+| — | 其余（Dokan / MysteryShop / Secret / Tako / DemonEncounter / GuildActivityMonitor / AreaBoss …）| ✅ | **实测 0 处** —— 它们用 `weekday()` 只是选 boss/选区域, 属正当用途 |
 
-**剩余 `custom_next_run` / `days_until` 实测: 10 行** —— 台账标 ⬜/⛔, 不虚报。
+**剩余 `custom_next_run` 真实代码: 9 处**（4 个任务）—— 台账标 ⬜, 不虚报。
 
-★ `BaseTask.custom_next_run()` **暂时不能删** —— 上面几个任务还在调它。
+★ **统计口径提醒**: 早先我用 `re.sub(r'"""[\s\S]*?"""', ...)` 剥 docstring,
+结果**跨文件吞掉了 Restart 的 3 处**（该文件里有多段三引号, 贪婪匹配导致范围错乱）,
+一度误报为 0。**准确做法是逐文件 raw 搜索 + 人工看是否在注释里**。
+
+★ `BaseTask.custom_next_run()` **暂时不能删** —— 上面 4 个任务还在调它。
+
 
 删它必须先清完这些调用点（属于本步的剩余工作）。
 

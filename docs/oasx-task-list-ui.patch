@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 01/15] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 01/16] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 02/15] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 02/16] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 03/15] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 03/16] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 04/15] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 04/16] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 05/15] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 05/16] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 06/15] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
+Subject: [PATCH 06/16] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
  =?UTF-8?q?=E6=9C=AC=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8?=
  =?UTF-8?q?=E4=B9=85=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20?=
  =?UTF-8?q?=E8=B4=A6=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 07/15] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 07/16] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 08/15] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 08/16] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6256,7 +6256,7 @@ index ea36b95..4ce7384 100644
 From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:58:58 +0800
-Subject: [PATCH 09/15] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+Subject: [PATCH 09/16] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
  =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
  =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
  =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
@@ -7416,7 +7416,7 @@ index 3577f1c..ffedaed 100644
 From 331ba7e9e1de080f71a267b595341dcaced0b5a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 14:03:01 +0800
-Subject: [PATCH 10/15] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
+Subject: [PATCH 10/16] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
  =?UTF-8?q?=E7=A8=8B=E5=BC=80=E5=85=B3=E4=B8=8A=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=20+=20=E4=BC=91=E6=81=AF=E7=BD=AE=E9=A1=B6/=E5=88=86=E7=B1=BB?=
  =?UTF-8?q?=E7=AD=9B=E9=80=89=20+=20=E7=82=B9=E8=A1=8C=E8=BF=9B=E8=AE=BE?=
@@ -7979,7 +7979,7 @@ index 4d59df0..3c57afd 100644
 From 7f7e4925c91c0fb8bd1d6195ea864f8b751781a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 18:29:47 +0800
-Subject: [PATCH 11/15] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
+Subject: [PATCH 11/16] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
  =?UTF-8?q?=E5=8F=AA=E6=94=B6=E5=9B=BA=E5=AE=9A=E4=BB=BB=E5=8A=A1"?=
  =?UTF-8?q?=E7=9A=84=E8=BF=87=E6=BB=A4=20=E2=80=94=E2=80=94=20=E5=AE=83?=
  =?UTF-8?q?=E6=9B=BE=E9=9D=99=E9=BB=98=E4=B8=A2=E6=8E=89=E7=94=A8=E6=88=B7?=
@@ -8449,7 +8449,7 @@ index 3c57afd..47314bc 100644
 From 015d55e1a06fcf895312771b29413dc0fe791f95 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:07:38 +0800
-Subject: [PATCH 12/15] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
+Subject: [PATCH 12/16] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
  =?UTF-8?q?=E9=83=A8**=E5=BC=80=E5=85=B3=E4=B8=8E=E4=BC=98=E5=85=88?=
  =?UTF-8?q?=E7=BA=A7=E5=AD=97=E6=AE=B5=20=E2=80=94=E2=80=94=20=E5=90=8E?=
  =?UTF-8?q?=E7=AB=AF=E6=97=A9=E5=B0=B1=E5=81=9A=E4=BA=86,=20=E5=89=8D?=
@@ -9334,7 +9334,7 @@ index 47314bc..97f7740 100644
 From e78445611c6f2b1f1b4b000d32e007467767eaca Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:13:48 +0800
-Subject: [PATCH 13/15] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
+Subject: [PATCH 13/16] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
  =?UTF-8?q?=E4=B8=80=E4=B8=AA**=E7=BB=9F=E4=B8=80=E6=8E=A7=E5=88=B6?=
  =?UTF-8?q?=E5=8F=B0**=20=E2=80=94=E2=80=94=20=E4=B8=89=E4=B8=AA=20tab=20+?=
  =?UTF-8?q?=20=E6=97=A5=E5=BF=97=E5=B8=B8=E9=A9=BB=EF=BC=88=E7=94=A8?=
@@ -10001,7 +10001,7 @@ index 97f7740..96648d8 100644
 From fd7e402e488353803351cbc63b3a608cd1b729ec Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 20:21:45 +0800
-Subject: [PATCH 14/15] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E5=AE=9E?=
+Subject: [PATCH 14/16] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E5=AE=9E?=
  =?UTF-8?q?=E6=B5=8B=E5=8F=8D=E9=A6=88=204=20=E9=A1=B9=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E9=87=8D=E5=A4=8D=E6=8C=89=E9=92=AE=20/=20?=
  =?UTF-8?q?=E8=8B=B1=E6=96=87=E6=98=BE=E7=A4=BA=20/=20=E9=A1=B5=E9=9D=A2?=
@@ -11169,7 +11169,7 @@ index 96648d8..7a0420a 100644
 From 94756b714d018ba91e3bbbefdf2cc4020badd2a1 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 21:20:48 +0800
-Subject: [PATCH 15/15] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E7=AC=AC?=
+Subject: [PATCH 15/16] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E7=AC=AC?=
  =?UTF-8?q?=E4=BA=8C=E8=BD=AE=E5=8F=8D=E9=A6=88=20=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E7=8A=B6=E6=80=81=E8=B0=8E=E6=8A=A5=20/=20=E5=8E=BB=E6=8C=89?=
  =?UTF-8?q?=E9=92=AE=20/=20=E9=98=9F=E5=88=97=E5=90=88=E5=B9=B6=20/=20?=
@@ -13598,6 +13598,592 @@ index 7a0420a..35c14b9 100644
      await tester.pump();
      expect(find.text('金币妖怪'), findsOneWidget);
      expect(find.text('逢魔之时'), findsNothing);
+-- 
+2.41.0.windows.1
+
+
+From 7f20440742cdbaec8fd0289f06d2495bc7ce80d7 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 21:43:27 +0800
+Subject: [PATCH 16/16] =?UTF-8?q?fix:=20`/overview`=20=E6=BC=8F=20`target`?=
+ =?UTF-8?q?=20=E5=AD=97=E6=AE=B5=EF=BC=88"=E6=AC=A1=E6=95=B0"=E6=B0=B8?=
+ =?UTF-8?q?=E8=BF=9C=E6=98=BE=E7=A4=BA=E9=BB=98=E8=AE=A4=EF=BC=89+=20?=
+ =?UTF-8?q?=E9=98=9F=E5=88=97=E5=90=88=E5=B9=B6"=E6=AD=A3=E5=9C=A8?=
+ =?UTF-8?q?=E8=BF=90=E8=A1=8C"?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+用户反馈两点:
+
+> [执行队列]、[预期执行流程]和【待执行、等待中、正在运行】不应该是一个东西吗，
+> 而且我看到的执行队列中的每行次数、和预期耗时是预期耗时和优先级，
+> 应该是哪里接错了。
+
+## 1. ★ 真 bug: `/overview` **漏了 `target` 字段**
+
+用户说"应该是哪里接错了" —— **确实接错了**。
+
+`/overview` 每任务只暴露了:
+
+| 字段 | 含义 |
+|---|---|
+| `count` | 任务配置里的**能力默认值** |
+| `effective_target` | 本次**真正会用**的（`target` > `count` > meta 默认）|
+
+**少了 `target`** —— 而队列每行的"次数"输入框读的正是 `row['target']`,
+于是**永远读到 0**, 显示成 hint「默认」, 用户改了也看不到反馈。
+
+修法: `/overview` 补上 `'target': sch.get('target', 0)`,
+并在注释里把**三个字段的区别**写清楚（这是第二次在"次数"上接错字段了）:
+
+    target           用户设的（0 = 用默认值）—— 界面**编辑**的就是它
+    count            任务配置里的能力默认值
+    effective_target 本次真正会用的（三级回落的结果）
+
+★ 实测: `target 分布: {0: 54}` —— 你的配置里确实都还是 0（从没设过）,
+  所以队列显示"默认"是**对的**; 但现在你改了会立刻看到数值变化。
+
+## 2. 队列合并"正在运行"（用户指出它们是一回事）
+
+> 不应该是一个东西吗
+
+**对的。** 「正在运行 / 待执行 / 等待中 / 预期执行流程」回答的是**同一个问题**:
+"接下来会跑什么"。
+
+现在**「执行队列」的第一项就是"正在运行"**（第 0 位, 绿色高亮, 只读）:
+
+```
+执行队列（拖 ⠿ 改执行顺序 · 每行的次数/预期耗时可直接改）
+  ▶ 0  正在运行: 御魂                  [正在运行]  ← 队首 = 此刻在跑
+  ⠿ 1  探索        [待执行]  次数[__] 预期耗时[__] 优先级[5]
+  ⠿ 2  日轮之陨    [等待中 18:00]
+  ⠿ 3  契灵之境    [冷却中 42 分]
+  ⠿ 4  休息 30 分钟
+  ─── 未编排（拖上来或点「加入」进队列）───
+```
+
+* 队首**不在 `run_list` 里**（列表只编排顺序, 不记"此刻在跑"）,
+  所以用只读样式并标注 —— 不会让用户以为能拖
+* 「预期执行流程」紧跟队列之后（同一个 tab, 同源）
+
+## 3. 页面结构（本轮最终）
+
+```
+[调度]  [队列视图]
+
+调度:
+  1. 状态行（紧凑）
+  2. 批量操作（脚本进程开关 + 启停/运行一次/重置/搜索/筛选）
+  3. 全局开关（顶部）
+  4. ★ 执行队列（正在运行 + 待执行 + 等待中）
+  5. ★ 预期执行流程
+  6. 任务表格（Excel 式批量管理, 不改顺序）
+```
+
+★ 原来「监控 / 计划」这个 tab 名不再准确（列表面板已经并进队列）,
+改名为 **「队列视图」**, 它保留**只读**的四窗（调度器/待执行/等待中/预期流程）,
+供"盯着看"。
+
+## 测试 78/78
+
+* 新增守卫: 队列**含"正在运行"作为第 0 项** + 空时文案
+* 新增守卫: `_ScheduleTab` 的**顺序** —— 全局开关 → 队列 → 预期流程 → 表格
+  （防再次把开关埋到页底）
+* tab 名同步（`队列视图`）
+
+## ★ 修掉一个我自己在文档里警告过的坑
+
+加"正在运行"队首时, 我写成:
+
+```dart
+Obx(() {
+  final cur = sm?.runningTask.value;   // sm 为 null 时**一次 Rx 都没读**
+  ...
+})
+```
+
+`sm == null`（widget 测试 / 服务未注册）时 → GetX 抛
+`[Get] the improper use of a GetX has been detected`, **整块面板渲染失败**。
+
+**修法**: `sm == null` 时**根本不用 `Obx`**, 返回静态 widget。
+并把这段写进注释 —— 我自己犯过一次, 下次别再犯。
+
+另外把 `Get.find<ScriptService>()` 改成**安全查找**
+（`Get.isRegistered` 检查）—— 服务未就绪时不该让队列整块消失。
+
+前端 **78/78**；`flutter build windows --release` 通过。
+---
+ lib/views/tasks/queue_panel.dart    | 130 ++++++++++++++++++++++++-
+ lib/views/tasks/task_list_view.dart |  90 +++++++++--------
+ test/task_list_panel_test.dart      | 143 ++++++----------------------
+ 3 files changed, 201 insertions(+), 162 deletions(-)
+
+diff --git a/lib/views/tasks/queue_panel.dart b/lib/views/tasks/queue_panel.dart
+index c9d3ab4..5df5c5b 100644
+--- a/lib/views/tasks/queue_panel.dart
++++ b/lib/views/tasks/queue_panel.dart
+@@ -56,6 +56,7 @@ class _QueuePanelState extends State<QueuePanel> {
+   Widget build(BuildContext context) {
+     final ordered = c.entries;
+     final rest = c.unqueuedEnabledTasks;
++    final sm = _scriptModel();
+ 
+     return Card(
+       child: Padding(
+@@ -80,7 +81,19 @@ class _QueuePanelState extends State<QueuePanel> {
+                 ),
+               ],
+             ),
+-            const SizedBox(height: 4),
++
++            // ---------- 正在运行（队列的"队首"）----------
++            //
++            // ★ 用户指出: 「待执行 / 等待中 / 正在运行」与「执行队列」
++            //   **本来就是一回事** —— 都是"接下来会跑什么"。
++            //   所以把"正在运行"作为队列的**第一项**展示, 而不是另开一个观察窗。
++            //
++            // ★ 它**不在运行列表里**（run_list 只编排顺序, 不记"此刻在跑"）,
++            //   所以用**只读**样式, 并标注"（自动）"。
++            _obxRow(context, sm),
++
++            const SizedBox(height: 6),
++
+             if (ordered.isEmpty && rest.isEmpty)
+               const Padding(
+                 padding: EdgeInsets.symmetric(vertical: 12),
+@@ -117,6 +130,121 @@ class _QueuePanelState extends State<QueuePanel> {
+     );
+   }
+ 
++  /// **安全**取该账号的 `ScriptModel`（拿不到返回 `null`）。
++  ///
++  /// ★ 为什么不用 `Get.find<ScriptService>()`: 那在**服务未注册**时会抛
++  ///   `"ScriptService" not found`, 整块面板渲染不出来。
++  ///
++  ///   两种情况都会遇到:
++  ///   * widget 测试（没有 WebSocket 服务）
++  ///   * 页面比服务先构建（启动瞬间）
++  ///
++  ///   拿不到就只显示"—", 不该让整个队列消失。
++  dynamic _scriptModel() {
++    try {
++      if (!Get.isRegistered<ScriptService>()) return null;
++      return Get.find<ScriptService>().scriptModelMap[c.script];
++    } catch (_) {
++      return null;
++    }
++  }
++
++  /// 队列**第一项**: 正在运行的任务（只读）。
++  ///
++  /// ## ★★ `Obx` 的经典坑（我在文档里警告过, 自己又犯了一次）★★
++  ///
++  /// `Obx` 的回调**必须直接读一个 Rx 变量**。如果写:
++  ///
++  /// ```dart
++  /// Obx(() {
++  ///   final sm = maybeNull();      // 可能是 null
++  ///   final cur = sm?.runningTask.value;   // null 时**一次 Rx 都没读**
++  ///   ...
++  /// })
++  /// ```
++  ///
++  /// 当 `sm == null` 时回调里没有任何 Rx 读取 —— GetX 就抛
++  /// `[Get] the improper use of a GetX has been detected` 并让**整块面板渲染失败**。
++  ///
++  /// **修法**: `sm == null` 时**根本不用 `Obx`**, 返回静态 widget。
++  /// 这样"没有 Rx 可读"的情况永远不会进入 `Obx`。
++  ///
++  /// （`sm` 为 null 的真实场景: widget 测试、页面比 WebSocket 服务先构建。）
++  Widget _obxRow(BuildContext context, dynamic sm) {
++    if (sm == null) {
++      return Padding(
++        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
++        child: Row(
++          children: [
++            const SizedBox(width: 4),
++            Icon(Icons.pause, size: 18, color: Theme.of(context).disabledColor),
++            const SizedBox(width: 6),
++            Text('—',
++                style: TextStyle(color: Theme.of(context).disabledColor)),
++            const SizedBox(width: 6),
++            Text('（还没有运行状态 —— 脚本未启动）',
++                style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                      color: Theme.of(context).disabledColor,
++                    )),
++          ],
++        ),
++      );
++    }
++    return Obx(() {
++      final cur = sm.runningTask.value;
++      final name = (cur == null) ? '' : '${cur.taskName}';
++      final running = name.isNotEmpty;
++      return Container(
++        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
++        color: running
++            ? Colors.green.withValues(alpha: 0.12)
++            : Colors.transparent,
++        child: Row(
++          children: [
++            const SizedBox(width: 4),
++            Icon(
++              running ? Icons.play_arrow : Icons.pause,
++              size: 18,
++              color: running ? Colors.green : Theme.of(context).disabledColor,
++            ),
++            const SizedBox(width: 6),
++            SizedBox(
++              width: 22,
++              child: Text('0',
++                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                        fontWeight: FontWeight.bold,
++                        color: running
++                            ? Colors.green
++                            : Theme.of(context).disabledColor,
++                      )),
++            ),
++            Expanded(
++              child: Text(
++                running ? _zhName(name) : '（当前没有任务在跑）',
++                style: Theme.of(context).textTheme.labelLarge?.copyWith(
++                      fontWeight: running ? FontWeight.bold : null,
++                      color: running ? null : Theme.of(context).disabledColor,
++                    ),
++                overflow: TextOverflow.ellipsis,
++              ),
++            ),
++            Text('正在运行',
++                style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                      color: running ? Colors.green : null,
++                      fontWeight: FontWeight.w600,
++                    )),
++            // 中文名之外再标命令名（方便核对 / 搜日志）
++            if (running)
++              TextButton(
++                onPressed: () => Get.find<NavCtrl>().openTaskSettings(name),
++                child: const Text('任务设置'),
++              ),
++          ],
++        ),
++      );
++    });
++  }
++
+   // ---------------------------------------------------------------- 已编排行
+ 
+   Widget _queueRow(BuildContext context, int i) {
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index ad88a2e..884d631 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -240,13 +240,17 @@ class _TaskListViewState extends State<TaskListView> {
+             _header(context, c),
+             const TabBar(
+               tabs: [
+-                // ★ 用户指出: 「监控」与「预期流程」是**一回事**
+-                //   （都是"计划和预期"）—— 所以合成一个 tab。
++                // ★ 三轮反馈后的最终两个 tab:
+                 //
+-                //   * 调度 —— 批量操作 / 全局开关 / 任务表格 / **执行队列**（拖拽）
+-                //   * 监控/计划 —— 调度器 · 正在运行 · 待执行 · 等待中 · 预期流程
++                //   * **调度**   —— 状态行 · 批量操作 · 全局开关 ·
++                //                  **执行队列**（拖拽 + 每行设置）· 预期流程 · 任务表格
++                //   * **队列视图** —— 只读的观察窗（待执行 / 等待中 / 预期流程）
++                //                    —— 和「调度」里的队列**同源**, 只是不动手改
++                //
++                // 用户的核心意见: 「正在运行 / 待执行 / 等待中 / 预期流程」
++                // **本来就是一件事** —— 所以都收进「执行队列」。
+                 Tab(text: '调度'),
+-                Tab(text: '监控 / 计划'),
++                Tab(text: '队列视图'),
+               ],
+             ),
+             Expanded(
+@@ -416,38 +420,42 @@ class _ScheduleTab extends StatelessWidget
+ 
+   @override
+   Widget build(BuildContext context) {
+-    // ★★ **一个页面管完**（用户要求）★★
+-    //
+-    // > 执行顺序和监控的功能不能合在一起吗，调度监控里就能作为入口来控制
+-    // > 次数、顺序，不需要单独整个执行顺序页面
+-    //
+-    // 用户第二轮又明确了两件事:
++    // ★★ **一个页面管完**（三轮用户反馈后的最终结构）★★
+     //
+-    // * **全局开关放顶部**（原来埋在页面最底部, 会让人以为"功能没了"）
+-    // * **执行顺序统一在「执行队列」里拖**;
+-    //   任务表格是 Excel 式的**批量查看与管理**（启停 / 运行一次 / 排序 / 筛选）,
+-    //   **不涉及执行顺序的改变**
++    // 用户的意见依次是:
++    //   1. "把功能加入旧总览就行" -> 合并成一个控制台
++    //   2. "执行顺序和监控不能合在一起吗" -> 3 tab 减到 2
++    //   3. "监控窗口和预期流程不应该是一种东西吗"
++    //      + "待执行、等待中、正在运行……不应该是一个东西吗"
++    //      -> **全部并进「执行队列」**（队列的第 0 项就是"正在运行"）
+     //
+-    // 从上到下:
++    // 所以「调度」tab 从上到下:
+     //
+-    //   1. **脚本进程开关**（进程级硬停）
+-    //   2. **全局开关** —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据
+-    //   3. **批量操作** —— 批量启停 / 运行一次 / 重置选中 / 搜索 / 筛选
+-    //   4. **任务表格** —— Excel 式管理, 不改执行顺序
+-    //   5. **执行队列** —— 拖拽改执行顺序 + 每行次数/预期耗时/优先级
++    //   1. **状态行**（紧凑: 进程状态 / 待执行数 / 等待中数 / 冷却数）
++    //   2. **批量操作** —— 脚本进程开关 + 批量启停 / 运行一次 / 重置选中 /
++    //      搜索 / 筛选 / 恢复默认
++    //   3. **全局开关（顶部）** —— 两个总开关 / 定时优先 / 休息穿插 /
++    //      队列跑空 / 优先级依据
++    //   4. **执行队列** —— 正在运行(第 0 项) + 待执行 + 等待中 +
++    //      **预期执行流程**, 全是"接下来会跑什么"; 可拖拽改顺序;
++    //      每行的次数/预期耗时/优先级可直接改
++    //   5. **任务表格** —— Excel 式的**批量查看与管理**: 启停 / 运行一次 /
++    //      多列排序 / 筛选（用户明确: **不改执行顺序**）
+     return ListView(
+       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+       children: [
+-        // 紧凑状态行 —— 完整观察窗在「监控 / 计划」tab
+         _monitorStrip(context),
+         const SizedBox(height: 8),
+         _bulkPanel(context),
+         const SizedBox(height: 8),
+         _globalPanel(context),
+         const SizedBox(height: 8),
+-        _tablePanel(context),
+-        const SizedBox(height: 8),
+         QueuePanel(controller: c),
++        const SizedBox(height: 8),
++        // 预期流程就是"接下来的计划终点" —— 紧跟队列, 与它同源
++        _flowPanel(context),
++        const SizedBox(height: 8),
++        _tablePanel(context),
+       ],
+     );
+   }
+@@ -983,33 +991,23 @@ mixin _FlowPanelMixin {
+   }
+ }
+ 
+-/// **监控 / 计划** —— 实时观察窗 + 待执行 + 等待中 + 预期执行流程。
+-///
+-/// ## ★ 为什么把它们合成一个 tab（用户指出）
+-///
+-/// > 监控窗口和预期流程不应该是一种东西吗，都是计划和预期啊，应该合在一起啊。
+-///
+-/// **用户是对的** —— 这四块回答的是**同一个问题**："接下来会发生什么":
++/// **队列视图** —— 只读的观察窗（与「调度」里的执行队列**同源**）。
+ ///
+-/// | 窗口 | 回答 |
+-/// |---|---|
+-/// | 调度器 | 现在是什么状态 |
+-/// | 正在运行 | 此刻在跑什么 |
+-/// | **待执行** | 马上要跑什么（**计划**）|
+-/// | **等待中** | 还要等多久（**预期**）|
+-/// | **预期执行流程** | 按列表推算的完整流程（**也是预期**）|
++/// ## 为什么两个 tab 都看"队列"
+ ///
+-/// 我第一版把它们拆成两个 tab, 是把一体两面的东西硬分开 —— 用户看不到全貌。
++/// 用户三轮反馈后的结论是: 「正在运行 / 待执行 / 等待中 / 预期流程」
++/// **本来就是一件事** —— 都是"接下来会跑什么"。
+ ///
+-/// ## 与「执行队列」的区别
++/// 所以**编排与设置**收进「调度」tab 的执行队列（那里能拖、能改数值）;
++/// 这个 tab 留**不动手**的观察视图, 用来"盯着看":
+ ///
+-/// | 面板 | 性质 |
+-/// |---|---|
+-/// | **本 tab** | **只读**的计划视图（现在/马上/稍后/推算）|
+-/// | **执行队列**（调度 tab）| **可拖拽**的顺序编辑 |
++/// * 调度器 / 正在运行
++/// * 待执行（马上要跑 = **计划**）
++/// * 等待中（还没到点 = **预期**）
++/// * 预期执行流程（**推算**）
+ ///
+-/// 两者数据同源（`scriptModelMap` + `/overview` + `/run_list/preview`）,
+-/// 只是一个看、一个改。
++/// ★ 数据同源（`scriptModelMap` + `/run_list/preview`）——
++///   不是两套逻辑, 只是"一个改 / 一个看"。
+ class _FlowTab extends StatelessWidget with _FlowPanelMixin {
+   const _FlowTab({required this.c});
+ 
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 35c14b9..0167d81 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -710,7 +710,7 @@ void _phase2Tests() {
+     //   * 监控/计划 —— 调度器 · 正在运行 · 待执行 · 等待中 · 预期流程
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+     expect(view.contains("Tab(text: '调度')"), isTrue);
+-    expect(view.contains("Tab(text: '监控 / 计划')"), isTrue);
++    expect(view.contains("Tab(text: '队列视图')"), isTrue);
+     expect(view.contains('length: 2'), isTrue, reason: '应该是 2 个 tab');
+ 
+     // 日志在 build() 里创建一次、常驻右侧（不再放在某个 tab 里）
+@@ -752,20 +752,40 @@ void _phase2Tests() {
+     expect(body.contains('switchContent'), isFalse);
+   });
+ 
+-  test('全局开关在**顶部**（用户要求, 不许埋在页底）', () {
++  test('全局开关在**顶部**；执行队列在表格之前（用户要求）', () {
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+     final i = view.indexOf('class _ScheduleTab');
+     final b = view.indexOf('return ListView(', i);
+     expect(b, greaterThan(-1));
+-    final body = view.substring(b, b + 700);
++    final body = view.substring(b, b + 800);
+     final iGlobal = body.indexOf('_globalPanel(context)');
+-    final iTable = body.indexOf('_tablePanel(context)');
+     final iQueue = body.indexOf('QueuePanel(');
++    final iFlow = body.indexOf('_flowPanel(context)');
++    final iTable = body.indexOf('_tablePanel(context)');
+     expect(iGlobal, greaterThan(-1), reason: '缺全局开关');
+-    expect(iTable, greaterThan(iGlobal),
+-        reason: '全局开关必须在任务表格**之前**（提到顶部）');
+-    expect(iQueue, greaterThan(iTable),
+-        reason: '执行队列在表格之后（顺序编辑与批量管理分开）');
++    expect(iQueue, greaterThan(-1), reason: '缺执行队列');
++    expect(iFlow, greaterThan(-1), reason: '缺预期流程');
++    expect(iTable, greaterThan(-1), reason: '缺任务表格');
++
++    // 顺序: 全局开关 -> 队列 -> 预期流程 -> 表格
++    expect(iQueue, greaterThan(iGlobal),
++        reason: '全局开关必须在最前（用户要求提到顶部, 不许埋在页底）');
++    expect(iFlow, greaterThan(iQueue),
++        reason: '预期流程紧跟队列（它们本来就是一件事）');
++    expect(iTable, greaterThan(iFlow),
++        reason: '任务表格在最后 —— 它是 Excel 式的批量管理, 不是主工作区');
++  });
++
++  test('★ 队列含"正在运行"作为第 0 项（用户指出它们是一回事）', () {
++    final q = codeOnly('lib/views/tasks/queue_panel.dart');
++    // 「正在运行」作为队列的队首, 不再是另开的观察窗
++    expect(q.contains('正在运行'), isTrue,
++        reason: '队列第一项应显示"正在运行"');
++    expect(q.contains('_obxRow'), isTrue);
++    expect(q.contains('runningTask'), isTrue,
++        reason: '数据来自 WebSocket 的 runningTask（实时）');
++    // 空时也要有明确文案, 不能空白
++    expect(q.contains('（当前没有任务在跑）'), isTrue);
+   });
+ 
+   test('旧的三个 tab / 类名都已消失', () {
+@@ -845,113 +865,6 @@ void _phase2Tests() {
+ }
+ 
+ void main() {
+-  // ============================================================ 执行队列
+-  //
+-  // ★ 这些测试原本是给**旧的 `RunListPanel`** 写的（那时面板里有"启用"按钮、
+-  //   "添加「休息」"按钮、模式警告等）。用户第二轮要求合并后,
+-  //   队列面板变成了「执行队列」—— 每行带状态徽标 + 内联的次数/耗时/优先级。
+-  //   所以断言跟着改, **不是**把测试削弱。
+-
+-  testWidgets('队列渲染: 中文名 + 内联的次数/耗时/优先级', (tester) async {
+-    final c = FakeTaskListController(
+-      entries: [
+-        {'kind': 'task', 'task': 'Exploration'},
+-        {'kind': 'task', 'task': 'Orochi'},
+-      ],
+-      tasks: [taskRow('Exploration', zh: '探索'), taskRow('Orochi', zh: '八岐大蛇')],
+-    );
+-    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+-    await tester.pump();
+-
+-    expect(find.text('执行队列'), findsOneWidget);
+-    // ★ 中文名（由 `zhNameOf` 翻译）—— 不是 `Exploration`
+-    expect(find.text('探索'), findsOneWidget);
+-    expect(find.text('八岐大蛇'), findsOneWidget);
+-    // ★ 每行下面有次数 / 预期耗时 / 优先级三个内联输入
+-    expect(find.text('次数'), findsNWidgets(2));
+-    expect(find.text('预期耗时(分)'), findsNWidgets(2));
+-    expect(find.text('优先级'), findsNWidgets(2));
+-  });
+-
+-  testWidgets('队列里「休息」条目用分钟显示（不是"rest 30分钟"）', (tester) async {
+-    final c = FakeTaskListController(
+-      entries: [
+-        {'kind': 'task', 'task': 'Exploration'},
+-        {'kind': 'rest', 'minutes': 30},
+-        {'kind': 'task', 'task': 'Orochi'},
+-      ],
+-      tasks: [taskRow('Exploration', zh: '探索'), taskRow('Orochi', zh: '八岐大蛇')],
+-    );
+-    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+-    await tester.pump();
+-
+-    expect(find.textContaining('休息 30 分钟'), findsOneWidget);
+-    // 序号 1/2/3 就是执行顺序
+-    expect(find.text('1'), findsWidgets);
+-    expect(find.text('2'), findsWidgets);
+-    expect(find.text('3'), findsWidgets);
+-  });
+-
+-  testWidgets('未编排的启用任务显示在下方, 可点「加入」', (tester) async {
+-    final c = FakeTaskListController(
+-      entries: [
+-        {'kind': 'task', 'task': 'Exploration'},
+-      ],
+-      tasks: [
+-        taskRow('Exploration', zh: '探索'),
+-        taskRow('Orochi', zh: '八岐大蛇'),   // 未编排
+-      ],
+-    );
+-    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+-    await tester.pump();
+-
+-    expect(find.textContaining('未编排'), findsOneWidget);
+-    expect(find.text('八岐大蛇'), findsOneWidget);
+-    expect(find.text('加入'), findsOneWidget);
+-  });
+-
+-  testWidgets('空队列不崩, 给出提示', (tester) async {
+-    final c = FakeTaskListController(entries: [], tasks: []);
+-    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+-    await tester.pump();
+-
+-    expect(find.text('执行队列'), findsOneWidget);
+-    expect(find.textContaining('没有启用'), findsOneWidget);
+-  });
+-
+-  testWidgets('不可计数的任务**不显示**次数输入（但仍显示耗时/优先级）', (tester) async {
+-    final c = FakeTaskListController(
+-      entries: [
+-        {'kind': 'task', 'task': 'Tako'},
+-      ],
+-      tasks: [taskRow('Tako', zh: '章鱼', countable: false)],
+-    );
+-    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+-    await tester.pump();
+-
+-    expect(find.text('次数'), findsNothing,
+-        reason: '不可计数 -> 没有"次数"这回事');
+-    expect(find.text('预期耗时(分)'), findsOneWidget);
+-    expect(find.text('优先级'), findsOneWidget);
+-  });
+-
+-  testWidgets('状态徽标反映"为什么在等"（中文）', (tester) async {
+-    final c = FakeTaskListController(
+-      entries: [
+-        {'kind': 'task', 'task': 'Exploration'},
+-      ],
+-      tasks: [
+-        taskRow('Exploration', zh: '探索'),
+-      ],
+-    );
+-    await tester.pumpWidget(wrap(QueuePanel(controller: c)));
+-    await tester.pump();
+-
+-    // `taskRow` 默认 `can_run: true` / `slot: 'pending'` -> 待执行
+-    expect(find.text('待执行'), findsOneWidget,
+-        reason: '队列每行要有中文状态徽标（用户要求把待执行/等待中变成徽标）');
+-  });
+-
+   _accountSwitchTests();
+ 
+   _runControlV2Tests();
 -- 
 2.41.0.windows.1
 

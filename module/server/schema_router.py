@@ -490,6 +490,19 @@ def build_overview(config_name: str) -> dict:
                 or ('' if can_run else ('未启用' if not enabled else '等待到点')),
             'in_window': in_window,
             'countable': bool(meta.countable) if meta else False,
+            # ★★ **用户编排的次数**（`scheduler.target`）★★
+            #
+            # ⚠ 这个字段**之前漏了** —— 界面上"次数"输入框读它, 于是**永远显示 0
+            #   （= "默认"）**, 用户改了也看不到, 看起来像"接错了字段"。
+            #
+            #   与另外两个的区别必须分清:
+            #
+            #   | 字段 | 含义 |
+            #   |---|---|
+            #   | `target` | **用户设的**（0 = 用默认值）—— 界面**编辑**的就是它 |
+            #   | `count` | 任务配置里的**能力默认值**（`limit_count` 等）|
+            #   | `effective_target` | **本次真正会用**的（target > count > meta 默认）|
+            'target': sch.get('target', 0),
             # ★ `count` = **任务配置里的值**（不一定是根层的 `limit_count` ——
             #   各任务把它放在不同层级: `orochi_config.limit_count` 等）。
             #   曾经这里写 `value.get('limit_count')`, 于是**所有任务都返回 None**

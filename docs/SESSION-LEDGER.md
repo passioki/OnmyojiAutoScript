@@ -185,15 +185,56 @@ meta = TC.get_by_key(key) if hasattr(TC, 'get_by_key') else None
 那本来就是"运行中任务被延后", 不是"任务什么时候开放"）。
 已加守卫测试 `test_restart_has_no_window` 钉住这个判断。
 
-### 4-B ~ 4-F · 待做
+### 4-B · 运行时的**用户配置覆盖** —— ⚠ **刻意不做**（记录原因）
+
+**我第一版做了, 然后自己退掉了。** 记录在此以免后人重蹈:
+
+第一版写了 `_configured_start_times()`, 拿任务的 `custom_run_time_friday` /
+`kirin_time` / `banquet_day_1_start_time` 等配置字段去**收窄/移动** meta 的窗口。
+实测立刻出问题:
+
+```
+AbyssShadows 的 meta 窗口 = 周五六日 19:00-19:15
+配置里 custom_run_time_* = 19:30
+-> 收窄后变成 19:30-19:45
+-> 输入 19:05（**本来在 meta 窗口内**）被推到 19:30 起
+-> 更糟: 连"周五 19:05 已在窗口内"也被改掉了
+```
+
+**根因**: "`custom_run_time_friday` 到底指什么" —— 是游戏开始时刻、还是应用该去跑的
+时刻、还是"提前多久开始准备"? **从代码里看不出唯一答案**（不同任务用法不同）。
+拿它移动窗口就是**在猜**, 而猜错会**静默改变调度行为**。
+
+按纪律（§10.10: 不猜、不静默降级）: **不做**这件事。
+作为替代, 把 meta 的窗口**放宽**到足以容纳用户配置的常见取值
+（`AbyssShadows` 19:00-19:15 → **19:00-20:00**, 见该 `meta.py` 的注释）。
+
+★ 守卫测试 `test_no_configured_override_guessing` 钉住这个判断。
+
+### 4-C · `next_run` 对齐 `next_opening()` —— ✅ **已完成**
+
+| # | 子项 | 状态 | 证据 |
+|---|---|---|---|
+| 4C.1 | `task_delay()` 算出 `next_run` 后**对齐窗口** | ✅ | `Config._align_to_window()`；`task_delay` 里紧接 `run = min(run)` 调用 |
+| 4C.2 | `Config.task_window()` 提供生效窗口 | ✅ | 只读 `meta.py` 的 `spec.windows_effective`（**单一来源**）|
+| 4C.3 | 窗口内**不变** | ✅ | 实测 `AbyssShadows` 周五 19:05 / 19:30 / 19:45 **全部不变** |
+| 4C.4 | 窗口外**推到下一次开放** | ✅ | 周一 19:05 → 周五 19:00；周一 19:30（DemonRetreat）→ 周六；周五 19:30（Dokan）→ **下周一 10-12**；周二 09:00（Secret）→ 下周一 08:00 |
+| 4C.5 | 无窗口任务**行为不变** | ✅ | `Delegation` 原样返回 |
+| 4C.6 | **绝不往前推** | ✅ | 守卫测试遍历 5 个任务 × 7 天 × 7 个时刻, 断言 `got >= when` |
+| 4C.7 | 守卫测试 | ✅ | `test_task_window.py` **25 passed**（17 → 25, 新增 8 个对齐测试）|
+| 4C.8 | 全量测试 | ✅ | 后端 **1506 passed**（1498 + 8）；前端 **79 passed** |
+
+★ `AbyssShadows` 的窗口放宽为 **19:00-20:00** 是**刻意留余量**: 保证用户可配的
+  19:30 落在窗口内, 否则合法时刻会被推走（就是上面那个 bug）。余量**不会**让任务
+  在 19:15 后真的能跑 —— 游戏关门了就进不去, 任务自己失败返回。
+
+### 4-D ~ 4-G · 待做
 
 | # | 子项 | 状态 |
 |---|---|---|
-| 4-B | 运行时的**用户配置覆盖**（用任务的 `custom_run_time` 等收窄窗口）| ⬜ |
-| 4-C | `next_run` **对齐 `next_opening()`**（你要求的 K）| ⬜ |
-| 4-D | `next_available()` 接进调度, 取代 `next_run = 开始时间 + interval` | ⬜ |
+| 4-D | `next_available()` 接进调度（取代 `next_run = 开始 + interval`）| ⬜ |
 | 4-E | 删 `success_interval` / `charge_*` / `next_run` 配置面；`failure_interval → retry_interval` | ⬜ |
-| 4-F | 删 16 处任务内硬编码日期判断 + `BaseTask.custom_next_run()` | ⬜ |
+| 4-F | 删 26 处任务内硬编码日期判断 + `BaseTask.custom_next_run()` | ⬜ |
 | 4-G | 测试重写（预计 200-300 个既有测试需适配）| ⬜ |
 
 ---

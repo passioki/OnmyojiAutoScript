@@ -840,6 +840,83 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                            f'({type(exc).__name__}: {exc}), 按未完成处理')
             return False
 
+    # ------------------------------------------------------------------ 开放时段
+    def task_window(self, task_command: str):
+        """该任务的**生效**开放时段（`AvailabilityWindow` 的 list）。
+
+        ## 来源: `meta.py`（游戏机制事实）
+
+        时段写在 `tasks/<Name>/meta.py` 的 `TaskSpec.window`（4-A 搬过来的）。
+        这里是**唯一**来源, 没有第二处。
+
+        ## ★ 为什么**没有**在这里合并"用户配置的时刻"
+
+        第一版我写了 `_configured_start_times()`, 拿任务的
+        `custom_run_time_friday` / `kirin_time` / `banquet_day_1_start_time`
+        等字段去**收窄/移动** meta 的窗口。实测立刻出问题:
+
+            AbyssShadows 的 meta 窗口是 周五六日 19:00-19:15
+            配置里 custom_run_time_* = 19:30
+            -> 收窄后变成 19:30-19:45
+            -> 输入 19:05（**本来在 meta 窗口内**）被推到 19:30 起
+            -> 更糟: 连"周五 19:05 已在窗口内"也被改掉了
+
+        **根因**: "`custom_run_time_friday` 到底指什么" —— 是游戏开始时刻、
+        还是应用该去跑的时刻、还是"提前多久开始准备"? **我从代码里看不出
+        唯一答案**（不同任务用法不同）。拿它去移动窗口就是在**猜**,
+        而猜错会**静默改变调度行为**。
+
+        按本项目纪律（§10.10 工程纪律: 不猜、不静默降级）: **不做**这件事,
+        先把 meta 的窗口**放宽**到足以容纳用户配置的常见取值
+        （见各 `meta.py` 的注释）, 并把"精确合并用户时刻"记为**未完成**,
+        等有明确语义依据再做。
+
+        :param task_command: 大驼峰任务名（如 `AbyssShadows`）
+        :return: `AvailabilityWindow` 的 list（任务没有 window 时返回 `()`）
+        """
+        from module.config import task_catalog as TC
+
+        spec = TC.get_spec(task_command)
+        if spec is None:
+            return ()
+        return list(spec.windows_effective)
+
+    def _align_to_window(self, task_key: str, when: datetime) -> datetime:
+        """把 `when` 对齐到任务的开放时段内（不在窗口内则推到下一次开放）。
+
+        * 任务没有窗口 -> 原样返回（行为不变）
+        * `when` 已在窗口内 -> 原样返回
+        * 否则 -> `next_opening(when)`
+
+        ★ 这是**唯一**推进 `next_run` 时考虑窗口的地方 —— 避免"窗口只在
+          `update_scheduler` 里当闸门、却不影响下次排期"的不一致。
+        """
+        try:
+            task_command = ''.join(p.capitalize() for p in task_key.split('_'))
+            from module.config import task_catalog as TC
+            spec = TC.get_spec(task_command)
+            if spec is None or spec.window is None:
+                return when
+
+            windows = self.task_window(task_command)
+            active = [w for w in windows if w.enabled]
+            if not active:
+                return when
+
+            if any(w.contains(when) for w in active):
+                return when
+
+            opening = min(w.next_opening(when) for w in active)
+            if opening != when:
+                logger.info(
+                    f'{task_command}: 下次运行 {when:%m-%d %H:%M} 不在开放时段'
+                    f'（{spec.window_describe}）, 已对齐到 {opening:%m-%d %H:%M}')
+            return opening
+        except Exception as exc:
+            logger.warning(f'{task_key}: 窗口对齐失败'
+                           f'({type(exc).__name__}: {exc}), 保持原 next_run')
+            return when
+
     def _record_task_success(self, task_key: str, scheduler) -> None:
         """
         完成记忆: 任务成功结束时, 记录"本周期已完成"。
@@ -1010,6 +1087,32 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         run = min(run).replace(microsecond=0)
         next_run = run
+
+        # ★★ 4-C: `next_run` **必须落在任务的开放时段内**（用户要求）★★
+        #
+        # ## 修的是什么
+        #
+        # 此前 `next_run = 开始时间 + success_interval`, **完全没看窗口**。
+        # 窗口只在 `update_scheduler()` 里当"闸门"用（不在时段内就入 waiting）,
+        # 但**不改 `next_run`**。于是会出这种事（以狭间暗域为例, 窗口只有
+        # 周五六日 19:00-19:15）:
+        #
+        #     周日 19:05 成功 -> next_run = 周一 19:05（+1 天）
+        #     周一 19:05 到点 -> 不在窗口 -> 入 waiting, next_run **不变**
+        #     周二、周三、周四 同理
+        #     周五 19:05 -> 终于落回窗口
+        #
+        # 看起来"刚好对上", 但只是因为间隔恰好 1 天。若间隔是 6 小时/3 小时,
+        # `next_run` 会**漂移**, 可能长期落在窗外 —— **永远错过那 15 分钟**。
+        #
+        # ## 修法
+        #
+        # 算出候选 `next_run` 后, 若它**不在**窗口内, 就**对齐到
+        # `next_opening()`**（下一次开放时刻）。`AvailabilityWindow` 早就
+        # 实现了这个方法, 只是**从来没人调**。
+        #
+        # 用户原话: "任务调度解决了，K 就没什么问题了，下次的运行应该要落在 window 中"。
+        next_run = self._align_to_window(task, next_run)
 
         if server and hasattr(scheduler, 'server_update'):
             # 加入随机延迟时间

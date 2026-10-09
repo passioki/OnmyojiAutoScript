@@ -43,6 +43,31 @@ DAY = ('周一', '周二', '周三', '周四', '周五', '周六', '周日')
 MON = datetime(2026, 10, 5)
 
 
+def code_only(text: str) -> str:
+    """剥掉注释与文档字符串。
+
+    ★ 必须这么做: "我在注释/文档里说明**原来的错误写法**"会让
+      `assert '错误写法' not in src` 这类守卫**误判成失败**。
+      这个坑在本会话里已踩过 3 次（`exit(1)` / `save_zh_cn(data)` /
+      `putChineseTranslate()` / `_configured_start_times`）。
+    """
+    import re as _re
+    text = _re.sub(r'"""[\s\S]*?"""', '', text)
+    text = _re.sub(r"'''[\s\S]*?'''", '', text)
+    out = []
+    for line in text.split('\n'):
+        s = line.strip()
+        if s.startswith('#') or s.startswith('*'):
+            continue
+        for marker in ('  # ', ' # '):
+            idx = line.find(marker)
+            if idx != -1:
+                line = line[:idx]
+                break
+        out.append(line)
+    return '\n'.join(out)
+
+
 def at(day_offset: int, hour: int, minute: int = 0) -> datetime:
     return (MON.replace(hour=hour, minute=minute)
             + __import__('datetime').timedelta(days=day_offset))
@@ -104,7 +129,7 @@ class TestMigratedTasks:
 
     MIGRATED = {
         # 任务: (描述要包含的片段, 至少一个"应在窗口内"的时刻, 至少一个"应在窗口外"的时刻)
-        'AbyssShadows': ('周五', (4, 19, 5), (0, 19, 5)),      # 周五六日 19:00
+        'AbyssShadows': ('周五', (4, 19, 5), (0, 19, 5)),      # 周五六日 19:00-20:00
         'DemonRetreat': ('周六', (5, 19, 30), (0, 19, 30)),    # 仅周六
         'Dokan': ('周一', (0, 19, 30), (4, 19, 30)),           # 周一~周四
         'Hunt': ('周一', (0, 7, 0), (0, 5, 0)),                # 早晚两段
@@ -154,6 +179,107 @@ class TestMigratedTasks:
         for w in spec.windows_effective:
             days |= set(w.days)
         assert days == {0, 1, 2, 3}, f'道馆应只在周一~周四, 实际 {sorted(days)}'
+
+
+class TestWindowAlignment:
+    """★ 4-C: `next_run` **必须落在窗口内**（用户要求的 K）。
+
+    此前 `next_run = 开始时间 + success_interval`, **完全没看窗口**。窗口只在
+    `update_scheduler()` 里当"闸门"（不在时段内就入 waiting）, 但**不改
+    `next_run`**。若间隔不是恰好对齐窗口, `next_run` 会漂移、长期落在窗外
+    —— **永远错过**那几分钟的窗口（狭间暗域只有 15 分钟）。
+    """
+
+    @pytest.fixture()
+    def config(self):
+        import logging
+        logging.disable(logging.CRITICAL)
+        import server  # noqa: F401
+        from module.server.main_manager import mm
+        return mm.config_cache('恋鸟树')
+
+    def _align(self, config, task, when):
+        key = ''.join('_' + c.lower() if c.isupper() else c
+                      for c in task).lstrip('_')
+        return config._align_to_window(key, when)
+
+    def test_inside_window_unchanged(self, config):
+        """★ 已在窗口内 -> **必须不变**（否则会把合法时刻推走）。"""
+        for h, m in ((19, 5), (19, 30), (19, 45)):
+            when = datetime(2026, 10, 9, h, m)   # 2026-10-09 = 周五
+            got = self._align(config, 'AbyssShadows', when)
+            assert got == when, (
+                f'{when} 在狭间暗域窗口（周五六日 19:00-20:00）内, 不该被推走; '
+                f'实际推到 {got}')
+
+    def test_outside_window_pushed_to_opening(self, config):
+        """不在窗口内 -> 推到**下一次开放**。"""
+        got = self._align(config, 'AbyssShadows', datetime(2026, 10, 5, 19, 5))
+        assert got.weekday() == 4, f'应推到周五, 实际 {got}（{DAY[got.weekday()]}）'
+        assert (got.hour, got.minute) == (19, 0), f'应是 19:00, 实际 {got}'
+
+    def test_saturday_only_task(self, config):
+        """DemonRetreat 只在周六 -> 周一 19:30 应推到**本周六**。"""
+        got = self._align(config, 'DemonRetreat', datetime(2026, 10, 5, 19, 30))
+        assert got.weekday() == 5, f'应推到周六, 实际 {DAY[got.weekday()]}'
+
+    def test_weekday_only_task_pushes_over_weekend(self, config):
+        """Dokan 只在周一~周四 -> 周五 19:30 应推到**下周一**。"""
+        got = self._align(config, 'Dokan', datetime(2026, 10, 9, 19, 30))
+        assert got.weekday() == 0, f'应推到周一, 实际 {DAY[got.weekday()]}'
+        assert got.day == 12, f'应是下周一（10-12）, 实际 {got}'
+
+    def test_task_without_window_unchanged(self, config):
+        """没有窗口的任务 -> 原样返回（**不改变既有行为**）。"""
+        when = datetime(2026, 10, 5, 3, 33)
+        assert self._align(config, 'Delegation', when) == when
+
+    def test_alignment_never_moves_backwards(self, config):
+        """★ 对齐结果**绝不能早于**输入（否则会立刻重复触发）。"""
+        import datetime as _dt
+        for task in ('AbyssShadows', 'DemonRetreat', 'Dokan', 'Secret', 'Hunt'):
+            for d in range(7):
+                for h in (0, 6, 12, 18, 19, 20, 23):
+                    when = MON + _dt.timedelta(days=d, hours=h)
+                    got = self._align(config, task, when)
+                    assert got >= when, (
+                        f'{task}: 对齐把时间**往前**推了 {when} -> {got}')
+
+    def test_task_delay_calls_alignment(self):
+        """★ 回归守卫: `task_delay()` 必须调用 `_align_to_window()`。"""
+        src = (REPO / 'module' / 'config' / 'config.py').read_text(
+            encoding='utf-8')
+        i = src.find('def task_delay')
+        assert i > 0
+        j = src.find('\n    def ', i + 10)
+        body = src[i:j]
+        assert '_align_to_window' in body, (
+            'task_delay 没有对齐窗口 —— next_run 会漂移到窗口外, '
+            '任务永远不会在正确的时段被排到')
+
+    def test_no_configured_override_guessing(self):
+        """★ `task_window()` **不该**去猜用户配置字段的语义。
+
+        第一版我写了 `_configured_start_times()` 拿 `custom_run_time_friday`
+        等字段去移动窗口, 实测把 `AbyssShadows` 窗口从 19:00-19:15 挪到
+        19:30-19:45, **连 19:05 这个本来合法的时刻都被推走了**。
+
+        根因: 那些字段的语义（游戏开始时刻? 应用该跑的时刻?）**从代码里
+        看不出唯一答案** —— 拿它移动窗口就是在猜, 而猜错会**静默改变调度**。
+
+        ⚠ 检查前**必须剥掉注释与文档字符串**: 我在 `task_window` 的文档里
+          说明了"为什么不用它", 那段文字里就含这个方法名 ——
+          不剥会把**说明**误判成**代码**（这个坑我踩过好几次了）。
+        """
+        src = code_only((REPO / 'module' / 'config' / 'config.py').read_text(
+            encoding='utf-8'))
+        assert '_configured_start_times' not in src, (
+            '不该再用配置字段移动窗口（语义不明确, 属于猜测）')
+        i = src.find('def task_window')
+        j = src.find('\n    def ', i + 10)
+        body = src[i:j]
+        assert 'spec.windows_effective' in body, \
+            'task_window 应直接用 meta 的窗口'
 
 
 class TestNoWrongApproximation:

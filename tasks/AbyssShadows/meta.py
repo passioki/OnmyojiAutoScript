@@ -23,7 +23,16 @@ SPEC = TaskSpec(
     category=Category.TIMED,
     # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
     auto_queue=True,
-    window=AvailabilityWindow(True, time(19, 0), time(19, 15), days=(4, 5, 6)),
+    # ★ 游戏实际开放 周五六日 **19:00-19:15**。
+    #
+    #   这里给到 **20:00** 是**刻意留余量** —— 用户可配的
+    #   `custom_run_time_friday/saturday/sunday`（默认 19:30）必须落在窗口内,
+    #   否则 `Config._align_to_window()` 会把**本来合法**的时刻推走
+    #   （踩过: 窗口写成 19:00-19:15 时, 19:05 这个合法时刻被推到下一段）。
+    #
+    #   余量只是"别把合法时刻推走", **不会**让任务在 19:15 之后真的能跑 ——
+    #   游戏那边关了就进不去, 任务会自己失败返回。
+    window=AvailabilityWindow(True, time(19, 0), time(20, 0), days=(4, 5, 6)),
     list_pos=16,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

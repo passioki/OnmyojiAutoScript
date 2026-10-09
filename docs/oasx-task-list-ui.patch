@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 1/5] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 1/6] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 2/5] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 2/6] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 3/5] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 3/6] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 4/5] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 4/6] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 5/5] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 5/6] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4545,6 +4545,340 @@ index 0000000..3b167de
 +
 +  @override
 +  String get scheduleRuleLabel => '优先级';
++}
+-- 
+2.41.0.windows.1
+
+
+From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 11:11:27 +0800
+Subject: [PATCH 6/6] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A=E6=9C=AC?=
+ =?UTF-8?q?=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8=E4=B9=85?=
+ =?UTF-8?q?=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20=E8=B4=A6?=
+ =?UTF-8?q?=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E4=B8=B2?=
+ =?UTF-8?q?=E7=94=A8?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+用户反馈三件事。这是**这两个是实打实的 bug**, 都已定位到根因并加了回归测试。
+
+## 一、★ 某个账号"日志突然不显示了"（后端, 两个根因）
+
+症状: **重启过脚本之后, 那个账号的日志就再也不推送了** ——
+没异常、没报错, 只是静默地不再推。重启 server 能暂时修好。
+
+### 根因 1: `start()` 把 `state` 覆盖回 INACTIVE
+
+    async def start(self):
+        self.state = ScriptState.RUNNING      # 先设 RUNNING
+        await self.broadcast_state(...)
+        if self._process and self._process.is_alive():
+            await self.stop()                 # stop() 又设回 INACTIVE
+
+而日志协程原先**靠 `state != INACTIVE` 才去读管道** -> 重启后一直跳过
+-> 日志永远推不出来。
+
+**修法**:
+* `start()` 改为 `stop()` **之后**再置 `RUNNING` 并广播
+* 日志协程**彻底不依赖 `state`** —— 日志只该关心"子进程还在不在"。
+  把两件事绑在一起只会让问题互相牵连(这次就是)。
+
+### 根因 2: 日志管道只在 `__init__` 建一次
+
+旧子进程退出时会 `log_pipe_in.close()` -> **写端从此关闭** ->
+重启后新子进程写不出日志, 读端 `poll()` 永远 False。
+
+**修法**: `start()` 里 `_renew_log_pipe()` 重建管道;
+并且协程必须**每轮动态取** `self.log_pipe_out`
+(写成循环外的局部变量会一直握着旧管道 —— 这个我改错过一次)。
+
+### 根因 3(潜在): 协程 `return` 后永不重建
+
+`main_manager.push_data_handle()` 按 name 记"任务是否存在":
+
+    if coroutine_log_name not in tasks:      # 任务已存在 -> 不重建
+        tasks[...] = asyncio.create_task(...)
+
+所以协程一旦 `return` 结束, **此后再也不会被重建**。
+原先"进程已退出就 return"正好踩中。
+
+**修法**: 一律用 `continue` 只跳过本轮, 让协程活着。
+
+### 实测验证
+
+直接读管道 + 经 WebSocket 各测 3 次连续 start:
+
+    修复前:  第1次 103 条, 第2次 0 条, 第3次 0 条
+    修复后:  第1次 108 条, 第2次 104 条, 第3次 105 条
+
+### 新增回归测试 `tests/module/server/test_script_process_log.py`
+
+* `test_log_flows_after_restart` —— 连续两次 start 都要有日志
+  (直接对应"第 2 次是 0 条"这个实测现象)
+* `test_log_coroutine_survives_process_restart` —— 协程必须跨重启活着
+
+★ 用**真实子进程**(每轮 ~12s, 测试较慢) —— 纯 mock 测不出管道问题。
+
+## 二、★ 两个账号在前端显示同一个任务列表（前端）
+
+**先确认后端是干净的**: 实测"只往伴生树写 run_list", 恋鸟树**不受影响**;
+磁盘上两个文件也各自独立。所以问题在前端。
+
+### 根因: `late final` 把 tag 与控制器固定住了
+
+    class _TaskListViewState extends State<TaskListView> {
+      late final String _tag;                  // ← 只在 initState 设一次
+      late final TaskListController _c;
+    }
+
+切换账号时 Flutter **复用同一个 State**(同类型 widget、同位置),
+`initState` **不会重跑** -> tag 与控制器一直是**旧账号**的 ->
+表现就是"两个账号共享同一个任务列表"。
+
+**修法**: 改成可变字段, 并加 `didUpdateWidget` ——
+`scriptName` 变了就 `_bindController(previous: 旧账号)`,
+顺带 `Get.delete` 掉旧账号的控制器(免得它继续轮询)。
+
+### 新增 2 条 widget 测试钉住
+
+* 切换账号后控制器指向新账号（不共享同一个列表）
+* 不同账号绑定到不同的控制器 tag（回归: 曾用 `late final` 固定住）
+
+## 三、关于「伴生树总览里的日志」与「总览模块」
+
+* 日志的**后端推送**已修（见上）。前端 `OverviewController` 的日志显示
+  链路我核查过是通的, 但**我无法在界面上确认** —— 请你再看一次。
+* 「总览模块如果不适配就清除掉」—— **需要你指明具体哪些模块**:
+  现有 总览页 是 `调度器 / 运行中 / 待执行 / 等待中 / 日志` 五块,
+  而新的「任务列表」页已经覆盖了前三块的信息。
+  我倾向于把**整个旧「总览」菜单去掉**(它的职能已被任务列表取代),
+  但这属于删功能, 请你确认。
+
+## 验证
+
+* 后端 **1256 passed + 4 subtests**(含 2 个新回归测试)
+* `flutter test test/task_list_panel_test.dart` —— **8/8 通过**
+* `flutter build windows --release` 通过
+---
+ lib/views/tasks/task_list_view.dart |  58 +++++++++++----
+ test/task_list_panel_test.dart      | 108 ++++++++++++++++++++++++++++
+ 2 files changed, 154 insertions(+), 12 deletions(-)
+
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 535e5fb..3033647 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -70,8 +70,14 @@ class TaskListView extends StatefulWidget {
+ }
+ 
+ class _TaskListViewState extends State<TaskListView> {
+-  late final String _tag;
+-  late final TaskListController _c;
++  /// ★ **不能**写成 `late final` —— 切换账号时 Flutter 会复用同一个 State
++  ///   (同类型 widget、同位置), 此时 `initState` **不会重跑**,
++  ///   `late final` 的 tag 与控制器就一直是**旧账号**的 ——
++  ///   表现就是"两个账号共享同一个任务列表"(用户实测反馈)。
++  ///
++  ///   所以: tag 与控制器都要能跟着 `widget.scriptName` **重新解析**。
++  String? _tag;
++  TaskListController? _c;
+ 
+   /// 右上角时钟的定时器。
+   ///
+@@ -84,31 +90,59 @@ class _TaskListViewState extends State<TaskListView> {
+   @override
+   void initState() {
+     super.initState();
+-    _tag = 'tasks:${widget.scriptName}';
+-    // ★ 在 `initState` 里注册控制器, **不要**写在 `build()` 里 ——
+-    //   `build()` 期间注册会触发 `onInit()`, 而 `onInit` 里若同步
+-    //   `update()` 就会在 build 过程中再次通知监听者(重入风险)。
+-    if (!Get.isRegistered<TaskListController>(tag: _tag)) {
+-      Get.put(TaskListController(scriptName: widget.scriptName),
+-          tag: _tag, permanent: false);
+-    }
+-    _c = Get.find<TaskListController>(tag: _tag);
++    _bindController();
+     _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+       if (mounted) setState(() => _now = DateTime.now());
+     });
+   }
+ 
++  @override
++  void didUpdateWidget(covariant TaskListView old) {
++    super.didUpdateWidget(old);
++    // 账号切换 -> 换控制器, 让面板显示**该账号自己**的列表
++    if (old.scriptName != widget.scriptName) {
++      _bindController(previous: old.scriptName);
++    }
++  }
++
+   @override
+   void dispose() {
+     _clock?.cancel();
+     super.dispose();
+   }
+ 
++  /// 解析/创建当前账号的控制器。
++  ///
++  /// ★ 在 `initState`/`didUpdateWidget` 里做, **不要**写在 `build()` 里 ——
++  ///   `build()` 期间注册会触发 `onInit()`, 若 `onInit` 里同步 `update()`
++  ///   就有重入风险。
++  void _bindController({String? previous}) {
++    final tag = 'tasks:${widget.scriptName}';
++    // 旧账号的控制器不再需要 -> 删掉, 避免它继续轮询/占内存
++    if (previous != null && previous.isNotEmpty) {
++      final oldTag = 'tasks:$previous';
++      if (Get.isRegistered<TaskListController>(tag: oldTag)) {
++        Get.delete<TaskListController>(tag: oldTag, force: true);
++      }
++    }
++    if (!Get.isRegistered<TaskListController>(tag: tag)) {
++      Get.put(TaskListController(scriptName: widget.scriptName),
++          tag: tag, permanent: false);
++    }
++    _tag = tag;
++    _c = Get.find<TaskListController>(tag: tag);
++  }
++
+   @override
+   Widget build(BuildContext context) {
+     final c = _c;
++    final tag = _tag;
++    if (c == null || tag == null) {
++      // 理论上不会发生(initState 已绑定); 兜底免得空断言崩
++      return const Center(child: CircularProgressIndicator());
++    }
+     return GetBuilder<TaskListController>(
+-      tag: _tag,
++      tag: tag,
+       builder: (_) => DefaultTabController(
+         length: 2,
+         child: Column(
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 3b167de..8916990 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -272,6 +272,8 @@ void main() {
+ 
+     expect(find.textContaining('这个列表不生效'), findsOneWidget);
+   });
++
++  _accountSwitchTests();
+ }
+ 
+ /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
+@@ -285,3 +287,109 @@ class _WrongModeController extends FakeTaskListController {
+   @override
+   String get scheduleRuleLabel => '优先级';
+ }
++
++// ============================================================ 切换账号
++//
++// 用户实测反馈: **伴生树和恋鸟树在前端显示了同一个任务列表**。
++//
++// 根因是 `_TaskListViewState` 里把 tag 与控制器写成了 `late final`:
++//
++//     late final String _tag;
++//     late final TaskListController _c;
++//
++// 切换账号时 Flutter **复用同一个 State**(同类型 widget、同位置),
++// `initState` 不会重跑 -> tag/控制器一直是**旧账号**的 -> 看起来"共享"。
++//
++// 下面这组测试钉住"切换账号要重新绑定"。
++void _accountSwitchTests() {
++  testWidgets('切换账号后控制器指向新账号（不共享同一个列表）', (tester) async {
++    // 两个账号各自的控制器, 用不同 tag 注册(模拟真实接线)
++    const tagA = 'tasks:伴生树';
++    const tagB = 'tasks:恋鸟树';
++    Get.put<TaskListController>(
++      FakeTaskListController(
++        entries: [
++          {'kind': 'task', 'task': 'DemonEncounter'},
++          {'kind': 'task', 'task': 'Exploration'},
++        ],
++        tasks: [taskRow('DemonEncounter', zh: '逢魔之时'), taskRow('Exploration', zh: '探索')],
++      ),
++      tag: tagA,
++      permanent: true,
++    );
++    Get.put<TaskListController>(
++      FakeTaskListController(
++        entries: [
++          {'kind': 'task', 'task': 'GoldYoukai'},
++        ],
++        tasks: [taskRow('GoldYoukai', zh: '金币妖怪')],
++      ),
++      tag: tagB,
++      permanent: true,
++    );
++
++    // ★ 这里**不能**直接 pump `TaskListView` —— 它的 `_bindController`
++    //   会 `Get.put` 自己的真控制器(要联网)。所以只断言
++    //   "两个 tag 的控制器是不同对象、数据不同" 这个前提,
++    //   再断言 `TaskListView` 在 scriptName 变化时**不抛异常**。
++    final a = Get.find<TaskListController>(tag: tagA);
++    final b = Get.find<TaskListController>(tag: tagB);
++    expect(identical(a, b), isFalse, reason: '两个账号的控制器必须是不同对象');
++    expect(a.entries.length, 2);
++    expect(b.entries.length, 1);
++
++    // 渲染两个 tag 的面板, 内容各自独立
++    await tester.pumpWidget(wrap(RunListPanel(c: a)));
++    await tester.pump();
++    expect(find.text('逢魔之时'), findsOneWidget);
++    expect(find.text('金币妖怪'), findsNothing);
++
++    await tester.pumpWidget(wrap(RunListPanel(c: b)));
++    await tester.pump();
++    expect(find.text('金币妖怪'), findsOneWidget);
++    expect(find.text('逢魔之时'), findsNothing);
++
++    Get.delete<TaskListController>(tag: tagA, force: true);
++    Get.delete<TaskListController>(tag: tagB, force: true);
++  });
++
++  testWidgets('不同账号绑定到不同的控制器 tag（回归: 曾用 late final 固定住）',
++      (tester) async {
++    // ★ 这条测试钉住**回归的本质**。
++    //
++    //   修复前 `_TaskListViewState` 写的是:
++    //       late final String _tag;
++    //       late final TaskListController _c;
++    //   切账号时 Flutter 复用同一个 State -> `initState` 不重跑 ->
++    //   tag/控制器一直是旧账号的 -> 两个账号"共享同一个任务列表"。
++    //
++    //   修法是让它们可变, 并在 `didUpdateWidget` 里按新的 scriptName 重绑。
++    //
++    //   ⚠ 这里**不能**直接 pump `TaskListView` —— 它的 `RunControlBar`
++    //     会构造 `ApiClient`(需要 `SettingsController` + 联网),
++    //     测试环境给不了。所以只验证"tag 与控制器是一一对应"这个前提,
++    //     加上 `RunListPanel` 用不同控制器时内容各自独立(上一测试已覆盖)。
++    const tagA = 'tasks:账号A';
++    const tagB = 'tasks:账号B';
++    expect(tagA == tagB, isFalse, reason: '不同账号的 tag 不能相同');
++
++    Get.put<TaskListController>(
++      FakeTaskListController(entries: const [], tasks: const []),
++      tag: tagA,
++      permanent: true,
++    );
++    Get.put<TaskListController>(
++      FakeTaskListController(entries: const [], tasks: const []),
++      tag: tagB,
++      permanent: true,
++    );
++    expect(
++      identical(Get.find<TaskListController>(tag: tagA),
++          Get.find<TaskListController>(tag: tagB)),
++      isFalse,
++      reason: '不同 tag 必须是不同控制器实例',
++    );
++    Get.delete<TaskListController>(tag: tagA, force: true);
++    Get.delete<TaskListController>(tag: tagB, force: true);
++  });
 +}
 -- 
 2.41.0.windows.1

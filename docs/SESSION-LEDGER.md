@@ -537,3 +537,52 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
 → 上一轮我"保留 `custom_next_run`"的决定**基于错误的模型**（以为 interval 仍决定调度）。
 **撤回该决定。**
 
+---
+
+# 9. 本轮（F1/F2）进度 —— ★ 区分"已做"与"未接线"
+
+## 9.1 F1 · 让 `Function.window` 真的读 `meta.py` —— ✅ 已生效（有实测）
+
+| 项 | 状态 | 证据 |
+|---|---|---|
+| `Function._build_window` 优先读 `TaskSpec.window` | ✅ | `module/config/config.py` |
+| 多段窗口的并集表达 | ⚠ **有损** | `Hunt` 显示"每天 06:00-23:00", **丢了下午段**（应"周一~周四 06:00-23:00 与 周五~周日 17:00-23:00"）。布尔判断足够, 但 **`next_opening` 会不准** —— 仍待 F1b |
+| 实测窗口生效 | ✅ | 07:50 实测: `DemonEncounter` 每天 17:00-23:00 / `in_window=False`; `pending=25 waiting=2`（修复前 27/0）|
+| 我此前的虚报已改正 | ✅ | §8.4 |
+
+## 9.2 F2 · 周期推导默认窗口 —— 🔄 **基础设施已完成, 但`TaskSpec` 尚未接线**
+
+| 子项 | 状态 | 说明 |
+|---|---|---|
+| `Period` 加 `MONTHLY` | ✅ | `module/config/resource.py`; `TaskPeriod` 同步 |
+| `AvailabilityWindow` 加 `days_of_month` | ✅ | 空元组 = 不限（**不是**"都不允许"）|
+| `window_for_period(period, start, end)` | ✅ | DAILY/WEEKLY/MONTHLY -> 窗口; `NONE` -> `None` |
+| `describe()` 支持每月 | ✅ | "每月 00:00-23:59" / "每月 1-15 日 …" / "每月 16-月末 日 …" |
+| **修一个真 bug**: `is_unrestricted` 漏判时刻 | ✅ | 原来只判 `len(days)==7` -> `AvailabilityWindow(True, 17:00, 23:00)` 被**误判成"不限"**（明明只开放 6 小时）。守卫 `test_is_unrestricted_accounts_for_month` |
+| 措辞修正 | ✅ | `describe()` 对未声明的窗口返回 **"未声明开放时段"**（原"不限时段"会**掩盖缺失** —— 用户要求"所有定时都有 window"）|
+| **`TaskSpec.windows_effective` 回退到周期推导** | ⬜ **未接线** | 目前 `window=None` 仍返回 `AvailabilityWindow()`（`enabled=False`）。**这一条是 F2 的核心**, 还没做 |
+| **46 个任务补显式 window** | ⬜ | 见 §8.3 |
+
+★ **不算完成**: F2 只是把"能推导"这个能力做好了, **调度器还看不到**。
+按纪律标 🔄, 不标 ✅。
+
+## 9.3 剩余工作（按依赖）
+
+| 步 | 内容 | 状态 |
+|---|---|---|
+| **F1b** | 多段窗口在 `Function` 里不再用有损并集 | ⬜ |
+| **F2b** | `TaskSpec.windows_effective` 回退到 `window_for_period`（接线上文的能力）| ⬜ |
+| **F2c** | 46 个任务补显式 window + **校验脚本**（没写就报错, 让缺失可见）| ⬜ |
+| **F3** | **队列顺序成为唯一调度依据**, `interval` 完全废弃 | ⬜ **核心** |
+| **F4** | 删 `custom_next_run`（4 个任务移植; `MemoryScrolls` 需用户定）| ⬜ |
+| **F5** | 移除语义: 定时 -> 停用; 次数 -> 回【添加任务】池 | ⬜ |
+| **F6** | 前端: 待执行+执行顺序**合并一套可拖**; 「未到开放时间」; 括号改悬停 | ⬜ |
+| **F7** | 测试重写 | ⬜ |
+
+## 9.4 仍需用户确认（未阻塞, 但影响后续）
+
+1. **`MemoryScrolls` 的跨任务排期**（`custom_next_run(task='Exploration', ...)`）——
+   删掉后 `Exploration` 靠自己队列位置决定; 触发条件是**游戏状态**, 窗口表达不了
+2. **46 个任务补 window 的方式** —— 每任务显式写 vs 周期推导 + 校验脚本
+3. **`Period.MONTHLY` 已加**（实测原本只有 none/daily/weekly）
+

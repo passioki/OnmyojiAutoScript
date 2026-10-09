@@ -657,6 +657,102 @@ self.bind_counter()          # ① 从磁盘恢复 current_count
 
 ---
 
+### 5.6 运行记录与归档（**重置 ≠ 删除**）
+
+#### 为什么需要
+
+用户明确要求两件事：
+
+1. **任务记录必须落盘** —— "即使进程停止也能继续恢复"
+2. **「重置」不是清除，而是归档后重开** ——
+   "这样后续可以分析运行记录和展示运行结果，如御魂战斗多少次，
+    消耗多少体力，花了多少时间等等"
+
+★ 用户确认**先只要"次数 + 耗时"**（体力以后再考虑）。
+
+#### 与 `task_state` 的分工
+
+| 模块 | 存什么 | 用途 |
+|---|---|---|
+| `task_state` | 计数、周期完成记忆、存量/充能 | **调度决策**（要不要跑、还能跑几次）|
+| `run_record` | 每轮的**次数 + 耗时** + 归档 | **统计与展示** |
+
+★ 都是落盘、都按 `(账号, 任务)` 隔离，但**职责不同** ——
+把"报表"塞进 `task_state` 会让那个文件既管决策又管统计。
+
+#### 数据模型
+
+```json
+{
+  "<账号>": {
+    "<task>": {
+      "current": {"started_at": "...", "updated_at": "...",
+                  "runs": 12, "seconds": 345},
+      "archive": [
+        {"started_at": "...", "updated_at": "...", "archived_at": "...",
+         "runs": 30, "seconds": 900}
+      ]
+    }
+  }
+}
+```
+
+* 文件：`log/.run_record.json`（与 `.task_state.json` 同级）
+* 键**归一化为小写** —— `Orochi` / `orochi` 落到同一条记录
+
+#### ★ `reset()` = 归档后重开
+
+1. 把 `current` 追加到 `archive`（**只增不改**）
+2. 把 `current` 清零（重开一轮）
+
+两条刻意的规则：
+
+| 规则 | 理由 |
+|---|---|
+| `runs == 0` 的当前记录**不归档** | 否则误点重置会留一堆空条目 |
+| 从没记录过的任务 `reset` **什么都不做** | `reset` 不该凭空造记录（那是 `finish` 的职责）|
+
+#### 落盘方式：原子替换
+
+写入用 **临时文件 + `os.replace`** ——
+直接写的话，写到一半进程被杀会留下**半截 JSON**，下次读取全丢。
+`os.replace` 在同一分区上是原子的。
+
+#### 记录点在**框架层**
+
+`Script._record_task_run()` 包住任务的 `run()`：
+
+```python
+runs_before = self._task_runs_snapshot(task_obj)
+started = datetime.now()
+try:
+    task_obj.run()
+finally:
+    self._record_task_run(task_obj, command, started, runs_before)
+```
+
+★ **放在 `finally` 里** —— OAS 的任务正常结束时是 `raise TaskEnd`（不是
+`return`），若把记录写在 `except TaskEnd` 之后，**正常结束就全丢了**。
+`finally` 同时覆盖"正常结束"与"中途崩了"两条路径。
+
+★ **放在框架层而不是 54 个任务里** —— 逐个改既容易漏，又会让"统计"
+散落各处。包一层，所有任务自动获得。
+
+★ 统计失败**绝不能影响任务** —— 全部异常吞掉并记 warning。
+记录只是报表，跑任务才是正事。
+
+#### 接口
+
+| 端点 | 作用 |
+|---|---|
+| `GET /{script}/run_record` | 全部任务汇总（不传 `task`）或单个任务（含归档）|
+| `GET /{script}/run_record/{task}/archive` | 该任务的归档明细 |
+| `PUT /{script}/run_record/reset` | 「重置选中」：body 是任务名数组，**归档后重开** |
+
+`/schema` 的 `list.run_record` 也带一份汇总 —— 让"进页面"只发一次请求。
+
+---
+
 ## 6. 运行控制
 
 ### 6.1 暂停（⏸）
@@ -1261,11 +1357,14 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | `module/config/run_control.py` | **暂停调度 / 本轮跑完再停 / 继续调度**（运行控制状态） |
 | `module/config/run_list.py` | **运行列表 = 固定任务 + 休息**（`task` / `rest`） |
 | `module/config/timed_schedule.py` | **固定/定时分开管理**：总开关、穿插判定、定时排序（纯函数） |
+| `module/config/run_record.py` | **运行记录与归档**（次数 + 耗时；重置 = 归档后重开） |
 | `module/device/capabilities.py` | **平台能力**集中声明（跨平台） |
 | `module/server/schema_router.py` | **`/schema` `/overview` `/capabilities` `/run_control` 接口** |
 | `tests/test_architecture_guard.py` | **架构护栏**（AST 强制分层，破坏就红） |
 | `tests/tasks/test_count_wiring.py` | **次数接线护栏**（可计数任务必须走统一入口） |
 | `tests/tasks/test_effective_target.py` | 次数的三级回落与别名适配 |
+| `tests/module/config/test_run_record.py` | 运行记录/归档的语义（重置 ≠ 删除） |
+| `tests/test_run_record_wiring.py` | 记录点必须在 `finally`（覆盖 TaskEnd 与异常） |
 | `dev_tools/diag_android_layout.py` | 安卓布局诊断（求手机↔1280x720 坐标关系） |
 | `dev_tools/gen_i18n.py` | 任务名从 `meta.py` 生成到各 i18n 副本 |
 | `dev_tools/diag_dead_code.py` | 死代码扫描（只读诊断） |

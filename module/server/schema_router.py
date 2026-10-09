@@ -179,7 +179,31 @@ def _list_meta(config_name: str = '') -> dict:
                  'rest 条目**阻塞**列表, 生效后自动移除'),
         # 全局开关 —— 界面直接渲染, 不必知道字段名
         'global_fields': _global_fields(config_name),
+        # 运行记录汇总（次数 + 耗时），供总览页与列表页展示。
+        # 与 `/run_record` 端点同一份数据 —— 放这里是为了让"进页面"只发
+        # 一次请求；需要归档明细时才去调那个端点。
+        'run_record': _run_record_summary(config_name),
     }
+
+
+def _run_record_summary(config_name: str = '') -> dict:
+    """
+    运行记录汇总（**失败返回空 dict**, 不影响页面其它部分）。
+
+    统计只是报表 —— 它坏了不该让整个配置页打不开。
+    """
+    if not config_name:
+        return {}
+    try:
+        from module.config import run_record
+
+        summary = run_record.summarize(config_name)
+        for row in summary.values():
+            row['seconds_text'] = run_record.format_duration(row['seconds'])
+        return summary
+    except Exception as exc:
+        logger.warning(f'运行记录汇总失败({type(exc).__name__}: {exc}), 忽略')
+        return {}
 
 
 def _config_of(config_name: str):
@@ -697,6 +721,94 @@ async def get_run_list_preview(script_name: str):
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc), 'flow': []}
+
+
+# --------------------------------------------------------------------------- 运行记录与归档
+@schema_app.get('/{script_name}/run_record')
+async def get_run_record(script_name: str, task: str = ''):
+    """
+    读**运行记录**（次数 + 耗时 + 归档）。
+
+    不传 `task` 时返回该账号**所有任务**的汇总（供总览页）；
+    传了则返回该任务的一条（含归档明细）。
+
+    ★ 「重置」= **归档后重开**，不是删除 —— 所以这里有 `archive`。
+    """
+    try:
+        from module.config import run_record
+
+        if task:
+            return {
+                'script': script_name,
+                'task': task,
+                'current': run_record.current(script_name, task),
+                'archive': run_record.archive(script_name, task),
+                'total': run_record.total(script_name, task),
+            }
+        summary = run_record.summarize(script_name)
+        # 顺带给出可读的耗时文本, 免得每个前端各写一份格式化
+        for row in summary.values():
+            row['seconds_text'] = run_record.format_duration(row['seconds'])
+            row['current_seconds_text'] = run_record.format_duration(
+                row['current_seconds'])
+        return {
+            'script': script_name,
+            'at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'tasks': summary,
+            'count': len(summary),
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'tasks': {}, 'count': 0}
+
+
+@schema_app.put('/{script_name}/run_record/reset')
+async def put_run_record_reset(script_name: str, tasks: list = Body(...)):
+    """
+    「重置选中」—— **归档后重开**（不是删除）。
+
+    body: `["Orochi", "FallenSun"]`（任务名数组）
+
+    ★ 用户明确要求: "点击重置选中后**不是清除记录, 而是归档记录后开始
+      新的记录**。这样后续可以分析运行记录和展示运行结果"。
+
+    ★ 单个任务出错**不中断**其余的（批量操作里一个坏名字不该让整批失败）。
+    """
+    try:
+        from module.config import run_record
+
+        names = [str(t) for t in (tasks or []) if t]
+        archived = run_record.reset_many(script_name, names)
+        return {
+            'script': script_name,
+            'archived_rounds': archived,
+            'tasks': names,
+            'count': len(names),
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.get('/{script_name}/run_record/{task}/archive')
+async def get_task_archive(script_name: str, task: str):
+    """读某个任务的**归档明细**（供"运行历史"展示）。"""
+    try:
+        from module.config import run_record
+
+        arch = run_record.archive(script_name, task)
+        for row in arch:
+            row['seconds_text'] = run_record.format_duration(
+                row.get('seconds', 0))
+        return {
+            'script': script_name,
+            'task': task,
+            'archive': arch,
+            'total': run_record.total(script_name, task),
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'archive': []}
 
 
 # --------------------------------------------------------------------------- 运行控制

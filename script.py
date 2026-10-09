@@ -584,7 +584,20 @@ class Script:
             module_path = str(Path.cwd() / 'tasks' / command / (module_name+'.py'))
             logger.info(f'module_path: {module_path}, module_name: {module_name}')
             task_module = load_module(module_name, module_path)
-            task_module.ScriptTask(config=self.config, device=self.device).run()
+            task_obj = task_module.ScriptTask(config=self.config, device=self.device)
+            # ★ 运行记录: 在**框架层**记一次"这个任务跑了多久、打了几次"。
+            #
+            #   为什么放在这里而不是各任务里: 54 个任务逐个改既容易漏、
+            #   又会让"统计"这件事散落各处。在这里包一层, 所有任务自动获得。
+            #
+            #   记录落在 `module/config/run_record.py`（与 task_state 同级、
+            #   同样落盘），供界面展示与"重置=归档后重开"。
+            runs_before = self._task_runs_snapshot(task_obj)
+            started = datetime.now()
+            try:
+                task_obj.run()
+            finally:
+                self._record_task_run(task_obj, command, started, runs_before)
         except TaskEnd:
             return True
         except GameNotRunningError as e:
@@ -647,6 +660,50 @@ class Script:
             self.config.notifier.push(title=f'{I18n.trans_zh_cn(command)}{command}', content=f"<{self.config_name}> Exception occured")
             self._task_failed = True
             return False
+
+    # ---------------------------------------------------------------- 运行记录
+    def _task_runs_snapshot(self, task_obj) -> int:
+        """
+        取任务**当前**已打次数（用于算增量）。
+
+        优先用任务对象内存里的 `current_count`（那是权威值, 由
+        `bind_counter` 从磁盘恢复、由战斗代码递增）；
+        取不到就退回 `task_state` 的持久化值。
+        """
+        try:
+            v = getattr(task_obj, 'current_count', None)
+            if v is not None:
+                return int(v)
+        except Exception:
+            pass
+        try:
+            from module.config import task_state
+            return int(task_state.get_count(
+                self.config_name, task_obj.get_task_name()))
+        except Exception:
+            return 0
+
+    def _record_task_run(self, task_obj, command: str,
+                         started: datetime, runs_before: int) -> None:
+        """
+        把这次运行记进 `run_record`（次数 + 耗时）。
+
+        ★ 统计失败**绝不能影响任务** —— 全部异常吞掉并记 warning。
+          记录只是"报表"，跑任务才是正事。
+        """
+        try:
+            from module.config import run_record
+
+            runs_after = self._task_runs_snapshot(task_obj)
+            delta = max(0, runs_after - runs_before)
+            elapsed = max(0, int((datetime.now() - started).total_seconds()))
+
+            run_record.finish(self.config_name, command,
+                              runs=delta, seconds=elapsed)
+            logger.info(f'运行记录: {command} 本次 {delta} 次, '
+                        f'{run_record.format_duration(elapsed)}')
+        except Exception as exc:
+            logger.warning(f'运行记录写入失败({type(exc).__name__}: {exc}), 忽略')
 
     def loop(self):
         """

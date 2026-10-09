@@ -310,6 +310,108 @@ class TestRunListSection:
         assert '阻塞' in lst['note']
 
 
+class TestRunRecordEndpoints:
+    """
+    运行记录与归档的接口。
+
+    ★ 「重置」= **归档后重开**（不是删除）—— 用户明确要求。
+    """
+
+    def test_get_all_returns_shape(self, have_config):
+        from module.server.schema_router import get_run_record
+        import asyncio
+
+        r = asyncio.run(get_run_record(CONFIG))
+        assert 'error' not in r, r.get('error')
+        assert isinstance(r['tasks'], dict)
+        assert r['count'] == len(r['tasks'])
+
+    def test_get_all_has_readable_duration(self, have_config):
+        """接口直接给可读耗时文本, 免得每个前端各写一份格式化。"""
+        from module.server.schema_router import get_run_record
+        import asyncio
+
+        r = asyncio.run(get_run_record(CONFIG))
+        for task, row in r['tasks'].items():
+            assert 'seconds_text' in row, f'{task} 缺 seconds_text'
+            assert '分钟' in row['seconds_text'] or '小时' in row['seconds_text']
+
+    def test_get_one_returns_current_archive_total(self, have_config):
+        from module.server.schema_router import get_run_record
+        import asyncio
+
+        r = asyncio.run(get_run_record(CONFIG, task='Orochi'))
+        assert 'error' not in r
+        for key in ('current', 'archive', 'total'):
+            assert key in r, f'缺 {key}'
+        assert isinstance(r['archive'], list)
+
+    def test_reset_archives_not_deletes(self, have_config, tmp_path,
+                                        monkeypatch):
+        """★ 核心语义: 重置后 `archive` 里**有**东西, 而 `current` 清零。"""
+        from module.config import run_record
+        from module.server.schema_router import (get_run_record,
+                                                 put_run_record_reset)
+        import asyncio
+
+        monkeypatch.setattr(
+            run_record, '_record_file',
+            lambda: tmp_path / '.run_record.json', raising=True)
+
+        run_record.begin(CONFIG, 'Orochi')
+        run_record.finish(CONFIG, 'Orochi', runs=11, seconds=330)
+
+        res = asyncio.run(put_run_record_reset(CONFIG, tasks=['Orochi']))
+        assert 'error' not in res, res.get('error')
+        assert res['archived_rounds'] == 1, res
+
+        after = asyncio.run(get_run_record(CONFIG, task='Orochi'))
+        assert after['current']['runs'] == 0, '重置后当前应为 0（重开）'
+        assert len(after['archive']) == 1, '归档必须保留'
+        assert after['archive'][0]['runs'] == 11
+        assert after['total']['runs'] == 11, '总计仍能看到历史'
+
+    def test_reset_tolerates_bad_names(self, have_config, tmp_path,
+                                       monkeypatch):
+        from module.config import run_record
+        from module.server.schema_router import put_run_record_reset
+        import asyncio
+
+        monkeypatch.setattr(
+            run_record, '_record_file',
+            lambda: tmp_path / '.run_record.json', raising=True)
+        run_record.finish(CONFIG, 'Orochi', runs=3, seconds=30)
+
+        res = asyncio.run(put_run_record_reset(
+            CONFIG, tasks=['Orochi', 'NotARealTask']))
+        assert 'error' not in res
+        assert res['archived_rounds'] == 1, '坏名字不该让整批失败'
+
+    def test_reset_empty_list(self, have_config):
+        from module.server.schema_router import put_run_record_reset
+        import asyncio
+
+        res = asyncio.run(put_run_record_reset(CONFIG, tasks=[]))
+        assert 'error' not in res
+        assert res['archived_rounds'] == 0
+
+    def test_archive_endpoint(self, have_config, tmp_path, monkeypatch):
+        from module.config import run_record
+        from module.server.schema_router import get_task_archive
+        import asyncio
+
+        monkeypatch.setattr(
+            run_record, '_record_file',
+            lambda: tmp_path / '.run_record.json', raising=True)
+        run_record.finish(CONFIG, 'Orochi', runs=4, seconds=120)
+        run_record.reset(CONFIG, 'Orochi')
+
+        r = asyncio.run(get_task_archive(CONFIG, 'Orochi'))
+        assert 'error' not in r
+        assert len(r['archive']) == 1
+        assert '分钟' in r['archive'][0]['seconds_text']
+
+
 class TestRobustness:
     """接口挂了整个总览页会空白, 因此必须不抛异常。"""
 

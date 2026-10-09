@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 1/9] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 01/10] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 2/9] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 02/10] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 3/9] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 03/10] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 4/9] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 04/10] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 5/9] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 05/10] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,11 +4553,11 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 6/9] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A=E6=9C=AC?=
- =?UTF-8?q?=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8=E4=B9=85?=
- =?UTF-8?q?=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20=E8=B4=A6?=
- =?UTF-8?q?=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E4=B8=B2?=
- =?UTF-8?q?=E7=94=A8?=
+Subject: [PATCH 06/10] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
+ =?UTF-8?q?=E6=9C=AC=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8?=
+ =?UTF-8?q?=E4=B9=85=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20?=
+ =?UTF-8?q?=E8=B4=A6=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8?=
+ =?UTF-8?q?=E4=B8=B2=E7=94=A8?=
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 7/9] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 07/10] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 8/9] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 08/10] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6256,7 +6256,7 @@ index ea36b95..4ce7384 100644
 From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:58:58 +0800
-Subject: [PATCH 9/9] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+Subject: [PATCH 09/10] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
  =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
  =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
  =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
@@ -7409,6 +7409,569 @@ index 3577f1c..ffedaed 100644
 +    });
    });
  }
+-- 
+2.41.0.windows.1
+
+
+From 331ba7e9e1de080f71a267b595341dcaced0b5a6 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 14:03:01 +0800
+Subject: [PATCH 10/10] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
+ =?UTF-8?q?=E7=A8=8B=E5=BC=80=E5=85=B3=E4=B8=8A=E6=80=BB=E8=A7=88=E9=A1=B5?=
+ =?UTF-8?q?=20+=20=E4=BC=91=E6=81=AF=E7=BD=AE=E9=A1=B6/=E5=88=86=E7=B1=BB?=
+ =?UTF-8?q?=E7=AD=9B=E9=80=89=20+=20=E7=82=B9=E8=A1=8C=E8=BF=9B=E8=AE=BE?=
+ =?UTF-8?q?=E7=BD=AE=E9=A1=B5?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+收尾 Round 4 的三项。
+
+## 1. 脚本进程开关移到总览页（进程级硬停）
+
+| 层级 | 做什么 | 在哪 |
+|---|---|---|
+| **进程级** | 起/停**子进程**（硬停）| **总览页**（这里，俯视全局）|
+| **调度级** | 暂停调度 / 本轮跑完再停（软停，**安全点**）| 任务列表页的运行控制条 |
+
+★ 混在一起会让人以为"停止"和"暂停调度"是一回事 ——
+  前者会打断当前战斗，后者会跑完当前战斗再停。
+
+★ **硬停有二次确认弹窗**，文案写明"如果正在战斗中，这一场会被打断"。
+
+★ 状态用 `Obx` 包住**直接读 Rx** 的一小块（`sm.state.value`）——
+  反面例子踩过: `Obx(() => SomeWidget(...))` 里没读 Rx，
+  GetX 抛 `improper use of a GetX` 导致**整页白屏**。
+
+## 2. 任务选择器:休息置顶 + 分类筛选 + 只列固定任务
+
+| 改进 | 理由 |
+|---|---|
+| **「休息」置顶**（用户要求）| 它是唯一的控制条目，放进列表的频次不低，藏在按钮里不如直接可选 |
+| **分类筛选** | 54 个任务里翻找很累；类别标签来自 `/schema` 的 `category_label`，前端不硬编码 |
+| **只列固定任务** | `countable == true` —— 定时任务有自己的 window/存量/周期，"放进列表按顺序执行"与那些机制冲突。**给无效选项比不给更糟** |
+
+选择器现在返回 `_PickedEntry`（任务 / 休息二选一），
+选「休息」会接着问时长（与"添加休息"按钮同一条路）。
+
+## 3. 点任务行 → 进该任务的设置页
+
+★ **新增 `NavCtrl.openTaskSettings()`，而不是复用 `switchContent`**。
+
+`switchContent` 开头有 `useablemenus.contains(menu)` 守卫 ——
+侧边栏只列出**当前账号启用/常用**的任务，所以点一个不在侧边栏里的
+任务会被**静默忽略**（用户看到"点了没反应"，很难排查）。
+
+`openTaskSettings` 绕过白名单 —— "用户明确点了这一行"就是最强的意图表达。
+但仍保留 `TaskList` 防呆（后端没有 `/{script}/TaskList/args`，
+`loadGroups` 会崩 → 界面 500）。
+
+★ `TaskRowView` 早就有 `onTap` 参数（`InkWell` 也接好了），
+  但**从没人传** —— 所以之前点行没反应。现在总览页接上了。
+
+## 测试 63/63
+
+新增 5 条守卫:
+
+* 脚本进程开关在总览页，且**硬停有二次确认**
+* 脚本开关必须在 `Obx` 里**直接读 Rx**（防止白屏回归）
+* 任务选择器: 休息置顶 + 分类筛选 + 只列固定任务
+* **休息选项排在其他任务之前**（检查渲染顺序，不只是"存在"）
+* 点任务行进设置页，且 `openTaskSettings` **没有白名单守卫**
+  （但有 `TaskList` 防呆）
+
+`flutter test` 63/63；`flutter build windows --release` 通过。
+---
+ lib/controller/ctrl_nav.dart        |  23 ++++
+ lib/views/tasks/run_list_panel.dart | 170 ++++++++++++++++++++++------
+ lib/views/tasks/task_list_view.dart | 106 ++++++++++++++++-
+ test/task_list_panel_test.dart      |  68 +++++++++++
+ 4 files changed, 329 insertions(+), 38 deletions(-)
+
+diff --git a/lib/controller/ctrl_nav.dart b/lib/controller/ctrl_nav.dart
+index 33111a9..a4b9aea 100644
+--- a/lib/controller/ctrl_nav.dart
++++ b/lib/controller/ctrl_nav.dart
+@@ -122,6 +122,29 @@ class NavCtrl extends GetxController {
+     argsController.loadGroups(config: selectedScript.value, task: menu);
+   }
+ 
++  /// **点任务表格的某一行** -> 跳到那个任务的设置页。
++  ///
++  /// ## 为什么不直接用 `switchContent`
++  ///
++  /// `switchContent` 开头有 `useablemenus.contains(menu)` 的守卫 ——
++  /// 侧边栏里只列出**当前账号启用/常用**的任务, 所以点一个不在
++  /// 侧边栏里的任务会被静默忽略（用户看到"点了没反应"）。
++  ///
++  /// 这里**绕过白名单**, 因为"用户明确点了这一行"就是最强的意图表达。
++  ///
++  /// ★ 仍然要做 `TaskList` 的防呆: 它不是一个任务, 后端没有
++  ///   `/{script}/TaskList/args`, `loadGroups` 会崩。
++  void openTaskSettings(String task) {
++    if (task.isEmpty) return;
++    if (['Home', 'Overview', 'Updater', 'Tool', 'TaskList'].contains(task)) {
++      return;
++    }
++    if (selectedScript.value == 'Home') return;
++    selectedMenu.value = task;
++    final argsController = Get.find<ArgsController>();
++    argsController.loadGroups(config: selectedScript.value, task: task);
++  }
++
+   Future<void> addConfig(String newName, String templateName) async {
+     navNameList.value = await ApiClient().configCopy(newName, templateName);
+     Get.find<ScriptService>().addScriptModel(newName);
+diff --git a/lib/views/tasks/run_list_panel.dart b/lib/views/tasks/run_list_panel.dart
+index 2624302..4f32af8 100644
+--- a/lib/views/tasks/run_list_panel.dart
++++ b/lib/views/tasks/run_list_panel.dart
+@@ -298,20 +298,35 @@ class _RunListPanelState extends State<RunListPanel> {
+   }
+ 
+   /// 选一个任务加进列表（可指定插入位置）。
++  ///
++  /// ★ 只能选**固定任务**（`countable == true`）—— 定时任务有自己的
++  ///   window / 存量 / 周期, "放进列表按顺序执行" 与那些机制冲突。
++  ///   这是**后端定的规则**（`run_list.is_list_task()`），
++  ///   前端只负责不给出无效选项。
++  ///
++  /// ★ 选择器里也提供「休息」—— 见 `_TaskPickerDialog`。
+   Future<void> _pickTask(BuildContext context) async {
+-    final picked = await showDialog<String>(
++    final picked = await showDialog<_PickedEntry>(
+       context: context,
+       builder: (ctx) => _TaskPickerDialog(controller: c),
+     );
+     if (picked == null) return;
+-    await c.addEntry({'kind': 'task', 'task': picked});
++    if (picked.isRest) {
++      // 选了「休息」-> 接着问时长（与"添加休息"按钮同一条路）
++      final restKind = c.entryKinds.firstWhere(
++        (k) => '${k['value']}' == 'rest',
++        orElse: () => const {'value': 'rest', 'label': '休息', 'help': ''},
++      );
++      if (context.mounted) await _addControlEntry(context, restKind);
++      return;
++    }
++    await c.addEntry({'kind': 'task', 'task': picked.task});
+   }
+ 
+-  /// 添加一个控制条目（**全部停止** / **只停列表**）。
++  /// 添加一个控制条目（v2 只有「休息」）。
+   ///
+   /// ★ 时长可选项来自 `/schema` 的 `duration_choices`。
+-  /// ★ 说明文字来自 `entry_kinds[].help` —— 里面写着**对定时任务的不同处理**,
+-  ///   那是用户唯一需要知道的区别。
++  /// ★ 说明文字来自 `entry_kinds[].help` —— 里面写着**去庭院待着**。
+   Future<void> _addControlEntry(
+       BuildContext context, Map<String, dynamic> kind) async {
+     final minutes = await showDialog<int>(
+@@ -337,7 +352,27 @@ class _RunListPanelState extends State<RunListPanel> {
+   }
+ }
+ 
+-/// 任务选择对话框（带搜索）。
++/// 选择器的返回值 —— 要么是一个任务，要么是「休息」。
++class _PickedEntry {
++  const _PickedEntry.task(this.task) : isRest = false;
++  const _PickedEntry.rest()
++      : task = '',
++        isRest = true;
++
++  final String task;
++  final bool isRest;
++}
++
++/// 任务选择对话框。
++///
++/// ## 三条规则
++///
++/// 1. **「休息」置顶** —— 用户明确要求。它是唯一的控制条目,
++///    放进列表的频次不低，藏在"添加休息"按钮里不如直接可选。
++/// 2. **只列固定任务**（`countable`）—— 定时任务不该进列表
++///    （见 `_pickTask` 的说明）。给无效选项比不给更糟。
++/// 3. **分类筛选** —— 54 个任务里翻找很累；类别标签来自 `/schema`
++///    的 `category_label`，前端不硬编码。
+ class _TaskPickerDialog extends StatefulWidget {
+   const _TaskPickerDialog({required this.controller});
+ 
+@@ -349,59 +384,120 @@ class _TaskPickerDialog extends StatefulWidget {
+ 
+ class _TaskPickerDialogState extends State<_TaskPickerDialog> {
+   String _q = '';
++  String _cat = '';
+ 
+   @override
+   Widget build(BuildContext context) {
+-    final all = widget.controller.allTasks;
++    // ★ 只列可进列表的（= 固定任务）—— 与后端 `is_list_task()` 同一条规则,
++    //   而 `countable` 就是后端给的标志, 前端不重新定义。
++    final all =
++        widget.controller.allTasks.where((t) => t['countable'] == true).toList();
+     final inList = widget.controller.entries
+         .where((e) => e['kind'] == 'task')
+         .map((e) => '${e['task']}')
+         .toSet();
+-    final list = _q.isEmpty
+-        ? all
+-        : all
+-            .where((t) =>
+-                '${t['name_zh']}'.contains(_q) ||
+-                '${t['command']}'.toLowerCase().contains(_q.toLowerCase()))
+-            .toList();
++
++    // 类别去重（保持稳定顺序: 按出现顺序）
++    final cats = <String, String>{};
++    for (final t in all) {
++      final v = '${t['category'] ?? ''}';
++      if (v.isNotEmpty) cats.putIfAbsent(v, () => '${t['category_label'] ?? v}');
++    }
++
++    var list = all;
++    if (_cat.isNotEmpty) {
++      list = list.where((t) => '${t['category']}' == _cat).toList();
++    }
++    if (_q.isNotEmpty) {
++      final q = _q.toLowerCase();
++      list = list
++          .where((t) =>
++              '${t['name_zh']}'.contains(_q) ||
++              '${t['command']}'.toLowerCase().contains(q))
++          .toList();
++    }
++
+     return AlertDialog(
+-      title: const Text('选择任务'),
++      title: const Text('添加条目'),
+       content: SizedBox(
+-        width: 440,
+-        height: 440,
++        width: 460,
++        height: 480,
+         child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
++            // ---------- 「休息」置顶 ----------
++            Card(
++              margin: EdgeInsets.zero,
++              color: Theme.of(context).colorScheme.secondaryContainer,
++              child: ListTile(
++                dense: true,
++                leading: const Icon(Icons.hotel, size: 20),
++                title: const Text('休息（去庭院待着）'),
++                subtitle: const Text('唯一的控制条目 —— 到这一行会停下来等 N 分钟'),
++                onTap: () =>
++                    Navigator.pop(context, const _PickedEntry.rest()),
++              ),
++            ),
++            const Divider(height: 16),
++
+             TextField(
+               autofocus: true,
+               decoration: const InputDecoration(
+                 isDense: true,
+                 prefixIcon: Icon(Icons.search, size: 18),
+-                hintText: '搜索…',
++                hintText: '搜索任务名…',
+                 border: OutlineInputBorder(),
+               ),
+               onChanged: (v) => setState(() => _q = v.trim()),
+             ),
+             const SizedBox(height: 8),
+-            Expanded(
+-              child: ListView.builder(
+-                itemCount: list.length,
+-                itemBuilder: (_, i) {
+-                  final t = list[i];
+-                  final cmd = '${t['command']}';
+-                  final already = inList.contains(cmd);
+-                  return ListTile(
+-                    dense: true,
+-                    enabled: !already,
+-                    title: Text('${t['name_zh']}'),
+-                    subtitle: Text('${t['category_label']} · $cmd'),
+-                    trailing: already
+-                        ? Text('已在列表',
+-                            style: Theme.of(context).textTheme.labelSmall)
+-                        : null,
+-                    onTap: already ? null : () => Navigator.pop(context, cmd),
+-                  );
+-                },
++            // ---------- 分类筛选 ----------
++            if (cats.length > 1)
++              Wrap(
++                spacing: 6,
++                children: [
++                  FilterChip(
++                    label: const Text('全部'),
++                    selected: _cat.isEmpty,
++                    onSelected: (_) => setState(() => _cat = ''),
++                    visualDensity: VisualDensity.compact,
++                  ),
++                  for (final e in cats.entries)
++                    FilterChip(
++                      label: Text(e.value),
++                      selected: _cat == e.key,
++                      onSelected: (_) => setState(() => _cat = e.key),
++                      visualDensity: VisualDensity.compact,
++                    ),
++                ],
+               ),
++            const SizedBox(height: 8),
++            Expanded(
++              child: list.isEmpty
++                  ? const Center(child: Text('没有匹配的任务'))
++                  : ListView.builder(
++                      itemCount: list.length,
++                      itemBuilder: (_, i) {
++                        final t = list[i];
++                        final cmd = '${t['command']}';
++                        final already = inList.contains(cmd);
++                        return ListTile(
++                          dense: true,
++                          enabled: !already,
++                          title: Text('${t['name_zh']}'),
++                          subtitle: Text('${t['category_label']} · $cmd'),
++                          trailing: already
++                              ? Text('已在列表',
++                                  style:
++                                      Theme.of(context).textTheme.labelSmall)
++                              : null,
++                          onTap: already
++                              ? null
++                              : () => Navigator.pop(
++                                  context, _PickedEntry.task(cmd)),
++                        );
++                      },
++                    ),
+             ),
+           ],
+         ),
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index d64e870..38fb1c3 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -55,7 +55,8 @@ import 'package:oasx/component/log/log_mixin.dart';
+ import 'package:oasx/component/log/log_widget.dart';
+ import 'package:oasx/model/script_model.dart';
+ import 'package:oasx/service/script_service.dart';
+-import 'package:oasx/service/task_prefs.dart';part '../../controller/task_list/task_list_controller.dart';
++import 'package:oasx/service/task_prefs.dart';
++import 'package:oasx/views/nav/view_nav.dart';part '../../controller/task_list/task_list_controller.dart';
+ part './task_row_view.dart';
+ part './run_control_bar.dart';
+ part './run_list_panel.dart';
+@@ -256,6 +257,87 @@ class _OverviewTab extends StatelessWidget {
+     );
+   }
+ 
++  /// **脚本进程** 状态 + 起停（进程级硬停）。
++  ///
++  /// ★ `Obx` 必须包住**直接读 Rx 变量**的那一小块。
++  ///   这里 `sm.state.value` 就是直接读 —— 所以 GetX 能记录依赖。
++  ///
++  ///   反面例子（踩过）: 写 `Obx(() => SomeStatefulWidget(...))` ——
++  ///   回调里只构造组件、没读 Rx, GetX 抛
++  ///   "improper use of a GetX" 并导致**整页白屏**。
++  Widget _scriptProcessRow(BuildContext context) {
++    return Obx(() {
++      final svc = Get.find<ScriptService>();
++      final sm = svc.scriptModelMap[c.script];
++      final running = sm?.state.value == ScriptState.running;
++      return Row(
++        children: [
++          Icon(running ? Icons.play_circle : Icons.stop_circle,
++              size: 18,
++              color: running ? Colors.green : Theme.of(context).disabledColor),
++          const SizedBox(width: 6),
++          Text(running ? '脚本进程运行中' : '脚本进程已停止'),
++          const SizedBox(width: 12),
++          if (!running)
++            FilledButton.icon(
++              onPressed: c.busy
++                  ? null
++                  : () async {
++                      await c.startScript();
++                      await c.reload();
++                    },
++              icon: const Icon(Icons.play_arrow, size: 18),
++              label: const Text('启动脚本'),
++            ),
++          if (running)
++            Tooltip(
++              message: '**结束子进程**（硬停）\n'
++                  '与「暂停调度」不同 —— 那是软停，会跑完当前战斗',
++              child: OutlinedButton.icon(
++                onPressed: c.busy
++                    ? null
++                    : () async {
++                        // 硬停会中断当前动作，所以要二次确认 ——
++                        // 与"暂停调度"（安全点停）的危险程度不同。
++                        final ok = await _confirmStopScript();
++                        if (!ok) return;
++                        await c.stopScript();
++                        await c.reload();
++                      },
++                icon: const Icon(Icons.stop, size: 18),
++                label: const Text('停止脚本'),
++              ),
++            ),
++          const SizedBox(width: 8),
++          Text('（进程级；调度级软停在任务列表页的运行控制条）',
++              style: Theme.of(context).textTheme.labelSmall),
++        ],
++      );
++    });
++  }
++
++  Future<bool> _confirmStopScript() async {
++    final r = await Get.dialog<bool>(
++      AlertDialog(
++        title: const Text('停止脚本进程？'),
++        content: const Text(
++            '会**立即结束**脚本子进程。\n\n'
++            '★ 如果正在战斗中，这一场会被打断（与「暂停调度」不同 ——'
++            '那会跑完当前战斗再停）。\n\n'
++            '确定继续吗？'),
++        actions: [
++          TextButton(
++              onPressed: () => Get.back(result: false),
++              child: const Text('取消')),
++          FilledButton(
++              onPressed: () => Get.back(result: true),
++              child: const Text('停止')),
++        ],
++      ),
++    );
++    return r == true;
++  }
++
+   Widget _bulkPanel(BuildContext context) {
+     return Card(
+       child: Padding(
+@@ -263,6 +345,20 @@ class _OverviewTab extends StatelessWidget {
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
++            // ---------- 脚本进程（进程级硬停）----------
++            //
++            // ★ 这块在 v1 里是放在**运行控制条**上的，v2 移到这里。
++            //
++            //   区别很重要:
++            //   | 层级 | 做什么 | 在哪 |
++            //   |---|---|---|
++            //   | **进程级** | 起/停子进程（硬停）| 这里（俯视全局）|
++            //   | **调度级** | 暂停调度 / 本轮跑完再停（软停，安全点）| 运行控制条 |
++            //
++            //   混在一起会让人以为"停止"和"暂停调度"是一回事。
++            _scriptProcessRow(context),
++            const Divider(height: 20),
++
+             _panelTitle(context, '批量操作',
+                 '改的是 scheduler.enable（任务级长期开关）'),
+             const SizedBox(height: 8),
+@@ -424,6 +520,14 @@ class _OverviewTab extends StatelessWidget {
+                 task: c.tasks[i],
+                 mode: TaskRowMode.overview,
+                 controller: c,
++                // ★ 点任务行 -> 进该任务的**设置页**（用户要求）。
++                //
++                //   用 `openTaskSettings` 而不是 `switchContent`:
++                //   后者开头有 `useablemenus` 白名单（只列侧边栏里有的任务）,
++                //   点一个不在侧边栏的任务会被**静默忽略** ——
++                //   用户看到的是"点了没反应", 很难排查。
++                onTap: () => Get.find<NavCtrl>()
++                    .openTaskSettings('${c.tasks[i]['command']}'),
+               ),
+             ),
+           ),
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 4d59df0..3c57afd 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -379,6 +379,72 @@ void _sortAndPrefsTests() {
+   });
+ }
+ 
++// ============================================================ Round 4 收尾
++void _round4Tests() {
++  test('脚本进程开关在总览页（进程级 vs 调度级分开）', () {
++    final src = codeOnly('lib/views/tasks/task_list_view.dart');
++    expect(src.contains('_scriptProcessRow'), isTrue);
++    expect(src.contains('启动脚本'), isTrue);
++    expect(src.contains('停止脚本'), isTrue);
++
++    // ★ 硬停要二次确认 —— 它会打断当前战斗，
++    //   危险程度与「暂停调度」（安全点停）不同。
++    final i = src.indexOf('_confirmStopScript');
++    expect(i, greaterThan(-1));
++    expect(src.substring(i, i + 900).contains('AlertDialog'), isTrue,
++        reason: '硬停必须有二次确认');
++  });
++
++  test('脚本开关在 Obx 里直接读 Rx（否则 GetX 抛异常导致白屏）', () {
++    final src = codeOnly('lib/views/tasks/task_list_view.dart');
++    final i = src.indexOf('Widget _scriptProcessRow');
++    expect(i, greaterThan(-1));
++    final body = src.substring(i, i + 500);
++    expect(body.contains('Obx('), isTrue);
++    expect(body.contains('.state.value'), isTrue,
++        reason: 'Obx 回调必须**直接读 Rx**，否则抛 improper use of a GetX');
++  });
++
++  test('任务选择器：休息置顶 + 分类筛选 + 只列固定任务', () {
++    final src = codeOnly('lib/views/tasks/run_list_panel.dart');
++    final i = src.indexOf('class _TaskPickerDialogState');
++    expect(i, greaterThan(-1));
++    final body = src.substring(i, i + 2600);
++
++    expect(body.contains('休息（去庭院待着）'), isTrue, reason: '休息应置顶');
++    expect(body.contains('_PickedEntry.rest'), isTrue);
++    expect(body.contains('FilterChip'), isTrue, reason: '缺分类筛选');
++    expect(body.contains("t['countable'] == true"), isTrue,
++        reason: '只该列固定任务 —— 定时任务不能进列表');
++  });
++
++  test('休息选项排在其他任务之前', () {
++    final src = File('lib/views/tasks/run_list_panel.dart').readAsStringSync();
++    final restIdx = src.indexOf('_PickedEntry.rest');
++    final listIdx = src.indexOf('ListView.builder', restIdx);
++    expect(restIdx, greaterThan(-1));
++    expect(listIdx, greaterThan(restIdx),
++        reason: '休息卡片必须在任务列表**之前**渲染（置顶）');
++  });
++
++  test('点任务行进设置页，且绕过 useablemenus 白名单', () {
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    expect(view.contains('openTaskSettings'), isTrue);
++    expect(view.contains('onTap:'), isTrue);
++
++    final nav = codeOnly('lib/controller/ctrl_nav.dart');
++    final i = nav.indexOf('void openTaskSettings');
++    expect(i, greaterThan(-1));
++    final body = nav.substring(i, i + 700);
++    // ★ 这是关键: 不能复用 switchContent（它有白名单，会静默忽略）
++    expect(body.contains('useablemenus'), isFalse,
++        reason: 'openTaskSettings 不该有白名单守卫，否则点不在侧边栏的任务会没反应');
++    // 但仍要防呆 TaskList（后端没有 /TaskList/args，loadGroups 会崩）
++    expect(body.contains('TaskList'), isTrue,
++        reason: '仍要防呆 TaskList，否则界面 500');
++  });
++}
++
+ void main() {
+   testWidgets('只含任务条目时能正常渲染', (tester) async {
+     final c = FakeTaskListController(
+@@ -479,6 +545,8 @@ void main() {
+   _overviewV2Tests();
+ 
+   _sortAndPrefsTests();
++
++  _round4Tests();
+ }
+ 
+ /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
 -- 
 2.41.0.windows.1
 

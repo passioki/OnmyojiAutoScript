@@ -312,9 +312,17 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
 |---|---|---|---|
 | 1 | **DemonRetreat** | ✅ | 删 20 行 `weekday()` 判断 + 3 处 `custom_next_run` → `set_next_run(success=True)`。<br>**实测 4/4 场景等价**: 周一/周三/周日 → 本周六 19:00; 周六成功 → 下周六 19:00 |
 | 2 | **AbyssShadows** | ✅ | 删 `today not in [4,5,6]` 判断 + 4 处 `custom_next_run` → `set_next_run(success=True)`。<br>**实测 3/3 等价**: 周五→周六 · 周六→周日 · **周日→下周五** |
-| 3~16 | 其余 14 个（Hunt / GuildBanquet / Dokan / MysteryShop / Secret / Restart / Tako / MemoryScrolls / RyouToppa / DemonEncounter / GuildActivityMonitor / AreaBoss / 等）| ⬜ | 待逐个核实 |
+| 3 | **Hunt** | ⬜ | 4 处（L74/85/98/101），窗口已建（两段）|
+| 4 | **GuildBanquet** | ⬜ | 3 处（L133/136/139），宴会日由用户配置 |
+| 5 | **Restart** | ⬜ | 3 处（L50/53/56）—— 领体力时刻, 可能保留 |
+| 6 | **RyouToppa** | ⬜ | 2 处（L204/207）|
+| 7 | **MemoryScrolls** | ⬜ | 1 处（L63）—— 给**别的任务**（Exploration）排期, 语义特殊 |
+| — | 其余（Dokan / MysteryShop / Secret / Tako / DemonEncounter / GuildActivityMonitor / AreaBoss …）| ⬜ | 用 `weekday()` 但**不**调 `custom_next_run`（选 boss/选区域等正当用途）, 需逐个确认 |
 
-**self-scheduling 行数: 22 → 17 → 13**（实测）
+**剩余 `custom_next_run` / `days_until` 实测: 13 行（5 个任务）** —— 台账标 ⬜, 不虚报。
+
+★ `BaseTask.custom_next_run()` **暂时不能删** —— 上面 5 个任务还在调它。
+删它必须先清完这些调用点（属于本步的剩余工作）。
 
 ★ 守卫测试: 新增 `tests/tasks/test_no_hardcoded_windows.py`（**8 passed**）
 * 清理过的文件里**不得**再出现 `custom_next_run` / `days_until`

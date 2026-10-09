@@ -431,6 +431,38 @@ pydantic 的 `model_json_schema()` 里，**带 `$ref` 的属性没有 `default` 
 
 ---
 
+## 7. 统一控制台（v2 · 用户反馈后的合并）
+
+### 从两个页面合并成一个
+
+第一版有**两个**带监控的页面（旧「总览」+ 新「任务列表」），重复且
+引入了 GetX 白屏 / 搜索不复位 / 卡顿等 bug。现在**一个控制台，三个 tab**。
+
+### 前端需要的接口
+
+| tab | 接口 |
+|---|---|
+| **调度面板** | `GET /{script}/schema`（含 `list.global_fields` / `entry_kinds` / `run_record` / `manual_run` / `failure_state`）<br>`GET /{script}/overview`（每任务: `can_run` / `priority` / `expected_minutes` / `count` / `effective_target` / `failure_count` / `in_cooldown`）<br>`PUT /{script}/script/optimization/...`<br>`PUT /{script}/{task}/scheduler/{target,priority,expected_minutes}/value` |
+| **执行顺序** | `GET/PUT /{script}/run_list`、`POST/DELETE /{script}/run_list/entry`、`GET /{script}/run_list/preview` |
+| **监控** | **WebSocket** 推送（`state` / `running` / `pending` / `waiting`）—— **不是 REST** |
+
+### 其他
+
+| 功能 | 接口 |
+|---|---|
+| 运行记录 / 归档 | `GET /{script}/run_record`、`PUT /{script}/run_record/reset` |
+| 运行一次 | `GET/PUT/DELETE /{script}/manual_run` |
+| 失败冷却 | `GET/DELETE /{script}/failure_state` |
+| 运行控制 | `PUT /{script}/run_control/{pause,resume}`、`GET /{script}/run_control` |
+
+### ★ 三个易错点
+
+1. **`effective_target` vs `count`** —— 界面上显示**前者**
+   （`count` 只是任务配置里的默认值；用户改的是 `scheduler.target`）
+2. **`priority` / `expected_minutes` 在 `/{task}/scheduler/` 分组**，
+   不在 `script.optimization`
+3. **日志用订阅**（`ScriptService.subscribeLog`），**不要另开 WebSocket 连接**
+
 ## 附：字段命名对照（前端易错点）
 
 | 名字 | 出现位置 | 形式 | 例子 |

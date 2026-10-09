@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 01/12] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 01/13] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 02/12] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 02/13] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 03/12] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 03/13] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 04/12] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 04/13] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 05/12] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 05/13] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 06/12] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
+Subject: [PATCH 06/13] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
  =?UTF-8?q?=E6=9C=AC=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8?=
  =?UTF-8?q?=E4=B9=85=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20?=
  =?UTF-8?q?=E8=B4=A6=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 07/12] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 07/13] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 08/12] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 08/13] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6256,7 +6256,7 @@ index ea36b95..4ce7384 100644
 From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:58:58 +0800
-Subject: [PATCH 09/12] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+Subject: [PATCH 09/13] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
  =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
  =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
  =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
@@ -7416,7 +7416,7 @@ index 3577f1c..ffedaed 100644
 From 331ba7e9e1de080f71a267b595341dcaced0b5a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 14:03:01 +0800
-Subject: [PATCH 10/12] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
+Subject: [PATCH 10/13] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
  =?UTF-8?q?=E7=A8=8B=E5=BC=80=E5=85=B3=E4=B8=8A=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=20+=20=E4=BC=91=E6=81=AF=E7=BD=AE=E9=A1=B6/=E5=88=86=E7=B1=BB?=
  =?UTF-8?q?=E7=AD=9B=E9=80=89=20+=20=E7=82=B9=E8=A1=8C=E8=BF=9B=E8=AE=BE?=
@@ -7979,7 +7979,7 @@ index 4d59df0..3c57afd 100644
 From 7f7e4925c91c0fb8bd1d6195ea864f8b751781a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 18:29:47 +0800
-Subject: [PATCH 11/12] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
+Subject: [PATCH 11/13] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
  =?UTF-8?q?=E5=8F=AA=E6=94=B6=E5=9B=BA=E5=AE=9A=E4=BB=BB=E5=8A=A1"?=
  =?UTF-8?q?=E7=9A=84=E8=BF=87=E6=BB=A4=20=E2=80=94=E2=80=94=20=E5=AE=83?=
  =?UTF-8?q?=E6=9B=BE=E9=9D=99=E9=BB=98=E4=B8=A2=E6=8E=89=E7=94=A8=E6=88=B7?=
@@ -8449,7 +8449,7 @@ index 3c57afd..47314bc 100644
 From 015d55e1a06fcf895312771b29413dc0fe791f95 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:07:38 +0800
-Subject: [PATCH 12/12] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
+Subject: [PATCH 12/13] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
  =?UTF-8?q?=E9=83=A8**=E5=BC=80=E5=85=B3=E4=B8=8E=E4=BC=98=E5=85=88?=
  =?UTF-8?q?=E7=BA=A7=E5=AD=97=E6=AE=B5=20=E2=80=94=E2=80=94=20=E5=90=8E?=
  =?UTF-8?q?=E7=AB=AF=E6=97=A9=E5=B0=B1=E5=81=9A=E4=BA=86,=20=E5=89=8D?=
@@ -9324,6 +9324,673 @@ index 47314bc..97f7740 100644
    _phase0Tests();
 +
 +  _phase1Tests();
+ }
+ 
+ /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
+-- 
+2.41.0.windows.1
+
+
+From e78445611c6f2b1f1b4b000d32e007467767eaca Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 19:13:48 +0800
+Subject: [PATCH 13/13] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
+ =?UTF-8?q?=E4=B8=80=E4=B8=AA**=E7=BB=9F=E4=B8=80=E6=8E=A7=E5=88=B6?=
+ =?UTF-8?q?=E5=8F=B0**=20=E2=80=94=E2=80=94=20=E4=B8=89=E4=B8=AA=20tab=20+?=
+ =?UTF-8?q?=20=E6=97=A5=E5=BF=97=E5=B8=B8=E9=A9=BB=EF=BC=88=E7=94=A8?=
+ =?UTF-8?q?=E6=88=B7=E8=A6=81=E6=B1=82=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+用户的反馈（原话）:
+
+> 我发现没有必要重新构建流程啊，只需要把现有的功能加入到旧有的总览里就行啊，
+> 里边已经有完善的观察窗口，只需要次数和拖动排序等功能加入进去。
+> 你可以统计下功能互补下。目前的调配并不流畅。
+
+**批评是对的。** 我建了**两个**带监控的页面:
+
+| 页面 | 内容 |
+|---|---|
+| 旧「总览」 | 实时观察窗（调度器/运行中/待执行/等待中）+ 日志 |
+| 新「任务列表」 | 任务表格 + 批量操作 + 执行顺序 + 日志（**又一份**）|
+
+既重复、又引入了一批新 bug（GetX 白屏 / 搜索不复位 / 卡顿）。
+
+## 现在:一个控制台,三个 tab,日志常驻右半栏
+
+```
+┌─ 运行控制条（暂停调度 / 本轮跑完再停 / 继续调度）──────────────┐
+├─ 账号 / 时钟 / 模式提示 ────────────────────────────────────┤
+├─ [调度面板] [执行顺序] [监控] ──────────┬──────────────────┤
+│   调度面板: 进程开关 + 批量操作        │      日 志        │
+│             + 任务表格(全列可编辑/排序)│   （常驻右半栏）  │
+│   执行顺序: 全局设置 + 拖拽排序 + 预测  │                  │
+│   监控:     调度器/运行中/待执行/等待中 │                  │
+└────────────────────────────────────────┴──────────────────┘
+```
+
+### 三个 tab 各管什么
+
+| tab | 内容 |
+|---|---|
+| **调度面板** | 脚本进程开关（**进程级**硬停）<br>批量启停 / 运行一次 / 重置选中 / 四个筛选 / 搜索<br>**任务表格**: 次数·优先级·预期耗时·运行记录（都可改）+ 多列排序 |
+| **执行顺序** | **全局设置**（两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据）<br>**执行顺序**（拖拽 + 增删条目，含「休息」）<br>**预期执行流程**（推算）|
+| **监控** | 调度器状态 / 正在运行 / 待执行 / 等待中 —— **WebSocket 实时** |
+
+★ **日志常驻**（不在某个 tab 里）—— 看编排时也能同时看日志。
+★ 窄屏（< 1100px）退化成一列，日志给固定高度。
+
+### 其他变化
+
+* 旧的「任务总览 / 任务列表（调度器）」两个 tab **消失**
+* `_OverviewTab` → `_ScheduleTab`；`_ListTab` → `_OrderTab`
+* **次数现在可以直接在表格里改**（原来总览只读、列表才能改 —— 现在只有一处）
+* 脚本进程开关从「列表页」挪到「调度面板」顶部（按你的意思: 它属于俯视全局的地方）
+* **旧「总览」从菜单隐藏**（`ctrl_nav` 过滤掉后端的 `'Overview'` 键）,
+  进账号后**默认进控制台**
+
+## ★ 旧「总览」的视图文件**保留**（刻意的）
+
+`views/overview/` 不能直接删:
+
+* `OverviewController` 还承担着**历史日志路由**
+  （`ScriptService` 会查 `Get.isRegistered<OverviewController>`）
+* `TaskItemModel` 是 `script_model.dart` 的依赖
+
+删它们要连带重构两处，**风险大于收益** —— 从菜单隐藏即可。
+
+## ★ 监控 tab 里的"任务设置"也用 `openTaskSettings`
+
+旧总览页那里用的是 `switchContent`, 有 `useablemenus` 白名单 ——
+点不在侧边栏的任务**静默无反应**。搬过来时一并修掉。
+
+（同一个坑在本项目踩过三次: `task_list_view` / `overview/taskitem_view` /
+这里的监控列表。）
+
+## 测试 80/80
+
+新增 6 条守卫:
+
+* 统一控制台: 三个 tab + **日志在 `build()` 里常驻**
+* 旧的「任务总览 / 任务列表」两个 tab **必须消失**
+* 监控 tab 有**四个观察窗**，且数据来自 `scriptModelMap`（实时）
+* 监控里的"任务设置"走 `openTaskSettings`（**不出现** `switchContent`）
+* 执行顺序 tab 仍走 `RunListPanel`（拖拽），且**不再**含 `LogWidget`
+* 菜单**隐藏**了重复的旧「总览」，默认页是控制台
+
+`flutter test` 80/80；`flutter build windows --release` 通过。
+
+## 文档
+
+* `architecture.md` §5.2 **重写**为「统一控制台」——
+  含用户的批评原文、新旧结构对比、两条独立顺序、
+  进程级 vs 调度级、旧总览为何保留文件
+* `ui-api-mapping.md` 新增 **§7 统一控制台** ——
+  三个 tab 各需要哪些接口 + 三个易错点
+---
+ lib/controller/ctrl_nav.dart        |  31 ++-
+ lib/views/tasks/task_list_view.dart | 329 ++++++++++++++++++++++------
+ test/task_list_panel_test.dart      |  86 ++++++++
+ 3 files changed, 379 insertions(+), 67 deletions(-)
+
+diff --git a/lib/controller/ctrl_nav.dart b/lib/controller/ctrl_nav.dart
+index a4b9aea..3913eb3 100644
+--- a/lib/controller/ctrl_nav.dart
++++ b/lib/controller/ctrl_nav.dart
+@@ -38,11 +38,31 @@ class NavCtrl extends GetxController {
+     // 用 `'TaskList': []` 的形式 —— 与后端已有的 `'Overview': []` 同构,
+     // 而 `useablemenus` 的 `value.isNotEmpty ? value : [key]` 会把它
+     // 正确解析成菜单项 `'TaskList'`。
++    //
++    // ★★ 现在它是**唯一的调度控制台**（用户要求合并, 不要两套监控）★★
++    //
++    //   控制台已包含: 实时监控（调度器/运行中/待执行/等待中）+
++    //   任务表格（次数/排序/筛选/优先级/预期耗时/运行记录）+
++    //   执行顺序（拖拽）+ 全局设置 + 运行控制条 + 日志。
++    //
++    //   所以旧「总览」是**多余的** —— 它的内容被完全覆盖,
++    //   留着只会让人在两个页面之间犹豫（"我该看哪个?"）。
++    //
++    //   ⚠ 旧「总览」的**视图文件保留**（`views/overview/`）——
++    //     里面的 `OverviewController` 还承担着历史日志路由
++    //     （`ScriptService` 会 `Get.isRegistered<OverviewController>`）,
++    //     而 `TaskItemModel` 是 `script_model.dart` 的依赖。
++    //     删除它们要连带重构两处, 风险大于收益; 从菜单隐藏即可。
+     final menu = <String, List<String>>{
+-      // 放最前: "看全局"比"调某个任务的参数"更常用
++      // 放最前: "看全局并调度"比"调某个任务的参数"更常用
+       'TaskList': const [],
+     };
+-    scriptMenuJson.forEach((key, items) => menu[key] = items);
++    scriptMenuJson.forEach((key, items) {
++      // ★ **隐藏后端给的 `'Overview'` 菜单项** —— 见上面的说明:
++      //   它的内容已被统一控制台完全覆盖, 同时存在两个"总览"会让人犹豫。
++      if (key == 'Overview') return;
++      menu[key] = items;
++    });
+     scriptMenuJson.value = menu;
+ 
+     super.onInit();
+@@ -64,7 +84,12 @@ class NavCtrl extends GetxController {
+       selectedMenu.value = 'Home';
+       isHomeMenu.value = true;
+     } else {
+-      selectedMenu.value = 'Overview';
++      // ★ 默认进**统一控制台**（`TaskList`）而不是旧「总览」。
++      //
++      //   控制台现在包含了监控 / 任务表格 / 执行顺序 / 日志 ——
++      //   是日常真正要待的地方。旧「总览」仍保留（它更轻, 只有观察窗）,
++      //   但不再是默认页。
++      selectedMenu.value = 'TaskList';
+       isHomeMenu.value = false;
+     }
+ 
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index d775754..8d31eba 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -172,35 +172,76 @@ class _TaskListViewState extends State<TaskListView> {
+       // 理论上不会发生(initState 已绑定); 兜底免得空断言崩
+       return const Center(child: CircularProgressIndicator());
+     }
++    final wide = MediaQuery.of(context).size.width >= 1100;
++    // 日志常驻右侧 —— 它是"调度控制台"的直接反馈。
++    // ★ 复用同一个 `LogWidget` 实例: key 用 `c.script` 而不是 `hashCode`,
++    //   账号切换时才会重建（否则会把两个账号的日志串起来）。
++    final logs = LogWidget(
++      key: ValueKey('log-${c.script}'),
++      controller: c,
++      title: '日志',
++      enableCollapse: false,
++    );
++
+     return GetBuilder<TaskListController>(
+       tag: tag,
+       builder: (_) => DefaultTabController(
+-        length: 2,
++        length: 3,
+         child: Column(
+           children: [
+             // ★ 这里**不要**用 `Obx` 包 `RunControlBar` ——
+             //   `Obx` 要求"回调里**直接**读到 Rx 变量", 而 `RunControlBar`
+-            //   是个 StatefulWidget, 它的 build 里只调了个普通方法
+-            //   (`_c.scriptRunning`), GetX 认为"没订阅任何可观察对象"就抛
++            //   是个 StatefulWidget, 它的 build 里只调了个普通方法,
++            //   GetX 认为"没订阅任何可观察对象"就抛
+             //   `improper use of a GetX` -> 整页白屏。
+             //
+             //   正确做法: 把 `Obx` 放到**真正读 Rx 的那个小部件**里
+-            //   (`RunControlBar` 内部的脚本状态区)。
++            //   （`RunControlBar` 内部的脚本状态区）。
+             RunControlBar(controller: c),
+             _header(context, c),
+             const TabBar(
+               tabs: [
+-                Tab(text: '任务总览'),
+-                Tab(text: '任务列表（调度器）'),
++                Tab(text: '调度面板'),
++                Tab(text: '执行顺序'),
++                Tab(text: '监控'),
+               ],
+             ),
+             Expanded(
+-              child: TabBarView(
+-                children: [
+-                  _OverviewTab(c: c, searchCtrl: _searchCtrl),
+-                  _ListTab(c: c),
+-                ],
+-              ),
++              child: wide
++                  ? Row(
++                      crossAxisAlignment: CrossAxisAlignment.stretch,
++                      children: [
++                        // 左窄: 三个 tab 面板
++                        SizedBox(
++                          width: 640,
++                          child: TabBarView(
++                            children: [
++                              _ScheduleTab(c: c, searchCtrl: _searchCtrl),
++                              _OrderTab(c: c),
++                              _MonitorTab(c: c),
++                            ],
++                          ),
++                        ),
++                        const VerticalDivider(width: 1),
++                        // 右半: 日志
++                        Expanded(child: logs),
++                      ],
++                    )
++                  // 窄屏: 退化成一列（否则会挤成一团）
++                  : Column(
++                      children: [
++                        Expanded(
++                          child: TabBarView(
++                            children: [
++                              _ScheduleTab(c: c, searchCtrl: _searchCtrl),
++                              _OrderTab(c: c),
++                              _MonitorTab(c: c),
++                            ],
++                          ),
++                        ),
++                        SizedBox(height: 200, child: logs),
++                      ],
++                    ),
+             ),
+           ],
+         ),
+@@ -253,16 +294,26 @@ class _TaskListViewState extends State<TaskListView> {
+   static String _two(int v) => v < 10 ? '0$v' : '$v';
+ }
+ 
+-// ============================================================ tab 1: 任务总览
++// ============================================================ tab 1: 调度面板
+ 
+-/// 总览页 —— **监控面板**, 不是开关来源。
++/// **调度面板** —— 统一控制台的主视图。
++///
++/// ## 相对 v1 的变化（用户要求"合并", 不要两套监控）
+ ///
+-/// 单个任务的启停统一在「任务列表」里管, 避免同一任务两处开关互相打脸。
+-/// 这里可以**批量启停**、**看状态**。
++/// * 这里是**唯一的**任务表格（原「总览 tab」+「任务列表 tab」的表格合并）
++/// * **次数可以直接改**（原来总览只读、列表才能改 —— 现在只有一处）
++/// * 顶部放**脚本进程开关**（进程级硬停; 调度级软停在运行控制条）
++/// * **执行顺序**移到 tab 2（拖拽排序 + 全局设置）
++/// * **实时监控**移到 tab 3（正在运行 / 待执行 / 等待中）
+ ///
+-/// ★ 目标次数这里**只读**(用户决定: 只在列表页可改)。
+-class _OverviewTab extends StatelessWidget {
+-  const _OverviewTab({required this.c, required this.searchCtrl});
++/// ## 与「执行顺序」的关系（两条独立的顺序）
++///
++/// | 顺序 | 在哪 | 影响调度吗 |
++/// |---|---|---|
++/// | **执行顺序**（运行列表）| tab 2, 拖拽 | ✅ **是** |
++/// | **列表排序**（表格列）| 这里, 点表头 | ❌ 否, 只影响显示 |
++class _ScheduleTab extends StatelessWidget {
++  const _ScheduleTab({required this.c, required this.searchCtrl});
+ 
+   final TaskListController c;
+ 
+@@ -283,9 +334,20 @@ class _OverviewTab extends StatelessWidget {
+       children: [
+         Padding(
+           padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
++          child: Card(
++            child: Padding(
++              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
++              // 脚本进程（**进程级**硬停）—— 与调度级软停分开
++              child: _scriptProcessRow(context),
++            ),
++          ),
++        ),
++        const SizedBox(height: 8),
++        Padding(
++          padding: const EdgeInsets.symmetric(horizontal: 12),
+           child: _bulkPanel(context),
+         ),
+-        const SizedBox(height: 12),
++        const SizedBox(height: 8),
+         Expanded(child: _tablePanel(context)),
+       ],
+     );
+@@ -661,32 +723,34 @@ class _OverviewTab extends StatelessWidget {
+   }
+ }
+ 
+-// ============================================================ tab 2: 任务列表
++// ============================================================ tab 2: 执行顺序
+ 
+-/// 列表页 —— **唯一调度控制台**。
+-class _ListTab extends StatelessWidget {
+-  const _ListTab({required this.c});
++/// **执行顺序** —— 用户编排的运行列表 + 全局设置。
++///
++/// ## 这是**唯一影响调度**的顺序
++///
++/// | 顺序 | 在哪 | 影响调度吗 |
++/// |---|---|---|
++/// | **执行顺序**（本页, 拖拽）| 这里 | ✅ **是** |
++/// | **列表排序**（表格列, 点表头）| tab 1 | ❌ 否, 只影响显示 |
++///
++/// ## 三个面板
++///
++/// * **全局设置** —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据
++/// * **执行顺序** —— 拖拽排序 + 增删条目（含「休息」）
++/// * **预期执行流程** —— 按当前列表**推算**（带 disclaimer）
++///
++/// ★ 日志**不在这里** —— 它常驻右半栏（见 `build()`），
++///   这样看编排时也能同时看日志。
++class _OrderTab extends StatelessWidget {
++  const _OrderTab({required this.c});
+ 
+   final TaskListController c;
+ 
+   @override
+   Widget build(BuildContext context) {
+-    // ★ 左右分栏（用户要求）:
+-    //
+-    //     ┌──────────────┬────────────────────┐
+-    //     │ 全局设置(窄) │                    │
+-    //     ├──────────────┤      日 志          │
+-    //     │ 执行顺序(窄) │   （占右半边）      │
+-    //     ├──────────────┤                    │
+-    //     │ 预期流程(窄) │                    │
+-    //     └──────────────┴────────────────────┘
+-    //
+-    //   左列**可滚动**（三个面板堆起来会超出高度）; 右列日志自适应。
+-    //
+-    //   ★ 窄宽度用 `ConstrainedBox` 而不是固定 Row 的 flex ——
+-    //     窄屏（手机）上要能退化成一列，否则会挤成一团。
+-    final wide = MediaQuery.of(context).size.width >= 900;
+-    final left = ListView(
++    // 左列**可滚动**（三个面板堆起来会超出高度）
++    return ListView(
+       padding: const EdgeInsets.all(12),
+       children: [
+         _globalPanel(context),
+@@ -696,30 +760,6 @@ class _ListTab extends StatelessWidget {
+         _flowPanel(context),
+       ],
+     );
+-    final right = LogWidget(
+-      key: ValueKey('log-${c.script}'),
+-      controller: c,
+-      title: '日志',
+-      enableCollapse: false,
+-    );
+-
+-    if (!wide) {
+-      // 窄屏: 日志放下面，给一个固定高度（否则 Column 里无界高度会崩）
+-      return Column(
+-        children: [
+-          Expanded(child: left),
+-          SizedBox(height: 220, child: right),
+-        ],
+-      );
+-    }
+-    return Row(
+-      crossAxisAlignment: CrossAxisAlignment.stretch,
+-      children: [
+-        SizedBox(width: 380, child: left),
+-        const VerticalDivider(width: 1),
+-        Expanded(child: right),
+-      ],
+-    );
+   }
+ 
+   /// 全局设置 —— 循环模式 + 优先级依据。
+@@ -949,6 +989,167 @@ class _ListTab extends StatelessWidget {
+   }
+ }
+ 
++// ============================================================ tab 3: 监控
++
++/// **监控** —— 实时观察窗。
++///
++/// ## 为什么搬到这里
++///
++/// 用户批评得对: 旧总览页**已经有**一套完善的实时观察窗
++/// （调度器状态 / 正在运行 / 待执行 / 等待中）, 而我另建了一个重复的
++/// 「总览 tab」—— 两套监控界面, 又引入了一批新 bug（GetX 白屏、
++/// 搜索不复位、卡顿）。
++///
++/// 现在**合并成一处**: 观察窗搬到这个 tab, 旧总览页删除。
++///
++/// ## 数据来源
++///
++/// 全部来自 `ScriptService.scriptModelMap[name]`（**WebSocket 推送**）,
++/// 所以它是**实时**的 —— 不是每次进页面拉一次 REST。
++///
++/// | 窗口 | 数据 |
++/// |---|---|
++/// | 调度器 | `state`（running / inactive / warning / updating）|
++/// | 正在运行 | `runningTask`（单个）|
++/// | 待执行 | `pendingTaskList`（已到点、马上要跑）|
++/// | 等待中 | `waitingTaskList`（还没到点）|
++class _MonitorTab extends StatelessWidget {
++  const _MonitorTab({required this.c});
++
++  final TaskListController c;
++
++  @override
++  Widget build(BuildContext context) {
++    final svc = Get.find<ScriptService>();
++    final sm = svc.scriptModelMap[c.script];
++
++    return ListView(
++      padding: const EdgeInsets.all(12),
++      children: [
++        // ---------- 调度器状态 ----------
++        _obxPanel(context, '调度器', () {
++          final state = sm?.state.value;
++          final running = state == ScriptState.running;
++          return Row(
++            children: [
++              Icon(
++                running ? Icons.play_circle : Icons.pause_circle_outline,
++                size: 20,
++                color: running ? Colors.green : Colors.grey,
++              ),
++              const SizedBox(width: 8),
++              Text('${state ?? "未知"}'),
++            ],
++          );
++        }),
++
++        // ---------- 正在运行 ----------
++        _taskListPanel(context, '正在运行', () {
++          final r = sm?.runningTask.value;
++          if (r == null || r.taskName.isEmpty) return const Text('（空闲）');
++          return _monitorRow(context, r);
++        }),
++
++        // ---------- 待执行 ----------
++        _taskListPanel(context, '待执行', () {
++          final list = sm?.pendingTaskList ?? const [];
++          if (list.isEmpty) return const Text('（无）');
++          return Column(
++            children: [for (final t in list) _monitorRow(context, t)],
++          );
++        }, maxHeight: 240),
++
++        // ---------- 等待中 ----------
++        _taskListPanel(context, '等待中', () {
++          final list = sm?.waitingTaskList ?? const [];
++          if (list.isEmpty) return const Text('（无）');
++          return Column(
++            children: [for (final t in list) _monitorRow(context, t)],
++          );
++        }, maxHeight: 320),
++      ],
++    );
++  }
++
++  /// 一个带标题的观察窗。
++  Widget _obxPanel(BuildContext context, String title, Widget Function() body) {
++    return Card(
++      margin: const EdgeInsets.only(bottom: 12),
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Text(title, style: Theme.of(context).textTheme.titleSmall),
++            const Divider(height: 12),
++            // ★ `Obx` 必须包住**直接读 Rx** 的那一小块 —— 见
++            //   `_scriptProcessRow` 的说明（反面例子会导致整页白屏）。
++            Obx(body),
++          ],
++        ),
++      ),
++    );
++  }
++
++  /// 带**可滚动列表**的观察窗（待执行 / 等待中可能很长）。
++  Widget _taskListPanel(BuildContext context, String title,
++      Widget Function() body,
++      {double? maxHeight}) {
++    return Card(
++      margin: const EdgeInsets.only(bottom: 12),
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Text(title, style: Theme.of(context).textTheme.titleSmall),
++            const Divider(height: 12),
++            if (maxHeight == null)
++              Obx(body)
++            else
++              ConstrainedBox(
++                constraints: BoxConstraints(maxHeight: maxHeight),
++                // ★ 可滚动 —— 等待中的任务可能有几十个, 不能撑爆页面
++                child: SingleChildScrollView(child: Obx(body)),
++              ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  /// 一行任务（名字 + 下次运行 + 设置入口）。
++  ///
++  /// ★ 设置入口用 `openTaskSettings`（绕过 `useablemenus` 白名单）——
++  ///   旧总览页这里用的是 `switchContent`, 点不在侧边栏的任务**静默无反应**。
++  Widget _monitorRow(BuildContext context, dynamic t) {
++    final name = '${t.taskName}';
++    if (name.isEmpty) return const SizedBox.shrink();
++    return Padding(
++      padding: const EdgeInsets.symmetric(vertical: 2),
++      child: Row(
++        children: [
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                Text(name, style: Theme.of(context).textTheme.labelLarge),
++                if ('${t.nextRun}'.isNotEmpty)
++                  Text('${t.nextRun}',
++                      style: Theme.of(context).textTheme.labelSmall),
++              ],
++            ),
++          ),
++          TextButton(
++            onPressed: () => Get.find<NavCtrl>().openTaskSettings(name),
++            child: const Text('任务设置'),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
+ // ============================================================ 共用
+ 
+ Widget _panelTitle(BuildContext context, String title, String? hint) {
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 97f7740..96648d8 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -612,6 +612,90 @@ void _phase1Tests() {
+   });
+ }
+ 
++// ============================================================ Phase 2: 合并页面
++void _phase2Tests() {
++  test('统一控制台: 三个 tab + 日志常驻右侧', () {
++    // ★★ 用户要求"合并, 不要两套监控" ★★
++    //
++    // 之前: 我另建了一个「总览 tab」, 与旧总览页重复 ——
++    // 两套监控界面, 且新代码路径引入了一批 bug
++    // （GetX 白屏 / 搜索不复位 / 卡顿）。
++    //
++    // 现在: **一个控制台**, 三个 tab + 日志常驻右半栏。
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    expect(view.contains('调度面板'), isTrue);
++    expect(view.contains('执行顺序'), isTrue);
++    expect(view.contains('监控'), isTrue);
++    expect(view.contains('length: 3'), isTrue, reason: '应该是 3 个 tab');
++
++    // 日志在 build() 里创建一次、常驻右侧（不再放在某个 tab 里）
++    final buildIdx = view.indexOf('Widget build(BuildContext context)');
++    final body = view.substring(buildIdx, buildIdx + 2600);
++    expect(body.contains('LogWidget('), isTrue,
++        reason: '日志应在 build 里常驻（右半栏 / 窄屏底部）');
++    expect(body.contains('Expanded(child: logs)'), isTrue);
++  });
++
++  test('旧的「任务总览 / 任务列表」两个 tab 已消失', () {
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    expect(view.contains("Tab(text: '任务总览')"), isFalse,
++        reason: '旧的「任务总览」tab 已被「调度面板」取代');
++    expect(view.contains("Tab(text: '任务列表（调度器）')"), isFalse);
++    expect(view.contains('class _OverviewTab'), isFalse,
++        reason: '_OverviewTab 应已改名为 _ScheduleTab');
++    expect(view.contains('class _ListTab'), isFalse,
++        reason: '_ListTab 应已改名为 _OrderTab');
++  });
++
++  test('监控 tab 有四个观察窗（搬自旧总览）', () {
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    final i = view.indexOf('class _MonitorTab');
++    expect(i, greaterThan(-1));
++    final end = (i + 5200 < view.length) ? i + 5200 : view.length;
++    final body = view.substring(i, end);
++    for (final w in ['调度器', '正在运行', '待执行', '等待中']) {
++      expect(body.contains(w), isTrue, reason: '监控缺观察窗「$w」');
++    }
++    // 数据来自 WebSocket 推送（实时），不是每次拉 REST
++    expect(body.contains('scriptModelMap'), isTrue);
++    expect(body.contains('pendingTaskList'), isTrue);
++    expect(body.contains('waitingTaskList'), isTrue);
++  });
++
++  test('监控里的"任务设置"也走 openTaskSettings（不用白名单）', () {
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    final i = view.indexOf('class _MonitorTab');
++    final end = (i + 5200 < view.length) ? i + 5200 : view.length;
++    final body = view.substring(i, end);
++    expect(body.contains('openTaskSettings'), isTrue);
++    expect(body.contains('switchContent'), isFalse,
++        reason: 'switchContent 有白名单, 会静默忽略不在侧边栏的任务');
++  });
++
++  test('执行顺序 tab 仍走 RunListPanel（拖拽排序）', () {
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    final i = view.indexOf('class _OrderTab');
++    expect(i, greaterThan(-1));
++    final end = (i + 1200 < view.length) ? i + 1200 : view.length;
++    final body = view.substring(i, end);
++    expect(body.contains('RunListPanel'), isTrue);
++    expect(body.contains('_globalPanel'), isTrue);
++    expect(body.contains('_flowPanel'), isTrue);
++    expect(body.contains('LogWidget'), isFalse,
++        reason: '日志已移到 build() 常驻, 不该再放这里');
++  });
++
++  test('菜单隐藏了重复的旧「总览」', () {
++    final nav = codeOnly('lib/controller/ctrl_nav.dart');
++    // 旧的 Overview 菜单键要被过滤掉
++    expect(nav.contains("if (key == 'Overview') return;"), isTrue,
++        reason: '旧「总览」应从菜单隐藏（它与控制台重复）');
++    // 默认页改成控制台
++    expect(nav.contains("selectedMenu.value = 'TaskList';"), isTrue,
++        reason: '进账号后默认应进统一控制台');
++  });
++}
++
+ void main() {
+   testWidgets('只含任务条目时能正常渲染', (tester) async {
+     final c = FakeTaskListController(
+@@ -718,6 +802,8 @@ void main() {
+   _phase0Tests();
+ 
+   _phase1Tests();
++
++  _phase2Tests();
  }
  
  /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。

@@ -380,6 +380,69 @@ class TestResourceWiring:
             assert name in src, f'config.py 里没有 {name} —— Resource 又变成死代码了'
 
 
+class TestDemonEncounterWindow:
+    """★ 台账 9.6「逢魔之时 = 每天 17:00–23:00」终于落进 `meta.py`。
+
+    依据是**任务代码本身**（`script_task.py` 的 `check_time()`）:
+
+        if now.hour < 17:    -> target = 当天 17:30   （太早）
+        elif now.hour >= 23: -> target = 次日 17:30   （太晚）
+        else: return True                             （可以跑）
+
+    ⚠ 那个方法的 docstring 写的是"17:00到22:00" —— **过时注释**,
+      代码实际用 23。**以代码为准**（已核对 L647 / L653）。
+    """
+
+    @pytest.fixture()
+    def config(self):
+        import logging
+        logging.disable(logging.CRITICAL)
+        import server  # noqa: F401
+        from module.server.main_manager import mm
+        return mm.config_cache('恋鸟树')
+
+    def test_window_is_17_to_23_daily(self):
+        spec = TC.get_spec('DemonEncounter')
+        assert spec is not None and spec.window is not None, '缺 window'
+        desc = spec.window_describe
+        assert '17:00' in desc and '23:00' in desc, f'时段不对: {desc}'
+        for w in spec.windows_effective:
+            assert set(w.days) == set(range(7)), '应该是每天'
+
+    def test_inside_window_not_pushed(self, config):
+        """★ 关键回归: 已在窗口内的时刻**不能**被推走。"""
+        for h in (17, 18, 22):
+            now = datetime(2026, 10, 5, h, 0)
+            got = config._align_to_window('demon_encounter', now)
+            assert got == now, f'{h}:00 在窗口内, 却被推到 {got}'
+
+    def test_23_pushes_to_next_day(self, config):
+        """23:00 是**开区间**上界 -> 应推到次日 17:00（与 `check_time()` 一致）。"""
+        now = datetime(2026, 10, 5, 23, 0)
+        got = config._align_to_window('demon_encounter', now)
+        assert got.day == 6 and (got.hour, got.minute) == (17, 0), \
+            f'23:00 应推到次日 17:00, 实际 {got}'
+
+    def test_before_17_pushes_to_same_day_17(self, config):
+        now = datetime(2026, 10, 5, 16, 0)
+        got = config._align_to_window('demon_encounter', now)
+        assert got.day == 5 and (got.hour, got.minute) == (17, 0), \
+            f'16:00 应推到当天 17:00, 实际 {got}'
+
+    def test_check_time_still_uses_new_mechanism(self):
+        """★ `check_time()` 用 `set_next_run(target=...)`（**新机制**）,
+        不是 `custom_next_run` —— 所以它**不需要删**, 与窗口互补。"""
+        src = (REPO / 'tasks' / 'DemonEncounter' / 'script_task.py').read_text(
+            encoding='utf-8')
+        i = src.find('def check_time')
+        assert i > 0, 'check_time 不见了'
+        j = src.find('\n    def ', i + 10)
+        body = src[i:j]
+        assert 'set_next_run' in body, 'check_time 应使用 set_next_run'
+        assert 'custom_next_run' not in body, \
+            'check_time 不该用旧的 custom_next_run'
+
+
 class TestNoWrongApproximation:
     """★ 防止用 `AvailabilityWindow` **错误地**表达"排除"。"""
 

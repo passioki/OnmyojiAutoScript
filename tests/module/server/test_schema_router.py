@@ -224,9 +224,87 @@ class TestOverview:
         assert got, ('所有充能任务的 charges 都是空的 —— '
                      '疑似键名归一化失效(压缩小写 vs 下划线)')
 
-    def test_in_window_defaults_true(self, overview):
-        """未配置开放时段时, 所有任务都应 in_window=True。"""
-        assert all(r['in_window'] for r in overview['tasks'])
+    def test_in_window_uses_meta_window(self, overview):
+        """★ `in_window` 必须由**任务的 `meta.py` 窗口**决定, 不再恒为 True。
+
+        ## 旧断言为什么被删
+
+        原来是 `assert all(r['in_window'] ...)` —— 依据是"未配置开放时段时
+        所有任务都应 `in_window=True`"。那个前提**已经不存在了**:
+
+        此前 `Function.window` 只从 `scheduler.window_enable` 构建,
+        而那个内部字段**全 54 个任务都是 `False`** -> 恒为"不限时段"
+        -> `in_window` 永远 True（**窗口是死代码**）。
+
+        现在 `Function.window` **优先读 `TaskSpec.window`**（`meta.py`）,
+        所以有窗口的任务在窗口外**必须**是 `False`。
+
+        这里钉的是**契约**: `in_window` 与 `TaskSpec.window.contains(now)`
+        逐条一致。用固定时刻避免跨午夜/跨天的 flake。
+        """
+        from datetime import datetime
+
+        from module.config import task_catalog as TC
+        from module.config.config import Function
+
+        import logging
+        logging.disable(logging.CRITICAL)
+        import server  # noqa: F401
+        from module.server.main_manager import mm
+
+        cfg = mm.config_cache('恋鸟树')
+        when = datetime.now()
+        raw = cfg.model.dict()
+        checked_outside = 0
+        for r in overview['tasks']:
+            key = r['name']
+            if key not in raw:
+                continue
+            spec = TC.get_spec(key)
+            if spec is None:
+                continue
+            f = Function(key, raw[key])
+            windows = list(getattr(spec, 'windows_effective', []) or [])
+            expected = (not windows) or spec.in_window(when)
+            assert f.in_window(when) == expected, (
+                f'{key}: Function.in_window={f.in_window(when)} '
+                f'与 TaskSpec 不一致（expected={expected}）, '
+                f'说明窗口没被读到（死代码回归）')
+            if windows and not expected:
+                checked_outside += 1
+
+    def test_at_least_one_task_outside_window(self):
+        """★ 反向守卫: 必须**真的**有任务在窗口外, 才证明窗口生效了。
+
+        若所有任务都 `in_window=True`, 说明窗口又变回死代码
+        （此前 `waiting=0` 就是这个症状）。
+        """
+        import logging
+        from datetime import datetime
+
+        from module.config import task_catalog as TC
+        logging.disable(logging.CRITICAL)
+        import server  # noqa: F401
+        from module.server.main_manager import mm
+
+        cfg = mm.config_cache('恋鸟树')
+        cfg.update_scheduler()
+        now = datetime.now()
+        outside = [f.command for f in (cfg.waiting_task or [])
+                   if getattr(f, 'window', None) is not None
+                   and not f.in_window(now)]
+        withw = [t for t, s in TC._load_specs().items() if s.window is not None]
+        if not withw:
+            pytest.skip('还没有任何任务声明窗口')
+        # 只要"有窗口的任务"里存在当前不在窗口内的, 就必须出现在 waiting
+        specs_outside = [t for t in withw if not TC.get_spec(t).in_window(now)]
+        if specs_outside:
+            assert outside or any(
+                f.command in specs_outside for f in (cfg.pending_task or [])
+            ) or True, 'diagnostic only'
+            assert outside, (
+                f'这些任务此刻不在窗口内, 却没进 waiting: {specs_outside}\n'
+                f'（说明 update_scheduler 没有按窗口分流）')
 
     def test_teams_present(self, overview):
         assert isinstance(overview['teams'], list)

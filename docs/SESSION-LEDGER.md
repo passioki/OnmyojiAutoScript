@@ -429,3 +429,111 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
    * pydantic `extra='ignore'` → 改字段名会让**用户配置静默失效**
 3. **"删掉" ≠ "合并"**、**"不猜语义"** 已写进 §10.10 纪律 —— 都是本会话踩坑换来的。
 
+---
+
+# 8. ★★ 用户新澄清的设计（2026-10-10 第二轮）★★
+
+## 8.1 window 的完整设计（比原理解宽）
+
+**所有定时任务都有 window** —— 不存在"没有 window 的任务"：
+
+| 周期 | window |
+|---|---|
+| **每天** | 每天 **00:00–24:00**（即整天）|
+| **每周** | **周一 00:00 – 周日 24:00** |
+| **每月** | 当月 **1 日 00:00 – 月末 24:00** |
+| **具体活动** | 如逢魔之时 = **每天 17:00–23:00** |
+
+★ 推论: `window=None` **不是**"不限时段"的意思, 而是**"这个任务的 window 还没被声明"**
+—— 是**缺失**, 需要补齐。这修正了我此前的理解（我把 `None` 当"不限时段"）。
+
+★ 用户同时发现: **很多定时任务没有开放 window 和周期的设置**（见 §8.3 审计）。
+
+## 8.2 调度模型（用户明确）
+
+```
+队列顺序 = 唯一的调度依据（不再看 interval 谁先到点）
+
+调度器: 从队列**按顺序**取第一个「到点 且 在窗口内」的任务
+        跑完它 -> 接着取下一个
+```
+
+| # | 规则 |
+|---|---|
+| 1 | **队列 = 全部启用任务**（定时自动进 + 次数手动加）, 按用户拖的顺序 |
+| 2 | **A: 间隔完全废弃** —— 用户原话"a 完全废弃, b 和 c 的假设似乎并不存在" |
+| 3 | **B: 不在窗口 = 不能运行** —— 变灰, 放进「未到开放时间」; 不卡住队列 |
+| 4 | **「待执行」与「执行顺序」合并成一套可拖列表**（不再两套）|
+| 5 | **「等待中」改名为「未到开放时间」**（显式意义）|
+| 6 | **不用括号解释, 一律改为悬停提示** |
+| 7 | 窗口生效位置必须移到 `Function`（见 §8.4 —— 此前是**死代码**）|
+
+## 8.3 ★ 审计: 54 个任务的 window / 周期现状
+
+| category | 数量 | 有 `TaskSpec.window` |
+|---|---|---|
+| CHARGE | 3 | **0** |
+| FIXED | 13 | **0** |
+| LIMITED | 8 | **0** |
+| TIMED | 28 | **8** |
+| TOPPA | 2 | **0** |
+| **合计** | **54** | **8** |
+
+→ **46 个任务缺 window**（按 §8.1, 这是"缺失"而非"不限时段"）。
+
+★ 另有 8 个 `LIMITED` 任务的 `Resource.recharge.kind == 'window'`
+（`ActivityShikigami` / `BudokaiTournament` / `DyeTrials` / `FloatParade` /
+`FrogBoss` / `KittyShop` / `MetaDemon` / `Quiz`）—— 它们的"活动期"**也没填**。
+
+## 8.4 ★★ 修正我自己的虚报: **窗口是死代码** ★★
+
+我在 §13.2 / 交付说明里把"逢魔时段落进 `meta.py`"标了 ✅。**实测证明它没生效**:
+
+```
+2026-10-10 07:36 实测:
+  TaskSpec.window (meta.py)     : DemonEncounter = 每天 17:00-23:00   ← 我加的
+  Function.window (调度器用的)   : 不限时段                            ← 真正的判断依据
+  DemonEncounter.in_window(now) : True      ← 07:36 本该 False!
+  pending = 27 个   waiting = 0 个
+```
+
+**根因**: `Function._build_window()` 从 `scheduler.window_enable` 构建
+—— 而那个字段**全 54 个任务都是 `False`**。`Function` **完全不读** `meta.py`
+（`config.py` 里搜 `get_spec` 只命中 `task_window` / `_align_to_window`）。
+
+**并且** `_align_to_window` **只在 `task_delay()`（任务结束时）被调用** ——
+对"从没跑过 / `next_run` 是旧值"的任务, `update_scheduler()` 里**没有任何窗口过滤**,
+所以它们**不管在不在窗口内都直接进 pending**。
+
+❌ 我此前的 ✅ 是**错的**。已在本节改正, 标为 **🔄 未生效（死代码）**。
+
+## 8.5 ★ C 项审计结果（用户要求逐个确认）
+
+扫 `tasks/*/script_task.py` 的排期调用, 区分"**interval 式**"与"**真实日期时间式**":
+
+| 任务 | interval 式 | 真实日期式 | 结论 |
+|---|---|---|---|
+| **GuildBanquet** | 3 | 1 | ⚠ **两者都有** —— interval 部分要移植 |
+| **Hunt** | 1 | 0 | ⛔ **interval 式 → 移植后删除** |
+| **MemoryScrolls** | 1 | 0 | ⛔ **interval 式 → 移植后删除** |
+| **RyouToppa** | 2 | 0 | ⛔ **interval 式 → 移植后删除** |
+
+★ 其余任务（`DemonEncounter` / `Dokan` / `Duel` / `FindJade` / `KekkaiActivation` /
+`MysteryShop` / `Secret` / `Tako` / `TrueOrochi` / `WantedQuests` /
+`ActivityShikigami` / `BudokaiTournament` / `CollectiveMissions` /
+`ExperienceYoukai` / `GoldYoukai` / `FrogBoss` / `GuildActivityMonitor` /
+`KekkaiUtilize` / `Nian` / `Orochi` …）**用的是 `set_next_run(target=...)`**
+—— **真实日期时间式, 属正当用途**, 不是要删的 `custom_next_run`。
+
+**新结论（修正我上一轮的判断）**: 需要"移植后删除"的只有 **4 个任务**,
+其中 `Hunt` / `RyouToppa` / `MemoryScrolls` 是**纯 interval 式**（应删）,
+`GuildBanquet` 是混合（保留真实日期部分）。
+
+★ 用户对此的论证（我接受）:
+> "在设置了 window 的情况下, 执行顺序都是按照队列依次执行的,
+>  谁会希望一个任务在几点之后再开始而不是早早地完成呢? 这意味着效率变低。
+>  我们设计重构的初衷就是为了消除这种低效率设计。"
+
+→ 上一轮我"保留 `custom_next_run`"的决定**基于错误的模型**（以为 interval 仍决定调度）。
+**撤回该决定。**
+

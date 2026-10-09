@@ -196,32 +196,83 @@ class TestQueueEndpoints:
         assert 'queued' in body, '候选没排除"已在队列"的任务'
 
     def test_candidates_live(self):
-        """实测候选列表: 应为已启用的次数任务里还没进队列的那几个。"""
+        """实测候选列表 —— 用**相对断言**, 不钉具体任务名。
+
+        ## 为什么改成相对断言
+
+        原版硬编码了"这三个必须启用 / 这三个必须未启用":
+
+            assert {'RealmRaid', 'RyouToppa', 'Hyakkiyakou'} <= names
+            for off in ('Orochi', 'FallenSun', 'Exploration'):
+                assert off not in names
+
+        这些断言会随**用户配置变化**而失效（`Orochi`/`FallenSun`/`Exploration`
+        后来被启用了 -> 测试假失败）。真正要钉的是**规则**:
+
+            候选 == 全部任务里「enable && !auto_queue && !queued」的那些
+
+        所以这里自己按同一个规则算一遍, 再与后端端点比对。
+        """
         import asyncio
         import logging
         logging.disable(logging.CRITICAL)
         import server  # noqa: F401
-        from module.server.schema_router import get_queue_candidates
+        from module.server.main_manager import mm
+        from module.server.schema_router import (
+            _auto_queue_of, _meta_of_key, get_queue_candidates)
 
         got = asyncio.new_event_loop().run_until_complete(
             get_queue_candidates('恋鸟树'))
         assert 'error' not in got, got.get('error')
         cands = got['candidates']
         names = {c['command'] for c in cands}
-        # 这三个已启用 + 次数任务 + 未编排 -> 应该在候选里
-        assert {'RealmRaid', 'RyouToppa', 'Hyakkiyakou'} <= names, (
-            f'候选里缺少已启用的次数任务: {names}')
-        # 自动进队列的**不该**出现
-        for auto in ('DemonEncounter', 'AreaBoss', 'Delegation'):
-            assert auto not in names, f'自动进队列的 {auto} 不该在候选里'
-        # 未启用的次数任务**不该**出现
-        for off in ('Orochi', 'FallenSun', 'Exploration'):
-            assert off not in names, f'未启用的 {off} 不该在候选里'
-        # 每个候选都得是次数任务
+
+        # 按规则自己算一遍。★ 必须用 `model_dump()` + `_meta_of_key()`,
+        #   因为配置节点的键是**压缩小写**（`goryou_realm`）而 catalog 的键是
+        #   驼峰（`GoryouRealm`）—— `_meta_of_key()` 就是做这个归一化的
+        #   （`TC.get()` 容忍下划线/小写）。用 `TC.get_spec(key)` 直接查
+        #   会**全部 miss** -> 算出空集（踩过）。
+        cfg = mm.config_cache('恋鸟树')
+        queued = cfg.queued_commands()
+        expected = set()
+        for key, value in cfg.model.model_dump().items():
+            if not isinstance(value, dict):
+                continue
+            sch = value.get('scheduler')
+            if not isinstance(sch, dict) or not sch.get('enable'):
+                continue
+            meta = _meta_of_key(key)
+            if meta is None:
+                continue
+            if meta.task in queued or _auto_queue_of(meta):
+                continue
+            expected.add(meta.task)
+
+        assert names == expected, (
+            f'候选与规则不符\n  端点多出: {sorted(names - expected)}\n'
+            f'  端点缺少: {sorted(expected - names)}')
+
+        # 规则的三条不变量, 逐条钉住
+        model = cfg.model.model_dump()
         for c in cands:
-            spec = TC.get_spec(c['command'])
-            assert spec is not None and not spec.auto_queue_effective, \
+            meta = _meta_of_key(c['name'])
+            assert meta is not None, f"候选 {c['name']} 无法归一到 catalog"
+            assert not _auto_queue_of(meta), \
                 f"候选 {c['command']} 是自动进队列的任务"
+            assert model[c['name']]['scheduler']['enable'], \
+                f"候选 {c['command']} 未启用"
+            assert meta.task not in queued, \
+                f"候选 {c['command']} 已在队列里"
+
+        # 自动进队列的**永远**不该出现
+        for key, value in model.items():
+            if not isinstance(value, dict):
+                continue
+            meta = _meta_of_key(key)
+            if meta is not None and _auto_queue_of(meta) \
+                    and value.get('scheduler', {}).get('enable'):
+                assert meta.task not in names, \
+                    f'自动进队列的 {meta.task} 不该在候选里'
 
 
 # ---------------------------------------------------------------- 接线

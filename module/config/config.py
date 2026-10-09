@@ -78,13 +78,70 @@ class Function:
 
     def _build_window(self, sch: dict):
         """
-        从 `scheduler` 节点构造开放时段。
+        构造开放时段。**优先读任务 `meta.py` 的 `TaskSpec.window`**。
 
-        **与 `Scheduler.build_window()` 共用 `AvailabilityWindow`, 且解析规则一致** ——
-        避免同一份配置在两处被解释成不同结果(本项目已因"知识存在两处"
-        栽过一次: 生成器与 from_legacy 的分类判定不一致, 丢了 6 个任务的间隔信息)。
+        ## ★★ 为什么必须优先读 `meta.py`（此前的严重缺陷）★★
+
+        原实现**只**从 `scheduler.window_enable` / `window_start` / `window_end` /
+        `window_days` 构建。但那些字段是**内部字段**（4-E 已从界面移除）,
+        **全 54 个任务都是 `False`** —— 于是:
+
+            TaskSpec.window (meta.py)    : DemonEncounter = 每天 17:00-23:00
+            Function.window (调度器用的)  : **不限时段**      <- 真正生效的是这个
+            DemonEncounter.in_window()   : True（07:36 本该 False）
+
+        即 **`meta.py` 里写的时段是死代码**, 调度器完全看不到它
+        （`pending = 27` / `waiting = 0`, 没有任何任务因窗口被拦）。
+
+        ## 现在的优先级
+
+        1. **`TaskSpec.window`（游戏机制, 权威）** —— 用户明确: 所有定时任务都有 window
+        2. 退回 `scheduler.window_*`（用户/旧配置覆盖, 兼容用）
+        3. 都没有 -> `AvailabilityWindow()`（**`enabled=False`**）
+
+        ⚠ 依赖 `self.command`, 而它在 `__init__` 里是先于本方法设置的
+          （`self.command = ConfigModel.type(key)` 在 L54, 本方法在 L73 调用）。
         """
         from module.config.availability import ALL_DAYS, AvailabilityWindow
+
+        # ---------- 1. 优先: 任务元数据里的 window（游戏机制）----------
+        spec = None
+        try:
+            from module.config import task_catalog as TC
+            spec = TC.get_spec(self.command)
+        except Exception as exc:      # 防御: catalog 坏掉不该让调度崩
+            logger.warning(f'{self.command}: 读 task_catalog 失败'
+                           f'({type(exc).__name__}: {exc}), 退回配置项')
+        if spec is not None:
+            ws = list(getattr(spec, 'windows_effective', []) or [])
+            real = [w for w in ws if getattr(w, 'enabled', False)]
+            if len(real) == 1:
+                return real[0]
+            if len(real) > 1:
+                # 多段窗口（如 Hunt 的"周一~周四 06:00-23:00" + "周五~周日 17:00-23:00"）
+                # `Function.window` 是**单个**对象 -> 用一个"并集"表达:
+                #   * 天 = 各段的并集
+                #   * 时间 = [最早开始, 最晚结束]（并集的上界; 会略微放宽, 但
+                #     `_align_to_window()` 仍会用**精确的多段**去对齐 next_run）
+                days = set()
+                for w in real:
+                    days |= set(w.days)
+                starts = [w.start for w in real]
+                ends = [w.end for w in real]
+
+                def _mins(x):
+                    return x.hour * 60 + x.minute
+
+                if any(getattr(w, 'crosses_midnight', False) for w in real):
+                    # 跨午夜的多段无法用单段并集安全表达 -> 取第一段（宁严不宽）
+                    return real[0]
+                return AvailabilityWindow(
+                    enabled=True,
+                    start=min(starts, key=_mins),
+                    end=max(ends, key=_mins),
+                    days=tuple(sorted(days)) or ALL_DAYS)
+
+        # ---------- 2. 退回: 配置项（用户覆盖 / 旧配置）----------
         if not sch.get('window_enable'):
             return AvailabilityWindow()
 

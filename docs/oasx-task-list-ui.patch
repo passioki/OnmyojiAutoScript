@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 1/8] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 1/9] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 2/8] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 2/9] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 3/8] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 3/9] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 4/8] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 4/9] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 5/8] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 5/9] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 6/8] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A=E6=9C=AC?=
+Subject: [PATCH 6/9] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A=E6=9C=AC?=
  =?UTF-8?q?=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8=E4=B9=85?=
  =?UTF-8?q?=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20=E8=B4=A6?=
  =?UTF-8?q?=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E4=B8=B2?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 7/8] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 7/9] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 8/8] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 8/9] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6249,6 +6249,1166 @@ index ea36b95..4ce7384 100644
  }
  
  /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
+-- 
+2.41.0.windows.1
+
+
+From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 13:58:58 +0800
+Subject: [PATCH 9/9] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+ =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
+ =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
+ =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+按用户要求实现:
+
+> 支持多列排序筛选且可以**持久记忆**用户的偏好，
+> 同时可以**恢复默认**（有相关功能说明和弹窗提示）
+
+## 新增 `lib/service/task_prefs.dart`
+
+### `TaskSorter` —— 排序做成**纯逻辑**
+
+```dart
+TaskSortSpec(column: 'record_runs', ascending: false)
+TaskSorter.apply(tasks, spec, recordOf: ...)
+```
+
+把"排序规则"做成**数据**（而不是散落的 `if`）的好处:
+
+* 纯函数可**直接测试**（不必起界面）
+* 持久化只是把对象序列化成 JSON
+* 加新列只改一个表
+
+可排序列: 任务名 / 类型 / 状态 / 目标次数 / 进度存量 / 下次运行 /
+**累计次数** / **累计耗时**
+
+★ **稳定排序** —— 用原下标做最终裁判。否则同键的行每次刷新都跳，
+看起来像界面在"闪"。
+
+★ 缺失值给**同类型兜底**，不能返回 `null` —— `null` 与 `String` 混着比较会抛
+`TypeError: '<' not supported between instances`
+（这个坑在本项目**后端** `_order_by_timed_priority` 里刚踩过一次）。
+
+### `PrefsStore` 接口 + 两种实现
+
+| 实现 | 用途 |
+|---|---|
+| `TaskPrefsStore` | 生产（`GetStorage` 真落盘）|
+| `MemoryPrefsStore` | 测试 / 默认 |
+
+★ **为什么抽接口**: `GetStorage` 依赖 `path_provider` **插件**，
+在 `flutter test`（无平台通道）里直接抛
+`MissingPluginException: ... getApplicationDocumentsDirectory`。
+
+抽接口后持久化的**语义**（按账号隔离、恢复默认=删除、读回副本、
+坏数据不崩）全都能测 —— 而不是"拿不到插件所以不测"。
+
+偏好按**账号**隔离（不同账号任务集不同）。
+
+## 表头可点击排序
+
+点同一列切升降序；点别的列**重置为升序**（继承上一个方向的降序会让人困惑）。
+当前列显示 ↑/↓，其余列显示淡色 `unfold_more` **提示"可点"** ——
+否则用户不知道表头能点。
+
+★ "运行记录"一格对应两个排序列（次数 / 耗时），点第二下切到耗时 ——
+这样两个排序都可用，又不用把表加宽。
+
+★ **排序只影响显示顺序，不影响调度**（用户明确选了这个方案）。
+调度顺序由运行列表与类别规则决定。有测试专门断言
+`_applySort` 里**不出现** `saveRunList` / `_api`。
+
+## 「恢复默认」
+
+放在筛选条**最后**（"退出"动作不该混在筛选中间，容易误点），
+且有**二次确认弹窗**（用户要求），文案明确说明:
+
+> ★ **不影响任务配置、运行记录与执行顺序** —— 只重置界面偏好
+
+## ★ 修掉一个"从一开始就是坏的"模板测试
+
+`test/widget_test.dart` 是 `flutter create` 的**模板遗留** ——
+它断言"按 `+` 后计数从 0 变 1"，但 `OASXApp` 是真实应用，
+**根本没有那个计数器**。也就是说**它一直是红的**，只是没人跑它。
+
+与其留着一条永远红的测试（会训练人忽略红灯），换成真的冒烟检查:
+
+* 任务列表库能加载（part 链完整）
+* **默认偏好存储必须是内存实现** —— 这是个刻意的设计决定，固化成断言
+* 控制器能用注入的存储构造
+
+## ★ 两个踩过的坑（都已记进注释）
+
+1. **`TaskPrefsStore()` 写在字段初始化里会留下 pending Timer**
+
+   `GetStorage` 构造时起 `Timer`，widget 测试里报到
+   `A Timer is still pending even after the widget tree was disposed`。
+
+   修法**不是**让测试迁就实现，而是**依赖注入**:
+   控制器默认 `MemoryPrefsStore`，`main.dart` 在 `GetStorage.init()`
+   **之后**显式升级为 `TaskPrefsStore()`。
+   "用哪种存储"是启动时决定的事，不该让每个控制器去猜环境。
+
+2. **`part of` 文件不能自己 import**
+
+   `task_list_controller.dart` 是 `part of task_list`，
+   加在自己头上的 `import` 不生效（报 `Undefined class TaskSortSpec`）。
+   import 必须加在**库入口** `task_list_view.dart`。
+
+## 测试 58/58
+
+* `test/task_prefs_test.dart`（30 项）—— 排序稳定性、缺值不崩、
+  未知列回落、记录列排序、序列化容错、偏好存储语义
+* `test/task_list_panel_test.dart` 补 6 项守卫（可排序表头、
+  箭头、恢复默认的二次确认与说明、偏好落盘、账号隔离、
+  **排序不碰调度**）
+* `test/widget_test.dart` 重写为真冒烟测试
+
+`flutter test` 58/58；`flutter build windows --release` 通过。
+---
+ .../task_list/task_list_controller.dart       | 127 ++++++++
+ lib/main.dart                                 |  11 +
+ lib/service/task_prefs.dart                   | 230 ++++++++++++++
+ lib/views/tasks/task_list_view.dart           |  80 ++++-
+ test/task_list_panel_test.dart                |  69 +++++
+ test/task_prefs_test.dart                     | 286 ++++++++++++++++++
+ test/widget_test.dart                         |  65 ++--
+ 7 files changed, 838 insertions(+), 30 deletions(-)
+ create mode 100644 lib/service/task_prefs.dart
+ create mode 100644 test/task_prefs_test.dart
+
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index 02f2074..7ae50bf 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -79,6 +79,36 @@ class TaskListController extends GetxController with LogMixin {
+   /// 「运行一次」队列（按点击顺序）。
+   List<String> runOnceQueue = [];
+ 
++  // ---------------------------------------------------------------- 排序 + 偏好
++  //
++  // ★ 用户要求: "支持多列排序筛选且可以**持久记忆**用户的偏好，
++  //   同时可以**恢复默认**（有相关功能说明和弹窗提示）"。
++  //
++  // ★ 排序**只影响显示顺序**，**不影响调度** —— 调度顺序由运行列表
++  //   （`run_list`）与类别规则决定。若这里偷偷改了调度，
++  //   用户会以为"排序等于调顺序"。
++
++  /// 当前排序。默认与原型一致（按"下次运行"升序）。
++  TaskSortSpec sortSpec = TaskSorter.defaultSpec;
++
++  /// 偏好存储。
++  ///
++  /// ★ 默认是 **内存实现**，不是 `TaskPrefsStore` —— 后者在构造时会创建
++  ///   `GetStorage`，而那会起一个 `Timer`，在 widget 测试里留下
++  ///   `A Timer is still pending even after the widget tree was disposed`。
++  ///
++  /// ★ 真落盘由 `main.dart` 在 `GetStorage.init()` **之后**显式升级:
++  ///
++  ///     TaskListController.defaultPrefsStore = TaskPrefsStore();
++  ///
++  ///   这样"用哪种存储"是**启动时决定的事**，而不是每个控制器各自
++  ///   去猜自己跑在测试还是生产里。
++  static PrefsStore defaultPrefsStore = MemoryPrefsStore();
++
++  PrefsStore prefsStore = TaskListController.defaultPrefsStore;
++
++  bool _prefsLoaded = false;
++
+   // ---------------------------------------------------------------- 脚本进程
+   //
+   // ★ 与"暂停调度"的区别:
+@@ -333,6 +363,10 @@ class TaskListController extends GetxController with LogMixin {
+           ? <String>[]
+           : ((mq as Map)['tasks'] as List).map((e) => '$e').toList();
+ 
++      // ★ 偏好要在**第一次过滤之前**载入 —— 否则首帧会用默认排序,
++      //   然后第二帧跳到用户的排序, 看起来像"界面闪了一下"。
++      _loadPrefs();
++
+       // 全局设置: 当前值来自 `/schema` 的 `global_fields`
+       // ★ 只在**首次**读取时赋值 —— 否则用户刚改完、下次刷新又被打回去
+       //   (界面会看起来"改了不生效")
+@@ -364,12 +398,14 @@ class TaskListController extends GetxController with LogMixin {
+   // ---------------------------------------------------------------- 过滤
+   void setQuery(String v) {
+     query = v.trim();
++    _savePrefs();
+     _applyFilter();
+     update();
+   }
+ 
+   void toggleOnlyEnabled() {
+     onlyEnabled = !onlyEnabled;
++    _savePrefs();
+     _applyFilter();
+     update();
+   }
+@@ -382,6 +418,7 @@ class TaskListController extends GetxController with LogMixin {
+       onlyTimed = false;
+       onlyLimited = false;
+     }
++    _savePrefs();
+     _applyFilter();
+     update();
+   }
+@@ -392,6 +429,7 @@ class TaskListController extends GetxController with LogMixin {
+       onlyFixed = false;
+       onlyLimited = false;
+     }
++    _savePrefs();
+     _applyFilter();
+     update();
+   }
+@@ -402,6 +440,7 @@ class TaskListController extends GetxController with LogMixin {
+       onlyFixed = false;
+       onlyTimed = false;
+     }
++    _savePrefs();
+     _applyFilter();
+     update();
+   }
+@@ -435,6 +474,94 @@ class TaskListController extends GetxController with LogMixin {
+ 
+     final names = tasks.map((t) => '${t['name']}').toSet();
+     selected.removeWhere((n) => !names.contains(n));
++
++    // ★ 排序放在**过滤之后** —— 顺序反了会让"按列排序"只作用于
++    //   过滤前的全集, 看起来像排序不生效。
++    _applySort();
++  }
++
++  /// 排序 + 过滤的入口（`_applyFilter` 之后调）。
++  void _applySort() {
++    tasks = TaskSorter.apply(
++      tasks,
++      sortSpec,
++      recordOf: (cmd) => recordOf(cmd),
++    );
++  }
++
++  // ---------------------------------------------------------------- 偏好持久化
++  /// 从磁盘读偏好（**只读一次** —— 之后以内存为准，避免把用户刚改的打回去）。
++  void _loadPrefs() {
++    if (_prefsLoaded) return;
++    _prefsLoaded = true;
++    try {
++      final p = prefsStore.read(scriptName);
++      final spec = TaskSortSpec.fromJson(p['sort']);
++      if (spec != null && TaskSorter.isKnownColumn(spec.column)) {
++        sortSpec = spec;
++      }
++      onlyEnabled = p['onlyEnabled'] == true;
++      onlyFixed = p['onlyFixed'] == true;
++      onlyTimed = p['onlyTimed'] == true;
++      onlyLimited = p['onlyLimited'] == true;
++      query = '${p['query'] ?? ''}';
++    } catch (e) {
++      printError(info: '偏好读取失败: $e');
++    }
++  }
++
++  void _savePrefs() {
++    try {
++      prefsStore.write(scriptName, {
++        'sort': sortSpec.toJson(),
++        'onlyEnabled': onlyEnabled,
++        'onlyFixed': onlyFixed,
++        'onlyTimed': onlyTimed,
++        'onlyLimited': onlyLimited,
++        if (query.isNotEmpty) 'query': query,
++      });
++    } catch (e) {
++      printError(info: '偏好保存失败: $e');
++    }
++  }
++
++  /// 切换排序列（点表头）。同一列再点 = 切换升降序。
++  void sortBy(String column) {
++    if (!TaskSorter.isKnownColumn(column)) return;
++    if (sortSpec.column == column) {
++      sortSpec = sortSpec.copyWith(ascending: !sortSpec.ascending);
++    } else {
++      // 换列时**重置为升序** —— 用户在 B 列想要的是"从头看",
++      // 而不是继承 A 列的降序（那会让人困惑）。
++      sortSpec = TaskSortSpec(column: column);
++    }
++    _savePrefs();
++    _applyFilter();
++    update();
++  }
++
++  /// 恢复默认 —— **要二次确认**（用户明确要求"有弹窗提示"）。
++  Future<bool> restoreDefaults() async {
++    final ok = await _confirm(
++      '恢复默认',
++      '会把这些**界面偏好**恢复成默认值：\n\n'
++      '• 排序：按「下次运行」升序\n'
++      '• 清除全部筛选与搜索词\n\n'
++      '★ **不影响任务配置、运行记录与执行顺序** —— 只重置界面偏好。\n\n'
++      '确定继续吗？',
++    );
++    if (!ok) return false;
++    prefsStore.clear(scriptName);
++    sortSpec = TaskSorter.defaultSpec;
++    onlyEnabled = false;
++    onlyFixed = false;
++    onlyTimed = false;
++    onlyLimited = false;
++    query = '';
++    _applyFilter();
++    update();
++    Get.snackbar('已恢复默认', '界面偏好已重置');
++    return true;
+   }
+ 
+   // ---------------------------------------------------------------- 运行记录
+diff --git a/lib/main.dart b/lib/main.dart
+index de6e21d..8c8fc4f 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -14,6 +14,8 @@ import 'package:get/get.dart';
+ import 'package:oasx/views/routes.dart';
+ import 'package:oasx/utils/platform_utils.dart';
+ import 'package:oasx/controller/settings.dart';
++import 'package:oasx/service/task_prefs.dart';
++import 'package:oasx/views/tasks/task_list_view.dart' show TaskListController;
+ import 'package:oasx/config/theme.dart' show lightTheme, darkTheme;
+ 
+ void main() async {
+@@ -75,6 +77,15 @@ Future<void> initService() async {
+   await initLogger();
+   await GetStorage.init();
+ 
++  // ★ 任务列表的界面偏好（排序 / 筛选）现在才升级成**真落盘**。
++  //
++  //   为什么要在这里、而不是让 `TaskListController` 自己 `new`:
++  //   `GetStorage` 构造时会起一个 `Timer`，在 widget 测试里会留下
++  //   `A Timer is still pending even after the widget tree was disposed`。
++  //   所以控制器默认用**内存实现**，由启动流程显式升级 ——
++  //   "用哪种存储"是启动时决定的事，不该让每个控制器去猜环境。
++  TaskListController.defaultPrefsStore = TaskPrefsStore();
++
+   await Future.wait([
+     Get.putAsync(() async => LocaleService()),
+     Get.putAsync(() async => ThemeService()),
+diff --git a/lib/service/task_prefs.dart b/lib/service/task_prefs.dart
+new file mode 100644
+index 0000000..3e0a5ac
+--- /dev/null
++++ b/lib/service/task_prefs.dart
+@@ -0,0 +1,230 @@
++import 'dart:convert';
++
++import 'package:get_storage/get_storage.dart';
++
++/// 任务表格的**多列排序 + 筛选偏好**，并**持久化记忆**。
++///
++/// ## 用户要求
++///
++/// > 支持多列排序筛选且可以**持久记忆**用户的偏好，同时可以**恢复默认**
++/// > （有相关功能说明和弹窗提示）
++///
++/// ## 设计：把"排序规则"做成数据，而不是散落的 if
++///
++/// ```dart
++/// SortSpec(column: 'next_run', ascending: true)
++/// ```
++///
++/// 这样:
++/// * 纯函数 `apply()` 可被**直接测试**（不必起界面）
++/// * 持久化只是把对象序列化成 JSON
++/// * 加新列只改一个表 `_accessors`
++///
++/// ★ 排序**只影响显示顺序**，**不影响调度**（用户明确选了这个方案）。
++///   调度顺序由运行列表（`run_list`）与类别规则决定 ——
++///   如果这里偷偷改了调度，用户会以为"排序等于调顺序"。
++class TaskSortSpec {
++  const TaskSortSpec({required this.column, this.ascending = true});
++
++  /// 列 id（见 [TaskSorter.columns]）。
++  final String column;
++
++  /// 是否升序。
++  final bool ascending;
++
++  TaskSortSpec copyWith({String? column, bool? ascending}) => TaskSortSpec(
++        column: column ?? this.column,
++        ascending: ascending ?? this.ascending,
++      );
++
++  Map<String, dynamic> toJson() =>
++      {'column': column, 'ascending': ascending};
++
++  static TaskSortSpec? fromJson(dynamic v) {
++    if (v is! Map) return null;
++    final col = '${v['column'] ?? ''}';
++    if (col.isEmpty) return null;
++    return TaskSortSpec(column: col, ascending: v['ascending'] != false);
++  }
++
++  @override
++  bool operator ==(Object other) =>
++      other is TaskSortSpec &&
++      other.column == column &&
++      other.ascending == ascending;
++
++  @override
++  int get hashCode => Object.hash(column, ascending);
++
++  @override
++  String toString() => 'TaskSortSpec($column, ${ascending ? "asc" : "desc"})';
++}
++
++/// 排序 + 筛选偏好的**纯逻辑**（无 UI、无 IO）。
++class TaskSorter {
++  /// 可排序的列。
++  ///
++  /// `id` 用于持久化（**改 id 会让老偏好失效**，所以用稳定的英文标识）。
++  static const columns = <Map<String, String>>[
++    {'id': 'name', 'label': '任务名'},
++    {'id': 'category', 'label': '类型'},
++    {'id': 'state', 'label': '状态'},
++    {'id': 'target', 'label': '目标次数'},
++    {'id': 'progress', 'label': '进度 / 存量'},
++    {'id': 'next_run', 'label': '下次运行'},
++    {'id': 'record_runs', 'label': '累计次数'},
++    {'id': 'record_seconds', 'label': '累计耗时'},
++  ];
++
++  /// 默认排序 —— 与原型一致（按"下次运行"升序）。
++  static const defaultSpec = TaskSortSpec(column: 'next_run');
++
++  static bool isKnownColumn(String id) =>
++      columns.any((c) => c['id'] == id);
++
++  /// 取某行的排序键。
++  ///
++  /// ★ 缺失值要给**同类型的兜底**，不能返回 `null` ——
++  ///   `null` 与 `String` 混在一起比较会抛
++  ///   `TypeError: '<' not supported between instances`。
++  ///   （这个坑在本项目的后端 `_order_by_timed_priority` 里踩过一次。）
++  static Comparable _key(Map<String, dynamic> task, String column,
++      Map<String, dynamic> record) {
++    switch (column) {
++      case 'name':
++        return '${task['name_zh'] ?? task['name'] ?? ''}';
++      case 'category':
++        return '${task['category'] ?? ''}';
++      case 'state':
++        // 能跑 < 不能跑（升序时"能跑的"在前）
++        return task['can_run'] == true ? 0 : 1;
++      case 'target':
++        return (task['target'] as num?)?.toInt() ?? 0;
++      case 'progress':
++        final ch = task['charges'];
++        if (ch is Map) return (ch['count'] as num?)?.toInt() ?? 0;
++        return (task['count'] as num?)?.toInt() ?? 0;
++      case 'next_run':
++        // 空值给一个远期字符串, 保证同类型可比
++        return '${task['next_run'] ?? '9999'}';
++      case 'record_runs':
++        return (record['runs'] as num?)?.toInt() ?? 0;
++      case 'record_seconds':
++        return (record['seconds'] as num?)?.toInt() ?? 0;
++      default:
++        return '';
++    }
++  }
++
++  /// 排序（**稳定**）。
++  ///
++  /// :param recordOf: `command -> 运行记录`（`record_runs`/`record_seconds` 用）
++  static List<Map<String, dynamic>> apply(
++    List<Map<String, dynamic>> tasks,
++    TaskSortSpec spec, {
++    Map<String, dynamic> Function(String command)? recordOf,
++  }) {
++    final col = isKnownColumn(spec.column) ? spec.column : defaultSpec.column;
++    final list = List<Map<String, dynamic>>.from(tasks);
++    // ★ 用 `index` 做最终裁判, 保证**稳定排序** ——
++    //   否则同键的行每次刷新都会跳来跳去, 看起来像"闪"。
++    final indexed = <MapEntry<int, Map<String, dynamic>>>[
++      for (var i = 0; i < list.length; i++) MapEntry(i, list[i]),
++    ];
++    indexed.sort((a, b) {
++      final ra = recordOf?.call('${a.value['command'] ?? ''}') ?? const {};
++      final rb = recordOf?.call('${b.value['command'] ?? ''}') ?? const {};
++      final ka = _key(a.value, col, ra);
++      final kb = _key(b.value, col, rb);
++      int c;
++      try {
++        c = ka.compareTo(kb);
++      } catch (_) {
++        c = 0; // 类型意外不一致时不当机, 保持原序
++      }
++      if (c == 0) return a.key.compareTo(b.key);
++      return spec.ascending ? c : -c;
++    });
++    return [for (final e in indexed) e.value];
++  }
++}
++
++/// 偏好存储的**接口**。
++///
++/// ★ 为什么要抽接口: `GetStorage` 依赖 `path_provider` **插件**,
++///   在 `flutter test`（无平台通道）里会抛
++///   `MissingPluginException: ... getApplicationDocumentsDirectory`。
++///
++///   抽成接口后:
++///   * 生产用 [TaskPrefsStore]（真落盘）
++///   * 测试用 [MemoryPrefsStore]（内存）—— 于是**逻辑可被测试**,
++///     而不是"因为拿不到插件所以不测"
++abstract class PrefsStore {
++  Map<String, dynamic> read(String scriptName);
++
++  void write(String scriptName, Map<String, dynamic> prefs);
++
++  void clear(String scriptName);
++}
++
++/// 内存实现 —— 只为测试与"禁用持久化"的场景。
++class MemoryPrefsStore implements PrefsStore {
++  final _data = <String, Map<String, dynamic>>{};
++
++  @override
++  Map<String, dynamic> read(String scriptName) =>
++      Map<String, dynamic>.from(_data[scriptName] ?? const {});
++
++  @override
++  void write(String scriptName, Map<String, dynamic> prefs) {
++    _data[scriptName] = Map<String, dynamic>.from(prefs);
++  }
++
++  @override
++  void clear(String scriptName) => _data.remove(scriptName);
++}
++
++/// 排序 + 筛选偏好的**持久化**（`GetStorage` 真落盘）。
++///
++/// 按账号隔离 —— 不同账号的任务集不同，共享偏好会很别扭。
++class TaskPrefsStore implements PrefsStore {
++  TaskPrefsStore({GetStorage? box}) : _box = box ?? GetStorage();
++
++  final GetStorage _box;
++
++  static String keyOf(String scriptName) => 'task_prefs_$scriptName';
++
++  /// 读该账号的偏好（读不到/坏了都给默认，**不抛**）。
++  @override
++  Map<String, dynamic> read(String scriptName) {
++    try {
++      final raw = _box.read(keyOf(scriptName));
++      if (raw == null) return {};
++      if (raw is Map) return raw.cast<String, dynamic>();
++      if (raw is String && raw.isNotEmpty) {
++        final decoded = jsonDecode(raw);
++        if (decoded is Map) return decoded.cast<String, dynamic>();
++      }
++    } catch (_) {
++      // 偏好坏了不该让任务列表打不开
++    }
++    return {};
++  }
++
++  @override
++  void write(String scriptName, Map<String, dynamic> prefs) {
++    try {
++      _box.write(keyOf(scriptName), prefs);
++    } catch (_) {
++      // 存不下就算了（只读文件系统等），不影响使用
++    }
++  }
++
++  /// 恢复默认 —— **删掉**该账号的偏好记录。
++  @override
++  void clear(String scriptName) {
++    try {
++      _box.remove(keyOf(scriptName));
++    } catch (_) {}
++  }
++}
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 3c03bb1..d64e870 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -54,7 +54,8 @@ import 'package:oasx/api/api_client.dart';
+ import 'package:oasx/component/log/log_mixin.dart';
+ import 'package:oasx/component/log/log_widget.dart';
+ import 'package:oasx/model/script_model.dart';
+-import 'package:oasx/service/script_service.dart';part '../../controller/task_list/task_list_controller.dart';
++import 'package:oasx/service/script_service.dart';
++import 'package:oasx/service/task_prefs.dart';part '../../controller/task_list/task_list_controller.dart';
+ part './task_row_view.dart';
+ part './run_control_bar.dart';
+ part './run_list_panel.dart';
+@@ -367,6 +368,19 @@ class _OverviewTab extends StatelessWidget {
+                   selected: c.onlyLimited,
+                   onSelected: (_) => c.toggleOnlyLimited(),
+                 ),
++                // ★ 「恢复默认」放在最后 —— 它是个"退出"动作，
++                //   放在筛选中间容易被误点（而且它有二次确认）。
++                //
++                //   用户要求: "同时可以恢复默认（有相关功能说明和弹窗提示）"。
++                Tooltip(
++                  message: '把排序与筛选恢复成默认值\n'
++                      '（不影响任务配置、运行记录与执行顺序）',
++                  child: TextButton.icon(
++                    onPressed: c.busy ? null : c.restoreDefaults,
++                    icon: const Icon(Icons.restart_alt, size: 16),
++                    label: const Text('恢复默认'),
++                  ),
++                ),
+               ],
+             ),
+           ],
+@@ -418,7 +432,12 @@ class _OverviewTab extends StatelessWidget {
+     );
+   }
+ 
+-  /// 表头 —— 与原型的 8 列对应。
++  /// 表头 —— 与原型的 8 列 + 运行记录列。
++  ///
++  /// ★ 表头**可点击排序**（多列）。点同一列切换升降序，点别的列重置为升序。
++  ///   当前排序列显示 ↑/↓，其余列显示淡色箭头提示"可点"。
++  ///
++  /// ★ 排序**只影响显示顺序**，不影响调度 —— 见 `TaskSorter` 的说明。
+   Widget _tableHeader(BuildContext context) {
+     final s = Theme.of(context).textTheme.labelMedium;
+     return Padding(
+@@ -426,19 +445,62 @@ class _OverviewTab extends StatelessWidget {
+       child: Row(
+         children: [
+           const SizedBox(width: 28),
+-          Expanded(flex: 22, child: Text('任务', style: s)),
+-          Expanded(flex: 12, child: Text('类型', style: s)),
+-          Expanded(flex: 14, child: Text('状态', style: s)),
+-          Expanded(flex: 12, child: Text('目标次数', style: s)),
+-          Expanded(flex: 12, child: Text('进度 / 存量', style: s)),
+-          Expanded(flex: 16, child: Text('下次运行', style: s)),
++          _sortableHeader(context, 'name', '任务', 22, s),
++          _sortableHeader(context, 'category', '类型', 12, s),
++          _sortableHeader(context, 'state', '状态', 14, s),
++          _sortableHeader(context, 'target', '目标次数', 12, s),
++          _sortableHeader(context, 'progress', '进度 / 存量', 12, s),
++          _sortableHeader(context, 'next_run', '下次运行', 16, s),
+           Expanded(flex: 12, child: Text('对方', style: s)),
+           Expanded(flex: 12, child: Text('在列表', style: s)),
+-          Expanded(flex: 20, child: Text('运行记录', style: s)),
++          _sortableHeader(context, 'record_runs', '运行记录', 20, s),
+         ],
+       ),
+     );
+   }
++
++  /// 一个可点击排序的表头格。
++  ///
++  /// ★ 运行记录列点两下会依次切到「累计耗时」——
++  ///   因为"运行记录"实际有两列可排（次数 / 耗时），
++  ///   而表头只有一格宽。这样两个排序都能用到，且不用加宽表格。
++  Widget _sortableHeader(BuildContext context, String column, String label,
++      int flex, TextStyle? s) {
++    final active = c.sortSpec.column == column;
++    final next = column == 'record_runs' && active ? 'record_seconds' : column;
++    return Expanded(
++      flex: flex,
++      child: InkWell(
++        onTap: () => c.sortBy(next),
++        child: Row(
++          mainAxisSize: MainAxisSize.min,
++          children: [
++            Flexible(
++              child: Text(
++                label,
++                style: s?.copyWith(
++                  fontWeight: active ? FontWeight.bold : null,
++                  color: active ? Theme.of(context).colorScheme.primary : null,
++                ),
++                overflow: TextOverflow.ellipsis,
++              ),
++            ),
++            Icon(
++              active
++                  ? (c.sortSpec.ascending
++                      ? Icons.arrow_upward
++                      : Icons.arrow_downward)
++                  : Icons.unfold_more,
++              size: 12,
++              color: active
++                  ? Theme.of(context).colorScheme.primary
++                  : Theme.of(context).disabledColor,
++            ),
++          ],
++        ),
++      ),
++    );
++  }
+ }
+ 
+ // ============================================================ tab 2: 任务列表
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 4ce7384..4d59df0 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -312,6 +312,73 @@ void _overviewV2Tests() {
+   });
+ }
+ 
++// ============================================================ 多列排序 + 持久记忆
++//
++// 用户要求:
++// > 支持多列排序筛选且可以**持久记忆**用户的偏好，
++// > 同时可以**恢复默认**（有相关功能说明和弹窗提示）
++void _sortAndPrefsTests() {
++  test('表头可点击排序（多列）', () {
++    final src = codeOnly('lib/views/tasks/task_list_view.dart');
++    expect(src.contains('_sortableHeader'), isTrue);
++    expect(src.contains('c.sortBy('), isTrue, reason: '表头必须真的能点');
++    // 至少覆盖这些列
++    for (final col in ['name', 'category', 'state', 'next_run']) {
++      expect(src.contains("'$col'"), isTrue, reason: '缺可排序列 $col');
++    }
++  });
++
++  test('排序箭头反映当前列与方向', () {
++    final src = codeOnly('lib/views/tasks/task_list_view.dart');
++    expect(src.contains('arrow_upward'), isTrue);
++    expect(src.contains('arrow_downward'), isTrue);
++    expect(src.contains('unfold_more'), isTrue,
++        reason: '非当前列要有"可点"提示，否则用户不知道表头能点');
++  });
++
++  test('「恢复默认」有二次确认 + 说明不影响什么', () {
++    final src = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    final i = src.indexOf('Future<bool> restoreDefaults');
++    expect(i, greaterThan(-1));
++    final body = src.substring(i, i + 800);
++    expect(body.contains('_confirm'), isTrue, reason: '用户要求"有弹窗提示"');
++    expect(body.contains('不影响'), isTrue,
++        reason: '要说明它**不动**任务配置/记录/执行顺序');
++    expect(body.contains('prefsStore.clear'), isTrue,
++        reason: '恢复默认应真的清掉持久化偏好');
++  });
++
++  test('偏好会落盘（切列/切筛选都存）', () {
++    final src = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    // 每个 toggle 与 sortBy 都应调 _savePrefs
++    for (final m in ['void sortBy', 'void toggleOnlyTimed', 'void toggleOnlyLimited']) {
++      final i = src.indexOf(m);
++      expect(i, greaterThan(-1), reason: '找不到 $m');
++      expect(src.substring(i, i + 500).contains('_savePrefs'), isTrue,
++          reason: '$m 应持久化偏好');
++    }
++  });
++
++  test('偏好按账号隔离', () {
++    final src = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    expect(src.contains('prefsStore.read(scriptName)'), isTrue);
++    expect(src.contains('prefsStore.write(scriptName'), isTrue);
++  });
++
++  test('排序只影响显示 —— 不改执行顺序', () {
++    // ★ 用户明确选了"拖拽排序 = 只改显示顺序"。
++    //   若排序偷偷改了 run_list，用户会以为"排序等于调顺序"。
++    final src = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    final i = src.indexOf('void _applySort');
++    expect(i, greaterThan(-1));
++    final body = src.substring(i, i + 400);
++    expect(body.contains('saveRunList'), isFalse,
++        reason: '排序不该碰执行顺序');
++    expect(body.contains('_api'), isFalse,
++        reason: '排序是纯本地的，不该发请求改后端状态');
++  });
++}
++
+ void main() {
+   testWidgets('只含任务条目时能正常渲染', (tester) async {
+     final c = FakeTaskListController(
+@@ -410,6 +477,8 @@ void main() {
+   _runControlV2Tests();
+ 
+   _overviewV2Tests();
++
++  _sortAndPrefsTests();
+ }
+ 
+ /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
+diff --git a/test/task_prefs_test.dart b/test/task_prefs_test.dart
+new file mode 100644
+index 0000000..7bae814
+--- /dev/null
++++ b/test/task_prefs_test.dart
+@@ -0,0 +1,286 @@
++import 'package:flutter_test/flutter_test.dart';
++import 'package:oasx/service/task_prefs.dart';
++
++/// 任务表格的**多列排序 + 偏好持久化**测试。
++///
++/// 用户要求:
++/// > 支持多列排序筛选且可以**持久记忆**用户的偏好，
++/// > 同时可以**恢复默认**（有相关功能说明和弹窗提示）
++///
++/// ★ 这些是**纯逻辑**（`TaskSorter` / `TaskPrefsStore`），
++///   不必起界面就能测 —— 所以语义能被真正固定下来。
++void main() {
++  Map<String, dynamic> t(String name,
++          {String? cmd,
++          String cat = 'fixed',
++          bool canRun = true,
++          int? target,
++          String? nextRun,
++          int? count}) =>
++      {
++        'name': name,
++        'name_zh': name,
++        'command': cmd ?? name,
++        'category': cat,
++        'can_run': canRun,
++        if (target != null) 'target': target,
++        if (nextRun != null) 'next_run': nextRun,
++        if (count != null) 'count': count,
++      };
++
++  group('TaskSorter 基本排序', () {
++    test('按任务名升序', () {
++      final r = TaskSorter.apply(
++        [t('C'), t('A'), t('B')],
++        const TaskSortSpec(column: 'name'),
++      );
++      expect(r.map((e) => e['name']), ['A', 'B', 'C']);
++    });
++
++    test('降序', () {
++      final r = TaskSorter.apply(
++        [t('C'), t('A'), t('B')],
++        const TaskSortSpec(column: 'name', ascending: false),
++      );
++      expect(r.map((e) => e['name']), ['C', 'B', 'A']);
++    });
++
++    test('按下次运行时间', () {
++      final r = TaskSorter.apply([
++        t('A', nextRun: '2026-01-02 00:00:00'),
++        t('B', nextRun: '2026-01-01 00:00:00'),
++      ], const TaskSortSpec(column: 'next_run'));
++      expect(r.map((e) => e['name']), ['B', 'A']);
++    });
++
++    test('按状态 —— 能跑的在前', () {
++      final r = TaskSorter.apply([
++        t('A', canRun: false),
++        t('B', canRun: true),
++      ], const TaskSortSpec(column: 'state'));
++      expect(r.map((e) => e['name']), ['B', 'A']);
++    });
++
++    test('按目标次数', () {
++      final r = TaskSorter.apply([
++        t('A', target: 30),
++        t('B', target: 5),
++      ], const TaskSortSpec(column: 'target'));
++      expect(r.map((e) => e['name']), ['B', 'A']);
++    });
++  });
++
++  group('TaskSorter 稳定性 —— 同键不跳', () {
++    test('同键保持原序（升序）', () {
++      final r = TaskSorter.apply([
++        t('A', cat: 'fixed'),
++        t('B', cat: 'fixed'),
++        t('C', cat: 'fixed'),
++      ], const TaskSortSpec(column: 'category'));
++      expect(r.map((e) => e['name']), ['A', 'B', 'C']);
++    });
++
++    test('同键保持原序（降序也稳定）', () {
++      // ★ 降序时**不能**把原来第一个翻到最后 —— 否则同键的行每次刷新都跳,
++      //   看起来像界面在"闪"。
++      final r = TaskSorter.apply([
++        t('A', cat: 'fixed'),
++        t('B', cat: 'fixed'),
++      ], const TaskSortSpec(column: 'category', ascending: false));
++      expect(r.map((e) => e['name']), ['A', 'B']);
++    });
++  });
++
++  group('TaskSorter 缺值与类型混杂 —— 不该崩', () {
++    test('next_run 缺失不崩', () {
++      final r = TaskSorter.apply([
++        t('A'),
++        t('B', nextRun: '2026-01-01 00:00:00'),
++      ], const TaskSortSpec(column: 'next_run'));
++      expect(r, hasLength(2), reason: '缺 next_run 不该抛异常');
++    });
++
++    test('record 缺失时按 0 处理', () {
++      final r = TaskSorter.apply([
++        t('A'),
++        t('B'),
++      ], const TaskSortSpec(column: 'record_runs'));
++      expect(r, hasLength(2));
++    });
++
++    test('未知列回落默认列（不崩、不空）', () {
++      final r = TaskSorter.apply([
++        t('A', nextRun: '2026-01-02 00:00:00'),
++        t('B', nextRun: '2026-01-01 00:00:00'),
++      ], const TaskSortSpec(column: 'nonsense'));
++      expect(r.map((e) => e['name']), ['B', 'A'],
++          reason: '未知列应回落到默认列, 而不是原样返回或崩');
++    });
++
++    test('空列表', () {
++      expect(TaskSorter.apply([], TaskSorter.defaultSpec), isEmpty);
++    });
++
++    test('原列表不被改动', () {
++      final src = [t('B'), t('A')];
++      TaskSorter.apply(src, const TaskSortSpec(column: 'name'));
++      expect(src.map((e) => e['name']), ['B', 'A'],
++          reason: 'apply 不该原地改原列表');
++    });
++  });
++
++  group('TaskSorter 运行记录列', () {
++    test('按累计次数', () {
++      final recs = {
++        'A': {'runs': 3},
++        'B': {'runs': 9},
++      };
++      final r = TaskSorter.apply(
++        [t('A'), t('B')],
++        const TaskSortSpec(column: 'record_runs'),
++        recordOf: (c) => recs[c] ?? const {},
++      );
++      expect(r.map((e) => e['name']), ['A', 'B']);
++    });
++
++    test('按累计耗时', () {
++      final recs = {
++        'A': {'seconds': 900},
++        'B': {'seconds': 60},
++      };
++      final r = TaskSorter.apply(
++        [t('A'), t('B')],
++        const TaskSortSpec(column: 'record_seconds'),
++        recordOf: (c) => recs[c] ?? const {},
++      );
++      expect(r.map((e) => e['name']), ['B', 'A']);
++    });
++
++    test('降序按次数', () {
++      final recs = {
++        'A': {'runs': 3},
++        'B': {'runs': 9},
++      };
++      final r = TaskSorter.apply(
++        [t('A'), t('B')],
++        const TaskSortSpec(column: 'record_runs', ascending: false),
++        recordOf: (c) => recs[c] ?? const {},
++      );
++      expect(r.map((e) => e['name']), ['B', 'A']);
++    });
++  });
++
++  group('列定义', () {
++    test('列 id 唯一', () {
++      final ids = TaskSorter.columns.map((c) => c['id']).toList();
++      expect(ids.toSet().length, ids.length);
++    });
++
++    test('每列都有中文标签（界面直接显示）', () {
++      for (final c in TaskSorter.columns) {
++        expect('${c['label']}'.isNotEmpty, isTrue, reason: '${c['id']} 缺标签');
++      }
++    });
++
++    test('默认列是已知列', () {
++      expect(TaskSorter.isKnownColumn(TaskSorter.defaultSpec.column), isTrue);
++    });
++
++    test('未知列判定', () {
++      expect(TaskSorter.isKnownColumn('nonsense'), isFalse);
++      expect(TaskSorter.isKnownColumn(''), isFalse);
++    });
++  });
++
++  group('TaskSortSpec 序列化', () {
++    test('往返', () {
++      const s = TaskSortSpec(column: 'record_runs', ascending: false);
++      final back = TaskSortSpec.fromJson(s.toJson());
++      expect(back, s);
++    });
++
++    test('坏数据返回 null（而不是造一个坏 spec）', () {
++      expect(TaskSortSpec.fromJson(null), isNull);
++      expect(TaskSortSpec.fromJson('nonsense'), isNull);
++      expect(TaskSortSpec.fromJson({}), isNull);
++      expect(TaskSortSpec.fromJson({'column': ''}), isNull);
++    });
++
++    test('缺 ascending 时默认升序', () {
++      final s = TaskSortSpec.fromJson({'column': 'name'})!;
++      expect(s.ascending, isTrue);
++    });
++
++    test('copyWith', () {
++      const s = TaskSortSpec(column: 'name');
++      expect(s.copyWith(ascending: false), 
++          const TaskSortSpec(column: 'name', ascending: false));
++      expect(s.copyWith(column: 'target'),
++          const TaskSortSpec(column: 'target'));
++    });
++  });
++
++  group('偏好存储 —— 用内存实现测逻辑', () {
++    // ★ 为什么不用真 `TaskPrefsStore`: `GetStorage` 依赖 `path_provider`
++    //   **插件**, 在 `flutter test`（无平台通道）里会抛
++    //   `MissingPluginException: ... getApplicationDocumentsDirectory`。
++    //
++    //   抽成 `PrefsStore` 接口 + `MemoryPrefsStore` 之后,
++    //   持久化的**语义**（按账号隔离、恢复默认=删除、坏数据不崩）
++    //   全都能测 —— 而不是"拿不到插件所以不测"。
++    test('写后能读回', () {
++      final store = MemoryPrefsStore();
++      store.write('acc1', {
++        'sort': const TaskSortSpec(column: 'record_runs', ascending: false)
++            .toJson(),
++        'onlyTimed': true,
++      });
++      final back = store.read('acc1');
++      expect(TaskSortSpec.fromJson(back['sort']),
++          const TaskSortSpec(column: 'record_runs', ascending: false));
++      expect(back['onlyTimed'], isTrue);
++    });
++
++    test('账号之间隔离', () {
++      final store = MemoryPrefsStore();
++      store.write('accA', {'onlyTimed': true});
++      expect(store.read('accB'), isEmpty);
++    });
++
++    test('恢复默认 = 删掉偏好（读回空）', () {
++      final store = MemoryPrefsStore();
++      store.write('acc2', {'onlyTimed': true});
++      expect(store.read('acc2'), isNotEmpty);
++      store.clear('acc2');
++      expect(store.read('acc2'), isEmpty, reason: '恢复默认应清空偏好');
++    });
++
++    test('没写过 -> 空 map（不是 null）', () {
++      final store = MemoryPrefsStore();
++      expect(store.read('never_written'), isEmpty);
++    });
++
++    test('读回来的是副本 —— 改它不该污染存储', () {
++      // ★ 这类"共享可变引用"的 bug 很难查: 界面改一下过滤条件,
++      //   存储里的偏好也跟着变了（下次启动莫名恢复成上次的临时状态）。
++      final store = MemoryPrefsStore();
++      store.write('acc3', {'onlyTimed': false});
++      final a = store.read('acc3');
++      a['onlyTimed'] = true;
++      expect(store.read('acc3')['onlyTimed'], isFalse);
++    });
++
++    test('覆盖写', () {
++      final store = MemoryPrefsStore();
++      store.write('acc4', {'x': 1});
++      store.write('acc4', {'y': 2});
++      expect(store.read('acc4').containsKey('x'), isFalse);
++      expect(store.read('acc4')['y'], 2);
++    });
++
++    test('key 带账号名（避免跨账号串用）', () {
++      expect(TaskPrefsStore.keyOf('accA'),
++          isNot(TaskPrefsStore.keyOf('accB')));
++    });
++  });
++}
+diff --git a/test/widget_test.dart b/test/widget_test.dart
+index 3577f1c..ffedaed 100644
+--- a/test/widget_test.dart
++++ b/test/widget_test.dart
+@@ -1,30 +1,53 @@
+-// This is a basic Flutter widget test.
++// OASX 冒烟测试。
+ //
+-// To perform an interaction with a widget in your test, use the WidgetTester
+-// utility in the flutter_test package. For example, you can send tap and scroll
+-// gestures. You can also use WidgetTester to find child widgets in the widget
+-// tree, read text, and verify that the values of widget properties are correct.
+-
+-import 'package:flutter/material.dart';
++// ## 为什么换掉了原来的 "Counter increments smoke test"
++//
++// 那是 `flutter create` 的**模板遗留** —— 它在一个**计数器示例应用**上
++// 断言"按 + 后数字从 0 变 1"。但 `OASXApp` 是真实应用，**根本没有那个
++// 计数器**，所以 `find.byIcon(Icons.add)` 必然失败。
++//
++// 换句话说: **这个测试从一开始就是坏的**，只是以前没人跑它。
++// 与其留着一条永远红的测试（会训练人忽略红灯），不如换成有意义的冒烟检查。
++//
++// ## 现在检查什么
++//
++// 1. 任务列表这个**库能正常加载**（import 链没断、part 文件都在）
++// 2. 关键类都存在且可构造
++// 3. **默认偏好存储是内存实现** —— 这是个刻意的设计决定:
++//    `TaskPrefsStore` 的构造会起 `GetStorage` 的 `Timer`，
++//    在 widget 测试里会留下 `A Timer is still pending...`。
++//    所以默认必须是内存的，由 `main.dart` 在启动时升级。
++//    （这条以前踩过，所以固化成断言。）
+ import 'package:flutter_test/flutter_test.dart';
+ 
+-import 'package:oasx/main.dart';
++import 'package:oasx/service/task_prefs.dart';
++import 'package:oasx/views/tasks/task_list_view.dart';
+ 
+ void main() {
+-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+-    // Build our app and trigger a frame.
+-    await tester.pumpWidget(const OASXApp());
+-
+-    // Verify that our counter starts at 0.
+-    expect(find.text('0'), findsOneWidget);
+-    expect(find.text('1'), findsNothing);
++  group('OASX 冒烟', () {
++    test('任务列表库能加载，关键类都在', () {
++      // 能 import 到这个类型就说明 part 链完整
++      expect(TaskListController, isNotNull);
++      expect(TaskSorter.columns, isNotEmpty);
++      expect(MemoryPrefsStore, isNotNull);
++    });
+ 
+-    // Tap the '+' icon and trigger a frame.
+-    await tester.tap(find.byIcon(Icons.add));
+-    await tester.pump();
++    test('默认偏好存储是内存实现（不引入 GetStorage 的 Timer）', () {
++      // ★ 若改成 `TaskPrefsStore()`，widget 测试会报到:
++      //   "A Timer is still pending even after the widget tree was disposed"
++      expect(TaskListController.defaultPrefsStore, isA<MemoryPrefsStore>(),
++          reason: '默认必须是内存实现 —— 真落盘由 main.dart 启动时升级');
++    });
+ 
+-    // Verify that our counter has incremented.
+-    expect(find.text('0'), findsNothing);
+-    expect(find.text('1'), findsOneWidget);
++    test('控制器可用注入的存储构造', () {
++      final c = TaskListController(scriptName: 'acc');
++      c.prefsStore = MemoryPrefsStore();
++      expect(c.scriptName, 'acc');
++      expect(c.tasks, isEmpty);
++      // 默认排序与原型一致（按下次运行升序）
++      expect(c.sortSpec.column, 'next_run');
++      expect(c.sortSpec.ascending, isTrue);
++      c.onClose();
++    });
+   });
+ }
 -- 
 2.41.0.windows.1
 

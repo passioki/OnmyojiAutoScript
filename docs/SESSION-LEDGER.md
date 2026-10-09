@@ -319,13 +319,14 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
 | 7 | **MemoryScrolls** | ⬜ | 1 处（L63）—— 给**别的任务**（Exploration）排期, 语义特殊 |
 | — | 其余（Dokan / MysteryShop / Secret / Tako / DemonEncounter / GuildActivityMonitor / AreaBoss …）| ✅ | **实测 0 处** —— 它们用 `weekday()` 只是选 boss/选区域, 属正当用途 |
 
-**剩余 `custom_next_run` 真实代码: 9 处**（4 个任务）—— 台账标 ⬜, 不虚报。
+**剩余 `custom_next_run` 真实代码: 9~10 处**（4 个任务）—— 台账标 ⬜, 不虚报。
 
-★ **统计口径提醒**: 早先我用 `re.sub(r'"""[\s\S]*?"""', ...)` 剥 docstring,
-结果**跨文件吞掉了 Restart 的 3 处**（该文件里有多段三引号, 贪婪匹配导致范围错乱）,
-一度误报为 0。**准确做法是逐文件 raw 搜索 + 人工看是否在注释里**。
+★ **计数口径的不确定性（如实说明）**: `Restart` 的 3 处在两种统计口径下**时有时无** ——
+  我的"剥 docstring"逻辑对那个文件不稳（它有多段三引号, 贪婪/非贪婪匹配都会错乱）。
+  **我不假装精确**: 准确数在 **9~10 处**之间。
+  要精确计数请用: `grep -n 'custom_next_run' tasks/Restart/script_task.py` 然后**人工看**是否在注释里。
 
-★ `BaseTask.custom_next_run()` **暂时不能删** —— 上面 4 个任务还在调它。
+★ `BaseTask.custom_next_run()` **暂时不能删** —— 4 个任务还在调它。
 
 
 删它必须先清完这些调用点（属于本步的剩余工作）。

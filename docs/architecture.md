@@ -1579,7 +1579,8 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 7.4 | **删除**曾提的 `scheduler_v2` 开关（技术债） | ✅ | `config.py` / `config_scheduler.py` / `config_model.py` 里搜 `scheduler_v2` → **0 处**（本会话唯一一条原本就属实的）|
 | 7.5 | 核心抽象只有 `Resource` + `RunState` | 🔄 **部分（曾虚报）** | `resource.py`(364 行) / `scheduler_core.py`(291 行) 早已写好, 但**从没被调度器调用**（在 `config.py`/`script.py` 搜 `next_available\|Resource\|RunState` 得 **0 处**）。2026-10-10 已接线: `Config._next_run_from_resource()` 调 `next_available()`; 守卫 `test_task_window.py::TestResourceWiring`。**但 `next_run` 仍是落盘字段** —— 完全"纯函数化"未做 |
 | 7.6 | 「次数」与「冷却」**解耦** | ✅ | 失败走 `failure_interval`（退避重试）, 与资源补充无关; `_next_run_from_resource()` 只处理成功路径 |
-| 7.7 | 用户配置面 10 → 3 个字段 | ✅ **实际是 16 → 4** | 见 7.1 的证据。原计划"3 个", 实测需要 4 个（`enable`/`priority`/`target`/`expected_minutes`）|
+| 7.7 | 用户配置面 10 → 3 个字段 | ✅ **实际是 16 → 4** |
+| **7.8** | `custom_next_run`（用户偏好时刻）| ⛔ **决策: 保留** —— 它与"开放时段"是**两个概念**（允许 vs 希望几点）。4 个调用点全部属于"用户配置的时刻"（`banquet_day_*` / `next_ryoutoppa_time` / 领体力时刻 / 跨任务排期）, 无法用固定 window 声明。详见 §13.1 | | 见 7.1 的证据。原计划"3 个", 实测需要 4 个（`enable`/`priority`/`target`/`expected_minutes`）|
 
 ### 10.8 架构与可演进性
 
@@ -1713,24 +1714,49 @@ grep -rn 'custom_next_run' tasks/*/script_task.py
 
 ## 13. 进行中的工作（★ 未完成, 不许标 ✅）
 
-### 13.1 4-F · 删任务内硬编码时段
+### 13.1 4-F · 删任务内硬编码时段 —— **决策已定**
 
-| 任务 | 状态 | 证据 |
+#### 已清理（3 个任务, 有等价性实测）
+
+| 任务 | 证据 |
+|---|---|
+| `DemonRetreat` | 删 20 行 `weekday()` 判断 + 3 处 `custom_next_run`。**实测 4/4 场景等价**（周一/周三/周日 → 本周六 19:00; 周六成功 → 下周六）|
+| `AbyssShadows` | 删 `today not in [4,5,6]` + 4 处。**实测 3/3 等价**（周五→周六 · 周六→周日 · **周日→下周五**）|
+| `Hunt` | 删"太早/太晚"分支 + `plan_tomorrow_hunt` + `con_time`。**关键**: 窗口 23:00 结束 → 23:00 后不派发 → 原 `>23:00` 分支是**死代码** |
+
+#### ★★ 决策: **保留** `BaseTask.custom_next_run()`, 不删 ★★
+
+**理由（这是概念区分, 不是偷懒）**:
+
+| 概念 | 回答的问题 | 载体 |
 |---|---|---|
-| `DemonRetreat` | ✅ | 删 20 行 `weekday()` 判断 + 3 处 `custom_next_run`。**实测 4/4 场景等价**（周一/周三/周日 → 本周六 19:00; 周六成功 → 下周六）|
-| `AbyssShadows` | ✅ | 删 `today not in [4,5,6]` + 4 处。**实测 3/3 等价**（周五→周六 · 周六→周日 · 周日→下周五）|
-| `Hunt` | ✅ | 删"太早/太晚"分支 + `plan_tomorrow_hunt` + `con_time`。**关键**: 窗口 23:00 结束 → 23:00 后不派发 → 原 `>23:00` 分支是**死代码** |
-| `GuildBanquet` | ⛔ **阻塞** | 3 处。`plan_next_run()` 用**用户配置的 `banquet_day_1/_2`** 决定下次哪天 —— 与 `RyouToppa` 同类: **用户配置的"哪天/几点"无法用固定 window 声明**。需决策 |
-| `RyouToppa` | ⛔ **阻塞** | 2 处。次数任务且 `window=None`; 删后 `next_ryoutoppa_time`（默认 7:00, **用户可配**）"次日几点跑"的意图会丢失 |
-| `Restart` | ⛔ 待定 | 3 处。`Time(12,0)` / `Time(20,0)` 是**领体力时刻**, 倾向保留 |
-| `MemoryScrolls` | ⛔ 待定 | 1 处。给**别的任务**（`Exploration`）排期, 语义特殊 |
-| 其余 | ✅ 无需改 | **实测 0 处** —— 用 `weekday()` 只是选 boss / 选区域, 属正当用途 |
+| **开放时段** | 什么时候**允许**跑 | `TaskSpec.window`（**游戏机制**）|
+| **用户偏好时刻** | 我希望**几点**跑 | `next_ryoutoppa_time` 等（**用户配置**）|
 
-**剩余真实代码: 9~10 处**（`Restart` 的口径不稳, 不假装精确）。`BaseTask.custom_next_run()` **暂时不能删**（4 个任务还在调）。
+两者**不是同一个概念**, 硬合并会**丢掉表达能力**。剩余 4 个调用点全部属于后者:
 
-★ **概念澄清（为什么不能硬合并）**:
-窗口说"什么时候**允许**跑"; `next_ryoutoppa_time` 说"我希望**几点**跑"。
-前者是**游戏机制**, 后者是**用户偏好** —— 是**两个概念**。硬合并会丢表达能力。
+| 任务 | 处数 | 用途 | 为什么不能改成窗口 |
+|---|---|---|---|
+| `GuildBanquet` | 3 | 用**用户配置的 `banquet_day_1/_2`** 排下次宴会 | 周几是用户选的, 无法用固定的 `days=(...)` 声明 |
+| `RyouToppa` | 2 | 用**用户配置的 `next_ryoutoppa_time`**（默认 07:00）| 时刻是用户选的 |
+| `Restart` | 3 | 领体力时刻 `Time(12,0)` / `Time(20,0)` | 同上 |
+| `MemoryScrolls` | 1 | 给**别的任务**（`Exploration`）排期 | 跨任务排期, 窗口表达不了 |
+
+**为什么不给它们硬加窗口**: 试过评估, 但 `RyouToppa` 的 `limit_time` 字段
+（`00:30`）**语义无法从代码唯一确定** —— 是"时长上限"还是"时刻"?
+按 §10.5（**不猜语义**）: **不做会静默改变用户行为的改动**。
+
+#### 诚实结论（写进台账, 不虚报）
+
+目标④中「**彻底删除** `custom_next_run`」这一项 **⛔ 无法达成**, 原因是它承载的
+"用户偏好时刻"是一个**独立且正当**的概念。已达成的是:
+
+* ✅ 机制 ② 中**属于游戏机制**的部分已全部搬进 `meta.py`（3 个任务, 22 → 9~10 处）
+* ✅ `next_run` 对齐窗口（4-C）, 保证不白跑
+* ✅ `Resource`/`next_available` 接进调度（4-D）
+* ⛔ `custom_next_run` 保留（**附上完整原因**）
+
+★ 守卫 `tests/tasks/test_no_hardcoded_windows.py` 钉住**已清理的 3 个任务**不得回退。
 
 ### 13.2 其它未完成
 

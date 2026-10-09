@@ -123,6 +123,90 @@ class TestSchemaHidesInternal:
             assert not leaked, f'{task} 泄漏了内部字段: {leaked}'
 
 
+class TestRetryIntervalRename:
+    """★ 台账 7.3: `failure_interval` → `retry_interval` 的**安全**重命名。
+
+    ## 为什么必须带 `validation_alias`
+
+    `Scheduler.model_config = {}` → pydantic v2 **默认 `extra='ignore'`**。
+    实测: 给改名后的模型传**旧键** `failure_interval`, **不报错、也不生效**
+    —— 会被静默忽略。
+
+    于是**磁盘上 54 个配置里的该字段全部失效**。影响不只是"回落默认值":
+    **8 个任务覆盖了它**（`KekkaiActivation` 10 小时 · `KekkaiUtilize`/
+    `TalismanPass` 6 小时 · `FloatParade`/`Secret`/`WeeklyTrifles` 3~7 天 …）
+    —— 静默忽略会让它们的**失败重试节奏悄悄变成默认 1 天**。
+
+    ## 为什么**不设** `serialization_alias`
+
+    让写到磁盘时用**新名** → 旧配置在第一次 `save()` 后**自然迁移**,
+    不需要单独的迁移脚本。（设了 `serialization_alias` 会让 dump 出旧名 ——
+    实测 `model_dump()` 的键会变回 `failure_interval`, 旧名永远留着。）
+    """
+
+    def test_old_key_still_readable(self):
+        """★ 回归守卫: 旧键必须仍能被读出来（否则用户配置静默失效）。"""
+        from tasks.Component.config_scheduler import Scheduler
+        s = Scheduler(**{'enable': True, 'priority': 5,
+                         'failure_interval': '10 00:00:01'})
+        assert str(s.retry_interval).startswith('10 day'), (
+            f'旧键 failure_interval 没被读到! 实际 retry_interval={s.retry_interval} '
+            f'—— 用户配置里的自定义重试间隔会静默丢失')
+
+    def test_new_key_works(self):
+        from tasks.Component.config_scheduler import Scheduler
+        s = Scheduler(**{'enable': True, 'priority': 5,
+                         'retry_interval': '00 06:00:00'})
+        assert str(s.retry_interval).startswith('6:00:00')
+
+    def test_dumps_new_name(self):
+        """★ 确认**写**出来的是新名（旧配置才会自然迁移）。"""
+        from tasks.Component.config_scheduler import Scheduler
+        s = Scheduler(**{'enable': True, 'priority': 5})
+        keys = set(s.model_dump().keys())
+        assert 'retry_interval' in keys, 'dump 里应有新名 retry_interval'
+        assert 'failure_interval' not in keys, (
+            'dump 里不该再有旧名 —— 否则旧配置永远不迁移')
+
+    def test_alias_is_declared(self):
+        """反向守卫: `validation_alias` 必须存在（防被"清理"掉）。"""
+        import inspect
+        from tasks.Component.config_scheduler import Scheduler
+        fi = Scheduler.model_fields['retry_interval']
+        assert fi.validation_alias is not None, '缺少 validation_alias（旧配置会失效）'
+        assert 'failure_interval' in str(fi.validation_alias), \
+            '别名里必须保留旧键名'
+
+    def test_no_serialization_alias(self):
+        """★ 不该有 `serialization_alias` —— 它会让 dump 出旧名, 阻碍迁移。
+
+        ⚠ 用**字段属性**判断, **不要**看源码文本 ——
+          字段的注释里也写了 `serialization_alias` 这个词, 看文本会误判。
+        """
+        from tasks.Component.config_scheduler import Scheduler
+        fi = Scheduler.model_fields['retry_interval']
+        assert fi.serialization_alias is None, (
+            f'设了 serialization_alias={fi.serialization_alias!r} 会让 '
+            f'`model_dump()` 输出旧名, 旧配置永远不会迁移到新名')
+
+    def test_real_config_override_preserved(self):
+        """★ 端到端: 真实配置里 8 个任务的覆盖值必须保住。
+
+        （`kekkai_activation` 在 `恋鸟树` 里覆盖成 10 小时。）
+        """
+        import logging
+        logging.disable(logging.CRITICAL)
+        import server  # noqa: F401
+        from module.server.main_manager import mm
+        cfg = mm.config_cache('恋鸟树')
+        node = getattr(cfg.model, 'kekkai_activation', None)
+        if node is None:
+            pytest.skip('该账号没有 kekkai_activation')
+        got = node.scheduler.retry_interval
+        assert str(got).startswith('10:00:00'), (
+            f'kekkai_activation 的自定义重试间隔（10 小时）丢了! 实际 {got}')
+
+
 class TestChargeFieldsHidden:
     """`charge_*`（充能）也收进内部字段, 但**同组的用户配置不能误伤**。
 

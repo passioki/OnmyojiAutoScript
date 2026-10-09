@@ -47,7 +47,7 @@ class TestDiscoverCommonGroups:
              if x['group'] == 'scheduler'][0]
         names = {f['name'] for f in g['fields']}
         for expected in ('enable', 'next_run', 'priority', 'success_interval',
-                         'failure_interval', 'server_update', 'delay_date',
+                         'retry_interval', 'server_update', 'delay_date',
                          'float_time', 'period', 'reset_at'):
             assert expected in names, f'scheduler 缺字段 {expected}'
 

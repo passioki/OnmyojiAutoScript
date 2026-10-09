@@ -1145,7 +1145,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             else:
                 # 回退: 任务还没写 `meta.py` 的 `Resource`, 或算不出来
                 interval = scheduler.success_interval if success \
-                    else scheduler.failure_interval
+                    else scheduler.retry_interval
                 if isinstance(interval, str):
                     interval = timedelta(interval)
                 run.append(start_time + interval)

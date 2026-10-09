@@ -24,7 +24,7 @@ class UtilizeRule(str, Enum):
 class UtilizeScheduler(Scheduler):
     priority: int = Field(default=2, description='priority_help')
     success_interval: TimeDelta = Field(default=TimeDelta(hours=6), description='success_interval_help')
-    failure_interval: TimeDelta = Field(default=TimeDelta(hours=6), description='failure_interval_help')
+    retry_interval: TimeDelta = Field(default=TimeDelta(hours=6), description='retry_interval_help')
 
 class UtilizeConfig(BaseModel):
     utilize_rule: UtilizeRule = Field(default=UtilizeRule.DEFAULT, description='utilize_rule_help')

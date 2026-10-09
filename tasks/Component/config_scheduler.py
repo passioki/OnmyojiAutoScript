@@ -3,7 +3,7 @@
 # github https://github.com/runhey
 from enum import Enum
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 
 from module.logger import logger
 from tasks.Component.config_base import ConfigBase, TimeDelta, DateTime, Time
@@ -66,8 +66,32 @@ class Scheduler(ConfigBase):
     success_interval: TimeDelta = Field(
         default=TimeDelta(days=1), description='success_interval_help',
         json_schema_extra={'internal': True})
-    failure_interval: TimeDelta = Field(
-        default=TimeDelta(days=1), description='failure_interval_help',
+    # ★★ 台账 7.3: `failure_interval` → `retry_interval` ★★
+    #
+    # 为什么改名: 它的语义是"**失败后隔多久重试**"（退避重试）,
+    # 与"资源补充"无关（台账 7.6「次数与冷却解耦」）。旧名 `failure_interval`
+    # 容易与 `success_interval`(轮询节奏) 混淆。
+    #
+    # ## ★ 为什么必须带 `validation_alias`
+    #
+    # `Scheduler.model_config = {}` -> pydantic v2 **默认 `extra='ignore'`**。
+    # 实测: 给改名后的模型传旧键 `failure_interval`, **不报错、也不生效**
+    # —— 会被静默忽略, 于是**磁盘上 54 个配置里的该字段全部失效**。
+    #
+    # 影响不只是"回落默认值": **8 个任务覆盖了它**
+    # （`KekkaiActivation` 10 小时 · `KekkaiUtilize`/`TalismanPass` 6 小时 ·
+    #  `FloatParade`/`Secret`/`WeeklyTrifles` 3~7 天 …）——
+    # 静默忽略会让它们的失败重试节奏**悄悄变成默认 1 天**。
+    #
+    # `validation_alias` 让**读**时接受旧名（不用迁移任何配置文件）。
+    #
+    # ★ **不设 `serialization_alias`** —— 让写到磁盘时用**新名**
+    #   `retry_interval`。这样旧配置在第一次 `save()` 后**自然迁移**到新名,
+    #   不需要单独的迁移脚本。（设了 `serialization_alias` 会让 dump 出旧名,
+    #   旧名永远留着 —— 实测 `model_dump()` 的键会变成 `failure_interval`。）
+    retry_interval: TimeDelta = Field(
+        default=TimeDelta(days=1), description='retry_interval_help',
+        validation_alias=AliasChoices('retry_interval', 'failure_interval'),
         json_schema_extra={'internal': True})
     server_update: Time = Field(
         default=Time(hour=9, minute=0, second=0), description='server_update_help',

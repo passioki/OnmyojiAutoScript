@@ -10,7 +10,7 @@ from tasks.Component.config_base import ConfigBase, TimeDelta
 
 class Scheduler(BaseScheduler):
     success_interval: TimeDelta = Field(default=TimeDelta(days=3), description='success_interval_help')
-    failure_interval: TimeDelta = Field(default=TimeDelta(days=3), description='failure_interval_help')
+    retry_interval: TimeDelta = Field(default=TimeDelta(days=3), description='retry_interval_help')
 
 class LevelReward(str, Enum):
     ONE = '蛇皮/青吉鬼'

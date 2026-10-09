@@ -12,8 +12,8 @@ class Scheduler(BaseScheduler):
     success_interval: TimeDelta = Field(
         default=TimeDelta(days=7), description='success_interval_help'
     )
-    failure_interval: TimeDelta = Field(
-        default=TimeDelta(days=7), description='failure_interval_help'
+    retry_interval: TimeDelta = Field(
+        default=TimeDelta(days=7), description='retry_interval_help'
     )
 
 

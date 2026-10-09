@@ -35,7 +35,7 @@ USER_FACING = {'enable', 'priority', 'target', 'expected_minutes'}
 INTERNAL = {
     'next_run',          # 软件内部状态; 用户改它只会把排期弄乱
     'success_interval',  # 旧模型把"游戏补充规则"压扁成"用户轮询间隔"
-    'failure_interval',  # 同上（退避重试）
+    'retry_interval',    # 同上（退避重试）; 台账 7.3 已改名
     'server_update',     # 服务器维护顺延
     'delay_date',        # 同上
     'float_time',        # 随机抖动

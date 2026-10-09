@@ -24,7 +24,7 @@ class GreenMarkType(str, Enum):
 class TrueOrochiScheduler(Scheduler):
     priority: int = Field(default=10, description='priority_help')
     success_interval: TimeDelta = Field(default=TimeDelta(days=3), description='success_interval_help')
-    failure_interval: TimeDelta = Field(default=TimeDelta(days=1), description='failure_interval_help')
+    retry_interval: TimeDelta = Field(default=TimeDelta(days=1), description='retry_interval_help')
 
 class TrueOrochiConfig(BaseModel):
     find_true_orochi: bool = Field(default=True, description='find_true_orochi_help')

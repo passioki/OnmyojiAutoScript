@@ -226,8 +226,11 @@ class _ConfigModelBase(ConfigBase):
                     properties = schema2['definitions']['Scheduler']['properties']
                     if 'success_interval' in properties:
                         properties['success_interval']['type'] = 'string'
-                    if 'failure_interval' in properties:
-                        properties['failure_interval']['type'] = 'string'
+                    # ★ 台账 7.3: 字段已改名 `failure_interval` -> `retry_interval`。
+                    #   这里按**新名**取; 为兼容用旧名生成 schema 的情况, 两个都试。
+                    for _name in ('retry_interval', 'failure_interval'):
+                        if _name in properties:
+                            properties[_name]['type'] = 'string'
         return json.dumps(schema2)
 
     def gui_task(self, task: str) -> str:

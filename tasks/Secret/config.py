@@ -11,7 +11,7 @@ from tasks.Component.SwitchSoul.switch_soul_config import SwitchSoulConfig
 
 class Scheduler(BaseScheduler):
     success_interval: TimeDelta = Field(default=TimeDelta(days=7), description='success_interval_help')
-    failure_interval: TimeDelta = Field(default=TimeDelta(days=7), description='failure_interval_help')
+    retry_interval: TimeDelta = Field(default=TimeDelta(days=7), description='retry_interval_help')
 
 class SecretConfig(BaseModel):
     secret_gold_50: bool = Field(title='Secret Gold 50', default=False, description='secret_gold_50_help')

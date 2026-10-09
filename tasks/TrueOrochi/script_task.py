@@ -207,7 +207,7 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
             next_run = now + self.config.true_orochi.scheduler.success_interval
         else:
             logger.info('Battle skipped or not found True Orochi')
-            next_run = now + self.config.true_orochi.scheduler.failure_interval
+            next_run = now + self.config.true_orochi.scheduler.retry_interval
         next_run_year, next_run_week_number, next_run_weekday = next_run.isocalendar()
         # 如果下次运行的时间是下一周，那么就重置成功次数
         if now_week_number != next_run_week_number:

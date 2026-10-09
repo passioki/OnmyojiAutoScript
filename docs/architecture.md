@@ -1575,7 +1575,7 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 |---|---|---|---|
 | 7.1 | **删字段**：`success_interval` / `charge_*` / `next_run` 不再是**配置项** | ✅ **已达成（方式: 从界面隐藏, 非从模型删除）** | `Scheduler` 模型仍有 16 个字段（`task_delay` 要落盘 `next_run`、`_skip_by_period` 要读 `period`/`reset_at` —— 删了会崩）; 但 `merge_value` 按 `json_schema_extra={'internal': True}` 过滤, **界面只剩 4 个**: `enable`/`priority`/`target`/`expected_minutes`。守卫: `tests/module/config/test_user_config_surface.py`（16 个测试）|
 | 7.2 | 游戏知识只放 catalog，不在 54 个配置界面暴露 | ✅ | `TaskSpec` 承载 `category` / `auto_queue` / `window` / `resource`, 各任务自己的 `meta.py` |
-| 7.3 | `failure_interval` → `retry_interval` | ⬜ **未做（虚报）** | 字段名仍叫 `failure_interval`（`config_scheduler.py`）; 全库搜 `retry_interval` 得 0 处 |
+| 7.3 | `failure_interval` → `retry_interval` | ✅ **已完成（带向后兼容别名）** | 字段改名, 且加 `validation_alias=AliasChoices(...)` —— 因为 `Scheduler.model_config = {}` 让 pydantic v2 **默认 `extra='ignore'`**, 实测给改名后的模型传**旧键不报错也不生效**, 会让**磁盘上 54 个配置里的该字段静默失效**; 而 **8 个任务覆盖了它**（`KekkaiActivation` 10 小时等）—— 丢失后重试节奏会悄悄变默认 1 天。**不设** `serialization_alias`, 于是写盘用新名, 旧配置首次 `save()` 后**自然迁移**。实测 `kekkai_activation.retry_interval = 10:00:00` 保住 |
 | 7.4 | **删除**曾提的 `scheduler_v2` 开关（技术债） | ✅ | `config.py` / `config_scheduler.py` / `config_model.py` 里搜 `scheduler_v2` → **0 处**（本会话唯一一条原本就属实的）|
 | 7.5 | 核心抽象只有 `Resource` + `RunState` | 🔄 **部分（曾虚报）** | `resource.py`(364 行) / `scheduler_core.py`(291 行) 早已写好, 但**从没被调度器调用**（在 `config.py`/`script.py` 搜 `next_available\|Resource\|RunState` 得 **0 处**）。2026-10-10 已接线: `Config._next_run_from_resource()` 调 `next_available()`; 守卫 `test_task_window.py::TestResourceWiring`。**但 `next_run` 仍是落盘字段** —— 完全"纯函数化"未做 |
 | 7.6 | 「次数」与「冷却」**解耦** | ✅ | 失败走 `failure_interval`（退避重试）, 与资源补充无关; `_next_run_from_resource()` 只处理成功路径 |
@@ -1737,7 +1737,7 @@ grep -rn 'custom_next_run' tasks/*/script_task.py
 | # | 项 | 状态 | 说明 |
 |---|---|---|---|
 | 13.2.1 | 台账 9.6 逢魔之时时段落进 `meta.py` | ✅ **已完成** | `DemonEncounter/meta.py` 加 `window=AvailabilityWindow(True, 17:00, 23:00)`。依据是**任务代码** `check_time()`（`<17` 太早 / `>=23` 太晚）。<br>⚠ 该方法的 **docstring 写"17:00到22:00"是过时注释**, 代码实际用 23 —— **以代码为准**（已核对 L647/L653）。<br>实测: 17:00/18:00/22:00 不变; 16:00 → 当天 17:00; **23:00 → 次日 17:00**。带 window 的任务 **7 → 8**。守卫 `TestDemonEncounterWindow`（5 个）|
-| 13.2.2 | 台账 7.3 `failure_interval → retry_interval` 重命名 | ⛔ **阻塞（需决策）** | **影响面比预想大**: 全库 25 处, 其中**磁盘上 54 个任务的 `scheduler` 里都有该字段**; 另有 8 个任务的 `config.py` **覆盖**它、3 处任务代码**直接读取**它（`Dokan` L946/953 · `TrueOrochi` L210）。<br>重命名会让**既有配置里该字段变成未知** -> **有破坏用户配置的风险**。需决定是否一并做配置迁移 |
+| 13.2.2 | 台账 7.3 `failure_interval → retry_interval` 重命名 | ✅ **已完成** | 用 `validation_alias` 读旧名 + 不设 `serialization_alias` 写新名 —— **不需要迁移任何配置文件**, 旧配置首次 `save()` 后自然迁移。影响面核查: 全库 25 处; `Function` **不读**该字段（只读 enable/next_run/priority/window）; 3 处任务代码读取（`Dokan`/`TrueOrochi`）已同步改名; 8 个任务的 `config.py` 覆盖点已同步 |
 | 13.2.3 | 台账 9.5 `ObservedWindow` 自学习接进调用 | ⬜ | 类已实现（`availability.py`）, 全库无调用者。要接需要"记录每次成功时刻"的钩子, 属新功能 |
 | 13.2.4 | `charge_*` 字段**真正删除**（现仅从界面隐藏）| ⬜ | 需先核实任务自己的存量簿记与 `Resource.recharge` 是否等价（**不能猜**）|
 | 13.2.5 | 4-G 测试重写 | ⬜ | 预计 200-300 个既有测试需适配 |

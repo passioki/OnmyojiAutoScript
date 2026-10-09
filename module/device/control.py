@@ -80,8 +80,10 @@ class Control(Minitouch, Adb, Scrcpy, Window):
         if control_check:
             self.handle_control_check(control_name)
         x, y = ensure_int(x, y)
+        # ★ 中文输出（用户反馈"日志也最好用中文"）。
+        #   `Click` 是全日志**最高频**的一条（一次 7 小时运行 1500+ 行）。
         logger.info(
-            'Click %s @ %s' % (point2str(x, y), control_name)
+            '点击 %s @ %s' % (point2str(x, y), control_name)
         )
         method = self.click_methods.get(
             self.config.script.device.control_method,
@@ -163,20 +165,21 @@ class Control(Minitouch, Adb, Scrcpy, Window):
         p1, p2 = ensure_int(p1, p2)
         duration = ensure_time(duration)
         method = self.config.script.device.control_method
+        # ★ 中文输出（用户反馈"日志也最好用中文"）。`Swipe` 也是高频项。
         if method == 'minitouch':
-            logger.info('Swipe %s -> %s' % (point2str(*p1), point2str(*p2)))
+            logger.info('滑动 %s -> %s' % (point2str(*p1), point2str(*p2)))
         elif method == 'window_message':
-            logger.info('Swipe %s -> %s' % (point2str(*p1), point2str(*p2)))
+            logger.info('滑动 %s -> %s' % (point2str(*p1), point2str(*p2)))
         elif method == 'uiautomator2':
-            logger.info('Swipe %s -> %s, %s' % (point2str(*p1), point2str(*p2), duration))
+            logger.info('滑动 %s -> %s, %s' % (point2str(*p1), point2str(*p2), duration))
         elif method == 'scrcpy':
-            logger.info('Swipe %s -> %s' % (point2str(*p1), point2str(*p2)))
+            logger.info('滑动 %s -> %s' % (point2str(*p1), point2str(*p2)))
         # elif method == 'MaaTouch':
-        #     logger.info('Swipe %s -> %s' % (point2str(*p1), point2str(*p2)))
+        #     logger.info('滑动 %s -> %s' % (point2str(*p1), point2str(*p2)))
         else:
             # ADB needs to be slow, or swipe doesn't work
             duration *= 2.5
-            logger.info('Swipe %s -> %s, %s ' % (point2str(*p1), point2str(*p2), duration))
+            logger.info('滑动 %s -> %s, %s ' % (point2str(*p1), point2str(*p2), duration))
 
         if distance_check:
             if p1[0] == p2[0]:

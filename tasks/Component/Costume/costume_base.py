@@ -130,7 +130,9 @@ class CostumeBase:
     def check_costume_main(self, main_type: MainType):
         if main_type == MainType.COSTUME_MAIN:
             return
-        logger.info(f'Switch main costume to {main_type} ({I18n.trans_zh_cn(main_type)})')
+        # ★ 中文输出（用户反馈"日志也最好用中文"）。
+        #   这条一次 7 小时运行出现 138 次; 中文名本来就有（`I18n.trans_zh_cn`）。
+        logger.info(f'切换主界面式神/御灵为 {I18n.trans_zh_cn(main_type)}')
         costume_assets = CostumeAssets()
         for key, value in main_costume_model[main_type].items():
             if isinstance(value, list):

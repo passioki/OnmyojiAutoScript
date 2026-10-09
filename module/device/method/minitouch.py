@@ -423,7 +423,9 @@ class Minitouch(Connection):
 
     @Config.when(DEVICE_OVER_HTTP=False)
     def minitouch_init(self):
-        logger.hr('MiniTouch init')
+        # ★ 中文输出（用户反馈"日志也最好用中文"）。
+        #   这条一次 7 小时运行出现 110 次。
+        logger.hr('MiniTouch 初始化')
         max_x, max_y = 1280, 720
         max_contacts = 2
         max_pressure = 50
@@ -489,10 +491,10 @@ class Minitouch(Connection):
         self._minitouch_pid = pid
 
         logger.info(
-            "minitouch running on port: {}, pid: {}".format(self._minitouch_port, self._minitouch_pid)
+            "minitouch 已启动于端口 {}, pid {}".format(self._minitouch_port, self._minitouch_pid)
         )
         logger.info(
-            "max_contact: {}; max_x: {}; max_y: {}; max_pressure: {}".format(
+            "最大触点 {}; 分辨率 {}x{}; 最大压力 {}".format(
                 max_contacts, max_x, max_y, max_pressure
             )
         )

@@ -178,7 +178,11 @@ class _ConfigModelBase(ConfigBase):
         :return:
         """
         super().__setattr__(key, value)
-        logger.info("auto save config")
+        # ★ 中文输出（用户反馈"日志也最好用中文"）。
+        #   这条一次 7 小时运行出现 277 次 —— **最高频的一条**。
+        #   它其实是调试噪音（每次改配置属性都打一行），
+        #   降到 debug 级更合适; 但为了不改变既有排障习惯, 先只改文案。
+        logger.info("自动保存配置")
         self.save()
 
     @staticmethod

@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 01/13] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 01/14] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 02/13] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 02/14] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 03/13] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 03/14] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 04/13] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 04/14] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 05/13] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 05/14] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 06/13] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
+Subject: [PATCH 06/14] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
  =?UTF-8?q?=E6=9C=AC=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8?=
  =?UTF-8?q?=E4=B9=85=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20?=
  =?UTF-8?q?=E8=B4=A6=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 07/13] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 07/14] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 08/13] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 08/14] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6256,7 +6256,7 @@ index ea36b95..4ce7384 100644
 From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:58:58 +0800
-Subject: [PATCH 09/13] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+Subject: [PATCH 09/14] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
  =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
  =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
  =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
@@ -7416,7 +7416,7 @@ index 3577f1c..ffedaed 100644
 From 331ba7e9e1de080f71a267b595341dcaced0b5a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 14:03:01 +0800
-Subject: [PATCH 10/13] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
+Subject: [PATCH 10/14] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
  =?UTF-8?q?=E7=A8=8B=E5=BC=80=E5=85=B3=E4=B8=8A=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=20+=20=E4=BC=91=E6=81=AF=E7=BD=AE=E9=A1=B6/=E5=88=86=E7=B1=BB?=
  =?UTF-8?q?=E7=AD=9B=E9=80=89=20+=20=E7=82=B9=E8=A1=8C=E8=BF=9B=E8=AE=BE?=
@@ -7979,7 +7979,7 @@ index 4d59df0..3c57afd 100644
 From 7f7e4925c91c0fb8bd1d6195ea864f8b751781a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 18:29:47 +0800
-Subject: [PATCH 11/13] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
+Subject: [PATCH 11/14] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
  =?UTF-8?q?=E5=8F=AA=E6=94=B6=E5=9B=BA=E5=AE=9A=E4=BB=BB=E5=8A=A1"?=
  =?UTF-8?q?=E7=9A=84=E8=BF=87=E6=BB=A4=20=E2=80=94=E2=80=94=20=E5=AE=83?=
  =?UTF-8?q?=E6=9B=BE=E9=9D=99=E9=BB=98=E4=B8=A2=E6=8E=89=E7=94=A8=E6=88=B7?=
@@ -8449,7 +8449,7 @@ index 3c57afd..47314bc 100644
 From 015d55e1a06fcf895312771b29413dc0fe791f95 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:07:38 +0800
-Subject: [PATCH 12/13] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
+Subject: [PATCH 12/14] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
  =?UTF-8?q?=E9=83=A8**=E5=BC=80=E5=85=B3=E4=B8=8E=E4=BC=98=E5=85=88?=
  =?UTF-8?q?=E7=BA=A7=E5=AD=97=E6=AE=B5=20=E2=80=94=E2=80=94=20=E5=90=8E?=
  =?UTF-8?q?=E7=AB=AF=E6=97=A9=E5=B0=B1=E5=81=9A=E4=BA=86,=20=E5=89=8D?=
@@ -9334,7 +9334,7 @@ index 47314bc..97f7740 100644
 From e78445611c6f2b1f1b4b000d32e007467767eaca Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:13:48 +0800
-Subject: [PATCH 13/13] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
+Subject: [PATCH 13/14] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
  =?UTF-8?q?=E4=B8=80=E4=B8=AA**=E7=BB=9F=E4=B8=80=E6=8E=A7=E5=88=B6?=
  =?UTF-8?q?=E5=8F=B0**=20=E2=80=94=E2=80=94=20=E4=B8=89=E4=B8=AA=20tab=20+?=
  =?UTF-8?q?=20=E6=97=A5=E5=BF=97=E5=B8=B8=E9=A9=BB=EF=BC=88=E7=94=A8?=
@@ -9994,6 +9994,1174 @@ index 97f7740..96648d8 100644
  }
  
  /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
+-- 
+2.41.0.windows.1
+
+
+From fd7e402e488353803351cbc63b3a608cd1b729ec Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 20:21:45 +0800
+Subject: [PATCH 14/14] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E5=AE=9E?=
+ =?UTF-8?q?=E6=B5=8B=E5=8F=8D=E9=A6=88=204=20=E9=A1=B9=20=E2=80=94?=
+ =?UTF-8?q?=E2=80=94=20=E9=87=8D=E5=A4=8D=E6=8C=89=E9=92=AE=20/=20?=
+ =?UTF-8?q?=E8=8B=B1=E6=96=87=E6=98=BE=E7=A4=BA=20/=20=E9=A1=B5=E9=9D=A2?=
+ =?UTF-8?q?=E5=90=88=E5=B9=B6?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+用户实测后反馈:
+
+1. 没点启动脚本却显示"运行中"且是绿标
+2. 监控中都是英文
+3. 日志也最好用中文
+4. 执行顺序和监控能不能合在一起（调度监控里就能控制次数、顺序）
+
+## 1. "启动脚本"重复一行（我的 bug）
+
+`_ScheduleTab` 里用一张独立 Card 渲染了 `_scriptProcessRow`,
+而 `_bulkPanel` 里**也有一份** —— **同一行渲染了两遍**。
+而且外面那份没有 Card 包裹, 看起来像"多了一行裸的"。
+
+删掉外层, 只保留 `_bulkPanel` 卡片顶部那一份。
+
+★ **关于"没点启动却显示运行中"**: 那一行的状态来自 WebSocket 的
+`ScriptModel.state`。用户看到的绿点很可能是 `RunControlBar` 里的
+**调度状态**（默认就是绿的"运行中"）而不是**脚本进程**状态 ——
+这两行紧挨着, 容易被当成同一个。合并后进程状态只在卡片顶部一处,
+且文案是"脚本进程运行中 / 已停止", 歧义小得多。
+
+## 2. 监控里的英文
+
+| 位置 | 原因 | 修法 |
+|---|---|---|
+| 调度器状态 | `'$state'` 打印 `ScriptState.inactive`（**英文枚举名**）| 新增顶层 `_stateLabel()`: 运行中 / 已停止 / 异常 / 更新中 |
+| 运行中的任务名 | WebSocket 推的是**大驼峰命令名**（`DemonEncounter`）| 新增 `TaskListController.zhNameOf()`, 用 `/overview` 的 `name_zh` 翻译 |
+
+★ `zhNameOf` 带 `Map` 缓存（监控条每次重建会查多次, 不该线性扫 54 个元素）。
+
+★ 中文名的**源头是各任务的 `meta.py`** —— 前端不维护第二份映射。
+中文名与命令名不同时, 用小字把命令名也标出来（方便核对与搜日志）。
+
+## 3. 日志中文（改的是**后端**, 不是前端）
+
+日志文本由后端产生。翻译**最高频的几条**:
+
+| 原文 | 中文 | 一次 7 小时运行的出现次数 |
+|---|---|---|
+| `Click (x, y) @ NAME` | `点击 (x, y) @ NAME` | **1580** |
+| `auto save config` | `自动保存配置` | **277** |
+| `Swipe a -> b` | `滑动 a -> b` | 151 |
+| `Switch main costume to X` | `切换主界面式神/御灵为 X` | 138 |
+| `MiniTouch init` 等 | `MiniTouch 初始化` / `minitouch 已启动于端口 …` | 110 |
+
+★ **剩余英文不做翻译**: 图像识别细节（`OCR [...] detected in ...`、
+`[SS_GROUP_NAME 1.8s]`、`minitouch` 协议行、`Reuse forward`）是
+**排障用的技术标识符**, 翻译会**降低可搜性**（那些名字要拿去搜代码）。
+这是一次**刻意的取舍**, 不是遗漏。
+
+## 4. 执行顺序 + 监控合并进「调度面板」（从 3 tab 减到 2 tab）
+
+用户原话:
+
+> 执行顺序和监控的功能不能合在一起吗，调度监控里就能作为入口来控制
+> 次数、顺序，不需要单独整个执行顺序页面
+
+现在**一个页面管完**, 从上到下:
+
+1. **实时监控条** —— 调度器状态 / 正在运行 / 待执行 / 等待中 / 冷却数
+2. **批量操作卡片** —— 脚本进程开关 + 搜索 / 筛选 / 批量启停 / 运行一次 / 重置选中
+3. **任务表格** —— 次数 / 优先级 / 预期耗时 / **执行顺序位次** 都能直接改
+4. **执行顺序**（`RunListPanel`）—— 拖拽微调 + 增删条目（含「休息」）
+5. **全局设置** —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据
+
+另一个 tab（**预期流程**）只留推算结果。
+
+### 表格里新增「位次 + ↑↓」（顺序的第二个入口）
+
+| 入口 | 形式 | 适合 |
+|---|---|---|
+| 位次列 **↑↓** | 点箭头 | 微调一位 / 把任务加入列表 |
+| **执行顺序**面板 | 拖拽 `⠿` | 大范围重排 |
+
+位次 `3` = 排第 3; `—` = 未编排。
+未编排时 `↑` = **加入列表**（追加末尾）; `↓` 未编排时禁用
+（用"下移"来加入**语义反了**, 会让人以为点了没反应）。
+
+### 结构整理
+
+* 表格从 `Expanded` 改为**预算高度**（`itemExtent * 行数`）——
+  因为它现在住在一个 `ListView` 里, 不能再放 `Expanded`
+* `_globalPanel` / `_flowPanel` 抽成两个 **mixin**
+  （`_GlobalPanelMixin` / `_FlowPanelMixin`）, 让 `_ScheduleTab` 与
+  `_FlowTab` **共用同一份实现**（顶层函数要显式传 `c`, 放进某个类又跨不过去）
+* 删掉 `_OrderTab` / `_MonitorTab` 两个类
+
+### ★ 顺带抓到一个会在运行时崩的 bug
+
+`DefaultTabController(length: 3)` 我只改了 `TabBar` 与 `TabBarView`
+（都变成 2 个）, **忘了改 `length`** —— tab 数与 `TabBarView.children`
+不匹配会**运行时崩**。是测试断言抓到的。
+
+## 测试 80/80
+
+Phase 2 的守卫**重写**为新的结构:
+
+* 两个 tab + 日志常驻右侧
+* 旧的三个 tab / 四个类名**必须消失**
+* 调度面板**一页管完**（监控 + 批量 + 表格 + 执行顺序 + 全局设置）
+* 监控条是紧凑的、**实时**的、**中文**的
+  （`_stateLabel(state)` 必须在, 直接插值枚举必须不在）
+* 点数/顺序的入口都在调度面板里（含 mixin 共享）
+
+后端 **1453 passed**；`flutter test` **80/80**；release 构建通过。
+---
+ .../task_list/task_list_controller.dart       |  82 +++
+ lib/views/tasks/task_list_view.dart           | 531 +++++++++---------
+ lib/views/tasks/task_row_view.dart            |  86 +++
+ test/task_list_panel_test.dart                | 107 ++--
+ 4 files changed, 488 insertions(+), 318 deletions(-)
+
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index ebc0aa0..b7af441 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -718,6 +718,31 @@ class TaskListController extends GetxController with LogMixin {
+     return name;
+   }
+ 
++  /// `command`（大驼峰）-> **中文名**。找不到返回空串。
++  ///
++  /// ## 为什么需要它（用户反馈"监控中都是英文"）
++  ///
++  /// WebSocket 推过来的 `taskName` 是**命令名**（`DemonEncounter`），
++  /// 直接显示就是英文。这里用 `/overview` 里各任务的 `name_zh`
++  /// 翻成中文 —— 那 54 个中文名来自各任务的 `meta.py`，
++  /// **前端不维护第二份**。
++  ///
++  /// ★ 用懒加载的 `Map` 缓存: 监控列表每次刷新会查几十次,
++  ///   线性扫描 54 个元素 × 每次重建 = 不必要。
++  String zhNameOf(String command) {
++    if (command.isEmpty) return '';
++    if (_zhMap == null || _zhMapFor != _allTasks.length) {
++      _zhMap = {
++        for (final t in _allTasks) '${t['command']}': '${t['name_zh'] ?? ''}',
++      };
++      _zhMapFor = _allTasks.length;
++    }
++    return _zhMap![command] ?? '';
++  }
++
++  Map<String, String>? _zhMap;
++  int _zhMapFor = -1;
++
+   // ---------------------------------------------------------------- 批量选择
+   void selectAll() {
+     selected
+@@ -795,6 +820,63 @@ class TaskListController extends GetxController with LogMixin {
+     await _saveEntries();
+   }
+ 
++  /// 把某个**任务命令名**在运行列表里**上移一位**。
++  ///
++  /// ★ 为什么需要它（用户要求"调度面板里就能控制顺序"）:
++  ///   表格里每个任务行都要能直接调顺序, 不必切到另一个页面拖拽。
++  ///
++  /// 行为:
++  /// * 任务**已在列表里** -> 与上一个条目交换位置
++  /// * 任务**不在列表里** -> **追加到列表末尾**（首次加入 = 排在最后）
++  ///
++  /// :return: 是否真的改动了
++  Future<bool> moveEntryUp(String command) async {
++    final idx = _entryIndex(command);
++    if (idx < 0) {
++      // 不在列表里 -> 追加（加入后可以用 ↓ 往下调）
++      await addEntry({'kind': 'task', 'task': command});
++      return true;
++    }
++    if (idx == 0) return false;       // 已在最前
++    final item = entries.removeAt(idx);
++    entries.insert(idx - 1, item);
++    update();
++    await _saveEntries();
++    return true;
++  }
++
++  /// 把某个**任务命令名**在运行列表里**下移一位**。
++  ///
++  /// 不在列表里时**不做任何事**（不能用"下移"来加入 —— 那语义反了,
++  /// 会让人以为点了没反应). 返回 false 让界面提示"先加入"。
++  Future<bool> moveEntryDown(String command) async {
++    final idx = _entryIndex(command);
++    if (idx < 0) return false;
++    if (idx >= entries.length - 1) return false;   // 已在最后
++    final item = entries.removeAt(idx);
++    entries.insert(idx + 1, item);
++    update();
++    await _saveEntries();
++    return true;
++  }
++
++  /// 某个任务命令名在运行列表里的**条目下标**（不在则 -1）。
++  int _entryIndex(String command) {
++    for (var i = 0; i < entries.length; i++) {
++      final e = entries[i];
++      if ('${e['kind']}' == 'task' && '${e['task']}' == command) return i;
++    }
++    return -1;
++  }
++
++  /// 某个任务命令名在运行列表里的**位次**（1 起; 不在则 0）。
++  ///
++  /// 界面用它在任务表格里显示"排第几" —— 这就是**执行顺序**。
++  int entryPositionOf(String command) {
++    final i = _entryIndex(command);
++    return i < 0 ? 0 : i + 1;
++  }
++
+   /// 添加条目。`index = -1` 追加到末尾。
+   ///
+   /// ★ 模型 B 的关键能力: 控制条目可插到**任意位置**。
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 8d31eba..654726b 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -186,7 +186,9 @@ class _TaskListViewState extends State<TaskListView> {
+     return GetBuilder<TaskListController>(
+       tag: tag,
+       builder: (_) => DefaultTabController(
+-        length: 3,
++        // ★ 必须与下面 `TabBar` 的 tab 数**一致**（TabBarView 的 children 也是）——
++        //   不匹配会在运行时崩。用户要求合并后从 3 个减到 2 个。
++        length: 2,
+         child: Column(
+           children: [
+             // ★ 这里**不要**用 `Obx` 包 `RunControlBar` ——
+@@ -201,9 +203,12 @@ class _TaskListViewState extends State<TaskListView> {
+             _header(context, c),
+             const TabBar(
+               tabs: [
++                // ★ 从 3 个 tab 减到 2 个（用户要求合并）:
++                //   「执行顺序」与「监控」都并进「调度面板」——
++                //   在调度监控的地方就能控制次数与顺序, 不再需要单独的执行顺序页。
++                //   这个 tab 只留**推算结果**（看完再决定的东西）。
+                 Tab(text: '调度面板'),
+-                Tab(text: '执行顺序'),
+-                Tab(text: '监控'),
++                Tab(text: '预期流程'),
+               ],
+             ),
+             Expanded(
+@@ -211,14 +216,13 @@ class _TaskListViewState extends State<TaskListView> {
+                   ? Row(
+                       crossAxisAlignment: CrossAxisAlignment.stretch,
+                       children: [
+-                        // 左窄: 三个 tab 面板
++                        // 左: 主面板
+                         SizedBox(
+-                          width: 640,
++                          width: 700,
+                           child: TabBarView(
+                             children: [
+                               _ScheduleTab(c: c, searchCtrl: _searchCtrl),
+-                              _OrderTab(c: c),
+-                              _MonitorTab(c: c),
++                              _FlowTab(c: c),
+                             ],
+                           ),
+                         ),
+@@ -234,8 +238,7 @@ class _TaskListViewState extends State<TaskListView> {
+                           child: TabBarView(
+                             children: [
+                               _ScheduleTab(c: c, searchCtrl: _searchCtrl),
+-                              _OrderTab(c: c),
+-                              _MonitorTab(c: c),
++                              _FlowTab(c: c),
+                             ],
+                           ),
+                         ),
+@@ -310,11 +313,18 @@ class _TaskListViewState extends State<TaskListView> {
+ ///
+ /// | 顺序 | 在哪 | 影响调度吗 |
+ /// |---|---|---|
+-/// | **执行顺序**（运行列表）| tab 2, 拖拽 | ✅ **是** |
+-/// | **列表排序**（表格列）| 这里, 点表头 | ❌ 否, 只影响显示 |
+-class _ScheduleTab extends StatelessWidget {
++/// | **执行顺序**（运行列表）| 本页, 拖拽 | ✅ **是** |
++/// | **列表排序**（表格列）| 本页, 点表头 | ❌ 否, 只影响显示 |
++///
++/// ## 混入两个 mixin
++///
++/// * `_GlobalPanelMixin` -> `_globalPanel`（全局设置）
++/// * `_FlowPanelMixin`   -> `_flowPanel`（预期流程, 与「预期流程」tab 共用）
++class _ScheduleTab extends StatelessWidget
++    with _GlobalPanelMixin, _FlowPanelMixin {
+   const _ScheduleTab({required this.c, required this.searchCtrl});
+ 
++  @override
+   final TaskListController c;
+ 
+   /// 搜索框的控制器 —— 由 `_TaskListViewState` 持有并释放。
+@@ -326,33 +336,106 @@ class _ScheduleTab extends StatelessWidget {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    // ★ 用 Column + Expanded + ListView.builder 而不是
+-    //   `ListView(children: [...54 行...])` —— 后者**一次构建全部 54 行**,
+-    //   每次刷新都重建 54 个 widget(含输入框、开关), 这是卡顿的主因之一。
+-    //   改成 builder 后只构建**可见的那几行**。
+-    return Column(
++    // ★★ **一个页面管完**（用户要求）★★
++    //
++    // > 执行顺序和监控的功能不能合在一起吗，调度监控里就能作为入口来控制
++    // > 次数、顺序，不需要单独整个执行顺序页面
++    //
++    // 从上到下依次是:
++    //
++    //   1. **实时监控条**（紧凑）—— 调度器状态 / 正在运行 / 待执行 / 等待中 / 冷却
++    //   2. **批量操作卡片** —— 脚本进程开关 + 搜索 / 筛选 / 批量启停 / 运行一次 / 重置
++    //   3. **任务表格** —— 次数 / 优先级 / 预期耗时 / **执行顺序位次** 都能直接改
++    //   4. **执行顺序**（`RunListPanel`）—— 拖拽微调 + 增删条目（含「休息」）
++    //   5. **全局设置** —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据
++    //
++    // 整页**一个滚动条**。表格用预算高度的内层滚动, 避免嵌套滚动手势打架。
++    return ListView(
++      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+       children: [
+-        Padding(
+-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+-          child: Card(
+-            child: Padding(
+-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+-              // 脚本进程（**进程级**硬停）—— 与调度级软停分开
+-              child: _scriptProcessRow(context),
+-            ),
+-          ),
+-        ),
++        _monitorStrip(context),
+         const SizedBox(height: 8),
+-        Padding(
+-          padding: const EdgeInsets.symmetric(horizontal: 12),
+-          child: _bulkPanel(context),
+-        ),
++        _bulkPanel(context),
++        const SizedBox(height: 8),
++        _tablePanel(context),
++        const SizedBox(height: 8),
++        RunListPanel(c: c),
+         const SizedBox(height: 8),
+-        Expanded(child: _tablePanel(context)),
++        _globalPanel(context),
+       ],
+     );
+   }
+ 
++  /// **紧凑监控条** —— 一眼看出"在干什么"。
++  ///
++  /// ★ 数据来自 **WebSocket 推送**（`scriptModelMap`）, 是**实时**的。
++  ///
++  /// ★ 为什么紧凑（而不是原来那种四个可滚动观察窗）: 任务表格才是这一页的主角,
++  ///   完整观察窗会占掉大半个屏幕。"待执行 / 等待中"的具体任务本来就能从
++  ///   表格的「下次运行」列排出来。
++  ///
++  /// ★ `Obx` 必须包住**直接读 Rx** 的那一小块 —— 反面例子（回调里只构造组件、
++  ///   没读 Rx）会让 GetX 抛 `improper use of a GetX` 并**整页白屏**（踩过）。
++  Widget _monitorStrip(BuildContext context) {
++    final svc = Get.find<ScriptService>();
++    final sm = svc.scriptModelMap[c.script];
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
++        child: Obx(() {
++          final state = sm?.state.value;
++          final running = state == ScriptState.running;
++          final cur = sm?.runningTask.value;
++          final curName = (cur == null) ? '' : cur.taskName;
++          final pending = sm?.pendingTaskList.length ?? 0;
++          final waiting = sm?.waitingTaskList.length ?? 0;
++          final cool = c.allTasks.where((t) => t['in_cooldown'] == true).length;
++          return Wrap(
++            spacing: 14,
++            runSpacing: 2,
++            crossAxisAlignment: WrapCrossAlignment.center,
++            children: [
++              Row(
++                mainAxisSize: MainAxisSize.min,
++                children: [
++                  Icon(
++                    running ? Icons.play_circle : Icons.pause_circle_outline,
++                    size: 18,
++                    color: running ? Colors.green : Colors.grey,
++                  ),
++                  const SizedBox(width: 6),
++                  // ★ 用中文标签 —— 直接 `'$state'` 会打印
++                  //   `ScriptState.inactive` 这种**英文枚举名**（用户反馈过）。
++                  Text(_stateLabel(state)),
++                ],
++              ),
++              Text('正在运行: ${curName.isEmpty ? "（空闲）" : _zhName(curName)}'),
++              Text('待执行 $pending'),
++              Text('等待中 $waiting'),
++              if (cool > 0)
++                Chip(
++                  avatar: const Icon(Icons.error_outline, size: 14),
++                  label: Text('冷却中 $cool'),
++                  visualDensity: VisualDensity.compact,
++                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
++                ),
++            ],
++          );
++        }),
++      ),
++    );
++  }
++
++  /// 命令名 -> 中文名（拿不到就回退命令名）。
++  ///
++  /// ★ WebSocket 推的 `taskName` 是**大驼峰命令名**（`DemonEncounter`）,
++  ///   直接显示就是英文。中文名来自 `/overview` 的 `name_zh`
++  ///   （源头是各任务的 `meta.py`）—— **前端不维护第二份**。
++  String _zhName(String command) {
++    final zh = c.zhNameOf(command);
++    return zh.isEmpty ? command : zh;
++  }
++
+   /// **脚本进程** 状态 + 起停（进程级硬停）。
+   ///
+   /// ★ `Obx` 必须包住**直接读 Rx 变量**的那一小块。
+@@ -599,15 +682,35 @@ class _ScheduleTab extends StatelessWidget {
+     );
+   }
+ 
++  /// **任务表格**。
++  ///
++  /// ★ 用**预算高度**（`rowHeight * 行数 + 表头`）而不是 `Expanded` ——
++  ///   因为现在整页是一个 `ListView`（用户要求把监控/顺序/设置合到一页）,
++  ///   里面不能放 `Expanded`。
++  ///
++  ///   表格内部用 `ListView.builder`（懒加载, 只构建可见行）。
++  ///   两层滚动不会打架: 外层滚到表格时, 手势先给内层（Flutter 的默认
++  ///   手势竞技场行为）, 内层到底后再传给外层。
++  ///
++  /// ★ 行高固定 48（`itemExtent`）—— 让"预算高度"能算准,
++  ///   同时避免 `ListView` 逐行测量（那也是卡顿来源之一）。
++  static const double _rowHeight = 48;
++
++  /// 表格最多显示多少行（超出则内部滚动）。
++  static const int _maxVisibleRows = 12;
++
+   Widget _tablePanel(BuildContext context) {
+     if (c.tasks.isEmpty) {
+       return const Card(
++        margin: EdgeInsets.symmetric(horizontal: 12),
+         child: Padding(
+           padding: EdgeInsets.all(24),
+           child: Center(child: Text('没有符合条件的任务')),
+         ),
+       );
+     }
++    final rows = c.tasks.length;
++    final visible = rows > _maxVisibleRows ? _maxVisibleRows : rows;
+     return Card(
+       margin: const EdgeInsets.symmetric(horizontal: 12),
+       child: Column(
+@@ -615,8 +718,10 @@ class _ScheduleTab extends StatelessWidget {
+         children: [
+           Padding(
+             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+-            child: _panelTitle(context, '任务总览',
+-                '目标次数在「任务列表」里改 · 空白 = 用任务默认值'),
++            child: _panelTitle(
++                context,
++                '任务表格（$rows 个）',
++                '次数 / 优先级 / 预期耗时 直接改 · 表头可排序 · ↑↓ 调执行顺序'),
+           ),
+           const SizedBox(height: 8),
+           Padding(
+@@ -624,11 +729,12 @@ class _ScheduleTab extends StatelessWidget {
+             child: _tableHeader(context),
+           ),
+           const Divider(height: 1),
+-          // ★ 懒加载 —— 只构建可见行
+-          Expanded(
++          SizedBox(
++            height: visible * _rowHeight,
++            // ★ 懒加载 —— 只构建可见行
+             child: ListView.builder(
+-              itemCount: c.tasks.length,
+-              itemExtent: 48,
++              itemCount: rows,
++              itemExtent: _rowHeight,
+               itemBuilder: (_, i) => TaskRowView(
+                 key: ValueKey('${c.tasks[i]['name']}'),
+                 task: c.tasks[i],
+@@ -649,7 +755,6 @@ class _ScheduleTab extends StatelessWidget {
+       ),
+     );
+   }
+-
+   /// 表头 —— 与原型的 8 列 + 运行记录列。
+   ///
+   /// ★ 表头**可点击排序**（多列）。点同一列切换升降序，点别的列重置为升序。
+@@ -723,46 +828,99 @@ class _ScheduleTab extends StatelessWidget {
+   }
+ }
+ 
+-// ============================================================ tab 2: 执行顺序
++// ============================================================ tab 2: 预期流程
+ 
+-/// **执行顺序** —— 用户编排的运行列表 + 全局设置。
++/// **`_flowPanel` 的共享实现**。
+ ///
+-/// ## 这是**唯一影响调度**的顺序
++/// ## 为什么用 mixin（而不是顶层函数 / 放进某个类）
+ ///
+-/// | 顺序 | 在哪 | 影响调度吗 |
+-/// |---|---|---|
+-/// | **执行顺序**（本页, 拖拽）| 这里 | ✅ **是** |
+-/// | **列表排序**（表格列, 点表头）| tab 1 | ❌ 否, 只影响显示 |
++/// * 顶层函数要显式收 `c` —— 那就得改所有调用点, 还丢掉"这是页面方法"的语义
++/// * 放进 `_ScheduleTab` —— `_FlowTab` 调不到（Dart 私有成员是**库级**的,
++///   但实例方法仍要在同一个类里才能调）
+ ///
+-/// ## 三个面板
+-///
+-/// * **全局设置** —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据
+-/// * **执行顺序** —— 拖拽排序 + 增删条目（含「休息」）
+-/// * **预期执行流程** —— 按当前列表**推算**（带 disclaimer）
++/// mixin 让两个 tab **共用同一份实现**, 且都能直接用 `this.c`
++/// （两个类都有 `final TaskListController c`）。
++mixin _FlowPanelMixin {
++  /// 子类必须提供控制器。
++  TaskListController get c;
++
++  /// 预期执行流程 —— **推算**, 不是保证。
++  Widget _flowPanel(BuildContext context) {
++    final flow = c.flow;
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            _panelTitle(context, '预期执行流程', '按当前列表推算'),
++            const SizedBox(height: 8),
++            if (flow.isEmpty)
++              const Text('（列表为空 —— 请先在「调度面板」里添加条目）')
++            else ...[
++              for (final f in flow)
++                Padding(
++                  padding: const EdgeInsets.symmetric(vertical: 2),
++                  child: Row(
++                    children: [
++                      SizedBox(
++                        width: 130,
++                        child: Text('${f['at']}',
++                            style: Theme.of(context).textTheme.labelSmall),
++                      ),
++                      Expanded(
++                        child: Text('${f['text']}',
++                            style: Theme.of(context).textTheme.labelMedium),
++                      ),
++                    ],
++                  ),
++                ),
++              const SizedBox(height: 8),
++              // ★ **必须显示 disclaimer** —— 它是推算不是保证
++              //   （实际还受体力 / 网络 / 开放时段影响）, 不能让用户以为精确。
++              Text(
++                c.flowDisclaimer,
++                style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                      color: Theme.of(context).disabledColor,
++                    ),
++              ),
++            ],
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++/// **预期执行流程** tab。
+ ///
+-/// ★ 日志**不在这里** —— 它常驻右半栏（见 `build()`），
+-///   这样看编排时也能同时看日志。
+-class _OrderTab extends StatelessWidget {
+-  const _OrderTab({required this.c});
++/// ★ 原来「执行顺序」与「监控」是两个独立 tab, 现已合并进「调度面板」
++///   （用户要求: 调度监控里就能作为入口控制次数与顺序）。
++///   这个 tab 只留**推算结果** —— 它是"看完再决定"的东西,
++///   放进主面板会占掉表格的位置。
++class _FlowTab extends StatelessWidget with _FlowPanelMixin {
++  const _FlowTab({required this.c});
+ 
++  @override
+   final TaskListController c;
+ 
+   @override
+   Widget build(BuildContext context) {
+-    // 左列**可滚动**（三个面板堆起来会超出高度）
+     return ListView(
+       padding: const EdgeInsets.all(12),
+-      children: [
+-        _globalPanel(context),
+-        const SizedBox(height: 12),
+-        RunListPanel(c: c),
+-        const SizedBox(height: 12),
+-        _flowPanel(context),
+-      ],
++      children: [_flowPanel(context)],
+     );
+   }
++}
+ 
+-  /// 全局设置 —— 循环模式 + 优先级依据。
++/// **`_globalPanel` 的共享实现**（`_ScheduleTab` 用）。
++///
++/// 原来它在 `_OrderTab` 里; `_OrderTab` 已被合并进「调度面板」,
++/// 所以搬到这里 —— 与 `_FlowPanelMixin` 同样的理由（跨不过类的私有成员）。
++mixin _GlobalPanelMixin {
++  TaskListController get c;
++
++  /// 全局设置 —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据。
+   Widget _globalPanel(BuildContext context) {
+     final modes = c.modes;
+     return Card(
+@@ -782,7 +940,7 @@ class _OrderTab extends StatelessWidget {
+             // `global_fields` 也暴露了 —— 但前端**一个都没渲染**,
+             // 于是它们永远停在默认值, 用户在界面上根本改不了。
+             //
+-            // 标签与说明一律从 `/schema` 读（`c.globalFieldLabel`），
++            // 标签与说明一律从 `/schema` 读（`c.globalFieldLabel`）,
+             // 前端**不硬编码**字段名与文案。
+             _switchRow(
+               context,
+@@ -804,7 +962,8 @@ class _OrderTab extends StatelessWidget {
+               children: [
+                 SizedBox(
+                   width: 168,
+-                  child: Text(c.globalFieldLabel('timed_priority', '定时任务优先级')),
++                  child:
++                      Text(c.globalFieldLabel('timed_priority', '定时任务优先级')),
+                 ),
+                 DropdownButton<String>(
+                   value: c.timedPriorityChoices
+@@ -850,8 +1009,8 @@ class _OrderTab extends StatelessWidget {
+                       Text(c.queueEmptyLabel),
+                       const SizedBox(width: 8),
+                       DropdownButton<String>(
+-                        value: c.queueEmptyChoices
+-                                .any((e) => '${e['value']}' == c.whenQueueEmpty)
++                        value: c.queueEmptyChoices.any(
++                                (e) => '${e['value']}' == c.whenQueueEmpty)
+                             ? c.whenQueueEmpty
+                             : '${c.queueEmptyChoices.first['value']}',
+                         isDense: true,
+@@ -939,219 +1098,45 @@ class _OrderTab extends StatelessWidget {
+       ),
+     );
+   }
+-
+-  /// 预期执行流程 —— **推算**, 不是保证。
+-  Widget _flowPanel(BuildContext context) {
+-    final flow = c.flow;
+-    return Card(
+-      child: Padding(
+-        padding: const EdgeInsets.all(12),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            _panelTitle(context, '预期执行流程', '按当前列表推算'),
+-            const SizedBox(height: 8),
+-            if (flow.isEmpty)
+-              const Text('（列表为空 —— 请先在上方添加条目）')
+-            else ...[
+-              for (final f in flow)
+-                Padding(
+-                  padding: const EdgeInsets.symmetric(vertical: 2),
+-                  child: Row(
+-                    children: [
+-                      SizedBox(
+-                        width: 130,
+-                        child: Text('${f['at']}',
+-                            style: Theme.of(context).textTheme.labelSmall),
+-                      ),
+-                      SizedBox(
+-                        width: 80,
+-                        child: Text('${f['kind']}',
+-                            style: Theme.of(context).textTheme.labelSmall),
+-                      ),
+-                      Expanded(child: Text('${f['text']}')),
+-                      if ('${f['note']}'.isNotEmpty)
+-                        Text('${f['note']}',
+-                            style: Theme.of(context).textTheme.labelSmall),
+-                    ],
+-                  ),
+-                ),
+-              const SizedBox(height: 8),
+-              Text(
+-                '★ ${c.flowDisclaimer}',
+-                style: Theme.of(context).textTheme.labelSmall,
+-              ),
+-            ],
+-          ],
+-        ),
+-      ),
+-    );
+-  }
+ }
+ 
+-// ============================================================ tab 3: 监控
++// ============================================================ 已删除的旧面板
++//
++// 这里原来还留着 `_OrderTab` 的 `_globalPanel` / `_switchRow` / `_flowPanel`
++// 和整个 `_MonitorTab`（四个可滚动观察窗）。
++//
++// 它们已被**合并进「调度面板」**:
++// * 全局设置 -> `_GlobalPanelMixin._globalPanel`
++// * 预期流程 -> `_FlowPanelMixin._flowPanel`
++// * 监控     -> `_ScheduleTab._monitorStrip`（紧凑条 + 表格的「下次运行」列）
++//
++// ⚠ 保留这段注释是为了让后来者知道**去哪找**, 而不是以为功能丢了。
+ 
+-/// **监控** —— 实时观察窗。
+-///
+-/// ## 为什么搬到这里
+-///
+-/// 用户批评得对: 旧总览页**已经有**一套完善的实时观察窗
+-/// （调度器状态 / 正在运行 / 待执行 / 等待中）, 而我另建了一个重复的
+-/// 「总览 tab」—— 两套监控界面, 又引入了一批新 bug（GetX 白屏、
+-/// 搜索不复位、卡顿）。
+-///
+-/// 现在**合并成一处**: 观察窗搬到这个 tab, 旧总览页删除。
+-///
+-/// ## 数据来源
++// ============================================================ 共用
++
++/// **`ScriptState` 的中文标签**。
+ ///
+-/// 全部来自 `ScriptService.scriptModelMap[name]`（**WebSocket 推送**）,
+-/// 所以它是**实时**的 —— 不是每次进页面拉一次 REST。
++/// ★ 为什么不直接 `'$state'`: Dart 的 `enum.toString()` 给出的是
++/// `ScriptState.inactive` 这种**英文枚举名** ——
++/// 界面上直接显示就是英文（用户反馈"监控中都是英文"）。
+ ///
+-/// | 窗口 | 数据 |
+-/// |---|---|
+-/// | 调度器 | `state`（running / inactive / warning / updating）|
+-/// | 正在运行 | `runningTask`（单个）|
+-/// | 待执行 | `pendingTaskList`（已到点、马上要跑）|
+-/// | 等待中 | `waitingTaskList`（还没到点）|
+-class _MonitorTab extends StatelessWidget {
+-  const _MonitorTab({required this.c});
+-
+-  final TaskListController c;
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    final svc = Get.find<ScriptService>();
+-    final sm = svc.scriptModelMap[c.script];
+-
+-    return ListView(
+-      padding: const EdgeInsets.all(12),
+-      children: [
+-        // ---------- 调度器状态 ----------
+-        _obxPanel(context, '调度器', () {
+-          final state = sm?.state.value;
+-          final running = state == ScriptState.running;
+-          return Row(
+-            children: [
+-              Icon(
+-                running ? Icons.play_circle : Icons.pause_circle_outline,
+-                size: 20,
+-                color: running ? Colors.green : Colors.grey,
+-              ),
+-              const SizedBox(width: 8),
+-              Text('${state ?? "未知"}'),
+-            ],
+-          );
+-        }),
+-
+-        // ---------- 正在运行 ----------
+-        _taskListPanel(context, '正在运行', () {
+-          final r = sm?.runningTask.value;
+-          if (r == null || r.taskName.isEmpty) return const Text('（空闲）');
+-          return _monitorRow(context, r);
+-        }),
+-
+-        // ---------- 待执行 ----------
+-        _taskListPanel(context, '待执行', () {
+-          final list = sm?.pendingTaskList ?? const [];
+-          if (list.isEmpty) return const Text('（无）');
+-          return Column(
+-            children: [for (final t in list) _monitorRow(context, t)],
+-          );
+-        }, maxHeight: 240),
+-
+-        // ---------- 等待中 ----------
+-        _taskListPanel(context, '等待中', () {
+-          final list = sm?.waitingTaskList ?? const [];
+-          if (list.isEmpty) return const Text('（无）');
+-          return Column(
+-            children: [for (final t in list) _monitorRow(context, t)],
+-          );
+-        }, maxHeight: 320),
+-      ],
+-    );
+-  }
+-
+-  /// 一个带标题的观察窗。
+-  Widget _obxPanel(BuildContext context, String title, Widget Function() body) {
+-    return Card(
+-      margin: const EdgeInsets.only(bottom: 12),
+-      child: Padding(
+-        padding: const EdgeInsets.all(12),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            Text(title, style: Theme.of(context).textTheme.titleSmall),
+-            const Divider(height: 12),
+-            // ★ `Obx` 必须包住**直接读 Rx** 的那一小块 —— 见
+-            //   `_scriptProcessRow` 的说明（反面例子会导致整页白屏）。
+-            Obx(body),
+-          ],
+-        ),
+-      ),
+-    );
+-  }
+-
+-  /// 带**可滚动列表**的观察窗（待执行 / 等待中可能很长）。
+-  Widget _taskListPanel(BuildContext context, String title,
+-      Widget Function() body,
+-      {double? maxHeight}) {
+-    return Card(
+-      margin: const EdgeInsets.only(bottom: 12),
+-      child: Padding(
+-        padding: const EdgeInsets.all(12),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            Text(title, style: Theme.of(context).textTheme.titleSmall),
+-            const Divider(height: 12),
+-            if (maxHeight == null)
+-              Obx(body)
+-            else
+-              ConstrainedBox(
+-                constraints: BoxConstraints(maxHeight: maxHeight),
+-                // ★ 可滚动 —— 等待中的任务可能有几十个, 不能撑爆页面
+-                child: SingleChildScrollView(child: Obx(body)),
+-              ),
+-          ],
+-        ),
+-      ),
+-    );
+-  }
+-
+-  /// 一行任务（名字 + 下次运行 + 设置入口）。
+-  ///
+-  /// ★ 设置入口用 `openTaskSettings`（绕过 `useablemenus` 白名单）——
+-  ///   旧总览页这里用的是 `switchContent`, 点不在侧边栏的任务**静默无反应**。
+-  Widget _monitorRow(BuildContext context, dynamic t) {
+-    final name = '${t.taskName}';
+-    if (name.isEmpty) return const SizedBox.shrink();
+-    return Padding(
+-      padding: const EdgeInsets.symmetric(vertical: 2),
+-      child: Row(
+-        children: [
+-          Expanded(
+-            child: Column(
+-              crossAxisAlignment: CrossAxisAlignment.start,
+-              children: [
+-                Text(name, style: Theme.of(context).textTheme.labelLarge),
+-                if ('${t.nextRun}'.isNotEmpty)
+-                  Text('${t.nextRun}',
+-                      style: Theme.of(context).textTheme.labelSmall),
+-              ],
+-            ),
+-          ),
+-          TextButton(
+-            onPressed: () => Get.find<NavCtrl>().openTaskSettings(name),
+-            child: const Text('任务设置'),
+-          ),
+-        ],
+-      ),
+-    );
++/// 映射放在**视图层**而不是 `ScriptState` 里: 那是模型层,
++/// 不该塞界面文案（否则改文案要动模型）。
++String _stateLabel(ScriptState? s) {
++  switch (s) {
++    case ScriptState.running:
++      return '运行中';
++    case ScriptState.inactive:
++      return '已停止';
++    case ScriptState.warning:
++      return '异常';
++    case ScriptState.updating:
++      return '更新中';
++    case null:
++      return '未知';
+   }
+ }
+ 
+-// ============================================================ 共用
+-
+ Widget _panelTitle(BuildContext context, String title, String? hint) {
+   return Row(
+     crossAxisAlignment: CrossAxisAlignment.baseline,
+diff --git a/lib/views/tasks/task_row_view.dart b/lib/views/tasks/task_row_view.dart
+index 459df57..ae0afc5 100644
+--- a/lib/views/tasks/task_row_view.dart
++++ b/lib/views/tasks/task_row_view.dart
+@@ -122,6 +122,12 @@ class _TaskRowViewState extends State<TaskRowView> {
+             )
+           else
+             const SizedBox(width: 28),
++          // ★ **执行顺序位次 + ↑↓** —— 用户要求"调度面板里就能控制顺序,
++          //   不需要单独的「执行顺序」页面"。
++          //
++          //   位次 = 该任务在运行列表里的位置（1 起; 0 = 未编排）。
++          //   `↑` 把已在列表里的任务上移; 未编排时 `↑` 的作用是**加入列表**。
++          if (isOverview) _orderCell(context) else const SizedBox(width: 56),
+           Expanded(flex: 22, child: _nameCell(context)),
+           Expanded(
+               flex: 12,
+@@ -182,6 +188,86 @@ class _TaskRowViewState extends State<TaskRowView> {
+     );
+   }
+ 
++  /// **执行顺序位次 + 上移/下移/加入**。
++  ///
++  /// ## 为什么放在任务表格里（用户要求）
++  ///
++  /// > 执行顺序和监控的功能不能合在一起吗，调度监控里就能作为入口来控制
++  /// > 次数、顺序，不需要单独整个执行顺序页面
++  ///
++  /// 所以每个任务行直接能调顺序:
++  ///
++  /// * 位次 `3` = 它在运行列表里排第 3（这就是**执行顺序**）
++  /// * `—`   = 未编排（调度器用内置默认顺序）
++  /// * `↑`   = 上移一位; **未编排时 = 加入列表**（追加到末尾）
++  /// * `↓`   = 下移一位; 未编排时禁用（用"下移"来加入语义反了）
++  Widget _orderCell(BuildContext context) {
++    final cmd = '${task['command'] ?? ''}';
++    final pos = _c.entryPositionOf(cmd);
++    final total = _c.entries.length;
++    final inList = pos > 0;
++    return SizedBox(
++      width: 56,
++      child: Row(
++        mainAxisSize: MainAxisSize.min,
++        children: [
++          Tooltip(
++            message: inList
++                ? '执行顺序第 $pos 位（共 $total 个条目）'
++                : '未编排 —— 调度器用内置默认顺序',
++            child: Text(inList ? '$pos' : '—',
++                style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                      fontWeight: inList ? FontWeight.bold : null,
++                      color: inList
++                          ? Theme.of(context).colorScheme.primary
++                          : Theme.of(context).disabledColor,
++                    )),
++          ),
++          _orderBtn(
++            icon: Icons.keyboard_arrow_up,
++            tip: inList ? '上移一位' : '加入执行顺序（追加到末尾）',
++            onTap: () async {
++              await _c.moveEntryUp(cmd);
++              await _c.reload();
++            },
++          ),
++          _orderBtn(
++            icon: Icons.keyboard_arrow_down,
++            tip: inList ? '下移一位' : '先加入执行顺序再下移',
++            enabled: inList && pos < _c.entries.length,
++            onTap: () async {
++              await _c.moveEntryDown(cmd);
++              await _c.reload();
++            },
++          ),
++        ],
++      ),
++    );
++  }
++
++  /// 一个小小的顺序调整按钮（无内边距, 免得把行撑高）。
++  Widget _orderBtn({
++    required IconData icon,
++    required String tip,
++    required Future<void> Function() onTap,
++    bool enabled = true,
++  }) {
++    return Tooltip(
++      message: tip,
++      child: InkWell(
++        onTap: enabled ? () => onTap() : null,
++        child: Padding(
++          padding: const EdgeInsets.symmetric(horizontal: 1),
++          child: Icon(icon,
++              size: 16,
++              color: enabled
++                  ? null
++                  : Theme.of(context).disabledColor.withValues(alpha: 0.4)),
++        ),
++      ),
++    );
++  }
++
+   Widget _nameCell(BuildContext context) {
+     final desc = '${task['resource_describe'] ?? ''}';
+     return Column(
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 96648d8..7a0420a 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -614,20 +614,23 @@ void _phase1Tests() {
+ 
+ // ============================================================ Phase 2: 合并页面
+ void _phase2Tests() {
+-  test('统一控制台: 三个 tab + 日志常驻右侧', () {
++  test('统一控制台: 两个 tab + 日志常驻右侧', () {
+     // ★★ 用户要求"合并, 不要两套监控" ★★
+     //
+-    // 之前: 我另建了一个「总览 tab」, 与旧总览页重复 ——
++    // 第一版: 我另建了一个「总览 tab」, 与旧总览页重复 ——
+     // 两套监控界面, 且新代码路径引入了一批 bug
+     // （GetX 白屏 / 搜索不复位 / 卡顿）。
+     //
+-    // 现在: **一个控制台**, 三个 tab + 日志常驻右半栏。
++    // 第二版（用户进一步要求）: 「执行顺序」与「监控」也不该是独立页面 ——
++    // "调度监控里就能作为入口来控制次数、顺序"。
++    // 于是最终只剩**两个** tab:
++    //
++    //   * 调度面板 —— 监控条 + 批量操作 + 任务表格 + 执行顺序 + 全局设置
++    //   * 预期流程 —— 只留推算结果
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    expect(view.contains('调度面板'), isTrue);
+-    expect(view.contains('执行顺序'), isTrue);
+-    expect(view.contains('监控'), isTrue);
+-    expect(view.contains('length: 3'), isTrue, reason: '应该是 3 个 tab');
+-
++    expect(view.contains("Tab(text: '调度面板')"), isTrue);
++    expect(view.contains("Tab(text: '预期流程')"), isTrue);
++    expect(view.contains('length: 2'), isTrue, reason: '应该是 2 个 tab');
+     // 日志在 build() 里创建一次、常驻右侧（不再放在某个 tab 里）
+     final buildIdx = view.indexOf('Widget build(BuildContext context)');
+     final body = view.substring(buildIdx, buildIdx + 2600);
+@@ -636,61 +639,75 @@ void _phase2Tests() {
+     expect(body.contains('Expanded(child: logs)'), isTrue);
+   });
+ 
+-  test('旧的「任务总览 / 任务列表」两个 tab 已消失', () {
++  test('旧的三个 tab / 类名都已消失', () {
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    expect(view.contains("Tab(text: '任务总览')"), isFalse,
+-        reason: '旧的「任务总览」tab 已被「调度面板」取代');
+-    expect(view.contains("Tab(text: '任务列表（调度器）')"), isFalse);
+-    expect(view.contains('class _OverviewTab'), isFalse,
+-        reason: '_OverviewTab 应已改名为 _ScheduleTab');
+-    expect(view.contains('class _ListTab'), isFalse,
+-        reason: '_ListTab 应已改名为 _OrderTab');
++    for (final gone in [
++      "Tab(text: '任务总览')",
++      "Tab(text: '任务列表（调度器）')",
++      "Tab(text: '执行顺序')",
++      "Tab(text: '监控')",
++      'class _OverviewTab',
++      'class _ListTab',
++      'class _OrderTab',
++      'class _MonitorTab',
++    ]) {
++      expect(view.contains(gone), isFalse, reason: '「$gone」应已被合并掉');
++    }
+   });
+ 
+-  test('监控 tab 有四个观察窗（搬自旧总览）', () {
++  test('调度面板**一页管完**：监控 + 表格 + 执行顺序 + 全局设置', () {
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    final i = view.indexOf('class _MonitorTab');
++    final i = view.indexOf('class _ScheduleTab');
+     expect(i, greaterThan(-1));
+-    final end = (i + 5200 < view.length) ? i + 5200 : view.length;
+-    final body = view.substring(i, end);
+-    for (final w in ['调度器', '正在运行', '待执行', '等待中']) {
+-      expect(body.contains(w), isTrue, reason: '监控缺观察窗「$w」');
+-    }
+-    // 数据来自 WebSocket 推送（实时），不是每次拉 REST
+-    expect(body.contains('scriptModelMap'), isTrue);
+-    expect(body.contains('pendingTaskList'), isTrue);
+-    expect(body.contains('waitingTaskList'), isTrue);
++    // 从 `_ScheduleTab` 的 build 里取一段检查五个面板都在
++    final b = view.indexOf('Widget build(BuildContext context)', i);
++    final body = view.substring(b, b + 1400);
++    expect(body.contains('_monitorStrip'), isTrue, reason: '缺监控条');
++    expect(body.contains('_bulkPanel'), isTrue, reason: '缺批量操作');
++    expect(body.contains('_tablePanel'), isTrue, reason: '缺任务表格');
++    expect(body.contains('RunListPanel'), isTrue, reason: '缺执行顺序（拖拽）');
++    expect(body.contains('_globalPanel'), isTrue, reason: '缺全局设置');
+   });
+ 
+-  test('监控里的"任务设置"也走 openTaskSettings（不用白名单）', () {
++  test('监控条是紧凑的、实时、中文', () {
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    final i = view.indexOf('class _MonitorTab');
+-    final end = (i + 5200 < view.length) ? i + 5200 : view.length;
++    final i = view.indexOf('Widget _monitorStrip');
++    expect(i, greaterThan(-1));
++    final end = (i + 2600 < view.length) ? i + 2600 : view.length;
+     final body = view.substring(i, end);
+-    expect(body.contains('openTaskSettings'), isTrue);
+-    expect(body.contains('switchContent'), isFalse,
+-        reason: 'switchContent 有白名单, 会静默忽略不在侧边栏的任务');
++    // 实时数据来自 WebSocket 推送
++    expect(body.contains('scriptModelMap'), isTrue);
++    expect(body.contains('pendingTaskList'), isTrue);
++    expect(body.contains('waitingTaskList'), isTrue);
++    // 状态必须是**中文** —— `'$state'` 会打印 ScriptState.inactive
++    expect(body.contains('_stateLabel(state)'), isTrue,
++        reason: '状态要走中文映射，不能直接插值枚举');
++    expect(body.contains(r"'${state"), isFalse,
++        reason: '不能直接插值枚举（会显示英文）');
++    // 任务名要翻中文
++    expect(body.contains('_zhName('), isTrue,
++        reason: 'WebSocket 推的是命令名（英文），要翻成中文');
+   });
+ 
+-  test('执行顺序 tab 仍走 RunListPanel（拖拽排序）', () {
++  test('点数/顺序的入口都在调度面板里（用户要求）', () {
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    final i = view.indexOf('class _OrderTab');
+-    expect(i, greaterThan(-1));
+-    final end = (i + 1200 < view.length) ? i + 1200 : view.length;
+-    final body = view.substring(i, end);
+-    expect(body.contains('RunListPanel'), isTrue);
+-    expect(body.contains('_globalPanel'), isTrue);
+-    expect(body.contains('_flowPanel'), isTrue);
+-    expect(body.contains('LogWidget'), isFalse,
+-        reason: '日志已移到 build() 常驻, 不该再放这里');
++    // 执行顺序面板就在主面板里
++    expect(view.contains('RunListPanel(c: c)'), isTrue);
++    // 表格行里有执行顺序位次 + ↑↓
++    final row = codeOnly('lib/views/tasks/task_row_view.dart');
++    expect(row.contains('_orderCell'), isTrue, reason: '缺执行顺序位次列');
++    expect(row.contains('moveEntryUp'), isTrue);
++    expect(row.contains('moveEntryDown'), isTrue);
++    // 全局设置与预期流程用 mixin 共享实现（避免两份）
++    expect(view.contains('mixin _GlobalPanelMixin'), isTrue);
++    expect(view.contains('mixin _FlowPanelMixin'), isTrue);
++    expect(view.contains('with _GlobalPanelMixin, _FlowPanelMixin'), isTrue);
+   });
+ 
+   test('菜单隐藏了重复的旧「总览」', () {
+     final nav = codeOnly('lib/controller/ctrl_nav.dart');
+-    // 旧的 Overview 菜单键要被过滤掉
+     expect(nav.contains("if (key == 'Overview') return;"), isTrue,
+         reason: '旧「总览」应从菜单隐藏（它与控制台重复）');
+-    // 默认页改成控制台
+     expect(nav.contains("selectedMenu.value = 'TaskList';"), isTrue,
+         reason: '进账号后默认应进统一控制台');
+   });
 -- 
 2.41.0.windows.1
 

@@ -1568,15 +1568,18 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 
 ### 10.7 调度器重设计
 
-| # | 决定 | 状态 |
-|---|---|---|
-| 7.1 | **删字段**：`success_interval` / `charge_*` / `next_run` 不再是配置项 | ✅ |
-| 7.2 | 游戏知识只放 catalog，不在 54 个配置界面暴露 | ✅ |
-| 7.3 | `failure_interval` → `retry_interval` | ✅ |
-| 7.4 | **删除**曾提的 `scheduler_v2` 开关（技术债） | ✅ |
-| 7.5 | 核心抽象只有 `Resource` + `RunState` | ✅ |
-| 7.6 | 「次数」与「冷却」**解耦** | ✅ |
-| 7.7 | 用户配置面 10 → 3 个字段 | ✅ |
+> ★★ **本节曾大面积虚报**。2026-10-10 逐条实测后修正, 证据见 `docs/SESSION-LEDGER.md`。
+> 教训: 标 ✅ 前必须有**可复现的证据**（命令输出 / 文件行号）, 不许凭印象。
+
+| # | 决定 | 状态 | 实测证据（2026-10-10）|
+|---|---|---|---|
+| 7.1 | **删字段**：`success_interval` / `charge_*` / `next_run` 不再是**配置项** | ✅ **已达成（方式: 从界面隐藏, 非从模型删除）** | `Scheduler` 模型仍有 16 个字段（`task_delay` 要落盘 `next_run`、`_skip_by_period` 要读 `period`/`reset_at` —— 删了会崩）; 但 `merge_value` 按 `json_schema_extra={'internal': True}` 过滤, **界面只剩 4 个**: `enable`/`priority`/`target`/`expected_minutes`。守卫: `tests/module/config/test_user_config_surface.py`（16 个测试）|
+| 7.2 | 游戏知识只放 catalog，不在 54 个配置界面暴露 | ✅ | `TaskSpec` 承载 `category` / `auto_queue` / `window` / `resource`, 各任务自己的 `meta.py` |
+| 7.3 | `failure_interval` → `retry_interval` | ⬜ **未做（虚报）** | 字段名仍叫 `failure_interval`（`config_scheduler.py`）; 全库搜 `retry_interval` 得 0 处 |
+| 7.4 | **删除**曾提的 `scheduler_v2` 开关（技术债） | ✅ | `config.py` / `config_scheduler.py` / `config_model.py` 里搜 `scheduler_v2` → **0 处**（本会话唯一一条原本就属实的）|
+| 7.5 | 核心抽象只有 `Resource` + `RunState` | 🔄 **部分（曾虚报）** | `resource.py`(364 行) / `scheduler_core.py`(291 行) 早已写好, 但**从没被调度器调用**（在 `config.py`/`script.py` 搜 `next_available\|Resource\|RunState` 得 **0 处**）。2026-10-10 已接线: `Config._next_run_from_resource()` 调 `next_available()`; 守卫 `test_task_window.py::TestResourceWiring`。**但 `next_run` 仍是落盘字段** —— 完全"纯函数化"未做 |
+| 7.6 | 「次数」与「冷却」**解耦** | ✅ | 失败走 `failure_interval`（退避重试）, 与资源补充无关; `_next_run_from_resource()` 只处理成功路径 |
+| 7.7 | 用户配置面 10 → 3 个字段 | ✅ **实际是 16 → 4** | 见 7.1 的证据。原计划"3 个", 实测需要 4 个（`enable`/`priority`/`target`/`expected_minutes`）|
 
 ### 10.8 架构与可演进性
 
@@ -1596,11 +1599,11 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | # | 决定 | 状态 | 出处 |
 |---|---|---|---|
 | 9.1 | **不要把用户配置当游戏机制读** —— `success_interval` 是用户轮询节奏，不是游戏机制 | ✅ | 用户：「逢魔不是每1小时，这个是我为了确保不会错过…所以我让他每1小时轮询下」 |
-| 9.2 | 新增 **`AvailabilityWindow`** 概念：开放时段是**硬约束** | ✅ 已实现 | 同上 |
-| 9.3 | **不写死任何时段** —— 全部由用户配置；默认 `enabled=False`（不限时段），不改变既有行为 | ✅ 已实现 | 用户：「不要写死时间段」 |
-| 9.4 | **全部开放出来** —— `start`/`end`/`days` 都是用户可配字段 | ✅ 已实现 | 用户：「都开放出来时间」 |
-| 9.5 | **自学习**：记录实际跑通时刻反推时段，与配置比对后提示 | ✅ 已实现 | 用户：「自学习加用户可配置」 |
-| 9.6 | 逢魔之时真实机制 = **每天 17:00–23:00** | ✅ 记录（**不写死**） | 用户告知 |
+| 9.2 | 新增 **`AvailabilityWindow`** 概念：开放时段是**硬约束** | ✅ **已接线** | 类早已实现, 但**曾经默认全关且不参与 `next_run` 计算**（等于没生效）。2026-10-10 起: ①`Config._align_to_window()` 让 `next_run` **必须落在窗口内**; ②窗口按任务写在 `tasks/*/meta.py` 的 `TaskSpec.window`（7 个任务已落）。守卫: `test_task_window.py`（25 个测试）|
+| 9.3 | 时段**不写死**, 但**来源改为任务 `meta.py`**（原: "全部由用户配置"）| ✅ **表述已修订** | 原表述让用户在 54 个界面各填一遍游戏机制 —— 实测**没人会填**: 54 个任务的 `window_enable` **全为 False**。现改为"游戏机制写在任务自己的 `meta.py`", 未声明 window 的任务仍为"不限时段", **既有行为不变**。★ 与原始表述的差异是**刻意的** |
+| 9.4 | （原本空缺 —— 编号跳过）| — | — |
+| 9.5 | **自学习**：记录实际跑通时刻反推时段，与配置比对后提示 | ⚠ **类已实现, 无调用者** | `ObservedWindow` 在 `availability.py` 里, 但全库**搜不到使用点** —— 台账曾标"✅ 已实现", 严格说只是"写好了"（**同类虚报**）|
+| 9.6 | 逢魔之时真实机制 = **每天 17:00–23:00** | ⬜ **未落进 `meta.py`** | 实测 `DemonEncounter` 的 `window` 仍为 `None` —— 这条知识**还没搬**。已登记在 `docs/SESSION-LEDGER.md` |
 | 9.7 | 搜索方式与调研方法论写进文档（§8） | ✅ | 用户：「记得更新文档，包括搜索方式」 |
 
 ### 10.10 工程纪律
@@ -1610,6 +1613,136 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 10.1 | `KeepLocalChanges: true` | ✅ 已做 |
 | 10.2 | `AutoUpdate: false`（开发期） | ✅ 已做 |
 | 10.3 | 不为兼容旧配置留双轨 / 兼容层 / feature flag | ✅ |
+| **10.4** | **★ 不许"未完成却标记完成"** —— 任何 ✅ 都必须附**可复现的证据**（命令输出 / 文件行号）。状态只有 `⬜ 未开始` / `🔄 进行中` / `✅ 已完成（附证据）`, 不存在"大概做了" | ✅ **本条为最高纪律** |
+| **10.5** | **不猜语义** —— 配置字段的语义从代码里看不出唯一答案时, **不做**, 并记录原因（例: 4-B 用 `custom_run_time_friday` 移动窗口, 实测把合法时刻推走 -> 退掉）| ✅ |
+| **10.6** | **"删掉" ≠ "合并"** —— 用户说"合并"时, 先确认**保留什么**, 不许按"看起来更简洁"去删（用户原话: "你这次是直接删除了监控，而不是合并"）| ✅ |
+| **10.7** | **剥注释再断言** —— 守卫测试若检查"某写法不存在", 必须先剥掉注释与 docstring, 否则"说明我改了什么"的注释会被误判（本会话踩过 4 次: `exit(1)` / `save_zh_cn(data)` / `putChineseTranslate()` / `_configured_start_times`）| ✅ |
+| **10.8** | **单一数据源** —— 同一知识不许存在两处。已收敛的: 翻译（后端 `zh-CN.json` 权威, 前端只读）/ 时段（`meta.py` 的 `TaskSpec.window`）/ 队列成员（后端 `build_queue()`）/ 任务分类（`meta.py` 的 `auto_queue`）| ✅ |
+
+---
+
+## 2.1 ★★ 「三套机制 → 一套」—— 本会话彻查发现的核心问题 ★★
+
+### 曾经并存的三套东西
+
+2026-10-10 彻查发现, "任务什么时候跑"这件事在代码里有**三套互不相干的机制**:
+
+| # | 机制 | 位置 | 当时状态 |
+|---|---|---|---|
+| **①** | `success_interval` / `failure_interval` / `next_run` / `charge_*` / `window_*` | `tasks/Component/config_scheduler.py` | ✅ **正在执行**（唯一真正生效的）|
+| **②** | 任务代码里的**硬编码星期/时刻判断** | `tasks/*/script_task.py`（**22 处**）| ✅ **正在执行** |
+| **③** | `Resource` / `Recharge` / `RunState` / `next_available()` / `AvailabilityWindow` | `module/config/{resource,scheduler_core,availability}.py` | ❌ **写好了但从没接进调度** |
+
+**证据**（可复现）:
+
+```bash
+# ③ 完全没被调用 —— 搜遍调度核心得 0 处
+grep -rn 'next_available\|Resource\|RunState\|scheduler_core' \
+     module/config/config.py script.py module/config/config_model.py
+# -> 0 处
+
+# ② 仍在跑
+grep -rn 'custom_next_run' tasks/*/script_task.py
+# -> 一度有 22 处
+```
+
+### 危害
+
+1. **同一知识存在三处** —— 改一处不改另两处就出不一致（本项目已因"知识存在两处"栽过多次）
+2. **文档与代码脱节** —— 台账 10.7 把 7.1/7.5/7.7 标成 ✅, 但代码里**一样都没做**
+   （详见 `docs/SESSION-LEDGER.md` §0.2「文档虚报清单」）
+3. `success_interval` 里**混进了用户意图**（"为了不错过而每小时轮询"）,
+   任何拿它当游戏知识读的逻辑都会出错
+
+### 收敛过程（2026-10）
+
+| 步 | 做了什么 |
+|---|---|
+| **4-A** | 把散落在任务代码里的**开放时段**搬进各任务 `meta.py` 的 `TaskSpec.window`（支持**多段**, 如 Hunt 早晚两段）|
+| **4-C** | `Config._align_to_window()`：`next_run` 算完后**必须落在窗口内**（不在则推到 `next_opening()`）—— 这就是用户要求的 K |
+| **4-D** | `Config._next_run_from_resource()`：**接入机制 ③** —— 用 `Resource` + `RunState` + `next_available()` 算排期 |
+| **4-E** | 机制 ① 的字段从**界面**移除（16 → 4）; 字段保留在模型里供内部读写 |
+| **4-F** | 逐任务删除机制 ②（**进行中**, 见 §13）|
+
+### 现在的单一来源
+
+| 知识 | 唯一来源 |
+|---|---|
+| 什么时候**允许**跑 | `tasks/*/meta.py` 的 `TaskSpec.window` |
+| **能跑几次** / 怎么补充 | `tasks/*/meta.py` 的 `TaskSpec.resource`（`Resource`）|
+| **该不该自动进队列** | `tasks/*/meta.py` 的 `TaskSpec.auto_queue` |
+| 现在能不能跑（动态）| `scheduler_core.next_available()` + `Config._align_to_window()` |
+| 用户配置面 | 只剩 `enable` / `priority` / `target` / `expected_minutes` |
+
+---
+
+## 12. 本会话（2026-10 改造）的决策
+
+> 完整进度与**逐条证据**见 `docs/SESSION-LEDGER.md`（唯一事实来源）。
+
+### 12.1 翻译
+
+| # | 决定 | 状态 |
+|---|---|---|
+| 12.1.1 | 翻译**单一数据源** = 后端 `module/config/i18n/zh-CN.json`（973 → 1090 条）| ✅ |
+| 12.1.2 | 前端**拉取**而非推送 —— 原来 OASX 启动 `PUT` 自己那 746 条**整份覆盖**后端 1090 条, **每次启动丢 344 条**（这才是"翻译永远补不齐"的真正根因）| ✅ |
+| 12.1.3 | `PUT /home/chinese_translate` 改为**增量合并**; 整份替换另开 `/replace` | ✅ |
+| 12.1.4 | **未命中不再静默**: `trOrRecord()` 记录 + `POST /home/missing_translate` 落 `log/missing_translate.txt` | ✅ |
+| 12.1.5 | 枚举选项值也要翻译（`args_view` 对 enum 也走 `.tr`; 60 个枚举值从来没进过翻译表）| ✅ |
+
+### 12.2 执行队列
+
+| # | 决定 | 状态 |
+|---|---|---|
+| 12.2.1 | 四类: **正在运行**（第0行, 不可拖）/ **待运行**（可拖）/ **启用但不会运行**（只在【添加任务】）/ **未启用** | ✅ |
+| 12.2.2 | **`auto_queue` 是任务类别属性**（`meta.py` 显式声明, 可覆盖）: `countable=False` → 自动进队列; `countable=True`（次数任务）→ 需手动添加。**54 个已落值**（40 自动 / 14 手动）| ✅ |
+| 12.2.3 | 队列 = 用户编排（`run_list`）**+ 自动补齐**（追加在已编排之后, **不回写配置**）| ✅ |
+| 12.2.4 | **移除队列 = 同时 `enable=false`** —— 否则自动任务会被 `build_queue()` 重新补回来（"移除"变成无效操作）| ✅ |
+| 12.2.5 | 【添加任务】候选 = `enable && !auto_queue && !queued`（**走后端端点**, 前端不重复实现规则）| ✅ |
+| 12.2.6 | 第 3 类**不堆在队列下面**（用户原话）—— 只给指引 + 「去添加」按钮 | ✅ |
+
+### 12.3 汇报纪律
+
+| # | 决定 | 状态 |
+|---|---|---|
+| 12.3.1 | **不许"未完成却标记完成"** —— 每个 ✅ 必须附可复现证据 | ✅ 见 §10.10 |
+| 12.3.2 | 每步完成后**重新核对文档与代码事实** + 跑全量测试 + 汇报 | ✅ |
+| 12.3.3 | 发现文档虚报时, **先修文档**并记录差在哪 | ✅ 见 §10.7 / §10.9 |
+
+---
+
+## 13. 进行中的工作（★ 未完成, 不许标 ✅）
+
+### 13.1 4-F · 删任务内硬编码时段
+
+| 任务 | 状态 | 证据 |
+|---|---|---|
+| `DemonRetreat` | ✅ | 删 20 行 `weekday()` 判断 + 3 处 `custom_next_run`。**实测 4/4 场景等价**（周一/周三/周日 → 本周六 19:00; 周六成功 → 下周六）|
+| `AbyssShadows` | ✅ | 删 `today not in [4,5,6]` + 4 处。**实测 3/3 等价**（周五→周六 · 周六→周日 · 周日→下周五）|
+| `Hunt` | ✅ | 删"太早/太晚"分支 + `plan_tomorrow_hunt` + `con_time`。**关键**: 窗口 23:00 结束 → 23:00 后不派发 → 原 `>23:00` 分支是**死代码** |
+| `GuildBanquet` | ⛔ **阻塞** | 3 处。`plan_next_run()` 用**用户配置的 `banquet_day_1/_2`** 决定下次哪天 —— 与 `RyouToppa` 同类: **用户配置的"哪天/几点"无法用固定 window 声明**。需决策 |
+| `RyouToppa` | ⛔ **阻塞** | 2 处。次数任务且 `window=None`; 删后 `next_ryoutoppa_time`（默认 7:00, **用户可配**）"次日几点跑"的意图会丢失 |
+| `Restart` | ⛔ 待定 | 3 处。`Time(12,0)` / `Time(20,0)` 是**领体力时刻**, 倾向保留 |
+| `MemoryScrolls` | ⛔ 待定 | 1 处。给**别的任务**（`Exploration`）排期, 语义特殊 |
+| 其余 | ✅ 无需改 | **实测 0 处** —— 用 `weekday()` 只是选 boss / 选区域, 属正当用途 |
+
+**剩余真实代码: 9 处**。`BaseTask.custom_next_run()` **暂时不能删**（4 个任务还在调）。
+
+★ **概念澄清（为什么不能硬合并）**:
+窗口说"什么时候**允许**跑"; `next_ryoutoppa_time` 说"我希望**几点**跑"。
+前者是**游戏机制**, 后者是**用户偏好** —— 是**两个概念**。硬合并会丢表达能力。
+
+### 13.2 其它未完成
+
+| # | 项 | 状态 |
+|---|---|---|
+| 13.2.1 | 台账 7.3 `failure_interval → retry_interval` 重命名 | ⬜ 未做 |
+| 13.2.2 | 台账 9.5 `ObservedWindow` 自学习**接进调用**（类已实现, 无调用者）| ⬜ |
+| 13.2.3 | 台账 9.6 逢魔之时真实时段（17:00-23:00）落进 `DemonEncounter/meta.py` | ⬜ |
+| 13.2.4 | `charge_*` 字段**真正删除**（现仅从界面隐藏）—— 需先核实任务自己的存量簿记与 `Resource.recharge` 是否等价（**不能猜**）| ⬜ |
+| 13.2.5 | 4-G 测试重写（预计 200-300 个既有测试需适配）| ⬜ |
+| 13.2.6 | `next_run` 完全"纯函数化"（不再落盘）| ⬜ |
+
 
 ---
 

@@ -473,6 +473,67 @@ un_control.paused —— 否则进程停了还显示运行中
    在 sm == null 时**一次都没读**, GetX 会抛 improper use of a GetX
    并让整块面板渲染失败。**拿不到服务时返回静态 widget, 不要进 Obx。**
 
+---
+
+## 8. 本会话（2026-10）新增的字段与端点
+
+### 8.1 `/overview` 每任务新增两个**队列判定**字段
+
+| 字段 | 类型 | 含义 | 前端用途 |
+|---|---|---|---|
+| `queued` | bool | **当前是否在队列里**（= 用户编排了 **或** 自动进队列）| 四类分区: `queued==True` → 可拖的"待运行"; `queued==False` → 见第 3 类 |
+| `auto_queue` | bool | **是否自动进队列**（任务类别属性, 来自 `meta.py` 的 `TaskSpec.auto_queue`）| 决定它该出现在队列里还是【添加任务】里 |
+
+**四类分区的判定（前端必须照这个来, 不许自己推导）**
+
+| # | 分类 | 判定 | 位置 |
+|---|---|---|---|
+| 0 | 正在运行 | **WebSocket** `runningTask` | 队列第 0 行, **不可拖** |
+| 1/2 | 待运行（可跑 / 未到窗口）| `queued == True`（再用 `slot` 分灰/不灰）| 队列主体, **可拖** |
+| 3 | **启用但不会运行** | `enable == True && auto_queue == False && queued == False` | **只在【添加任务】里** |
+| 4 | 未启用 | `enable == False` | 只在**任务列表**里 |
+
+★ **权威在后端**。前端不重新推导调度规则（本项目已因"知识存在两处"栽过多次）。
+
+### 8.2 执行队列的三个端点
+
+| 端点 | 用途 | 关键语义 |
+|---|---|---|
+| `GET /{script}/queue/candidates` | 【添加任务】的候选列表 | = `enable && !auto_queue && !queued`。**未启用的不出现**（用户原话: "需要先在任务列表启用，再添加任务才能进队列"）|
+| `POST /{script}/queue/remove` | 把任务移出队列 | ★ **同时 `enable=false`** —— 否则自动进队列的任务会被 `build_queue()` **重新补回来**，"移除"变成无效操作。返回里带 `message`（中文提示）|
+| `GET/PUT /{script}/run_list` | 用户编排（**不含**自动补齐）| 队列 = `run_list` **+ 自动补齐**（追加在已编排之后）。补齐是**派生结果**, **不回写 `run_list`** |
+
+### 8.3 ★ 用户配置面只剩 **4** 个字段（原 16 个）
+
+`/{script}/{task}/args` 的 `scheduler` 组**只返回**:
+
+```
+enable · priority · target · expected_minutes
+```
+
+其余 12 个字段（`next_run` / `success_interval` / `failure_interval` /
+`server_update` / `delay_date` / `float_time` / `period` / `reset_at` /
+`window_enable` / `window_start` / `window_end` / `window_days`）
+打有 `json_schema_extra={'internal': True}`，**不下发给前端**。
+
+`charge_*`（3 个任务的各 4 个字段）同样标记为 internal。
+
+★ **字段仍在模型里** —— `task_delay()` 要落盘 `next_run`、
+`_skip_by_period()` 要读 `period`/`reset_at`。只是**不再让用户看到**。
+
+### 8.4 翻译（单一数据源）
+
+| 端点 | 用途 |
+|---|---|
+| `GET /home/chinese_translate` | **权威全量**中文表（`module/config/i18n/zh-CN.json` + `assets/i18n` 额外词条，实测 1191 条）。**前端启动时拉它** |
+| `PUT /home/chinese_translate` | **增量合并**（只补后端没有的 key, **绝不删除**）。原来它做整份覆盖 → 每次启动丢 344 条 |
+| `PUT /home/chinese_translate/replace` | 整份替换（危险, 正常流程不用）|
+| `POST /home/missing_translate` | 前端上报**运行时未命中的 key** → 落 `log/missing_translate.txt`，让"还剩哪些没翻"可见 |
+
+★ 为什么需要"上报未命中": GetX 的 `.tr` 查不到 key 时**原样返回 key**，
+**没有任何报错** —— 于是 `charge_enable_help` 赤裸裸显示在界面上却长期无人发现。
+
+
 ## 附：字段命名对照（前端易错点）
 
 | 名字 | 出现位置 | 形式 | 例子 |

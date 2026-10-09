@@ -179,12 +179,97 @@ class TaskSpec:
     #   `None` = 按 `category` 推导（默认行为）。任务可显式覆盖,
     #   将来个别任务想例外时**只改它自己的 `meta.py`**。
     auto_queue: bool = None
+    # ★★ **游戏开放时段**（硬约束）—— 从任务代码里搬过来的游戏机制事实 ★★
+    #
+    # 类型是 `AvailabilityWindow`（见 `module/config/availability.py`）,
+    # 但用 `object` 标注以避免循环 import。
+    #
+    # ## 为什么要搬到这里
+    #
+    # 此前**16 个任务**把开放时段**硬编码在自己的 `script_task.py`** 里, 例:
+    #
+    #     DemonRetreat/script_task.py:
+    #         if current_date.weekday() == 5:   # 只有周六
+    #             pass
+    #         else:
+    #             days_until_saturday = ...
+    #             self.custom_next_run(..., time_delta=days_until_saturday)
+    #             raise TaskEnd
+    #
+    # 这带来三个问题:
+    #
+    #   1. **两套机制**: 调度器有 `AvailabilityWindow`（默认全关、且不参与
+    #      `next_run` 计算）, 任务里又自己判一次 -> 用户与维护者都说不清
+    #      到底谁说了算（本项目已因"知识存在两处"栽过多次）。
+    #   2. **时段不是"用户偏好"**, 是**游戏机制** —— 不该散落在任务逻辑里,
+    #      更不该让用户在 54 个界面各填一遍。
+    #   3. 硬编码的 `raise TaskEnd` 让任务"跑一次就退出", 调度器只能靠
+    #      `custom_next_run` 猜下次什么时候 —— 猜不准就白跑。
+    #
+    # 现在统一: **时段写在任务的 `meta.py` 里**, 由调度器
+    # `next_available()` 统一裁决; 任务代码里的日期判断全部删除。
+    #
+    # **可以是单个 `AvailabilityWindow`, 也可以是它的 list/tuple** ——
+    # 有些任务一天里有**两段不连续**的开放时间, 例如:
+    #
+    #     Hunt  周一~周四 06:00 起（麒麟）
+    #           周五~周日 17:00 起（阴界之门）
+    #
+    # 单个 `AvailabilityWindow` 只能表达一段, 所以这里支持多段。
+    #
+    # `None`（默认）= 不限时段（行为与改造前一致, 不改变任何既有任务）。
+    window: object = None
     # 任务列表里的默认位置。None = 未编排(排最后)。
     #
     # ★ 为什么默认 None 而不是给每个任务一个序号: 列表是**用户自己编排**的,
     #   我们不该预设"哪个任务该先跑"。默认全部未编排 -> 界面按类别/名称排序,
     #   用户拖拽后才写入位置。
     list_pos: int = None
+
+    @property
+    def windows_effective(self) -> tuple:
+        """该任务的开放时段**列表**（没声明则返回一个"不限时段"的空窗口）。
+
+        为什么统一成 list: 调用方不必关心"单段还是多段", 一律遍历即可。
+        """
+        from module.config.availability import AvailabilityWindow
+        w = self.window
+        if w is None:
+            return (AvailabilityWindow(),)
+        if isinstance(w, AvailabilityWindow):
+            return (w,)
+        if isinstance(w, (list, tuple)):
+            got = tuple(x for x in w if isinstance(x, AvailabilityWindow))
+            return got if got else (AvailabilityWindow(),)
+        return (AvailabilityWindow(),)
+
+    @property
+    def window_effective(self):
+        """第一个窗口（兼容旧调用方）。多段场景请用 `windows_effective`。"""
+        return self.windows_effective[0]
+
+    @property
+    def window_describe(self) -> str:
+        """人类可读的时段描述（供界面 / 日志）。多段用 ` 与 ` 连接。"""
+        try:
+            parts = [w.describe() for w in self.windows_effective]
+            parts = [p for p in parts if p != '不限时段']
+            return ' 与 '.join(parts) if parts else '不限时段'
+        except Exception:
+            return '不限时段'
+
+    def in_window(self, at=None) -> bool:
+        """`at`（默认现在）是否落在**任意一段**开放时段内。"""
+        from datetime import datetime
+        at = at or datetime.now()
+        return any(w.contains(at) for w in self.windows_effective)
+
+    def next_opening(self, at=None):
+        """下一次开放时刻（多段里取**最早**的那个）。"""
+        from datetime import datetime
+        at = at or datetime.now()
+        return min(w.next_opening(at) for w in self.windows_effective)
+
 
     @property
     def auto_queue_effective(self) -> bool:

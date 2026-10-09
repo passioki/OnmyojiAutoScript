@@ -12,6 +12,8 @@
 
 类别依据: 定时任务: 按周期调度
 """
+from datetime import time
+from module.config.availability import AvailabilityWindow
 from module.config.resource import Period, Recharge, Resource  # noqa: F401
 from module.config.task_catalog import Category, TaskSpec  # noqa: F401
 
@@ -21,6 +23,7 @@ SPEC = TaskSpec(
     category=Category.TIMED,
     # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
     auto_queue=True,
+    window=AvailabilityWindow(True, time(0, 0), time(23, 59), days=(2, 5)),
     list_pos=43,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

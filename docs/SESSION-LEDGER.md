@@ -159,17 +159,42 @@ meta = TC.get_by_key(key) if hasattr(TC, 'get_by_key') else None
 
 ## 4. 步4 · 调度机制统一（**手术级**）
 
+### 4-A · 硬编码时段搬进 `meta.py` —— ✅ **已完成**
+
 | # | 子项 | 状态 | 证据 |
 |---|---|---|---|
-| 4.1 | `AvailabilityWindow` 接进 `next_run` 计算（`next_opening()` 对齐） | ⬜ | — |
-| 4.2 | `next_available()` 接进调度，取代 `next_run` 推进 | ⬜ | — |
-| 4.3 | 删 `Scheduler.success_interval` / `charge_*` / `next_run` 配置面 | ⬜ | — |
-| 4.4 | `failure_interval` → `retry_interval` | ⬜ | — |
-| 4.5 | 删 42 处任务内硬编码时段，搬进 `meta.py` | ⬜ | — |
-| 4.6 | 删 `BaseTask.custom_next_run()` | ⬜ | — |
-| 4.7 | `_skip_by_period` / `_record_task_success` 并入 `RunState` | ⬜ | — |
-| 4.8 | 迁移桥梁 `Resource.from_legacy()` 保留（读旧配置） | ⬜ | — |
-| 4.9 | 测试重写 + 全量 | ⬜ | — |
+| 4A.1 | `TaskSpec` 加 `window` 字段（**支持单段与多段**）| ✅ | `task_catalog.py`；`windows_effective` / `window_describe` / `in_window()` / `next_opening()`。实测 `TaskSpec` 字段 = `[...,'auto_queue','window','list_pos']` |
+| 4A.2 | 精确采集代码事实（不猜）| ✅ | 逐文件读过 `AbyssShadows:104-105,202-213` / `DemonRetreat:33,42-45` / `Dokan:65-69` / `Hunt:51-101` / `GuildBanquet:121-139` / `MysteryShop:24-25` / `Secret:286` / `Restart:45-56,64` |
+| 4A.3 | 7 个任务落 window | ✅ | `AbyssShadows` 周五六日 19:00-19:15 · `DemonRetreat` 周六 19:00-20:00 · `Dokan` 周一~周四 19:00-20:00 · `Hunt` **两段**（周一~周四 06:00 起 / 周五~周日 17:00 起）· `MysteryShop` 周三+周六 · `Secret` 周一 08:00 起 · `GuildBanquet` 每天 18:00-22:00 |
+| 4A.4 | 守卫测试 | ✅ | 新增 `tests/module/config/test_task_window.py`（**17 个全过**）：字段存在、单段、**多段**、`next_opening` 取最早、无 window 即不限、7 个任务的时段与代码事实逐条比对、`AbyssShadows` 恰好周五六日、`Dokan` 不含周末 |
+| 4A.5 | 全量测试 | ✅ | 后端 **1498 passed**（1481 + 17）；前端 **79 passed** |
+
+### ★ 4-A 期间我自己发现并改正的**两个错误**
+
+**错误一: 差点把用户可调的时刻写死在 `meta.py`。**
+`AbyssShadows` 有三个用户可调的 `custom_run_time_friday/saturday/sunday`,
+`DemonRetreat` 有 `custom_run_time`。若 meta 写死 19:00, 会**覆盖**用户设的
+18:30 之类 —— 擅自改变行为。→ meta 只放**游戏机制**（哪几天）+ 默认时段;
+运行时用任务配置的时刻收窄/移动它（见 4-A 后续）。
+
+**错误二: 差点用 `AvailabilityWindow` **错误地**表达"排除"。**
+`Restart` 的需求是"**避开**周三 06:00-08:00 维护"。我第一版写成两段
+`00:00-06:00` + `08:00-23:59` —— 但**第二段在任何一天都成立**, 于是窗口
+等于"全天开放", 是**假迁移**。`AvailabilityWindow` 只能表达"允许",
+不能表达"排除"。→ `Restart` **不放进 meta**（它的"维护期顺延"留在代码里,
+那本来就是"运行中任务被延后", 不是"任务什么时候开放"）。
+已加守卫测试 `test_restart_has_no_window` 钉住这个判断。
+
+### 4-B ~ 4-F · 待做
+
+| # | 子项 | 状态 |
+|---|---|---|
+| 4-B | 运行时的**用户配置覆盖**（用任务的 `custom_run_time` 等收窄窗口）| ⬜ |
+| 4-C | `next_run` **对齐 `next_opening()`**（你要求的 K）| ⬜ |
+| 4-D | `next_available()` 接进调度, 取代 `next_run = 开始时间 + interval` | ⬜ |
+| 4-E | 删 `success_interval` / `charge_*` / `next_run` 配置面；`failure_interval → retry_interval` | ⬜ |
+| 4-F | 删 16 处任务内硬编码日期判断 + `BaseTask.custom_next_run()` | ⬜ |
+| 4-G | 测试重写（预计 200-300 个既有测试需适配）| ⬜ |
 
 ---
 

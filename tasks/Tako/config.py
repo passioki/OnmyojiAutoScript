@@ -35,12 +35,12 @@ class TakoConfig(BaseModel):
     # 石距的次数在**每天的固定时刻**刷新(0 点与 12 点), 最多储存 2 次。
     # 注意这不是"间隔 12 小时": 若在 01:00 用掉一次, 下一次是当天 12:00 刷新。
     # 关闭时保持改造前的行为(一次运行打 1 场)。
-    charge_enable: bool = Field(default=True, description='charge_enable_help')
-    charge_max: int = Field(default=2, description='charge_max_help', ge=1, le=10)
+    charge_enable: bool = Field(default=True, description='charge_enable_help', json_schema_extra={'internal': True})
+    charge_max: int = Field(default=2, description='charge_max_help', ge=1, le=10, json_schema_extra={'internal': True})
     # 刷新时刻(整点小时), 逗号分隔; 游戏内为 0 点和 12 点
-    charge_slots: str = Field(default='0,12', description='charge_slots_help')
+    charge_slots: str = Field(default='0,12', description='charge_slots_help', json_schema_extra={'internal': True})
     # 每次运行消耗几次(每次运行打几场)。组队场景建议 1
-    charge_consume: int = Field(default=1, description='charge_consume_help', ge=1, le=5)
+    charge_consume: int = Field(default=1, description='charge_consume_help', ge=1, le=5, json_schema_extra={'internal': True})
     # 该玩法在"便捷组队"页左栏的名称, 用于读取次数刷新倒计时
     zone_name: str = Field(default='石距', description='zone_name_help')
 

@@ -263,12 +263,52 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
 ★ 该测试的注释里原本就写着"曾在 23:06 失败" —— 说明这个问题**反复出现过**,
 只是每次都被当成偶发忽略。已把根因写进注释。
 
-### 4-E ~ 4-G · 待做
+### 4-E · 删旧配置面 —— ✅ **已完成（"隐藏"而非"删字段", 原因见下）**
+
+| # | 子项 | 状态 | 证据 |
+|---|---|---|---|
+| 4E.1 | 内部字段显式标记 | ✅ | `Scheduler` 12 个字段打 `json_schema_extra={'internal': True}`；`charge_*` 12 个（3 任务 × 4）同样标记 |
+| 4E.2 | `merge_value` 跳过内部字段 | ✅ | `config_model.py` 与既有 `0xABCDEF` 排除同一处 |
+| 4E.3 | **用户配置面 16 → 4** | ✅ | 实测 `Orochi` 的 `scheduler` 组只剩 `enable` / `priority` / `target` / `expected_minutes` |
+| 4E.4 | `charge_*` 从界面隐藏 | ✅ | 实测 `GoldYoukai` 的 `gold_youkai` 组 **0 个字段**（全是 charge）|
+| 4E.5 | 守卫测试 | ✅ | 新增 `tests/module/config/test_user_config_surface.py` **16 passed** |
+| 4E.6 | 全量测试 | ✅ | 后端 **1527 passed**（1519 + 8 → 16）；前端 **79 passed** |
+
+#### ★ 为什么是"隐藏字段"而不是"删字段"
+
+`task_delay()` 要把算出来的 `next_run` **落盘**（重启后才知道下次什么时候跑）；
+`_skip_by_period()` 要读 `period` / `reset_at`。**删了会崩。**
+所以正确做法是: 字段留在模型里（内部用）, 但**不再出现在界面上**。
+
+#### ★★ 4-E 期间我自己犯的**两个错误**（都留了守卫）
+
+**错误一: 自动标记做过头, 误伤用户配置。**
+第一版我用正则给"含 charge 的整行 `Field(...)`"加 `internal`,
+结果把同组的 **`user_status`（队伍状态, 用户必须能配）** 也标上了
+→ `test_team_modes` 里 `assert 'user_status' in names` **3 个任务全失败**。
+→ 已改为**精确只标那 4 个 `charge_*` 字段名**; 加守卫
+`test_user_status_NOT_hidden`。
+
+**错误二: 参数插到了 `Field(...)` 的括号之外。**
+第二版把 `json_schema_extra` 追加到**行尾**, 而那行已经是
+`charge_enable: ... = Field(...),` —— 变成 `Field(...), json_schema_extra={...}`
+（括号外多出关键字参数）→ **SyntaxError**, **36 个测试失败, 模块都 import 不了**。
+→ 正确做法: 正则定位 `Field\((.*)\)` 并把参数插到**闭合括号之前**;
+加守卫 `test_charge_config_files_compile` 与
+`test_marking_inserts_inside_field_parens`。
+
+#### 未完成的部分（如实记录）
+
+`charge_*` **字段本身还在**（只是隐藏）。要真正删除, 必须先把任务代码里
+**61 处** `con.charge_*` 读取改用 `Resource.recharge` —— 那属于 **4-F** 的范畴,
+且需要先核实"任务自己的存量簿记"与 `Resource` 的语义是否等价
+（**不能猜**, 见 4-B 的教训）。台账标 ⬜, 不虚报。
+
+### 4-F ~ 4-G · 待做
 
 | # | 子项 | 状态 |
 |---|---|---|
-| 4-E | 删 `success_interval` / `charge_*` / `next_run` 配置面；`failure_interval → retry_interval` | ⬜ |
-| 4-F | 删 22 处任务内硬编码日期判断 + `BaseTask.custom_next_run()` | ⬜ |
+| 4-F | 删 22 处任务内硬编码日期判断 + `BaseTask.custom_next_run()` + 61 处 `con.charge_*` | ⬜ |
 | 4-G | 测试重写（预计 200-300 个既有测试需适配）| ⬜ |
 
 ---

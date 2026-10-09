@@ -25,20 +25,68 @@ class TaskPeriod(str, Enum):
 
 
 class Scheduler(ConfigBase):
+    """
+    ## ★★ 用户配置面 vs 内部排期字段 ★★
+
+    `Scheduler` 里混着**两类**东西, 必须分清:
+
+    | 类别 | 字段 | 谁能改 |
+    |---|---|---|
+    | **用户配置** | `enable` / `priority` / `target` / `expected_minutes` | 用户 |
+    | **内部排期状态** | `next_run` / `success_interval` / `failure_interval` / `period` / `reset_at` / `server_update` / `delay_date` / `float_time` / `window_*` | **不由用户直接填** |
+
+    ### 为什么内部字段仍在模型里
+
+    `task_delay()` 要把算出来的 `next_run` **落盘**, 重启后才知道"下次什么时候跑";
+    `_skip_by_period()` 要读 `period`/`reset_at`。所以它们**必须存在**。
+
+    ### 但它们**不该出现在界面上**
+
+    台账 10.7/7.7 声称"用户配置面 10 → 3 个字段", 实际界面上**16 个字段全暴露**
+    （虚报, 见 `docs/SESSION-LEDGER.md` §0.2）。用户面对 `success_interval` /
+    `window_*` / `next_run` 这类字段无从下手 —— 它们要么是**游戏机制**
+    （已收进各任务 `meta.py` 的 `Resource` / `window`）, 要么是**软件内部状态**。
+
+    做法: 给内部字段打 `json_schema_extra={'internal': True}`,
+    `config_model.script_task()` 生成界面字段时**跳过**它们
+    （与既有的 `0xABCDEF` 排除机制同一处）。
+    这样**不删字段**（`task_delay` 照常读写）, 只是**不再让用户看到**。
+    """
+
+    # ---------------- 用户配置 ----------------
     enable: bool = Field(default=False, description='enable_help')
-    next_run: DateTime = Field(default=DateTime.fromisoformat("2023-01-01 00:00:00"), description='next_run_help')
     priority: int = Field(default=5, description='priority_help')
 
-    success_interval: TimeDelta = Field(default=TimeDelta(days=1), description='success_interval_help')
-    failure_interval: TimeDelta = Field(default=TimeDelta(days=1), description='failure_interval_help')
-    server_update: Time = Field(default=Time(hour=9, minute=0, second=0), description='server_update_help')
-    delay_date: int = Field(default=1, description='delay_date_help', ge=1, le=31)
-    float_time: Time = Field(default=Time(hour=0, minute=0, second=0), description='float_time_help')
+    # ---------------- 内部排期状态（界面隐藏）----------------
+    next_run: DateTime = Field(
+        default=DateTime.fromisoformat("2023-01-01 00:00:00"),
+        description='next_run_help',
+        json_schema_extra={'internal': True})
+
+    success_interval: TimeDelta = Field(
+        default=TimeDelta(days=1), description='success_interval_help',
+        json_schema_extra={'internal': True})
+    failure_interval: TimeDelta = Field(
+        default=TimeDelta(days=1), description='failure_interval_help',
+        json_schema_extra={'internal': True})
+    server_update: Time = Field(
+        default=Time(hour=9, minute=0, second=0), description='server_update_help',
+        json_schema_extra={'internal': True})
+    delay_date: int = Field(
+        default=1, description='delay_date_help', ge=1, le=31,
+        json_schema_extra={'internal': True})
+    float_time: Time = Field(
+        default=Time(hour=0, minute=0, second=0), description='float_time_help',
+        json_schema_extra={'internal': True})
 
     # 完成记忆。默认 none -> 新字段不改变既有行为
-    period: TaskPeriod = Field(default=TaskPeriod.NONE, description='period_help')
+    period: TaskPeriod = Field(
+        default=TaskPeriod.NONE, description='period_help',
+        json_schema_extra={'internal': True})
     # 周期边界(游戏每日重置时刻)。阴阳师以凌晨 0 点为界, 故默认为 00:00
-    reset_at: Time = Field(default=Time(hour=0, minute=0, second=0), description='reset_at_help')
+    reset_at: Time = Field(
+        default=Time(hour=0, minute=0, second=0), description='reset_at_help',
+        json_schema_extra={'internal': True})
 
     # ------------------------------------------------------------------ 开放时段
     #
@@ -55,24 +103,32 @@ class Scheduler(ConfigBase):
     #   * 支持**限定星期**(如狭间暗域只有周五/六/日)。
     #   * 软件会通过 `ObservedWindow` **自学习**实际时段并给出提示, 见
     #     `module/config/availability.py` 与 `docs/architecture.md` §3.0。
+    #
+    # ★ 4-A/4-E 之后: 时段已搬进各任务 `meta.py` 的 `TaskSpec.window`
+    #   （游戏机制事实）, 这里降级为**内部字段** —— 仍然是权威值
+    #   （`Function._build_window` 读它）, 但不再出现在界面上。
     window_enable: bool = Field(
         default=False,
         description='window_enable_help',
-        title='启用开放时段')
+        title='启用开放时段',
+        json_schema_extra={'internal': True})
     window_start: Time = Field(
         default=Time(hour=17, minute=0, second=0),
         description='window_start_help',
-        title='开放开始')
+        title='开放开始',
+        json_schema_extra={'internal': True})
     window_end: Time = Field(
         default=Time(hour=23, minute=0, second=0),
         description='window_end_help',
-        title='开放结束')
+        title='开放结束',
+        json_schema_extra={'internal': True})
     # 限定星期: 逗号分隔的 0-6(周一=0), 空或 "0,1,2,3,4,5,6" 表示每天。
     # 用字符串而非列表, 与既有 charge_slots='0,12' 的风格一致, 也便于 GUI 输入。
     window_days: str = Field(
         default='0,1,2,3,4,5,6',
         description='window_days_help',
-        title='开放星期')
+        title='开放星期',
+        json_schema_extra={'internal': True})
 
     # ------------------------------------------------------------ 任务列表
     #

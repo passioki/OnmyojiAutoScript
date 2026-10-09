@@ -333,7 +333,29 @@ class _ConfigModelBase(ConfigBase):
                 # deal with exclude 
                 if key in jsons and jsons[key] == 0xABCDEF:
                     continue
-
+                # ★★ 跳过**内部字段**（4-E）★★
+                #
+                # 有些字段必须留在模型里（`task_delay` 要落盘 `next_run`、
+                # `_skip_by_period` 要读 `period`/`reset_at`）, 但**不该让用户看到**:
+                #
+                #   * `success_interval` / `failure_interval` —— 旧模型把"游戏机制的
+                #     补充规则"压扁成"用户轮询间隔"。现在游戏机制在各任务
+                #     `meta.py` 的 `Resource` 里, 排期由 `next_available()` 算。
+                #   * `next_run` —— **软件内部状态**, 用户改它只会把排期弄乱。
+                #   * `period` / `reset_at` —— 完成记忆的内部依据。
+                #   * `window_*` —— 时段已搬进 `meta.py` 的 `TaskSpec.window`。
+                #   * `server_update` / `delay_date` / `float_time` —— 服务器维护
+                #     顺延的内部参数。
+                #
+                # 台账 10.7/7.7 曾声称"用户配置面 10 → 3 个字段", 实际界面上
+                # **16 个全暴露**（虚报）。这里修正: 用户只看到
+                # `enable` / `priority` / `target` / `expected_minutes`。
+                # ⚠ `json_schema_extra={'internal': True}` 会被 pydantic
+                #   **展平**到属性定义**顶层**（实测: 得到 `"internal": true`,
+                #   而**不是** `"json_schema_extra": {"internal": true}`）——
+                #   第一版我按嵌套写, 过滤没生效（16 个字段照样全暴露）。
+                if value.get('internal'):
+                    continue
                 item = {}
                 item["name"] = key
                 item["title"] = value["title"] if "title" in value else inflection.underscore(key)

@@ -312,16 +312,17 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
 |---|---|---|---|
 | 1 | **DemonRetreat** | ✅ | 删 20 行 `weekday()` 判断 + 3 处 `custom_next_run` → `set_next_run(success=True)`。<br>**实测 4/4 场景等价**: 周一/周三/周日 → 本周六 19:00; 周六成功 → 下周六 19:00 |
 | 2 | **AbyssShadows** | ✅ | 删 `today not in [4,5,6]` 判断 + 4 处 `custom_next_run` → `set_next_run(success=True)`。<br>**实测 3/3 等价**: 周五→周六 · 周六→周日 · **周日→下周五** |
-| 3 | **Hunt** | ⬜ | 4 处（L74/85/98/101），窗口已建（两段）|
-| 4 | **GuildBanquet** | ⬜ | 3 处（L133/136/139），宴会日由用户配置 |
-| 5 | **Restart** | ⬜ | 3 处（L50/53/56）—— 领体力时刻, 可能保留 |
-| 6 | **RyouToppa** | ⬜ | 2 处（L204/207）|
+| 3 | **Hunt** | ✅ | 删 `check_datetime` 里的"太早/太晚"分支（20 行）+ `plan_tomorrow_hunt` + `con_time` + 未用的 `time` import。<br>**关键洞察**: 窗口 23:00 结束 -> 23:00 后**不会被派发** -> 原来 `>23:00` 分支是**死代码**。<br>实测窗口对齐: 周一 22:30 跑完 +3h = 周二 01:30 → **对齐到周二 06:00** |
+| 4 | **RyouToppa** | ⛔ **阻塞（需你决策）** | 只有 2 处, 但它**没有 window**（`window=None`, `auto_queue=False` 的次数任务）。<br>`_align_to_window` 对无 window 的任务**原样返回** -> 删掉 `custom_next_run` 后, `next_ryoutoppa_time`（默认 7:00, **用户可配**）这个"次日几点跑"的意图**会丢失**。<br>**这需要"给 RyouToppa 新增 window"这个行为决策, 不是安全重构** —— 不擅自做。 |
+| 5 | **GuildBanquet** | ⬜ | 3 处（L133/136/139），宴会日由用户配置（`banquet_day_1/_2`）, 需单独核实 |
+| 6 | **Restart** | ⬜ | 3 处（L50/53/56）—— 领体力时刻（12:00/20:00）, 可能保留 |
 | 7 | **MemoryScrolls** | ⬜ | 1 处（L63）—— 给**别的任务**（Exploration）排期, 语义特殊 |
 | — | 其余（Dokan / MysteryShop / Secret / Tako / DemonEncounter / GuildActivityMonitor / AreaBoss …）| ⬜ | 用 `weekday()` 但**不**调 `custom_next_run`（选 boss/选区域等正当用途）, 需逐个确认 |
 
-**剩余 `custom_next_run` / `days_until` 实测: 13 行（5 个任务）** —— 台账标 ⬜, 不虚报。
+**剩余 `custom_next_run` / `days_until` 实测: 10 行** —— 台账标 ⬜/⛔, 不虚报。
 
-★ `BaseTask.custom_next_run()` **暂时不能删** —— 上面 5 个任务还在调它。
+★ `BaseTask.custom_next_run()` **暂时不能删** —— 上面几个任务还在调它。
+
 删它必须先清完这些调用点（属于本步的剩余工作）。
 
 ★ 守卫测试: 新增 `tests/tasks/test_no_hardcoded_windows.py`（**8 passed**）

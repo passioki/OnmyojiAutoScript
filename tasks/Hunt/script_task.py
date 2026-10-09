@@ -2,7 +2,8 @@
 # @author runhey
 # github https://github.com/runhey
 from time import sleep
-from datetime import timedelta, datetime, time
+# ★ 4-F: 删掉 `time`（原来给 `custom_next_run` 的 `time(6,0)` / `time(17,0)` 用）
+from datetime import timedelta, datetime
 from cached_property import cached_property
 
 from module.exception import TaskEnd
@@ -20,13 +21,11 @@ from tasks.Hunt.assets import HuntAssets
 
 class ScriptTask(GameUi, GeneralBattle, GeneralInvite, SwitchSoul, HuntAssets):
     kirin_day = True  # 不是麒麟就是阴界之门
-    tomorrow_kirin_day = True  # 明天是麒麟还是阴界之门
 
     def run(self):
-        self.con_time = self.config.hunt.hunt_time
-        if not self.check_datetime():
-            # 设置下次运行时间 为今天的晚上七点钟
-            raise TaskEnd('Hunt')
+        # ★ 4-F: 不再需要 `self.con_time`（原来给 `custom_next_run` 用的
+        #   `kirin_time` / `netherworld_time`）。排期由调度器 + 窗口负责。
+        self.check_datetime()
         con = self.config.hunt.hunt_config
         if con.kirin_group_team != '-1,-1' or con.netherworld_group_team != '-1,-1':
             self.goto_page(page_shikigami_records)
@@ -45,60 +44,46 @@ class ScriptTask(GameUi, GeneralBattle, GeneralInvite, SwitchSoul, HuntAssets):
             self.netherworld()
         sleep(1)
 
-        self.plan_tomorrow_hunt()
+        # ★ 4-F: 原来这里 `plan_tomorrow_hunt()`（手工排明天的 19:00）。
+        #   现在由 `set_next_run` 自行落盘 —— 走到这里说明任务已正常结束,
+        #   基类会把 `next_run` 推后并按窗口对齐。
         raise TaskEnd('Hunt')
 
     def check_datetime(self) -> bool:
         """
-        检查日期和时间, 会设置是麒麟还是阴界之门
-        :return: 符合麒麟19:00-21:00、阴界19:00-23:00的时间返回True, 否则返回False
-        """
-        now = datetime.now()
-        day_of_week = now.weekday()
-        if 0 <= day_of_week <= 3:
-            self.kirin_day = True
-        elif 4 <= day_of_week <= 6:
-            self.kirin_day = False
-        
-        if 3 <= day_of_week <= 5:
-            self.tomorrow_kirin_day = False
-        else:
-            self.tomorrow_kirin_day = True
+        判断今天是**麒麟**还是**阴界之门**, 并据此选路。
 
-        now = datetime.now()
-        # 如果时间在可执行时间(麒麟日6:00、阴界日19:00)之前则设定时间为当天的自定义时间，返回False
-        # 如果是在可执行时间则返回True
+        ## ★ 4-F: 这里只剩"选哪种模式", 不再管排期
+
+        原来这个方法还兼了两件事:
+
+        * **太早**（麒麟日 <06:00 / 阴界日 <17:00）-> `custom_next_run(今天该时刻)` + 退出
+        * **太晚**（>23:00）-> `plan_tomorrow_hunt()` + 退出
+
+        两者都**已删除**, 因为"什么时候允许跑"已由
+        `tasks/Hunt/meta.py` 的**两段窗口**表达:
+
+            周一~周四 06:00-23:00（麒麟）
+            周五~周日 17:00-23:00（阴界）
+
+        由 `Config._align_to_window()` 统一裁决:
+
+        * **不会太早**: 不在窗口内时调度器根本不会把任务排进 pending;
+          且 `next_run` 会被对齐到窗口开放时刻（实测: 周一 22:30 跑完
+          -> 推到**周二 06:00**, 而不是 01:30）
+        * **不会太晚**: 窗口 23:00 结束, 23:00 之后不会被派发 ——
+          所以原来那个 `>23:00` 分支**永远走不到**（死代码）
+
+        :return: 始终 True（选路信息由 `self.kirin_day` 带出）
+        """
+        day_of_week = datetime.now().weekday()
+        # 周一~周四 = 麒麟日; 周五~周日 = 阴界之门日
+        self.kirin_day = 0 <= day_of_week <= 3
         if self.kirin_day:
             logger.info('Today is the Kirin day')
-            if now.time() < time(6, 0):
-                self.custom_next_run(task='Hunt', custom_time=self.con_time.kirin_time, time_delta=0)
-                raise TaskEnd('Hunt')
-            # 如果是麒麟日在23:00-23:59之间则设定时间为明天的自定义时间，返回False
-            elif now.time() > time(23, 0):
-                self.plan_tomorrow_hunt()
-                raise TaskEnd('Hunt')
-            else:
-                return True
         else:
             logger.info('Today is the Netherworld day')
-            if now.time() < time(17, 0):
-                self.custom_next_run(task='Hunt', custom_time=self.con_time.netherworld_time, time_delta=0)
-                raise TaskEnd('Hunt')
-            # 如果是阴界日在23:00-23:59之间则设定时间为明天的自定义时间，返回False
-            elif now.time() > time(23, 0):
-                self.plan_tomorrow_hunt()
-                raise TaskEnd('Hunt')
-            else:
-                return True
-
-    def plan_tomorrow_hunt(self):
-        # 安排次日狩猎战，便于复用
-        if self.tomorrow_kirin_day:
-            logger.info('Tomorrow is the Kirin day')
-            self.custom_next_run(task='Hunt', custom_time=self.con_time.kirin_time, time_delta=1)
-        else:
-            logger.info('Tomorrow is the Netherworld day')
-            self.custom_next_run(task='Hunt', custom_time=self.con_time.netherworld_time, time_delta=1)
+        return True
 
     def kirin(self):
         logger.hr('kirin', 2)

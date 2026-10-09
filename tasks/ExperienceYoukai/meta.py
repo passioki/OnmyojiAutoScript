@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='ExperienceYoukai',
     name_zh='经验妖怪',
     category=Category.CHARGE,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=True,
     list_pos=7,
     resource=Resource(capacity=2, recharge=Recharge(kind='slots', slots=((0, 0), (12, 0),), refill_to_full=True)),
 )

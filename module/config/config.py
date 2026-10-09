@@ -303,7 +303,11 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             pending_task = TaskScheduler.schedule(
                 rule=_opt.schedule_rule,
                 pending=pending_task,
-                run_list=self.build_run_list())
+                # ★ 用 `build_queue()`（用户编排 + **自动补齐**）而不是
+                #   `build_run_list()`（只有用户编排）—— 否则
+                #   `auto_queue=True` 的定时任务启用后**不会**自动获得顺序,
+                #   用户还得手动拖一次才生效, 与设计不符。
+                run_list=self.build_queue())
             # ★ 定时任务**内部**排序 + 定时优先时提到最前（见 docs §5.4.1）
             pending_task = self._order_by_timed_priority(pending_task)
             # ★ 「运行一次」: 手动请求的任务提到**最前**（按点击顺序）
@@ -441,6 +445,16 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         ★ 为什么第 2 条重要: 曾经一个过滤器把用户 7 个条目全跳过,
           而日志是 WARNING、埋在几千行里, 用户与我都**很久没发现**。
+
+        ## ★ 不做自动补齐（职责分离）
+
+        这里**只**解析用户编排的 `run_list`。自动任务（`auto_queue=True`）的
+        补齐在 `build_queue()` 里做 —— 分开的原因是:
+
+        * `build_run_list()` 的结果会被 `save_run_list()` **写回配置**。
+          若在这里补齐, 自动任务会被**持久化**进用户的列表, 于是
+          "用户没编排过"与"用户确实想要它在列表里"就分不清了。
+        * 补齐是**派生结果**, 不该回写。
         """
         from module.config.run_list import RunList
 
@@ -461,6 +475,90 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 f'若这不是你预期的, 请检查列表内容是否被写坏。')
 
         return rl
+
+    # ------------------------------------------------------------------ 执行队列
+    def auto_queue_tasks(self) -> list:
+        """所有 `auto_queue=True` 的任务命令名（按 catalog 顺序）。
+
+        这些任务**启用后自动进队列**, 不需要用户【添加任务】。
+        与 `countable` 的关系见 `module/config/task_catalog.py` 的
+        `TaskSpec.auto_queue`。
+        """
+        try:
+            from module.config import task_catalog as TC
+            specs = TC._load_specs()
+            return [t for t, s in sorted(specs.items())
+                    if s.auto_queue_effective]
+        except Exception as exc:
+            logger.warning(f'auto_queue_tasks 失败({type(exc).__name__}: {exc})')
+            return []
+
+    def queued_commands(self) -> set:
+        """**队列成员** = 运行列表里的任务 + 自动进队列的任务。
+
+        定义（用户确认）:
+            * `auto_queue=True` 的任务: 启用后**必定**在队列里
+            * `auto_queue=False`（次数任务）: 只有被用户【添加任务】后才在队列里
+
+        ★ 与 `build_run_list()` 的区别: 后者是"用户编排的清单",
+          这里是"实际会跑的清单"。`queued` 判断用这个。
+        """
+        out = set()
+        for e in self.build_run_list():
+            task = getattr(e, 'task', None)
+            if task:
+                out.add(task)
+        out.update(self.auto_queue_tasks())
+        return out
+
+    def build_queue(self):
+        """**执行队列** = 用户编排 + 自动补齐。
+
+        顺序（用户确认的"疑点1 = a"）:
+            1. 用户在 `run_list` 里编排的条目, **保持用户顺序**
+            2. 自动进队列、但用户**没编排过**的任务, **追加在后面**
+
+        ★ 为什么追加而不是插入: 用户手动排的必须**优先**;
+          自动的垫在后面等他调。
+
+        ★ **不回写配置** —— 这是派生结果。回写会让
+          "用户没编排过"与"用户确实想要它在列表里"分不清。
+        """
+        from module.config.run_list import RunEntry
+
+        rl = self.build_run_list()
+        existing = {getattr(e, 'task', None) for e in rl}
+        try:
+            for task in self.auto_queue_tasks():
+                if task in existing:
+                    continue
+                # 只补**已启用**的任务 —— 未启用的不该出现在队列里
+                if not self._task_enabled(task):
+                    continue
+                rl.add(RunEntry(kind='task', task=task))
+                existing.add(task)
+        except Exception as exc:
+            logger.warning(f'build_queue 自动补齐失败'
+                           f'({type(exc).__name__}: {exc}), 只返回用户编排部分')
+        return rl
+
+    def _task_enabled(self, task_command: str) -> bool:
+        """任务级 `enable` 开关（失败时保守返回 False —— 不启用就不补进队列）。
+
+        ⚠ 名字里带 `_task_` 是为了与既有的 `_category_enabled()`
+          （判断**类别**开关, 见 `should_schedule`）区分开 ——
+          两者含义不同, 别混。
+        """
+        try:
+            from module.config.config_model import convert_to_underscore
+            key = convert_to_underscore(task_command)
+            node = getattr(self.model, key, None)
+            if node is None:
+                return False
+            sch = getattr(node, 'scheduler', None)
+            return bool(getattr(sch, 'enable', False))
+        except Exception:
+            return False
 
     def save_run_list(self, run_list) -> bool:
         """把 `RunList` 写回配置(供界面排序 / 条目增减调用)。"""

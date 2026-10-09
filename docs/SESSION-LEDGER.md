@@ -97,17 +97,38 @@ OASX 启动 (ctrl_nav.onInit)
 
 ---
 
-## 2. 步2 · auto_queue 与执行队列（后端）
+## 2. 步2 · auto_queue 与执行队列（后端）—— ✅ **已完成**
 
 | # | 子项 | 状态 | 证据 |
 |---|---|---|---|
-| 2.1 | `TaskSpec` 加 `auto_queue`（可覆盖，默认由 countable 推） | ⬜ | — |
-| 2.2 | 54 个 `meta.py` 落具体值 | ⬜ | — |
-| 2.3 | `/overview` 加 `queued` + `auto_queue` | ⬜ | — |
-| 2.4 | 队列自动补齐（auto 任务追加在已编排之后） | ⬜ | — |
-| 2.5 | 移除队列 = 同时 `enable=false` | ⬜ | — |
-| 2.6 | 【添加任务】候选 = `enable && !auto_queue && !queued` | ⬜ | — |
-| 2.7 | 测试 + 全量 | ⬜ | — |
+| 2.1 | `TaskSpec` 加 `auto_queue`（可覆盖）+ `auto_queue_effective` 属性 | ✅ | `task_catalog.py:161-181` 字段；`:189+` 属性。实测 `TaskSpec` 字段 = `['task','name_zh','category','resource','requires','note','auto_queue','list_pos']` |
+| 2.2 | 54 个 `meta.py` 落**显式**值 | ✅ | 实测 `显式写了 auto_queue 的: 54`；`auto_queue=True: 40` / `False: 14`；**与 `countable` 矛盾的任务: 0** |
+| 2.3 | `/overview` 加 `queued` + `auto_queue` | ✅ | `schema_router.py` 每任务字段块；实测 18 个启用任务 → 队列 15 个 / 第3类 3 个（RealmRaid/RyouToppa/Hyakkiyakou，**全是次数任务**）|
+| 2.4 | **队列自动补齐**（auto 追加在已编排之后）| ✅ | `config.build_queue()`（`config.py:510`）。实测：用户 4 条编排**在最前且保持顺序**，12 个自动任务**追加在后** |
+| 2.5 | **接进调度**（否则补齐只是摆设）| ✅ | `update_scheduler` 改用 `self.build_queue()`（`config.py:306` 附近）。守卫测试 `test_scheduler_uses_build_queue` |
+| 2.6 | **移除 = 停用** | ✅ | 新增 `POST /{script}/queue/remove`：删 `run_list` 条目 + `sch.enable = False` + 中文提示。守卫测试断言 `sch.enable = False` 必须在 |
+| 2.7 | **添加候选** = `enable && !auto_queue && !queued` | ✅ | 新增 `GET /{script}/queue/candidates`。实测候选 = `{RealmRaid, RyouToppa, Hyakkiyakou}`；自动任务与未启用任务**都不在** |
+| 2.8 | 测试 + 全量 | ✅ | 新增 `tests/module/config/test_execution_queue.py`（**18 个全过**）；后端 **1481 passed**（1463 + 18）；前端 **75 passed** |
+
+### ★ 步2 期间发现的**第 3 个真 bug**（静默降级）
+
+两处（`build_overview` 与新增的候选端点）写着：
+
+```python
+meta = TC.get_by_key(key) if hasattr(TC, 'get_by_key') else None
+```
+
+**`TC.get_by_key` 根本不存在** → `hasattr` 恒为 `False` → `meta` **永远是 `None`**。
+
+* `build_overview` 下面有回退（还原任务名再 `TC.get`），所以**没暴露**
+* 候选端点**没有回退** → **候选永远为空**（第一次实测就是 `set()`）
+
+这正是本项目反复踩到的"**静默降级**"模式：加个 `hasattr` 守卫看起来"很稳"，
+实际把逻辑错误藏起来了。已改为统一的 `_meta_of_key(key)`（内部用
+`TC.get()`，它本身已支持下划线/全小写容错），并在函数文档里写明来龙去脉。
+
+★ 值得一提的是：这个 bug 与步1 的"`.tr` 未命中静默返回 key"是**同一类问题** ——
+**静默降级让错误不可见**。所以两处都补了"让缺口可见"的机制。
 
 ---
 

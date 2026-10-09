@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='SixRealms',
     name_zh='六道之门',
     category=Category.FIXED,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=False,
     list_pos=27,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

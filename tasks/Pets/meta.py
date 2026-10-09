@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='Pets',
     name_zh='小猫咪',
     category=Category.TIMED,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=True,
     list_pos=37,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

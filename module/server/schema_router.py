@@ -425,6 +425,16 @@ def build_overview(config_name: str) -> dict:
 
     charges = {_norm(k): v for k, v in charges_raw.items()}
 
+    # ★ 队列成员（用户编排 + 自动进队列）—— 一次算好, 循环里查集合即可。
+    #
+    #   为什么用 `queued_commands()` 而不是逐个任务判断:
+    #   它内部要把 `run_list` 解析 + 补齐自动任务, 逐个判断会重复做 N 次。
+    try:
+        queued_commands = config.queued_commands()
+    except Exception as exc:
+        logger.warning(f'overview: 队列成员获取失败({type(exc).__name__}: {exc})')
+        queued_commands = set()
+
     for key, value in model_dump.items():
         if not isinstance(value, dict):
             continue
@@ -432,7 +442,7 @@ def build_overview(config_name: str) -> dict:
         if not isinstance(sch, dict):
             continue
 
-        meta = TC.get_by_key(key) if hasattr(TC, 'get_by_key') else None
+        meta = _meta_of_key(key)
         if meta is None:
             # 由下划线键还原任务名
             command = ''.join(p.capitalize() for p in key.split('_'))
@@ -523,6 +533,22 @@ def build_overview(config_name: str) -> dict:
             #   用 `getattr(meta, ...)` 会静默拿到 None(踩过)。
             'list_pos': _spec_list_pos(meta),
             'in_list': _spec_list_pos(meta) is not None,
+            # ---- ★ 执行队列的三个判定字段（用户确认的分类模型）----
+            #
+            # | 字段 | 含义 |
+            # |---|---|
+            # | `auto_queue` | **是否自动进队列**（任务类别属性, 来自 meta.py）|
+            # | `queued`     | **当前是否在队列里**（= 用户编排了 OR 自动进队列）|
+            # | `category`   | 类别（界面分组用）|
+            #
+            # 前端的四类分区就是靠它们:
+            #
+            #   正在运行  <- WebSocket `runningTask`
+            #   待运行    <- `queued == True`（可拖）
+            #   启用但不运行 <- `enable && !queued`（**只在【添加任务】里出现**）
+            #   未启用    <- `enable == False`
+            'auto_queue': _auto_queue_of(meta),
+            'queued': command in queued_commands,
             # 该任务的效果说明(供界面展示"这个任务是干什么的")
             'resource_describe': _resource_describe(meta),
             # ---- 连续失败冷却（见 `module/config/failure_state.py`）----
@@ -671,6 +697,33 @@ def _find_in_mapping(data, field: str):
     return None
 
 
+def _meta_of_key(key):
+    """由 `model_dump()` 的**下划线键**取 `TaskMeta`（取不到返回 None）。
+
+    ## ★ 为什么要单独一个函数（修一个静默 bug）
+
+    原来两处写的是:
+
+        meta = TC.get_by_key(key) if hasattr(TC, 'get_by_key') else None
+
+    **`TC.get_by_key` 根本不存在** —— `hasattr` 恒为 `False`,
+    于是 `meta` **永远是 `None`**。`build_overview` 下面有回退所以没出事,
+    但"添加任务候选"端点没有回退 -> **候选永远为空**。
+
+    这正是本项目反复踩到的"**静默降级**"模式: 加了 `hasattr` 守卫,
+    看起来"很稳", 实际把**逻辑错误藏起来了**。
+
+    `TC.get()` 本身已支持下划线形式与全小写容错, 直接用它。
+    """
+    if not key:
+        return None
+    try:
+        from module.config import task_catalog as TC
+        return TC.get(key)
+    except Exception:
+        return None
+
+
 def _spec_list_pos(meta):
     """
     任务在列表里的**默认位置**。
@@ -681,6 +734,26 @@ def _spec_list_pos(meta):
     """
     spec = _spec_of(meta)
     return getattr(spec, 'list_pos', None) if spec else None
+
+
+def _auto_queue_of(meta):
+    """该任务是否**自动进队列**（任务类别属性, 见 `TaskSpec.auto_queue`）。
+
+    ⚠ 与 `_spec_list_pos` 同理: 字段在 **`TaskSpec`** 上, 不在 `TaskMeta` 上。
+      但这里**退回 `countable`**（在 `TaskMeta` 上）作为兜底 ——
+      没写 `meta.py` 的任务也要有合理行为, 而不是静默 `None`。
+
+    规则（用户确认）: 可计数 = 次数任务 = **不**自动进队列。
+    """
+    spec = _spec_of(meta)
+    if spec is not None:
+        try:
+            return bool(spec.auto_queue_effective)
+        except Exception:
+            pass
+    if meta is None:
+        return True          # 元数据缺失 -> 保守当"定时类"（放行）
+    return not bool(getattr(meta, 'countable', False))
 
 
 def _resource_describe(meta) -> str:
@@ -865,6 +938,141 @@ async def delete_run_list_entry(script_name: str, index: int):
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}
+
+
+@schema_app.post('/{script_name}/queue/remove')
+async def post_queue_remove(script_name: str, data: dict = Body(...)):
+    """
+    **把任务移出执行队列** —— 并**同时停用它**（用户确认的行为）。
+
+    为什么必须同时停用:
+        自动进队列的任务（`auto_queue=True`）只要 `enable=true` 就会
+        **被重新补进队列**。只从 `run_list` 删掉是**无效的** ——
+        下次刷新它又回来了。所以"移出"必须落地为 `enable=false`。
+
+    用户原话:
+        "可移除，移除后自动变为未启用状态，后续想要启用需自己在任务列表启用
+        （弹窗确认和提示）"
+
+    :param data: {"task": "RealmRaid"} —— 任务命令名（大驼峰）
+    :return: {"ok": True, "task": ..., "removed_entries": n,
+              "enable": False, "message": 给用户看的中文提示}
+    """
+    try:
+        from module.server.main_manager import mm
+        from module.config.config_model import convert_to_underscore
+
+        task = str((data or {}).get('task') or '').strip()
+        if not task:
+            return {'error': '缺少 task'}
+
+        config = mm.config_cache(script_name)
+
+        # ① 从 run_list 里删掉**所有**该任务的条目（可能有重复编排）
+        rl = config.build_run_list()
+        kept = [e for e in rl
+                if not (getattr(e, 'task', None) == task)]
+        removed_n = len(rl) - len(kept)
+        if removed_n:
+            from module.config.run_list import RunList
+            new_rl = RunList(kept)
+            if not config.save_run_list(new_rl):
+                return {'error': '保存运行列表失败(见日志)'}
+
+        # ② **停用**该任务 —— 否则自动进队列的任务会被重新补回来
+        key = convert_to_underscore(task)
+        node = getattr(config.model, key, None)
+        if node is None:
+            return {'error': f'找不到任务配置: {key}'}
+        sch = getattr(node, 'scheduler', None)
+        if sch is None:
+            return {'error': f'{key} 没有 scheduler'}
+        sch.enable = False
+        config.save()
+
+        auto = False
+        try:
+            from module.config import task_catalog as TC
+            spec = TC.get_spec(task)
+            auto = bool(spec.auto_queue_effective) if spec else False
+        except Exception:
+            pass
+
+        return {
+            'ok': True,
+            'task': task,
+            'removed_entries': removed_n,
+            'enable': False,
+            'auto_queue': auto,
+            'message': (f'已把「{task}」移出队列并停用。'
+                        f'想再跑请先在任务列表里启用它'
+                        + ('（它启用后会自动回到队列）' if auto else
+                           '，再用【添加任务】加入队列')),
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.get('/{script_name}/queue/candidates')
+async def get_queue_candidates(script_name: str):
+    """
+    【添加任务】的**候选列表**。
+
+    规则（用户确认）:
+        `enable == True` **且** `auto_queue == False` **且** `queued == False`
+
+    ★ 即: **已启用的次数任务, 且还没进队列的**。
+
+    ★ 为什么未启用的**不出现**:
+      用户原话 —— "剩余的 34 个任务未启用，其中的次数任务并不会出现在
+      添加任务按钮中，如果需要进队列，那么需要先在任务列表启用，
+      再添加任务才能进队列"。
+
+    :return: {"candidates": [{command, name, name_zh, category_label,
+              count, effective_target, resource_describe}], "count": n}
+    """
+    try:
+        from module.server.main_manager import mm
+        from module.config import task_catalog as TC
+
+        config = mm.config_cache(script_name)
+        queued = config.queued_commands()
+        model_dump = config.model.model_dump()
+        out = []
+
+        for key, value in model_dump.items():
+            if not isinstance(value, dict):
+                continue
+            sch = value.get('scheduler')
+            if not isinstance(sch, dict) or not sch.get('enable'):
+                continue            # 未启用 -> 不是候选
+
+            meta = _meta_of_key(key)
+            if meta is None:
+                continue
+            command = meta.task
+            if command in queued:
+                continue            # 已在队列 -> 不是候选
+            if _auto_queue_of(meta):
+                continue            # 自动进队列的 -> 不该出现在这里
+
+            out.append({
+                'command': command,
+                'name': key,
+                'name_zh': meta.name_zh,
+                'category': meta.category.value,
+                'category_label': TC.CATEGORY_LABEL.get(
+                    meta.category, meta.category.value),
+                'count': meta.count_default,
+                'resource_describe': _resource_describe(meta),
+            })
+
+        out.sort(key=lambda r: r['name_zh'])
+        return {'script': script_name, 'candidates': out, 'count': len(out)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'candidates': [], 'count': 0}
 
 
 @schema_app.get('/{script_name}/run_list/preview')

@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='WantedQuests',
     name_zh='悬赏封印',
     category=Category.FIXED,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=True,
     list_pos=31,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 1, 30))),
 )

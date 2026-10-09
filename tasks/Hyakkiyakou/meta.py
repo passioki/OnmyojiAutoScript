@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='Hyakkiyakou',
     name_zh='百鬼夜行',
     category=Category.FIXED,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=False,
     list_pos=40,
     resource=Resource(capacity=10, recharge=Recharge(kind='interval', interval=(0, 12, 0))),
 )

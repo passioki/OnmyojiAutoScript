@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='DyeTrials',
     name_zh='灵染试炼',
     category=Category.LIMITED,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=True,
     list_pos=52,
     resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='EvoZone',
     name_zh='觉醒副本',
     category=Category.FIXED,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=False,
     list_pos=33,
     resource=Resource(capacity=30, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

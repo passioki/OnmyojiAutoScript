@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='RealmRaid',
     name_zh='个人突破',
     category=Category.TOPPA,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=False,
     list_pos=11,
     resource=Resource(capacity=30, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

@@ -158,12 +158,49 @@ class TaskSpec:
     resource: object = None          # Resource; 用 object 避免循环 import
     requires: tuple = ()
     note: str = ''
+    # ★★ 是否**自动进入执行队列**（用户确认的"任务类别属性"）★★
+    #
+    # | 值 | 含义 | 例 |
+    # |---|---|---|
+    # | `True`  | **定时类** —— 启用后自动进队列（充能 / 时间窗口 / 周期调度）| 逢魔之时、地域鬼王、金币妖怪 |
+    # | `False` | **次数类** —— 启用后**不**自动进队列, 需用户【添加任务】 | 探索、八岐大蛇、个人突破 |
+    #
+    # ★ 判定依据（用户原话 + 实测核对）:
+    #
+    #   用户: "除了定时任务（有充能、次数限制、或时间窗口限制）,
+    #          其他的一般都是次数任务（可以随时设置挑战几次的任务）"
+    #
+    #   实测: 充能 / 窗口 / 周期 都是**配置开关**（用户当前配置里全是 0 个）,
+    #   不能当任务属性用。稳定的依据是 **`countable`**:
+    #
+    #     `countable == True`  -> "能设挑战几次" = 次数任务 -> **不**自动进队列
+    #     `countable == False` -> 定时 / 充能 / 限时类      -> 自动进队列
+    #
+    #   `None` = 按 `category` 推导（默认行为）。任务可显式覆盖,
+    #   将来个别任务想例外时**只改它自己的 `meta.py`**。
+    auto_queue: bool = None
     # 任务列表里的默认位置。None = 未编排(排最后)。
     #
     # ★ 为什么默认 None 而不是给每个任务一个序号: 列表是**用户自己编排**的,
-    # 我们不该预设"哪个任务该先跑"。默认全部未编排 -> 界面按类别/名称排序,
-    # 用户拖拽后才写入位置。
+    #   我们不该预设"哪个任务该先跑"。默认全部未编排 -> 界面按类别/名称排序,
+    #   用户拖拽后才写入位置。
     list_pos: int = None
+
+    @property
+    def auto_queue_effective(self) -> bool:
+        """最终判定: 显式 `auto_queue` 优先, 否则按 `category` 推导。
+
+        为什么用 `category` 而不是 `countable`:
+        `TaskMeta.countable = category in COUNTABLE_CATEGORIES and bool(count_field)`,
+        即 `countable` 已由 `category` 决定(前提是任务声明了 `count_field`)。
+        这里只看 `category`, 避免 `TaskSpec` 反向依赖 catalog JSON。
+
+        ⚠ 两者不一致时**以显式 `auto_queue` 为准** —— 所以批量落值时
+        把真实 `countable` 写进了各 `meta.py`, 不依赖这里的推导。
+        """
+        if self.auto_queue is not None:
+            return bool(self.auto_queue)
+        return self.category not in COUNTABLE_CATEGORIES
 
     def __post_init__(self):
         if not self.task:

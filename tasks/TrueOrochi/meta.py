@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='TrueOrochi',
     name_zh='真八岐大蛇',
     category=Category.TIMED,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=True,
     list_pos=45,
     resource=Resource(capacity=2, recharge=Recharge(kind='none', period=Period.WEEKLY)),
 )

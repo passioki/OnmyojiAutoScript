@@ -19,6 +19,8 @@ SPEC = TaskSpec(
     task='HeroTest',
     name_zh='英杰试炼',
     category=Category.FIXED,
+    # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
+    auto_queue=False,
     list_pos=35,
     resource=Resource(capacity=100, recharge=Recharge(kind='interval', interval=(0, 1, 0))),
 )

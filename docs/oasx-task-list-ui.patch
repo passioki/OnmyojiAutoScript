@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 01/17] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 01/18] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 02/17] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 02/18] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 03/17] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 03/18] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 04/17] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 04/18] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 05/17] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 05/18] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 06/17] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
+Subject: [PATCH 06/18] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
  =?UTF-8?q?=E6=9C=AC=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8?=
  =?UTF-8?q?=E4=B9=85=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20?=
  =?UTF-8?q?=E8=B4=A6=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 07/17] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 07/18] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 08/17] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 08/18] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6256,7 +6256,7 @@ index ea36b95..4ce7384 100644
 From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:58:58 +0800
-Subject: [PATCH 09/17] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+Subject: [PATCH 09/18] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
  =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
  =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
  =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
@@ -7416,7 +7416,7 @@ index 3577f1c..ffedaed 100644
 From 331ba7e9e1de080f71a267b595341dcaced0b5a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 14:03:01 +0800
-Subject: [PATCH 10/17] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
+Subject: [PATCH 10/18] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
  =?UTF-8?q?=E7=A8=8B=E5=BC=80=E5=85=B3=E4=B8=8A=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=20+=20=E4=BC=91=E6=81=AF=E7=BD=AE=E9=A1=B6/=E5=88=86=E7=B1=BB?=
  =?UTF-8?q?=E7=AD=9B=E9=80=89=20+=20=E7=82=B9=E8=A1=8C=E8=BF=9B=E8=AE=BE?=
@@ -7979,7 +7979,7 @@ index 4d59df0..3c57afd 100644
 From 7f7e4925c91c0fb8bd1d6195ea864f8b751781a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 18:29:47 +0800
-Subject: [PATCH 11/17] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
+Subject: [PATCH 11/18] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
  =?UTF-8?q?=E5=8F=AA=E6=94=B6=E5=9B=BA=E5=AE=9A=E4=BB=BB=E5=8A=A1"?=
  =?UTF-8?q?=E7=9A=84=E8=BF=87=E6=BB=A4=20=E2=80=94=E2=80=94=20=E5=AE=83?=
  =?UTF-8?q?=E6=9B=BE=E9=9D=99=E9=BB=98=E4=B8=A2=E6=8E=89=E7=94=A8=E6=88=B7?=
@@ -8449,7 +8449,7 @@ index 3c57afd..47314bc 100644
 From 015d55e1a06fcf895312771b29413dc0fe791f95 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:07:38 +0800
-Subject: [PATCH 12/17] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
+Subject: [PATCH 12/18] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
  =?UTF-8?q?=E9=83=A8**=E5=BC=80=E5=85=B3=E4=B8=8E=E4=BC=98=E5=85=88?=
  =?UTF-8?q?=E7=BA=A7=E5=AD=97=E6=AE=B5=20=E2=80=94=E2=80=94=20=E5=90=8E?=
  =?UTF-8?q?=E7=AB=AF=E6=97=A9=E5=B0=B1=E5=81=9A=E4=BA=86,=20=E5=89=8D?=
@@ -9334,7 +9334,7 @@ index 47314bc..97f7740 100644
 From e78445611c6f2b1f1b4b000d32e007467767eaca Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:13:48 +0800
-Subject: [PATCH 13/17] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
+Subject: [PATCH 13/18] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
  =?UTF-8?q?=E4=B8=80=E4=B8=AA**=E7=BB=9F=E4=B8=80=E6=8E=A7=E5=88=B6?=
  =?UTF-8?q?=E5=8F=B0**=20=E2=80=94=E2=80=94=20=E4=B8=89=E4=B8=AA=20tab=20+?=
  =?UTF-8?q?=20=E6=97=A5=E5=BF=97=E5=B8=B8=E9=A9=BB=EF=BC=88=E7=94=A8?=
@@ -10001,7 +10001,7 @@ index 97f7740..96648d8 100644
 From fd7e402e488353803351cbc63b3a608cd1b729ec Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 20:21:45 +0800
-Subject: [PATCH 14/17] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E5=AE=9E?=
+Subject: [PATCH 14/18] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E5=AE=9E?=
  =?UTF-8?q?=E6=B5=8B=E5=8F=8D=E9=A6=88=204=20=E9=A1=B9=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E9=87=8D=E5=A4=8D=E6=8C=89=E9=92=AE=20/=20?=
  =?UTF-8?q?=E8=8B=B1=E6=96=87=E6=98=BE=E7=A4=BA=20/=20=E9=A1=B5=E9=9D=A2?=
@@ -11169,7 +11169,7 @@ index 96648d8..7a0420a 100644
 From 94756b714d018ba91e3bbbefdf2cc4020badd2a1 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 21:20:48 +0800
-Subject: [PATCH 15/17] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E7=AC=AC?=
+Subject: [PATCH 15/18] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E7=AC=AC?=
  =?UTF-8?q?=E4=BA=8C=E8=BD=AE=E5=8F=8D=E9=A6=88=20=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E7=8A=B6=E6=80=81=E8=B0=8E=E6=8A=A5=20/=20=E5=8E=BB=E6=8C=89?=
  =?UTF-8?q?=E9=92=AE=20/=20=E9=98=9F=E5=88=97=E5=90=88=E5=B9=B6=20/=20?=
@@ -13605,7 +13605,7 @@ index 7a0420a..35c14b9 100644
 From 7f20440742cdbaec8fd0289f06d2495bc7ce80d7 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 21:43:27 +0800
-Subject: [PATCH 16/17] =?UTF-8?q?fix:=20`/overview`=20=E6=BC=8F=20`target`?=
+Subject: [PATCH 16/18] =?UTF-8?q?fix:=20`/overview`=20=E6=BC=8F=20`target`?=
  =?UTF-8?q?=20=E5=AD=97=E6=AE=B5=EF=BC=88"=E6=AC=A1=E6=95=B0"=E6=B0=B8?=
  =?UTF-8?q?=E8=BF=9C=E6=98=BE=E7=A4=BA=E9=BB=98=E8=AE=A4=EF=BC=89+=20?=
  =?UTF-8?q?=E9=98=9F=E5=88=97=E5=90=88=E5=B9=B6"=E6=AD=A3=E5=9C=A8?=
@@ -14191,7 +14191,7 @@ index 35c14b9..0167d81 100644
 From cd1514071de7d1130888b4078024562e15878f99 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 22:02:33 +0800
-Subject: [PATCH 17/17] =?UTF-8?q?fix(ui):=20=E5=8D=95=E9=A1=B5=E5=8C=96?=
+Subject: [PATCH 17/18] =?UTF-8?q?fix(ui):=20=E5=8D=95=E9=A1=B5=E5=8C=96?=
  =?UTF-8?q?=EF=BC=88=E9=98=9F=E5=88=97=20=3D=20=E5=94=AF=E4=B8=80=E5=85=A5?=
  =?UTF-8?q?=E5=8F=A3=EF=BC=89+=20=E5=88=A0=E6=8E=89=E5=86=97=E4=BD=99?=
  =?UTF-8?q?=E7=9A=84=E9=A2=84=E6=9C=9F=E6=B5=81=E7=A8=8B=20+=20=E4=BF=AE"?=
@@ -15416,6 +15416,380 @@ index 0167d81..bf114a8 100644
  // ============================================================ 切换账号
  //
  // 用户实测反馈: **伴生树和恋鸟树在前端显示了同一个任务列表**。
+-- 
+2.41.0.windows.1
+
+
+From 4618133ecfa13b1611d32d21d67945ae9a6efa9e Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 22:08:16 +0800
+Subject: [PATCH 18/18] =?UTF-8?q?refactor(ui):=20=E5=88=A0=E6=8E=89=20Defa?=
+ =?UTF-8?q?ultTabController=EF=BC=88=E5=8D=95=E9=A1=B5=E5=B7=B2=E6=97=A0?=
+ =?UTF-8?q?=20tab=EF=BC=89=E2=80=94=E2=80=94=20=E5=AE=83=E6=9B=BE=E5=9B=A0?=
+ =?UTF-8?q?=20length=20=E4=B8=8D=E5=8C=B9=E9=85=8D=E5=B4=A9=E8=BF=87?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ lib/views/tasks/task_list_view.dart | 222 ++++++++++++++--------------
+ test/task_list_panel_test.dart      |   6 +
+ 2 files changed, 116 insertions(+), 112 deletions(-)
+
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 824990e..b4abd59 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -56,7 +56,8 @@ import 'package:oasx/component/log/log_widget.dart';
+ import 'package:oasx/model/script_model.dart';
+ import 'package:oasx/service/script_service.dart';
+ import 'package:oasx/service/task_prefs.dart';
+-import 'package:oasx/views/nav/view_nav.dart';part '../../controller/task_list/task_list_controller.dart';
++import 'package:oasx/views/nav/view_nav.dart';
++part '../../controller/task_list/task_list_controller.dart';
+ part './task_row_view.dart';
+ part './run_control_bar.dart';
+ part './queue_panel.dart';
+@@ -194,7 +195,7 @@ class _TaskListViewState extends State<TaskListView> {
+     //   换控制器时直接覆盖, 不必维护监听器列表。
+     _c!.onQueryChanged = (q) {
+       if (!mounted) return;
+-      if (_searchCtrl.text == q) return;   // 同值不写, 免得把光标弄跳
++      if (_searchCtrl.text == q) return; // 同值不写, 免得把光标弄跳
+       _searchCtrl.text = q;
+     };
+     // 立刻用控制器里的当前值初始化输入框
+@@ -222,92 +223,91 @@ class _TaskListViewState extends State<TaskListView> {
+ 
+     return GetBuilder<TaskListController>(
+       tag: tag,
+-      builder: (_) => DefaultTabController(
+-        // ★ 必须与下面 `TabBar` 的 tab 数**一致**（TabBarView 的 children 也是）——
+-        //   不匹配会在运行时崩。用户要求合并后从 3 个减到 2 个。
+-        length: 1,
+-        child: Column(
+-          children: [
+-            // ★ 这里**不要**用 `Obx` 包 `RunControlBar` ——
+-            //   `Obx` 要求"回调里**直接**读到 Rx 变量", 而 `RunControlBar`
+-            //   是个 StatefulWidget, 它的 build 里只调了个普通方法,
+-            //   GetX 认为"没订阅任何可观察对象"就抛
+-            //   `improper use of a GetX` -> 整页白屏。
+-            //
+-            //   正确做法: 把 `Obx` 放到**真正读 Rx 的那个小部件**里
+-            //   （`RunControlBar` 内部的脚本状态区）。
+-            RunControlBar(controller: c),
+-            _header(context, c),
+-            Expanded(
+-              child: wide
+-                  // ★ 左右分栏宽度**可拖拽调整**（用户要求）
+-                  //
+-                  //   用 `Stack` + 一个 7px 宽的拖拽条, 而不是
+-                  //   `Row` + 固定 `SizedBox` —— 后者没法调。
+-                  //
+-                  //   范围限制在 [420, 可用宽度-320]: 任一侧都不会被拖没。
+-                  //   （用户说过"看不到就以为功能没了", 这点必须防住。）
+-                  ? LayoutBuilder(
+-                      builder: (_, box) {
+-                        final maxLeft =
+-                            (box.maxWidth - 320).clamp(420.0, box.maxWidth);
+-                        final left = _splitWidth.clamp(420.0, maxLeft);
+-                        return Stack(
+-                          children: [
+-                            Positioned.fill(
+-                              child: Row(
+-                                crossAxisAlignment:
+-                                    CrossAxisAlignment.stretch,
+-                                children: [
+-                                  SizedBox(
+-                                    width: left,
+-                                    child: _ScheduleTab(
+-                                        c: c, searchCtrl: _searchCtrl),
+-                                  ),
+-                                  const VerticalDivider(width: 1),
+-                                  Expanded(child: logs),
+-                                ],
+-                              ),
+-                            ),
+-                            // 拖拽条 —— 压在分界线上（左右各 3px 热区, 好点中）
+-                            Positioned(
+-                              left: left - 3,
+-                              top: 0,
+-                              bottom: 0,
+-                              width: 7,
+-                              child: MouseRegion(
+-                                cursor: SystemMouseCursors.resizeColumn,
+-                                child: GestureDetector(
+-                                  behavior: HitTestBehavior.translucent,
+-                                  onHorizontalDragUpdate: (d) {
+-                                    setState(() {
+-                                      _splitWidth = (_splitWidth + d.delta.dx)
+-                                          .clamp(420.0, maxLeft);
+-                                    });
+-                                  },
+-                                  // 松手才存盘 —— 拖动过程中不要每帧写存储
+-                                  onHorizontalDragEnd: (_) => _saveSplit(),
+-                                  child: const SizedBox.expand(),
++      // ★ **单页, 没有 tab** —— 所以连 `DefaultTabController` 都不需要了。
++      //
++      //   演进: 3 tab -> 2 tab -> 1 tab -> **0 tab**（用户四轮反馈后收敛）。
++      //   `DefaultTabController` 的 `length` 必须与 `TabBar` 的 tab 数一致,
++      //   不一致会**运行时崩** —— 我踩过一次（改了 TabBar 忘了改 length）。
++      //   既然没有 tab 了, 直接删掉它, 这个坑也就不存在了。
++      builder: (_) => Column(
++        children: [
++          // ★ 这里**不要**用 `Obx` 包 `RunControlBar` ——
++          //   `Obx` 要求"回调里**直接**读到 Rx 变量", 而 `RunControlBar`
++          //   是个 StatefulWidget, 它的 build 里只调了个普通方法,
++          //   GetX 认为"没订阅任何可观察对象"就抛
++          //   `improper use of a GetX` -> 整页白屏。
++          //
++          //   正确做法: 把 `Obx` 放到**真正读 Rx 的那个小部件**里
++          //   （`RunControlBar` 内部的脚本状态区）。
++          RunControlBar(controller: c),
++          _header(context, c),
++          Expanded(
++            child: wide
++                // ★ 左右分栏宽度**可拖拽调整**（用户要求）
++                //
++                //   用 `Stack` + 一个 7px 宽的拖拽条, 而不是
++                //   `Row` + 固定 `SizedBox` —— 后者没法调。
++                //
++                //   范围限制在 [420, 可用宽度-320]: 任一侧都不会被拖没。
++                //   （用户说过"看不到就以为功能没了", 这点必须防住。）
++                ? LayoutBuilder(
++                    builder: (_, box) {
++                      final maxLeft =
++                          (box.maxWidth - 320).clamp(420.0, box.maxWidth);
++                      final left = _splitWidth.clamp(420.0, maxLeft);
++                      return Stack(
++                        children: [
++                          Positioned.fill(
++                            child: Row(
++                              crossAxisAlignment: CrossAxisAlignment.stretch,
++                              children: [
++                                SizedBox(
++                                  width: left,
++                                  child: _ScheduleTab(
++                                      c: c, searchCtrl: _searchCtrl),
+                                 ),
++                                const VerticalDivider(width: 1),
++                                Expanded(child: logs),
++                              ],
++                            ),
++                          ),
++                          // 拖拽条 —— 压在分界线上（左右各 3px 热区, 好点中）
++                          Positioned(
++                            left: left - 3,
++                            top: 0,
++                            bottom: 0,
++                            width: 7,
++                            child: MouseRegion(
++                              cursor: SystemMouseCursors.resizeColumn,
++                              child: GestureDetector(
++                                behavior: HitTestBehavior.translucent,
++                                onHorizontalDragUpdate: (d) {
++                                  setState(() {
++                                    _splitWidth = (_splitWidth + d.delta.dx)
++                                        .clamp(420.0, maxLeft);
++                                  });
++                                },
++                                // 松手才存盘 —— 拖动过程中不要每帧写存储
++                                onHorizontalDragEnd: (_) => _saveSplit(),
++                                child: const SizedBox.expand(),
+                               ),
+                             ),
+-                          ],
+-                        );
+-                      },
+-                    )
+-                  // 窄屏: 退化成一列（否则会挤成一团）
+-                  : Column(
+-                      children: [
+-                        Expanded(
+-                          child: _ScheduleTab(
+-                              c: c, searchCtrl: _searchCtrl),
+-                        ),
+-                        SizedBox(height: 200, child: logs),
+-                      ],
+-                    ),
+-            ),
+-          ],
+-        ),
++                          ),
++                        ],
++                      );
++                    },
++                  )
++                // 窄屏: 退化成一列（否则会挤成一团）
++                : Column(
++                    children: [
++                      Expanded(
++                        child: _ScheduleTab(c: c, searchCtrl: _searchCtrl),
++                      ),
++                      SizedBox(height: 200, child: logs),
++                    ],
++                  ),
++          ),
++        ],
+       ),
+     );
+   }
+@@ -424,8 +424,7 @@ mixin _GlobalPanelMixin {
+               children: [
+                 SizedBox(
+                   width: 168,
+-                  child:
+-                      Text(c.globalFieldLabel('timed_priority', '定时任务优先级')),
++                  child: Text(c.globalFieldLabel('timed_priority', '定时任务优先级')),
+                 ),
+                 DropdownButton<String>(
+                   value: c.timedPriorityChoices
+@@ -471,8 +470,8 @@ mixin _GlobalPanelMixin {
+                       Text(c.queueEmptyLabel),
+                       const SizedBox(width: 8),
+                       DropdownButton<String>(
+-                        value: c.queueEmptyChoices.any(
+-                                (e) => '${e['value']}' == c.whenQueueEmpty)
++                        value: c.queueEmptyChoices
++                                .any((e) => '${e['value']}' == c.whenQueueEmpty)
+                             ? c.whenQueueEmpty
+                             : '${c.queueEmptyChoices.first['value']}',
+                         isDense: true,
+@@ -601,16 +600,24 @@ class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+     return ListView(
+       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+       children: [
++        // 1. 紧凑状态行（进程状态 / 待执行数 / 等待中数 / 冷却数）
+         _monitorStrip(context),
+         const SizedBox(height: 8),
++        // 2. 批量操作（脚本进程开关 + 批量启停 / 运行一次 / 重置选中 / 搜索 / 筛选）
+         _bulkPanel(context),
+         const SizedBox(height: 8),
++        // 3. ★ 全局开关（**顶部** —— 用户要求, 不许埋在页底）
+         _globalPanel(context),
+         const SizedBox(height: 8),
++        // 4. ★ **执行队列** —— 正在运行(第 0 项) + 待执行 + 等待中;
++        //    可拖拽改顺序, 每行的次数 / 预期耗时 / 优先级可直接改。
++        //
++        //    这是**唯一**的观察与编排入口: 「正在运行 / 待执行 / 等待中 /
++        //    预期流程」本来就是一件事（用户四轮反馈后收敛的结论）。
+         QueuePanel(controller: c),
+         const SizedBox(height: 8),
+-        // 预期流程就是"接下来的计划终点" —— 紧跟队列, 与它同源
+-        const SizedBox(height: 8),
++        // 5. 任务表格 —— Excel 式的**批量查看与管理**（启停 / 运行一次 /
++        //    多列排序 / 筛选）; **不改执行顺序**（用户明确过）。
+         _tablePanel(context),
+       ],
+     );
+@@ -749,8 +756,7 @@ class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+     final r = await Get.dialog<bool>(
+       AlertDialog(
+         title: const Text('停止脚本进程？'),
+-        content: const Text(
+-            '会**立即结束**脚本子进程。\n\n'
++        content: const Text('会**立即结束**脚本子进程。\n\n'
+             '★ 如果正在战斗中，这一场会被打断（与「暂停调度」不同 ——'
+             '那会跑完当前战斗再停）。\n\n'
+             '确定继续吗？'),
+@@ -759,8 +765,7 @@ class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+               onPressed: () => Get.back(result: false),
+               child: const Text('取消')),
+           FilledButton(
+-              onPressed: () => Get.back(result: true),
+-              child: const Text('停止')),
++              onPressed: () => Get.back(result: true), child: const Text('停止')),
+         ],
+       ),
+     );
+@@ -788,8 +793,7 @@ class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+             _scriptProcessRow(context),
+             const Divider(height: 20),
+ 
+-            _panelTitle(context, '批量操作',
+-                '改的是 scheduler.enable（任务级长期开关）'),
++            _panelTitle(context, '批量操作', '改的是 scheduler.enable（任务级长期开关）'),
+             const SizedBox(height: 8),
+             Wrap(
+               spacing: 8,
+@@ -797,14 +801,11 @@ class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+               crossAxisAlignment: WrapCrossAlignment.center,
+               children: [
+                 OutlinedButton(
+-                    onPressed: () => c.selectAll(),
+-                    child: const Text('全选')),
++                    onPressed: () => c.selectAll(), child: const Text('全选')),
+                 OutlinedButton(
+-                    onPressed: () => c.selectNone(),
+-                    child: const Text('全不选')),
++                    onPressed: () => c.selectNone(), child: const Text('全不选')),
+                 OutlinedButton(
+-                    onPressed: () => c.selectInvert(),
+-                    child: const Text('反选')),
++                    onPressed: () => c.selectInvert(), child: const Text('反选')),
+                 OutlinedButton(
+                     onPressed: () => c.selectListOnly(),
+                     child: const Text('只选列表里的')),
+@@ -827,9 +828,8 @@ class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+                   message: '按选中顺序排队，**跑完当前任务/战斗后**依次插队运行\n'
+                       '（不是立即打断 —— 那会卡在半途）',
+                   child: OutlinedButton.icon(
+-                    onPressed: c.selected.isEmpty || c.busy
+-                        ? null
+-                        : c.runOnceSelected,
++                    onPressed:
++                        c.selected.isEmpty || c.busy ? null : c.runOnceSelected,
+                     icon: const Icon(Icons.playlist_play, size: 18),
+                     label: Text('运行一次 (${c.selected.length})'),
+                   ),
+@@ -838,9 +838,8 @@ class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+                   message: '把当前运行记录**归档**后从零重新计数\n'
+                       '历史不会删除，仍可在归档里查看',
+                   child: OutlinedButton.icon(
+-                    onPressed: c.selected.isEmpty || c.busy
+-                        ? null
+-                        : c.resetSelected,
++                    onPressed:
++                        c.selected.isEmpty || c.busy ? null : c.resetSelected,
+                     icon: const Icon(Icons.archive_outlined, size: 18),
+                     label: const Text('重置选中'),
+                   ),
+@@ -968,9 +967,7 @@ class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+         children: [
+           Padding(
+             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+-            child: _panelTitle(
+-                context,
+-                '任务表格（$rows 个）',
++            child: _panelTitle(context, '任务表格（$rows 个）',
+                 '次数 / 优先级 / 预期耗时 直接改 · 表头可排序 · ↑↓ 调执行顺序'),
+           ),
+           const SizedBox(height: 8),
+@@ -1005,6 +1002,7 @@ class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+       ),
+     );
+   }
++
+   /// 表头 —— 与原型的 8 列 + 运行记录列。
+   ///
+   /// ★ 表头**可点击排序**（多列）。点同一列切换升降序，点别的列重置为升序。
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index bf114a8..8811e18 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -720,6 +720,12 @@ void _phase2Tests() {
+     expect(view.contains('TabBar('), isFalse,
+         reason: '单页了, 不该再有 TabBar');
+     expect(view.contains('TabBarView('), isFalse);
++    // ★ 连 `DefaultTabController` 都删掉了 —— 没有 tab 就不需要它。
++    //
++    //   它曾是**运行时崩溃**的来源: `length` 与 `TabBar` 的 tab 数不一致会崩
++    //   （我踩过一次: 改了 TabBar 忘了改 length）。现在这个坑不存在了。
++    expect(view.contains('DefaultTabController('), isFalse,
++        reason: '没有 tab 就不该留 DefaultTabController');
+ 
+     // 日志在 build() 里创建一次、常驻右侧
+     final buildIdx = view.indexOf('Widget build(BuildContext context)');
 -- 
 2.41.0.windows.1
 

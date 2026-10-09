@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 1/6] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 1/7] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 2/6] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 2/7] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 3/6] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 3/7] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 4/6] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 4/7] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 5/6] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 5/7] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 6/6] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A=E6=9C=AC?=
+Subject: [PATCH 6/7] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A=E6=9C=AC?=
  =?UTF-8?q?=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8=E4=B9=85?=
  =?UTF-8?q?=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20=E8=B4=A6?=
  =?UTF-8?q?=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E4=B8=B2?=
@@ -4880,6 +4880,796 @@ index 3b167de..8916990 100644
 +    Get.delete<TaskListController>(tag: tagB, force: true);
 +  });
 +}
+-- 
+2.41.0.windows.1
+
+
+From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 13:48:12 +0800
+Subject: [PATCH 7/7] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+ =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
+ =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
+ =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+按用户确认的设计改前端。
+
+## 1. 运行控制条 v2 —— **去掉已废的时长按钮**
+
+| 按钮 | v2 处置 |
+|---|---|
+| ⏸ 暂停调度 / ⏭ 本轮跑完再停 / ▶ 继续调度 | ✅ 保留 |
+| 全部停止 N 分钟 / 只停列表 N 分钟 | ❌ **去掉** |
+
+理由（用户确认）: 固定任务与定时任务**分开管理**（各自有总开关）后，
+"谁停谁不停"交给总开关表达 —— 那两个时长按钮的概念不再需要。
+列表里同理只剩「休息」一种控制条目（`delay` 已废）。
+
+★ 「暂停调度」暂停的是**两者**（固定 + 定时），tooltip 里写明了。
+★ 「休息」条目生效时会写 `rest_until` —— 界面上显示「休息中 至 …」，
+  否则用户只看到"什么都不跑"会困惑。
+
+## 2. 脚本进程开关移出运行控制条
+
+它是**进程级硬停**（结束子进程），与"调度级软停"是两回事。
+已从运行控制条移出（下一步接到**任务总览页** —— 那里是俯视全局的地方）。
+
+## 3. 任务列表页改为**左右分栏**（用户要求）
+
+    ┌──────────────┬────────────────────┐
+    │ 全局设置(窄) │                    │
+    ├──────────────┤      日 志          │
+    │ 执行顺序(窄) │   （占右半边）      │
+    ├──────────────┤                    │
+    │ 预期流程(窄) │                    │
+    └──────────────┴────────────────────┘
+
+* 左列 380px，**可滚动**（三个面板堆起来会超出高度）
+* 右列日志自适应宽度
+* ★ **窄屏（< 900px）退化成一列** —— 否则手机上会挤成一团
+  （日志给固定 220px 高度，不然 Column 里无界高度会崩）
+
+## 4. 日志搬到任务列表页
+
+### 用「订阅注册表」而不是再开一个 WebSocket
+
+日志原先**硬编码**发给 `OverviewController`（旧总览页）。
+v2 之后**任务列表页**才是调度控制台，日志要显示在那里。
+
+`ScriptService` 新增:
+
+    void Function() subscribeLog(String name, void Function(String) sink)
+
+* 订阅者拿到的 `msg` 与原先发给 `OverviewController` 的**完全一样**
+* 新页面要显示日志**不用改 `wsListener`**
+* ★ **不另开 WebSocket 连接** —— 那会让后端以为有第二个客户端，
+  还会触发 `already running and first stop it` 那条路径
+
+`TaskListController` 现在 `with LogMixin`，在 `onInit` 订阅、
+`onClose` **取消订阅**（否则控制器销毁后日志会往死控制器里塞）。
+
+## 5. 测试 12/12
+
+新增 4 条**源码语义守卫**:
+
+* 运行控制条源码里不再出现已废的时长按钮与 `restScript`/`delayScript`
+* 保留三个调度按钮，且**不提供「立即停」**
+* 脚本进程开关已移出（`startScript`/`stopScript` 不该在这里）
+* 运行列表面板不再出现 `'delay'`
+
+### ★ 守卫写错过一次（值得记下）
+
+第一版守卫**没去注释**，结果匹配到自己的说明文字:
+文件里写着"明确不提供立即停" → 被判成"提供了立即停"；
+写着"v2 去掉了 delay" → 被判成"还在用 delay"。
+
+**守卫误报很浪费注意力** —— 现在先剥掉行注释再断言（`codeOnly()`）。
+
+`flutter test` 12/12 通过；`flutter build windows --release` 通过。
+---
+ .../task_list/task_list_controller.dart       |  38 +-
+ lib/service/script_service.dart               |  37 ++
+ lib/views/tasks/run_control_bar.dart          | 361 ++++--------------
+ lib/views/tasks/task_list_view.dart           |  43 ++-
+ test/task_list_panel_test.dart                |  65 ++++
+ 5 files changed, 258 insertions(+), 286 deletions(-)
+
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index 8ecceee..aa4eee8 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -8,13 +8,26 @@ part of task_list;
+ ///   全部来自 `/schema`, 前端不硬编码(否则又是"同一知识多处")
+ /// * **不做调度决策** —— `can_run` / `reason` / `next_run` 由后端算好
+ /// * 运行列表的**顺序**就是数组顺序(模型 B), 拖拽后整体 PUT 回去
+-/// * `task` 条目不阻塞、`rest`/`delay` 阻塞 —— 这是后端语义,
++/// * `task` 条目不阻塞、`rest` 阻塞 —— 这是后端语义,
+ ///   前端只负责让用户看清"哪一条会停"
+-class TaskListController extends GetxController {
++///
++/// ## 日志（v2 新增）
++///
++/// v2 之后**任务列表页**是调度控制台, 日志显示在这里
++/// （旧总览页的日志搬过来）。
++///
++/// 用 `LogMixin` 拿到 `logs` / `autoScroll` / `collapseLog` 等,
++/// 再通过 `ScriptService.subscribeLog()` **订阅**该账号的日志 ——
++/// **不额外开 WebSocket 连接**（那会让后端以为有第二个客户端,
++/// 还会触发"already running and first stop it"那条路径）。
++class TaskListController extends GetxController with LogMixin {
+   TaskListController({required this.scriptName});
+ 
+   final String scriptName;
+ 
++  /// 取消日志订阅的函数（`onClose` 时调用）。
++  void Function()? _unsubscribeLog;
++
+   /// ★ **延迟**创建 `ApiClient`, 不要写成字段初始化 `final _api = ApiClient()`。
+   ///
+   /// `ApiClient` 的构造函数里会 `Get.find<SettingsController>()`,
+@@ -233,6 +246,27 @@ class TaskListController extends GetxController {
+     // ★ 用 microtask 延后一帧, 不要在 onInit 里同步拉数据 ——
+     //   onInit 期间控制器的监听者还没挂好。
+     Future.microtask(reload);
++    _subscribeLog();
++  }
++
++  @override
++  void onClose() {
++    // ★ 一定要取消订阅 —— 否则控制器销毁后 sink 还挂在
++    //   `ScriptService` 上, 日志会往一个死控制器里塞。
++    _unsubscribeLog?.call();
++    _unsubscribeLog = null;
++    super.onClose();
++  }
++
++  /// 订阅该账号的日志（复用已有的 WebSocket, 不另开连接）。
++  void _subscribeLog() {
++    try {
++      final svc = Get.find<ScriptService>();
++      _unsubscribeLog = svc.subscribeLog(scriptName, addLog);
++      // 订阅那一刻可能已经有历史日志（`LogMixin` 自己缓存）
++    } catch (e) {
++      printError(info: '日志订阅失败: $e');
++    }
+   }
+ 
+   // ---------------------------------------------------------------- 加载
+diff --git a/lib/service/script_service.dart b/lib/service/script_service.dart
+index f3ea234..c331a3d 100644
+--- a/lib/service/script_service.dart
++++ b/lib/service/script_service.dart
+@@ -49,12 +49,49 @@ class ScriptService extends GetxService {
+     await wsService.send(name, 'get_state');
+   }
+ 
++  /// 日志订阅者 —— `account -> [sink, ...]`。
++  ///
++  /// ## 为什么需要它
++  ///
++  /// 日志原先**硬编码**发给 `OverviewController`（旧的总览页）。
++  /// 但 v2 之后**任务列表页**才是调度控制台，日志要显示在那里 ——
++  /// 而同一个账号可能有多个页面在看日志。
++  ///
++  /// 与其在 `wsListener` 里 `if` 每个可能的控制器，不如让订阅者自己注册。
++  /// 这样**新页面加日志不用改这里**。
++  ///
++  /// ★ 每个订阅者拿到的 `msg` 是**原始文本**（可能不是 JSON）——
++  ///   与原先发给 `OverviewController` 的完全一样。
++  final _logSinks = <String, List<void Function(String)>>{};
++
++  /// 订阅某个账号的日志。返回取消订阅的函数。
++  void Function() subscribeLog(String name, void Function(String) sink) {
++    final list = _logSinks.putIfAbsent(name, () => []);
++    list.add(sink);
++    return () {
++      list.remove(sink);
++      if (list.isEmpty) _logSinks.remove(name);
++    };
++  }
++
++  void _emitLog(String name, String text) {
++    for (final sink in List.of(_logSinks[name] ?? const [])) {
++      try {
++        sink(text);
++      } catch (e) {
++        printError(info: 'log sink error: $e');
++      }
++    }
++  }
++
+   void wsListener(dynamic message, String name) {
+     if (message is! String) {
+       printError(info: 'Websocket push data is not of type string and map');
+       return;
+     }
+     if (!message.startsWith('{') || !message.endsWith('}')) {
++      // 先发给订阅者（v2 的任务列表页等），再兼容旧的总览页。
++      _emitLog(name, message);
+       if (Get.isRegistered<OverviewController>(tag: name)) {
+         Get.find<OverviewController>(tag: name).addLog(message);
+       }
+diff --git a/lib/views/tasks/run_control_bar.dart b/lib/views/tasks/run_control_bar.dart
+index c85f018..0d0bdc2 100644
+--- a/lib/views/tasks/run_control_bar.dart
++++ b/lib/views/tasks/run_control_bar.dart
+@@ -1,55 +1,34 @@
+ part of task_list;
+ 
+-/// 顶部运行控制条: **开始/停止** + 暂停 / 继续 / 全部停止 / 只停列表。
++/// 运行控制条（v2）—— **只有三个调度按钮**。
+ ///
+-/// ## 为什么需要「开始脚本」
++/// ## v2 去掉了什么
+ ///
+-/// 用户反馈: **"没有开始和这两个按钮做对应"** ——
+-/// ⏸ 暂停调度 / ⏭ 本轮跑完再停 都是**对运行中的脚本**做操作,
+-/// 但界面上没有"把它跑起来"的按钮, 逻辑上是断的。
++/// v1 有「全部停止 N 分钟」/「只停列表 N 分钟」两个**时长按钮**。
++/// v2 之后**固定任务与定时任务分开管理**（各自有总开关），
++/// "谁停谁不停"交给总开关表达 —— 这两个概念不再需要。
+ ///
+-/// 本条的按钮分两组:
++/// 同理列表里也只剩「休息」一种控制条目（去掉了 `delay`）。
+ ///
+-/// | 组 | 按钮 | 作用 | 恢复方式 |
+-/// |---|---|---|---|
+-/// | **脚本** | ▶ 开始 / ⏹ 停止 | 启动/停止 OAS 的脚本进程 | — |
+-/// | **调度** | ⏸ 暂停调度 / ⏭ 本轮跑完再停 / ▶ 继续调度 | 不停止进程, 只控制"要不要开新任务" | **手动**"继续调度" |
+-/// | **时长** | **全部停止** N 分钟 | 什么都不跑(含定时任务) | **自动**到点恢复, 或点"取消" |
+-/// | | **只停列表** N 分钟 | 只停列表推进, 定时任务照常 | **自动**到点恢复, 或点"取消" |
++/// ## 保留的三个按钮
+ ///
+-/// ## ★ 这四个按钮为什么都需要（用户质疑过，这里给答案）
+-///
+-/// 看**恢复方式**那一列就清楚了 —— 它们回答的是不同的问题:
+-///
+-/// | 问题 | 用哪个 |
+-/// |---|---|
+-/// | 我要去干别的事, 等我回来手动开 | **暂停调度**（无限期, 手动恢复）|
+-/// | 我要出门 2 小时, 到点自己接着跑 | **全部停止 2 小时**（定时恢复）|
+-/// | 定时任务别断, 但列表先停一会 | **只停列表** |
+-/// | 进程都停掉 | **停止**（脚本组）|
+-///
+-/// ★ "定时恢复"这件事**只有**「全部停止」能做 —— 暂停调度只能手动恢复。
+-/// ★ "只停列表、定时照常"这件事**只有**「只停列表」能做。
+-///   所以两者都不是"暂停调度"的重复。
+-///
+-/// ★ 唯一可有可无的是「本轮跑完再停」—— 它与"暂停调度"的区别只在
+-///   暂停时机(本轮打满 vs 当前这局)。**保留**是因为用户明确要求过。
+-///
+-/// ## 效果命名（用户明确要求）
++/// | 按钮 | `mode` | 行为 |
++/// |---|---|---|
++/// | ⏸ 暂停调度 | `battle` | 跑完**当前这场战斗**（安全点）后不再开新任务 |
++/// | ⏭ 本轮跑完再停 | `round` | 本任务本轮**打满目标次数**再停 |
++/// | ▶ 继续调度 | （`resume`）| 恢复 |
+ ///
+-/// 不说"休息 / 延后"（两个词都容易误解）, 而按**效果**命名:
++/// ★ **不提供「立即停」** —— 会卡在半途（战斗中/组队房间中），不安全。
+ ///
+-/// | 按钮 | 效果 | 对定时任务 |
+-/// |---|---|---|
+-/// | **全部停止** | 暂停调度 N 分钟 | ✅ 一起停 |
+-/// | **只停列表** | 只推迟列表 N 分钟 | ❌ 照常 |
++/// ## ★ 暂停的是**两者**
+ ///
+-/// ★ 名字里就写着**唯一区别**。
++/// 「暂停调度」暂停的是**整个配置**（固定任务 + 定时任务都停）。
++/// 想只停一边，用「全局设置」里的两个总开关。
+ ///
+-/// ## 可取消（用户反馈）
++/// ## 脚本进程开关不在这里
+ ///
+-/// 两个时长按钮生效后, 按钮会变成「**取消** 全部停止」——
+-/// 之前生效了就**没有取消入口**, 只能等时间到。
++/// 它是**进程级硬停**（结束子进程），与"调度级软停"是两回事 ——
++/// 已移到**任务总览页**（那里是俯视全局的地方）。
+ class RunControlBar extends StatefulWidget {
+   const RunControlBar({super.key, required this.controller});
+ 
+@@ -63,51 +42,17 @@ class _RunControlBarState extends State<RunControlBar> {
+   Map<String, dynamic> _state = {};
+   bool _busy = false;
+ 
+-  /// 脚本是否在跑 —— 做成 **Rx** 让 `Obx` 能订阅。
+-  ///
+-  /// `ScriptModel.state` 本身是 Rx(`ScriptService` 在 WebSocket 回调里
+-  /// 更新它), 但它是**另一个对象**的字段, 无法在这里 `Obx` 直接读
+-  /// (那样 `Obx` 回调里只调方法、不读 Rx, 会抛 "improper use of a GetX")。
+-  /// 所以这里自己持有一个 Rx, 用 `ever` 订阅源状态。
+-  final _scriptState = false.obs;
+-  Worker? _stateWorker;
+-
+-  /// 显式传入 —— 不靠 `Get.find` + 路由参数, 嵌套时更可靠。
++  /// 显式传入 —— 不靠 `Get.find` + 路由参数，嵌套时更可靠。
+   TaskListController get _c => widget.controller;
+ 
+   @override
+   void initState() {
+     super.initState();
+     _load();
+-    // 订阅 ScriptModel.state 的变化 -> 同步到本地 Rx
+-    try {
+-      final model = Get.find<ScriptService>().findScriptModel(_c.script);
+-      if (model != null) {
+-        _stateWorker = ever(model.state, (v) {
+-          _scriptState.value = v == ScriptState.running;
+-        });
+-        _scriptState.value = model.state.value == ScriptState.running;
+-      }
+-    } catch (_) {
+-      // 模型还没建好 -> 后面 `_load()` 再补
+-    }
+-  }
+-
+-  @override
+-  void dispose() {
+-    _stateWorker?.dispose();
+-    super.dispose();
+   }
+ 
+   Future<void> _load() async {
+     final s = await ApiClient().getRunControl(_c.script);
+-    // 顺便同步一次脚本状态(WebSocket 可能还没推过)
+-    try {
+-      final model = Get.find<ScriptService>().findScriptModel(_c.script);
+-      if (model != null && !_scriptState.value) {
+-        _scriptState.value = model.state.value == ScriptState.running;
+-      }
+-    } catch (_) {}
+     if (!mounted) return;
+     setState(() => _state = s);
+   }
+@@ -122,229 +67,79 @@ class _RunControlBarState extends State<RunControlBar> {
+     }
+   }
+ 
+-  /// 效果名 —— 优先用 `/schema` 给的名字(后端改名前端自动跟上)。
+-  String _label(String kind, String fallback) {
+-    for (final k in _c.entryKinds) {
+-      if ('${k['value']}' == kind) return '${k['label']}';
+-    }
+-    return fallback;
+-  }
+-
+-  String _help(String kind, String fallback) {
+-    for (final k in _c.entryKinds) {
+-      if ('${k['value']}' == kind) return '${k['help']}';
+-    }
+-    return fallback;
+-  }
+-
+   @override
+   Widget build(BuildContext context) {
+     final paused = _state['paused'] == true;
+     final restUntil = _state['rest_until'];
+-    final listResumeAt = _state['list_resume_at'];
+     final pauseLabel = '${_state['pause_mode_label'] ?? '运行中'}';
+-    // ★ 生效中 -> 按钮变"取消"(用户反馈: 之前没有取消入口)
+-    final resting = restUntil != null;
+-    final delaying = listResumeAt != null;
+ 
+     return Card(
+       margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+       child: Padding(
+         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
++        child: Wrap(
++          spacing: 8,
++          runSpacing: 4,
++          crossAxisAlignment: WrapCrossAlignment.center,
+           children: [
+-            // ---------- 第 1 行: 脚本进程 + 调度状态 ----------
+-            Wrap(
+-              spacing: 8,
+-              runSpacing: 4,
+-              crossAxisAlignment: WrapCrossAlignment.center,
+-              children: [
+-                // ★ `Obx` 必须包住**直接读 Rx 变量**的那一小块。
+-                //
+-                //   `scriptRunning` 内部读的是 `ScriptModel.state.value`
+-                //   (来自 WebSocket 推送的 Rx), 所以在 `Obx` 回调里
+-                //   **直接**展开它 —— 这样 GetX 能记录依赖。
+-                //
+-                //   ⚠ 反面例子(踩过): 在 `task_list_view.dart` 里写
+-                //     `Obx(() => RunControlBar(controller: c))` —— 回调里
+-                //     只构造了一个 StatefulWidget, 没直接读 Rx,
+-                //     GetX 抛 "improper use of a GetX" 并导致**整页白屏**。
+-                Obx(() {
+-                  final running = _scriptState.value;
+-                  return Row(
+-                    mainAxisSize: MainAxisSize.min,
+-                    children: [
+-                      _dot(running ? Colors.green : Colors.grey),
+-                      const SizedBox(width: 6),
+-                      Text(running ? '脚本运行中' : '脚本已停止'),
+-                      const SizedBox(width: 8),
+-                      if (!running)
+-                        FilledButton.icon(
+-                          onPressed: _busy
+-                              ? null
+-                              : () async {
+-                                  await _c.startScript();
+-                                  await _load();
+-                                },
+-                          icon: const Icon(Icons.play_arrow, size: 18),
+-                          label: const Text('开始'),
+-                        ),
+-                      if (running)
+-                        OutlinedButton.icon(
+-                          onPressed: _busy
+-                              ? null
+-                              : () async {
+-                                  await _c.stopScript();
+-                                  await _load();
+-                                },
+-                          icon: const Icon(Icons.stop, size: 18),
+-                          label: const Text('停止'),
+-                        ),
+-                    ],
+-                  );
+-                }),
+-                const SizedBox(width: 12),
+-                _dot(paused ? Colors.orange : Colors.green),
+-                Text(pauseLabel),
+-                if (resting)
+-                  Chip(
+-                    label: Text('${_label('rest', '全部停止')} 至 $restUntil'),
+-                    visualDensity: VisualDensity.compact,
+-                  ),
+-                if (delaying)
+-                  Chip(
+-                    label: Text('${_label('delay', '只停列表')} 至 $listResumeAt'),
+-                    visualDensity: VisualDensity.compact,
+-                  ),
+-              ],
+-            ),
+-            const Divider(height: 12),
+-
+-            // ---------- 第 2 行: 调度控制 ----------
+-            Wrap(
+-              spacing: 8,
+-              runSpacing: 4,
+-              crossAxisAlignment: WrapCrossAlignment.center,
+-              children: [
+-                if (!paused) ...[
+-                  Tooltip(
+-                    message: '跑完当前这场战斗后不再开新任务（安全停，不会卡在半途）',
+-                    child: FilledButton.icon(
+-                      onPressed: _busy
+-                          ? null
+-                          : () => _do(() => ApiClient()
+-                              .pauseScript(_c.script, mode: 'battle')),
+-                      icon: const Icon(Icons.pause, size: 18),
+-                      label: const Text('暂停调度'),
+-                    ),
+-                  ),
+-                  Tooltip(
+-                    message: '本任务本轮打满目标次数后再停',
+-                    child: OutlinedButton.icon(
+-                      onPressed: _busy
+-                          ? null
+-                          : () => _do(() => ApiClient()
+-                              .pauseScript(_c.script, mode: 'round')),
+-                      icon: const Icon(Icons.skip_next, size: 18),
+-                      label: const Text('本轮跑完再停'),
+-                    ),
+-                  ),
+-                ],
+-                if (paused)
+-                  FilledButton.icon(
+-                    onPressed: _busy
+-                        ? null
+-                        : () => _do(() => ApiClient().resumeScript(_c.script)),
+-                    icon: const Icon(Icons.play_arrow, size: 18),
+-                    label: const Text('继续调度'),
+-                  ),
+-
+-                const SizedBox(width: 12),
+-
+-                // ---------- 时长控制: 生效中 -> 取消 ----------
+-                if (!resting)
+-                  Tooltip(
+-                    message: _help('rest', '暂停调度 N 分钟 —— 连定时任务一起停'),
+-                    child: OutlinedButton.icon(
+-                      onPressed: _busy
+-                          ? null
+-                          : () => _pickMinutes('rest', _label('rest', '全部停止')),
+-                      icon: const Icon(Icons.stop_circle_outlined, size: 18),
+-                      label: Text(_label('rest', '全部停止')),
+-                    ),
+-                  )
+-                else
+-                  FilledButton.tonalIcon(
+-                    onPressed: _busy
+-                        ? null
+-                        : () => _do(() => ApiClient().restScript(_c.script, 0)),
+-                    icon: const Icon(Icons.cancel_outlined, size: 18),
+-                    label: Text('取消 ${_label('rest', '全部停止')}'),
+-                  ),
+-                if (!delaying)
+-                  Tooltip(
+-                    message: _help('delay', '只推迟列表 N 分钟 —— 定时任务照常'),
+-                    child: OutlinedButton.icon(
+-                      onPressed: _busy
+-                          ? null
+-                          : () =>
+-                              _pickMinutes('delay', _label('delay', '只停列表')),
+-                      icon: const Icon(Icons.schedule, size: 18),
+-                      label: Text(_label('delay', '只停列表')),
+-                    ),
+-                  )
+-                else
+-                  FilledButton.tonalIcon(
+-                    onPressed: _busy
+-                        ? null
+-                        : () =>
+-                            _do(() => ApiClient().delayScript(_c.script, 0)),
+-                    icon: const Icon(Icons.cancel_outlined, size: 18),
+-                    label: Text('取消 ${_label('delay', '只停列表')}'),
+-                  ),
+-              ],
++            // ---- 当前状态 ----
++            Container(
++              width: 10,
++              height: 10,
++              decoration: BoxDecoration(
++                color: paused ? Colors.orange : Colors.green,
++                shape: BoxShape.circle,
++              ),
+             ),
++            const SizedBox(width: 4),
++            Text(pauseLabel),
++            // 「休息」条目生效时它会写 `rest_until` —— 显示出来,
++            // 否则用户只看到"什么都不跑"会困惑。
++            if (restUntil != null)
++              Chip(
++                label: Text('休息中 至 $restUntil'),
++                visualDensity: VisualDensity.compact,
++              ),
++            const SizedBox(width: 12),
++
++            // ---- 三个调度按钮 ----
++            if (!paused) ...[
++              Tooltip(
++                message: '跑完当前这场战斗后不再开新任务\n'
++                    '（安全停，不会卡在半途）\n'
++                    '★ 固定任务与定时任务**都会**暂停',
++                child: FilledButton.icon(
++                  onPressed: _busy
++                      ? null
++                      : () => _do(() => ApiClient()
++                          .pauseScript(_c.script, mode: 'battle')),
++                  icon: const Icon(Icons.pause, size: 18),
++                  label: const Text('暂停调度'),
++                ),
++              ),
++              Tooltip(
++                message: '本任务本轮打满目标次数后再停',
++                child: OutlinedButton.icon(
++                  onPressed: _busy
++                      ? null
++                      : () => _do(() => ApiClient()
++                          .pauseScript(_c.script, mode: 'round')),
++                  icon: const Icon(Icons.skip_next, size: 18),
++                  label: const Text('本轮跑完再停'),
++                ),
++              ),
++            ],
++            if (paused)
++              FilledButton.icon(
++                onPressed: _busy
++                    ? null
++                    : () => _do(() => ApiClient().resumeScript(_c.script)),
++                icon: const Icon(Icons.play_arrow, size: 18),
++                label: const Text('继续调度'),
++              ),
+           ],
+         ),
+       ),
+     );
+   }
+-
+-  Widget _dot(Color color) => Container(
+-        width: 10,
+-        height: 10,
+-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+-      );
+-
+-  Future<void> _pickMinutes(String kind, String label) async {
+-    final choices = _c.durationChoices;
+-    final minutes = await showDialog<int>(
+-      context: context,
+-      builder: (ctx) => SimpleDialog(
+-        title: Text(label),
+-        children: [
+-          Padding(
+-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+-            child:
+-                Text(_help(kind, ''), style: Theme.of(ctx).textTheme.labelMedium),
+-          ),
+-          for (final m in choices)
+-            SimpleDialogOption(
+-              onPressed: () => Navigator.pop(ctx, m),
+-              child: Text(m >= 60 && m % 60 == 0 ? '${m ~/ 60} 小时' : '$m 分钟'),
+-            ),
+-          const Divider(),
+-          SimpleDialogOption(
+-            onPressed: () => Navigator.pop(ctx, 0),
+-            child: const Text('取消'),
+-          ),
+-        ],
+-      ),
+-    );
+-    if (minutes == null) return;
+-    await _do(() => kind == 'rest'
+-        ? ApiClient().restScript(_c.script, minutes)
+-        : ApiClient().delayScript(_c.script, minutes));
+-  }
+ }
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 3033647..1708ff1 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -51,6 +51,8 @@ import 'package:flutter/material.dart';
+ import 'package:get/get.dart';
+ 
+ import 'package:oasx/api/api_client.dart';
++import 'package:oasx/component/log/log_mixin.dart';
++import 'package:oasx/component/log/log_widget.dart';
+ import 'package:oasx/model/script_model.dart';
+ import 'package:oasx/service/script_service.dart';part '../../controller/task_list/task_list_controller.dart';
+ part './task_row_view.dart';
+@@ -399,7 +401,22 @@ class _ListTab extends StatelessWidget {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    return ListView(
++    // ★ 左右分栏（用户要求）:
++    //
++    //     ┌──────────────┬────────────────────┐
++    //     │ 全局设置(窄) │                    │
++    //     ├──────────────┤      日 志          │
++    //     │ 执行顺序(窄) │   （占右半边）      │
++    //     ├──────────────┤                    │
++    //     │ 预期流程(窄) │                    │
++    //     └──────────────┴────────────────────┘
++    //
++    //   左列**可滚动**（三个面板堆起来会超出高度）; 右列日志自适应。
++    //
++    //   ★ 窄宽度用 `ConstrainedBox` 而不是固定 Row 的 flex ——
++    //     窄屏（手机）上要能退化成一列，否则会挤成一团。
++    final wide = MediaQuery.of(context).size.width >= 900;
++    final left = ListView(
+       padding: const EdgeInsets.all(12),
+       children: [
+         _globalPanel(context),
+@@ -409,6 +426,30 @@ class _ListTab extends StatelessWidget {
+         _flowPanel(context),
+       ],
+     );
++    final right = LogWidget(
++      key: ValueKey('log-${c.script}'),
++      controller: c,
++      title: '日志',
++      enableCollapse: false,
++    );
++
++    if (!wide) {
++      // 窄屏: 日志放下面，给一个固定高度（否则 Column 里无界高度会崩）
++      return Column(
++        children: [
++          Expanded(child: left),
++          SizedBox(height: 220, child: right),
++        ],
++      );
++    }
++    return Row(
++      crossAxisAlignment: CrossAxisAlignment.stretch,
++      children: [
++        SizedBox(width: 380, child: left),
++        const VerticalDivider(width: 1),
++        Expanded(child: right),
++      ],
++    );
+   }
+ 
+   /// 全局设置 —— 循环模式 + 优先级依据。
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 8916990..ea36b95 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -17,6 +17,8 @@
+ //   测试里不该依赖后端(而且 `Get.find<ScriptService>()` 也没初始化)。
+ //   假控制器只覆盖 `RunListPanel` 用到的那些**纯数据 getter**。
+ 
++import 'dart:io';
++
+ import 'package:flutter/material.dart';
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:get/get.dart';
+@@ -180,6 +182,67 @@ Widget wrap(Widget child) => GetMaterialApp(
+       home: Scaffold(body: SingleChildScrollView(child: child)),
+     );
+ 
++// ============================================================ 运行控制条 v2
++//
++// v2 去掉了「全部停止 N 分钟」/「只停列表 N 分钟」两个**时长按钮** ——
++// 固定任务与定时任务分开管理后，"谁停谁不停"交给总开关表达。
++//
++// ★ `RunControlBar` 会构造 `ApiClient`（需要 `SettingsController` + 联网），
++//   测试环境给不了，所以这里**只断言源码语义**（不含注释），不 pump 真实控件。
++//
++// ★★ 关键: 检查前**必须去掉注释**。
++//   我第一版没去注释，结果守卫匹配到自己的说明文字 ——
++//   比如文件里写着"明确不提供立即停"，就被判成"提供了立即停"。
++//   这类"守卫误报"很浪费注意力，所以下面先剥注释再断言。
++String codeOnly(String path) {
++  final raw = File(path).readAsStringSync();
++  // 去掉 `///` 与 `//` 行注释（这些文件里没有块注释 `/* */`）
++  return raw
++      .split('\n')
++      .where((l) => !l.trimLeft().startsWith('//'))
++      .join('\n');
++}
++
++void _runControlV2Tests() {
++  test('运行控制条源码里不再出现已废的时长按钮', () {
++    final src = codeOnly('lib/views/tasks/run_control_bar.dart');
++
++    for (final gone in ['全部停止', '只停列表']) {
++      expect(src.contains(gone), isFalse,
++          reason: 'v2 去掉了「$gone」, 代码里不该再出现');
++    }
++    for (final gone in ['restScript', 'delayScript']) {
++      expect(src.contains(gone), isFalse, reason: 'v2 不该再调 `$gone`');
++    }
++  });
++
++  test('运行控制条保留三个调度按钮', () {
++    final src = codeOnly('lib/views/tasks/run_control_bar.dart');
++    for (final kept in ['暂停调度', '本轮跑完再停', '继续调度']) {
++      expect(src.contains(kept), isTrue, reason: '应保留「$kept」');
++    }
++    // 不提供"立即停" —— 会卡在半途
++    expect(src.contains('立即停'), isFalse,
++        reason: '「立即停」会卡在半途，明确不提供');
++  });
++
++  test('脚本进程开关已从运行控制条移出', () {
++    final src = codeOnly('lib/views/tasks/run_control_bar.dart');
++    // "开始/停止脚本"是**进程级**操作, 已移到任务总览页
++    expect(src.contains('startScript'), isFalse,
++        reason: '脚本进程开关应移到总览页（进程级 vs 调度级分开）');
++    expect(src.contains('stopScript'), isFalse,
++        reason: '脚本进程开关应移到总览页');
++  });
++
++  test('运行列表面板不再出现 delay 条目', () {
++    final src = codeOnly('lib/views/tasks/run_list_panel.dart');
++    expect(src.contains("'delay'"), isFalse,
++        reason: 'v2 的列表只有 task 与 rest');
++    expect(src.contains('只停列表'), isFalse);
++  });
++}
++
+ void main() {
+   testWidgets('只含任务条目时能正常渲染', (tester) async {
+     final c = FakeTaskListController(
+@@ -274,6 +337,8 @@ void main() {
+   });
+ 
+   _accountSwitchTests();
++
++  _runControlV2Tests();
+ }
+ 
+ /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
 -- 
 2.41.0.windows.1
 

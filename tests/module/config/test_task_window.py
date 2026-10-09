@@ -282,6 +282,104 @@ class TestWindowAlignment:
             'task_window 应直接用 meta 的窗口'
 
 
+class TestResourceWiring:
+    """★ 4-D: `Resource` + `next_available()` **接进调度**（此前从没接过）。
+
+    本会话实测: 在 `config.py` / `script.py` 里搜
+    `next_available|Resource|RunState` 得到 **0 处** ——
+    `resource.py`(364 行) 与 `scheduler_core.py`(291 行) 早就写好、47 个单测,
+    但**从没被调度器调用**。这就是典型的"文档说做完了、代码里没接"。
+    """
+
+    @pytest.fixture()
+    def config(self):
+        import logging
+        logging.disable(logging.CRITICAL)
+        import server  # noqa: F401
+        from module.server.main_manager import mm
+        return mm.config_cache('恋鸟树')
+
+    def _key(self, task: str) -> str:
+        return ''.join('_' + c.lower() if c.isupper() else c
+                       for c in task).lstrip('_')
+
+    def test_interval_resource_matches_old_interval(self, config):
+        """★ 行为可对齐: `interval` 类任务的 Resource 结果 == 旧的 `+interval`。
+
+        这是"接线没改变既有行为"的证据 —— 若两者不等, 说明我接错了。
+        """
+        import datetime as _dt
+        base = _dt.datetime(2026, 10, 5, 12, 0, 0)
+        for task, hours in (('DemonEncounter', 1), ('SoulsTidy', 3),
+                            ('Duel', 3), ('WeeklyTrifles', 3)):
+            got = config._next_run_from_resource(self._key(task), base)
+            want = base + _dt.timedelta(hours=hours)
+            assert got == want, (
+                f'{task}: Resource 算出 {got}, 旧 interval 是 {want}')
+
+    def test_slots_resource_uses_fixed_times(self, config):
+        """★ `slots` 类任务按**固定时刻**算, 不是"加 3 小时"。
+
+        金币妖怪的真实机制是 **0 点 / 12 点各补 1 次**（`slots='0,12'`）。
+        旧实现把它压成 `success_interval=3h`, 于是会在 18:00 这种
+        **根本不补充**的时刻去跑 —— 白跑一趟。
+        """
+        import datetime as _dt
+        base = _dt.datetime(2026, 10, 5, 12, 0, 0)      # 周一 12:00
+        got = config._next_run_from_resource(self._key('GoldYoukai'), base)
+        assert got is not None, 'GoldYoukai 应有 Resource 排期'
+        # 12:00 之后的下一个 slot 是次日 00:00
+        assert (got.hour, got.minute) == (0, 0), (
+            f'应按 slot 补到 00:00, 实际 {got}')
+        assert got > base
+
+    def test_periodic_resource_not_used(self, config):
+        """★ `refill='none' + period` 类**不**走 `next_available`。
+
+        原因: 那类任务的"下次运行"由**完成记忆**在周期边界决定;
+        若用 `next_available`（它在"现在可行"时返回 `now`）会变成**热循环**。
+        所以 `_next_run_from_resource` 对它返回 `None`, 交给旧逻辑 + 窗口对齐。
+        """
+        # 找一个 is_periodic 的任务
+        from module.config import task_catalog as TC
+        target = None
+        for t, s in TC._load_specs().items():
+            r = getattr(s, 'resource', None)
+            if r is not None and getattr(r, 'is_periodic', False) \
+                    and getattr(r, 'refill', 'none') == 'none':
+                target = t
+                break
+        if target is None:
+            pytest.skip('当前没有 refill=none+period 的任务')
+        import datetime as _dt
+        got = config._next_run_from_resource(
+            self._key(target), _dt.datetime(2026, 10, 5, 12, 0, 0))
+        assert got is None, (
+            f'{target} 是周期回满类, 不该用 next_available 排期（会热循环）')
+
+    def test_task_delay_prefers_resource(self):
+        """★ 回归守卫: `task_delay` 必须**优先**用 Resource。"""
+        src = (REPO / 'module' / 'config' / 'config.py').read_text(
+            encoding='utf-8')
+        i = src.find('def task_delay')
+        j = src.find('\n    def ', i + 10)
+        body = src[i:j]
+        assert '_next_run_from_resource' in body, (
+            'task_delay 没有用 Resource 排期 —— 新模型仍是死代码')
+        # 必须有回退（任务没写 meta.py 时不能崩）
+        assert '回退' in body or 'else:' in body, '缺少回退路径'
+
+    def test_resource_wiring_is_real(self):
+        """★ 反向守卫: `config.py` 里必须**真的**出现这些名字。
+
+        防止有人"重构"掉接线, 又回到"模块存在但没人调"的状态。
+        """
+        src = (REPO / 'module' / 'config' / 'config.py').read_text(
+            encoding='utf-8')
+        for name in ('next_available', 'RunState', 'TC.get_spec'):
+            assert name in src, f'config.py 里没有 {name} —— Resource 又变成死代码了'
+
+
 class TestNoWrongApproximation:
     """★ 防止用 `AvailabilityWindow` **错误地**表达"排除"。"""
 

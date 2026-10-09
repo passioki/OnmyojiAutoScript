@@ -881,6 +881,69 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             return ()
         return list(spec.windows_effective)
 
+    def _next_run_from_resource(self, task_key: str, start_time: datetime):
+        """用新模型（`Resource` + `RunState` + `next_available()`）算下次运行时刻。
+
+        :return: `datetime`, 或 `None`（任务没声明 `Resource` / 算不出来 -> 调用方回退）
+
+        ## 为什么这是"接线"而不是"重写"
+
+        `module/config/resource.py` 与 `module/config/scheduler_core.py` 早就写好了
+        （`Resource` / `Recharge` / `RunState` / `next_available()`，47 个单测),
+        但**从没接进调度** —— 本会话实测: 在 `config.py`/`script.py` 里搜
+        `next_available\\|Resource\\|RunState` 得到 **0 处**。这里就是把它接上。
+
+        ## 状态从哪来（不新建存储）
+
+        `RunState.refill_anchor` = **本轮的起点**（`start_time`）。
+        语义: "池子从这个时刻开始计补充"。这正是"跑完一次后要等多久"的锚点,
+        与旧 `next_run = start_time + interval` 同一锚点, 所以**行为可对齐**。
+
+        ★ 为什么不在这里读 `task_state` 的存量: 那是**另一件事**
+          （"还剩几次"由 `task_state.py` 负责）。这里只算"下次什么时候能跑",
+          保持单一职责; 两者在 `update_scheduler` 里汇合。
+
+        ## 为什么只对 `interval` / `slots` 生效
+
+        * `refill == 'interval'` —— 按间隔补充（逢魔之时 每小时 1 次）
+        * `refill == 'slots'`    —— 固定时刻补充（金币妖怪 0/12 点）
+        * `refill == 'none'` + `period` —— **周期回满**。这类任务的"下次运行"
+          由**完成记忆**（`_skip_by_period`）在周期边界决定, 不是"间隔到了就再跑";
+          若在这里返回 `now + 一点点`, 会变成**热循环**。所以交给旧逻辑 + 窗口对齐。
+        * `refill == 'window'` —— **活动期**开放。何时开始是**外部信息**
+          （探针才知道）, 核心只能返回"稍后再问"; 用它当排期会变成轮询,
+          也不合适。同样交给旧逻辑 + 窗口对齐。
+        """
+        try:
+            from module.config import task_catalog as TC
+            from module.config.scheduler_core import RunState, next_available
+
+            task_command = ''.join(p.capitalize() for p in task_key.split('_'))
+            spec = TC.get_spec(task_command)
+            if spec is None:
+                return None
+            res = getattr(spec, 'resource', None)
+            if res is None:
+                return None
+            if getattr(res, 'refill', 'none') not in ('interval', 'slots'):
+                return None
+
+            state = RunState(refill_anchor=start_time)
+            planned = next_available(res, state, start_time)
+
+            # `next_available` 在"现在就可行"时返回 `now` —— 那是"立刻再跑",
+            # 对"跑完一次后的排期"没有意义（会热循环）。这类情况交给调用方回退。
+            if planned <= start_time:
+                return None
+
+            logger.info(f'{task_command}: Resource({res.refill}) 算出下次运行 '
+                        f'{planned:%m-%d %H:%M:%S}')
+            return planned
+        except Exception as exc:
+            logger.warning(f'{task_key}: Resource 排期失败'
+                           f'({type(exc).__name__}: {exc}), 回退到 interval')
+            return None
+
     def _align_to_window(self, task_key: str, when: datetime) -> datetime:
         """把 `when` 对齐到任务的开放时段内（不在窗口内则推到下一次开放）。
 
@@ -1058,14 +1121,35 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # 依次判断是否有自定义的下次运行时间
         run = []
         if success is not None:
-            interval = (
-                scheduler.success_interval
-                if success
-                else scheduler.failure_interval
-            )
-            if isinstance(interval, str):
-                interval = timedelta(interval)
-            run.append(start_time + interval)
+            # ★★ 4-D: **优先**用新模型 `Resource` + `next_available()` ★★
+            #
+            # 旧做法: `next_run = start_time + success_interval`
+            #   —— 把"游戏机制的补充规则"（充能/固定时刻/周期）**压扁**成一个
+            #      用户配置的间隔。见 `docs/architecture.md` §3 的说明。
+            #
+            # 新做法: 从任务的 `meta.py` 取 `Resource`, 用它算出"下次可运行的
+            #   最早时刻"。`Resource` 能表达旧字段表达不了的东西:
+            #     * `slots`  —— 每天 0/12 点各补 1 次（旧字段要 4 个才勉强表达）
+            #     * `window` —— 只在活动期（顺带被 `next_available` 处理）
+            #     * `capacity/consume` —— 池子还剩几次
+            #
+            # ★ 失败仍用 `failure_interval`（**退避重试**是独立概念, 与
+            #   资源补充无关 —— 台账 7.6「次数与冷却解耦」说的就是这个）。
+            if success:
+                planned = self._next_run_from_resource(task, start_time)
+            else:
+                planned = None
+
+            if planned is not None:
+                run.append(planned)
+            else:
+                # 回退: 任务还没写 `meta.py` 的 `Resource`, 或算不出来
+                interval = scheduler.success_interval if success \
+                    else scheduler.failure_interval
+                if isinstance(interval, str):
+                    interval = timedelta(interval)
+                run.append(start_time + interval)
+
             # 完成记忆: 仅在成功时记录"本周期已完成"
             if success:
                 self._record_task_success(task_key=task, scheduler=scheduler)

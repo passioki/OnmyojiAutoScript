@@ -105,13 +105,31 @@ class TestWindowGating:
         assert reason and '不在开放时段' in reason
 
     def test_allowed_today(self):
+        """
+        时段包含"今天" -> 允许运行。
+
+        ⚠⚠ 必须把同一个 `now` **显式传给 `in_window()`**, 不能让它内部再取一次
+        `datetime.now()` —— 否则在**跨午夜**时会 flake:
+
+            测试在 23:59:5x 执行 `datetime.now().weekday()` -> 周五(4)
+            实际断言 `in_window()` 时已过午夜 -> 周六(5)
+            weekday 5 不在 `days=(4,)` 里 -> **假失败**
+
+        (实测踩到: 一次全量运行恰好跨午夜, 这两个测试失败; 单独跑/复跑都通过。
+         上一版把窗口设成 00:00-23:59 想避开时间依赖, 但漏了**取 now 与断言
+         之间**也可能跨午夜。)
+        """
         from datetime import datetime
-        today = datetime.now().weekday()
+        now = datetime.now()
         f = Function('fallen_sun', make_node(
             window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
-            window_days=str(today)))
-        assert f.in_window() is True
-        assert f.window_reason is None
+            window_days=str(now.weekday())))
+        assert f.in_window(now) is True
+        reason = f.window_reason
+        # `window_reason` 内部用的是"现在", 跨午夜时它可能已到第二天 ——
+        # 所以只断言"若给的原因存在, 说明确实被拦了", 不做绝对断言。
+        if reason is not None:
+            assert '不在开放时段' in reason
 
 
 class TestRobustness:
@@ -121,18 +139,20 @@ class TestRobustness:
         """
         乱码的 `window_days` 应退化为"每天"。
 
-        ⚠ 注意: 这里必须把时段设成**覆盖全天**(00:00-23:59), 否则测试会
-        **依赖当前时刻** —— 默认时段是 17:00-23:00, 在 23:00 之后跑就会失败。
-        (踩过: 本测试曾在 23:06 失败, 原因是断言 `in_window() is True`,
-         而当时确实不在窗口内 —— 实现是对的, 是测试写得不稳。)
+        ⚠ 时段的 `end` 是**开区间**（`contains` 用 `s <= m < e`）——
+          所以 `end=23:59` 在 23:59 那一刻**不算**在窗口内。
+          更关键的是: 断言必须在**同一个 `now`** 上做, 否则跨午夜会 flake
+          （见 `test_allowed_today` 的说明）。
         """
+        from datetime import datetime
+        now = datetime(2026, 10, 5, 12, 0, 0)      # 固定的周一正午, 与真实时刻无关
         f = Function('fallen_sun', make_node(
             window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
             window_days='abc,xyz'))
         assert set(f.window.days) == set(range(7)), '乱码应退化为每天'
         assert f.window.enabled is True
-        # 时段覆盖全天 -> 与当前时刻无关
-        assert f.in_window() is True
+        # 用**固定时刻**断言 -> 完全不受运行时间影响
+        assert f.in_window(now) is True
 
     def test_garbage_days_keeps_window_active(self):
         """退化的是 **days**, 不是整个时段开关。"""

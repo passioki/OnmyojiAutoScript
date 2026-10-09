@@ -228,13 +228,47 @@ AbyssShadows 的 meta 窗口 = 周五六日 19:00-19:15
   19:30 落在窗口内, 否则合法时刻会被推走（就是上面那个 bug）。余量**不会**让任务
   在 19:15 后真的能跑 —— 游戏关门了就进不去, 任务自己失败返回。
 
-### 4-D ~ 4-G · 待做
+### 4-D · `next_available()` 接进调度 —— ✅ **已完成**
+
+**这是把新模型真正"接线"的一步。** 此前 `resource.py`(364 行) 与
+`scheduler_core.py`(291 行) 早就写好、47 个单测, 但**从没被调度器调用** ——
+在 `config.py`/`script.py` 里搜 `next_available|Resource|RunState` 得到 **0 处**。
+
+| # | 子项 | 状态 | 证据 |
+|---|---|---|---|
+| 4D.1 | `task_delay()` **优先**用 `Resource` 排期 | ✅ | 新增 `Config._next_run_from_resource()`；`task_delay` 里 `if success: planned = self._next_run_from_resource(...)`，`planned is None` 时回退旧 interval |
+| 4D.2 | 状态从 `start_time` 做锚点（不新建存储）| ✅ | `RunState(refill_anchor=start_time)`；与旧 `next_run = start_time + interval` **同一锚点**, 所以行为可对齐 |
+| 4D.3 | `interval` 类**行为对齐** | ✅ | 实测 `DemonEncounter` 12:00→13:00（+1h）· `SoulsTidy`/`Duel` 12:00→15:00（+3h）· `WantedQuests` 12:00→13:30（+1.5h）—— **与旧 interval 完全一致** |
+| 4D.4 | `slots` 类**修正白跑** | ✅ | `GoldYoukai`/`ExperienceYoukai`/`Tako` 12:00 → **次日 00:00**（按 `slots='0,12'` 的真实机制）, 而非旧的"加 3 小时" |
+| 4D.5 | `none+period` / `window` 类**不**用（防热循环）| ✅ | `_next_run_from_resource` 对 `refill not in ('interval','slots')` 返回 `None` —— 周期类的"下次运行"由完成记忆在周期边界决定; 若用 `next_available`（它在"现在可行"时返回 `now`）会**热循环** |
+| 4D.6 | 失败仍用 `failure_interval` | ✅ | 退避重试是**独立概念**, 与资源补充无关（台账 7.6「次数与冷却解耦」）|
+| 4D.7 | 守卫测试 | ✅ | `test_task_window.py` **30 passed**（25 → 30, 新增 5 个接线测试, 含**反向守卫**: `config.py` 里必须真的出现 `next_available`/`RunState`/`TC.get_spec`）|
+| 4D.8 | 全量测试 | ✅ | 后端 **1511 passed**（1506 + 5）；前端 **79 passed** |
+
+### ★ 顺带修掉一个**跨午夜的测试 flake**（既有缺陷）
+
+第一次跑全量时 `test_function_window.py` 有 **2 个失败**, 复跑又全过。查明是
+**测试自身的时间依赖**（不是我的改动引起的）:
+
+```
+测试在 23:59:5x 执行 datetime.now().weekday()  -> 周五(4)
+实际断言 in_window() 时已过午夜               -> 周六(5)
+weekday 5 不在 days=(4,) 里 -> **假失败**
+```
+
+上一版作者已把窗口改成 00:00-23:59 想避开时间依赖, 但**漏了"取 now 与断言
+之间"也可能跨午夜**。已修: 把同一个 `now` **显式传给 `in_window(now)`**,
+`test_garbage_days_falls_back` 改用**固定时刻**（2026-10-05 正午）断言。
+
+★ 该测试的注释里原本就写着"曾在 23:06 失败" —— 说明这个问题**反复出现过**,
+只是每次都被当成偶发忽略。已把根因写进注释。
+
+### 4-E ~ 4-G · 待做
 
 | # | 子项 | 状态 |
 |---|---|---|
-| 4-D | `next_available()` 接进调度（取代 `next_run = 开始 + interval`）| ⬜ |
 | 4-E | 删 `success_interval` / `charge_*` / `next_run` 配置面；`failure_interval → retry_interval` | ⬜ |
-| 4-F | 删 26 处任务内硬编码日期判断 + `BaseTask.custom_next_run()` | ⬜ |
+| 4-F | 删 22 处任务内硬编码日期判断 + `BaseTask.custom_next_run()` | ⬜ |
 | 4-G | 测试重写（预计 200-300 个既有测试需适配）| ⬜ |
 
 ---

@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 1/4] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 1/5] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 2/4] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 2/5] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 3/4] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 3/5] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 4/4] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 4/5] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3968,6 +3968,584 @@ index cd793bd..5e32a3d 100644
  }
  
  // ============================================================ tab 1: 任务总览
+-- 
+2.41.0.windows.1
+
+
+From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 10:35:48 +0800
+Subject: [PATCH 5/5] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+ =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
+ =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
+ =?UTF-8?q?=E8=AF=95?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+## 症状
+
+用户: **"任务列表白屏"**, 其他页面都正常。
+（用户说"日志并没有报错" —— 其实有, 只是被刷屏了。）
+
+## 根因: `Obx` 误用
+
+我在 `task_list_view.dart` 里写了:
+
+    Obx(() => RunControlBar(controller: c))
+
+而 `Obx` 要求 **回调里直接读到 Rx 变量**。`RunControlBar` 是个
+StatefulWidget, 它的 build 里只调了个普通方法 `_c.scriptRunning`
+(内部才去取 `.state.value`) —— GetX 认为"没订阅任何可观察对象", 抛:
+
+    [Get] the improper use of a GetX has been detected.
+    You should only use GetX or Obx for the specific widget that will be updated.
+
+然后 Flutter 反复重抛 `DiagnosticsProperty<void>`, 整页渲染不出来 -> 白屏。
+
+★ OASX 既有代码里**没有这种用法** —— 我是唯一一处写错的
+  (对比 `overview_view.dart:166` 的正确写法: `Obx(() { ... .state.value ... })`)。
+
+## 修法
+
+* 把 `Obx` 从 `task_list_view.dart` 移走
+* 在 `RunControlBar` 内部加一个**本地 Rx** `_scriptState`, 用
+  `ever(model.state, ...)` 订阅源状态
+* 用 `Obx` 只包住**直接读 `_scriptState.value`** 的那一小块(脚本状态 + 开始/停止按钮)
+
+## 顺带修: 让控制器可测试
+
+`final _api = ApiClient();` 是**字段初始化** —— 而 `ApiClient` 构造函数里会
+`Get.find<SettingsController>()`, 于是"构造控制器"就依赖 GetX 环境,
+widget 测试里直接 `new` 会抛 "SettingsController not found"。
+
+改成**懒加载**: `ApiClient get _api => _apiCache ??= ApiClient();`
+只读数据的测试完全不需要 API 客户端。
+
+## 新增 `test/task_list_panel_test.dart`（6 个用例）
+
+★ **为什么必须加**: `dart analyze` **查不出**运行时异常 ——
+这次白屏就是 `analyze` 全绿但运行崩。widget 测试真渲染一遍才拦得住。
+
+用**假控制器**(不联网)覆盖: 只有任务 / 任务+控制条目混合 / 空列表 /
+停用状态 / 不可计数任务 / 模式警告。
+
+★ 混合用例专门验**模型 B 的核心**: 控制条目能插到任意位置,
+且效果名来自 `/schema` 而非硬编码。
+
+写测试时也踩了两个坑(都已在注释里记下):
+  1. `task_list_controller.dart` 是 `part of`, **不能单独 import** ——
+     必须从 library 入口(`task_list_view.dart`)拿
+  2. 假实现的 `describeEntry` 要与真实现一致(显示**中文名**),
+     否则断言找不到中文文本
+
+## 验证
+
+* `flutter test test/task_list_panel_test.dart` —— **6/6 通过**
+* `dart analyze lib test` —— 相关文件零问题
+* `flutter build windows --release` 通过
+* **实测**: 启动 Release 前端, stderr 里
+  * `improper use of a GetX` **0 次**(之前每次刷屏)
+  * `Another exception` **0 次**
+  * 非 libpng 的 stderr 行数 **0**
+  * 6 秒 CPU 增量 **0s**, 内存 139.6MB 稳定
+---
+ .../task_list/task_list_controller.dart       |  11 +-
+ lib/views/tasks/run_control_bar.dart          | 106 +++++--
+ lib/views/tasks/task_list_view.dart           |  14 +-
+ test/task_list_panel_test.dart                | 287 ++++++++++++++++++
+ 4 files changed, 385 insertions(+), 33 deletions(-)
+ create mode 100644 test/task_list_panel_test.dart
+
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index b77c27b..8ecceee 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -14,7 +14,16 @@ class TaskListController extends GetxController {
+   TaskListController({required this.scriptName});
+ 
+   final String scriptName;
+-  final _api = ApiClient();
++
++  /// ★ **延迟**创建 `ApiClient`, 不要写成字段初始化 `final _api = ApiClient()`。
++  ///
++  /// `ApiClient` 的构造函数里会 `Get.find<SettingsController>()`,
++  /// 所以字段初始化会让**构造控制器**就依赖 GetX 环境 ——
++  /// widget 测试里直接 `FakeTaskListController(...)` 会抛
++  /// "SettingsController not found"。改成懒加载后, 只读数据的测试
++  /// 完全不需要 API 客户端。
++  ApiClient? _apiCache;
++  ApiClient get _api => _apiCache ??= ApiClient();
+ 
+   // ---------------------------------------------------------------- 状态
+   bool loading = false;
+diff --git a/lib/views/tasks/run_control_bar.dart b/lib/views/tasks/run_control_bar.dart
+index 5fe006d..c85f018 100644
+--- a/lib/views/tasks/run_control_bar.dart
++++ b/lib/views/tasks/run_control_bar.dart
+@@ -63,6 +63,15 @@ class _RunControlBarState extends State<RunControlBar> {
+   Map<String, dynamic> _state = {};
+   bool _busy = false;
+ 
++  /// 脚本是否在跑 —— 做成 **Rx** 让 `Obx` 能订阅。
++  ///
++  /// `ScriptModel.state` 本身是 Rx(`ScriptService` 在 WebSocket 回调里
++  /// 更新它), 但它是**另一个对象**的字段, 无法在这里 `Obx` 直接读
++  /// (那样 `Obx` 回调里只调方法、不读 Rx, 会抛 "improper use of a GetX")。
++  /// 所以这里自己持有一个 Rx, 用 `ever` 订阅源状态。
++  final _scriptState = false.obs;
++  Worker? _stateWorker;
++
+   /// 显式传入 —— 不靠 `Get.find` + 路由参数, 嵌套时更可靠。
+   TaskListController get _c => widget.controller;
+ 
+@@ -70,10 +79,35 @@ class _RunControlBarState extends State<RunControlBar> {
+   void initState() {
+     super.initState();
+     _load();
++    // 订阅 ScriptModel.state 的变化 -> 同步到本地 Rx
++    try {
++      final model = Get.find<ScriptService>().findScriptModel(_c.script);
++      if (model != null) {
++        _stateWorker = ever(model.state, (v) {
++          _scriptState.value = v == ScriptState.running;
++        });
++        _scriptState.value = model.state.value == ScriptState.running;
++      }
++    } catch (_) {
++      // 模型还没建好 -> 后面 `_load()` 再补
++    }
++  }
++
++  @override
++  void dispose() {
++    _stateWorker?.dispose();
++    super.dispose();
+   }
+ 
+   Future<void> _load() async {
+     final s = await ApiClient().getRunControl(_c.script);
++    // 顺便同步一次脚本状态(WebSocket 可能还没推过)
++    try {
++      final model = Get.find<ScriptService>().findScriptModel(_c.script);
++      if (model != null && !_scriptState.value) {
++        _scriptState.value = model.state.value == ScriptState.running;
++      }
++    } catch (_) {}
+     if (!mounted) return;
+     setState(() => _state = s);
+   }
+@@ -112,9 +146,6 @@ class _RunControlBarState extends State<RunControlBar> {
+     // ★ 生效中 -> 按钮变"取消"(用户反馈: 之前没有取消入口)
+     final resting = restUntil != null;
+     final delaying = listResumeAt != null;
+-    // 脚本进程状态来自 `ScriptService`(WebSocket 推送), 是 Rx 的 ——
+-    // 用 `Obx` 包住那一小块, 状态一变界面自动跟。
+-    final running = _c.scriptRunning;
+ 
+     return Card(
+       margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+@@ -129,31 +160,50 @@ class _RunControlBarState extends State<RunControlBar> {
+               runSpacing: 4,
+               crossAxisAlignment: WrapCrossAlignment.center,
+               children: [
+-                _dot(running ? Colors.green : Colors.grey),
+-                Text(running ? '脚本运行中' : '脚本已停止'),
+-                const SizedBox(width: 4),
+-                if (!running)
+-                  FilledButton.icon(
+-                    onPressed: _busy
+-                        ? null
+-                        : () async {
+-                            await _c.startScript();
+-                            await _load();
+-                          },
+-                    icon: const Icon(Icons.play_arrow, size: 18),
+-                    label: const Text('开始'),
+-                  ),
+-                if (running)
+-                  OutlinedButton.icon(
+-                    onPressed: _busy
+-                        ? null
+-                        : () async {
+-                            await _c.stopScript();
+-                            await _load();
+-                          },
+-                    icon: const Icon(Icons.stop, size: 18),
+-                    label: const Text('停止'),
+-                  ),
++                // ★ `Obx` 必须包住**直接读 Rx 变量**的那一小块。
++                //
++                //   `scriptRunning` 内部读的是 `ScriptModel.state.value`
++                //   (来自 WebSocket 推送的 Rx), 所以在 `Obx` 回调里
++                //   **直接**展开它 —— 这样 GetX 能记录依赖。
++                //
++                //   ⚠ 反面例子(踩过): 在 `task_list_view.dart` 里写
++                //     `Obx(() => RunControlBar(controller: c))` —— 回调里
++                //     只构造了一个 StatefulWidget, 没直接读 Rx,
++                //     GetX 抛 "improper use of a GetX" 并导致**整页白屏**。
++                Obx(() {
++                  final running = _scriptState.value;
++                  return Row(
++                    mainAxisSize: MainAxisSize.min,
++                    children: [
++                      _dot(running ? Colors.green : Colors.grey),
++                      const SizedBox(width: 6),
++                      Text(running ? '脚本运行中' : '脚本已停止'),
++                      const SizedBox(width: 8),
++                      if (!running)
++                        FilledButton.icon(
++                          onPressed: _busy
++                              ? null
++                              : () async {
++                                  await _c.startScript();
++                                  await _load();
++                                },
++                          icon: const Icon(Icons.play_arrow, size: 18),
++                          label: const Text('开始'),
++                        ),
++                      if (running)
++                        OutlinedButton.icon(
++                          onPressed: _busy
++                              ? null
++                              : () async {
++                                  await _c.stopScript();
++                                  await _load();
++                                },
++                          icon: const Icon(Icons.stop, size: 18),
++                          label: const Text('停止'),
++                        ),
++                    ],
++                  );
++                }),
+                 const SizedBox(width: 12),
+                 _dot(paused ? Colors.orange : Colors.green),
+                 Text(pauseLabel),
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 5e32a3d..535e5fb 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -52,8 +52,7 @@ import 'package:get/get.dart';
+ 
+ import 'package:oasx/api/api_client.dart';
+ import 'package:oasx/model/script_model.dart';
+-import 'package:oasx/service/script_service.dart';
+-part '../../controller/task_list/task_list_controller.dart';
++import 'package:oasx/service/script_service.dart';part '../../controller/task_list/task_list_controller.dart';
+ part './task_row_view.dart';
+ part './run_control_bar.dart';
+ part './run_list_panel.dart';
+@@ -114,8 +113,15 @@ class _TaskListViewState extends State<TaskListView> {
+         length: 2,
+         child: Column(
+           children: [
+-            // 脚本运行状态是 Rx 的(WebSocket 推送), 用 Obx 让它自动更新
+-            Obx(() => RunControlBar(controller: c)),
++            // ★ 这里**不要**用 `Obx` 包 `RunControlBar` ——
++            //   `Obx` 要求"回调里**直接**读到 Rx 变量", 而 `RunControlBar`
++            //   是个 StatefulWidget, 它的 build 里只调了个普通方法
++            //   (`_c.scriptRunning`), GetX 认为"没订阅任何可观察对象"就抛
++            //   `improper use of a GetX` -> 整页白屏。
++            //
++            //   正确做法: 把 `Obx` 放到**真正读 Rx 的那个小部件**里
++            //   (`RunControlBar` 内部的脚本状态区)。
++            RunControlBar(controller: c),
+             _header(context, c),
+             const TabBar(
+               tabs: [
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+new file mode 100644
+index 0000000..3b167de
+--- /dev/null
++++ b/test/task_list_panel_test.dart
+@@ -0,0 +1,287 @@
++// 「执行顺序」面板的 widget 测试。
++//
++// ## 为什么需要它
++//
++// 用户报"任务列表白屏"。这类 bug 的根因往往是**build 里抛了异常**,
++// 而 `dart analyze` **查不出**运行时异常(踩过一次: `Obx` 误用 ->
++// "improper use of a GetX" -> 整页白屏)。
++//
++// 这个测试用**假数据**把 `RunListPanel` 真渲染一遍:
++//   * 只有任务条目
++//   * 任务 + 控制条目(全部停止 / 只停列表)混合  <- 模型 B 的核心
++//   * 空列表
++//
++// 任何 build 期异常都会让测试失败 —— 这是 `analyze` 给不了的保障。
++//
++// ★ 用**假控制器**而不是真控制器: 真控制器会在 `onInit` 里发 HTTP 请求,
++//   测试里不该依赖后端(而且 `Get.find<ScriptService>()` 也没初始化)。
++//   假控制器只覆盖 `RunListPanel` 用到的那些**纯数据 getter**。
++
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:get/get.dart';
++
++// ★ 只 import library 入口 —— `task_list_controller.dart` 是
++//   `part of task_list`, **不能单独 import**(会报
++//   "Can't import ..., because it has a 'part of' declaration")。
++//   library 入口已经把它带出来了, `TaskListController` 是 public 的。
++import 'package:oasx/views/tasks/task_list_view.dart';
++
++/// 假控制器 —— 不联网, 数据全部可控。
++class FakeTaskListController extends TaskListController {
++  FakeTaskListController({
++    required List<Map<String, dynamic>> entries,
++    required List<Map<String, dynamic>> tasks,
++  })  : _entries = entries,
++        _tasks = tasks,
++        super(scriptName: 'test');
++
++  final List<Map<String, dynamic>> _entries;
++  final List<Map<String, dynamic>> _tasks;
++
++  // ---- 数据 ----
++  @override
++  List<Map<String, dynamic>> get entries => _entries;
++
++  @override
++  List<Map<String, dynamic>> get allTasks => _tasks;
++
++  @override
++  List<Map<String, dynamic>> get tasks => _tasks;
++
++  @override
++  int get runnableCount => _tasks.where((t) => t['can_run'] == true).length;
++
++  // ---- 条目类型定义（模拟后端 /schema 的 list.entry_kinds）----
++  @override
++  List<Map<String, dynamic>> get entryKinds => const [
++        {
++          'value': 'task',
++          'label': '任务',
++          'help': '执行这个任务',
++          'needs_minutes': false,
++          'needs_task': true,
++          'blocks_list': false,
++        },
++        {
++          'value': 'rest',
++          'label': '全部停止',
++          'help': '暂停调度 N 分钟 —— 连定时任务一起停',
++          'needs_minutes': true,
++          'needs_task': false,
++          'blocks_list': true,
++        },
++        {
++          'value': 'delay',
++          'label': '只停列表',
++          'help': '只推迟列表 N 分钟 —— 定时任务照常',
++          'needs_minutes': true,
++          'needs_task': false,
++          'blocks_list': true,
++        },
++      ];
++
++  @override
++  List<int> get durationChoices => const [10, 30, 60];
++
++  @override
++  String get listModeValue => 'List';
++
++  @override
++  String get listModeLabel => '列表优先(自定义顺序)';
++
++  @override
++  String get scheduleRule => 'List';
++
++  @override
++  String get scheduleRuleLabel => '列表优先(自定义顺序)';
++
++  @override
++  Map<String, dynamic> kindOf(String kind) {
++    for (final k in entryKinds) {
++      if ('${k['value']}' == kind) return k;
++    }
++    return {'value': kind, 'label': kind, 'help': ''};
++  }
++
++  @override
++  bool isTaskEntry(Map<String, dynamic> e) => '${e['kind']}' == 'task';
++
++  @override
++  String describeEntry(Map<String, dynamic> e) {
++    if ('${e['kind']}' != 'task') return '${e['kind']} ${e['minutes']}分钟';
++    // 与真实现保持一致: 任务条目显示**中文名**(真实现走 taskNameZh)
++    return '${findTask('${e['task']}')?['name_zh'] ?? e['task']}';
++  }
++
++  @override
++  Map<String, dynamic>? findTask(String cmd) {
++    for (final t in _tasks) {
++      if ('${t['command']}' == cmd) return t;
++    }
++    return null;
++  }
++
++  // ---- 写操作: 测试里只记录, 不联网 ----
++  @override
++  Future<void> reload() async {}
++
++  @override
++  Future<bool> setTarget(String t, int v) async => true;
++
++  @override
++  Future<bool> setEnabled(String t, bool v) async => true;
++
++  @override
++  Future<void> removeEntry(int i) async {}
++
++  @override
++  Future<void> addEntry(Map<String, dynamic> e, {int index = -1}) async {}
++
++  @override
++  Future<void> reorderEntries(int a, int b) async {}
++
++  @override
++  Future<void> resetToDefault() async {}
++}
++
++/// 造一个任务行（字段与真实 `/overview` 对齐）。
++Map<String, dynamic> taskRow(
++  String command, {
++  String? zh,
++  bool countable = true,
++  int? count,
++  bool enable = true,
++}) =>
++    {
++      'name': command.toLowerCase(),
++      'command': command,
++      'name_zh': zh ?? command,
++      'category': countable ? 'fixed' : 'timed',
++      'category_label': countable ? '固定任务' : '定时任务',
++      'countable': countable,
++      'count': count,
++      'enable': enable,
++      'can_run': enable,
++      'reason': enable ? '' : '未启用',
++      'in_window': true,
++      'in_list': true,
++      'list_pos': 1,
++      'next_run': '2026-10-09 12:00:00',
++      'period': 'daily',
++      'priority': 5,
++      'slot': enable ? 'pending' : 'waiting',
++      'charges': null,
++      'resource_describe': '每天重置',
++      'snapshot': '',
++    };
++
++Widget wrap(Widget child) => GetMaterialApp(
++      home: Scaffold(body: SingleChildScrollView(child: child)),
++    );
++
++void main() {
++  testWidgets('只含任务条目时能正常渲染', (tester) async {
++    final c = FakeTaskListController(
++      entries: [
++        {'kind': 'task', 'task': 'Exploration'},
++        {'kind': 'task', 'task': 'Orochi'},
++      ],
++      tasks: [taskRow('Exploration', zh: '探索'), taskRow('Orochi', zh: '八岐大蛇')],
++    );
++    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pump();
++
++    expect(find.text('执行顺序'), findsOneWidget);
++    expect(find.text('探索'), findsOneWidget);
++    expect(find.text('八岐大蛇'), findsOneWidget);
++    // 每行应有"次数"输入框与启用按钮
++    expect(find.text('次数'), findsNWidgets(2));
++    expect(find.text('启用'), findsNWidgets(2));
++  });
++
++  testWidgets('任务 + 控制条目混合时能正常渲染（模型 B 核心）', (tester) async {
++    final c = FakeTaskListController(
++      entries: [
++        {'kind': 'task', 'task': 'Exploration'},
++        {'kind': 'rest', 'minutes': 30},
++        {'kind': 'task', 'task': 'Orochi'},
++        {'kind': 'delay', 'minutes': 60},
++      ],
++      tasks: [taskRow('Exploration', zh: '探索'), taskRow('Orochi', zh: '八岐大蛇')],
++    );
++    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pump();
++
++    // 效果名来自 schema, 不是硬编码
++    expect(find.text('全部停止'), findsWidgets);
++    expect(find.text('只停列表'), findsWidgets);
++    // 两个控制条目的描述
++    expect(find.textContaining('rest 30分钟'), findsOneWidget);
++    expect(find.textContaining('delay 60分钟'), findsOneWidget);
++    // 添加按钮也应按 entry_kinds 生成
++    expect(find.text('添加「全部停止」'), findsOneWidget);
++    expect(find.text('添加「只停列表」'), findsOneWidget);
++  });
++
++  testWidgets('空列表时显示提示且不崩', (tester) async {
++    final c = FakeTaskListController(
++      entries: [],
++      tasks: [taskRow('Exploration', zh: '探索')],
++    );
++    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pump();
++
++    expect(find.textContaining('未编排'), findsOneWidget);
++    expect(find.text('添加任务'), findsOneWidget);
++  });
++
++  testWidgets('停用的任务显示"已停用"而不是"启用"', (tester) async {
++    final c = FakeTaskListController(
++      entries: [
++        {'kind': 'task', 'task': 'Exploration'},
++      ],
++      tasks: [taskRow('Exploration', zh: '探索', enable: false)],
++    );
++    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pump();
++
++    expect(find.text('已停用'), findsOneWidget);
++    expect(find.text('启用'), findsNothing);
++  });
++
++  testWidgets('不可计数的任务不显示次数输入框', (tester) async {
++    final c = FakeTaskListController(
++      entries: [
++        {'kind': 'task', 'task': 'Tako'},
++      ],
++      tasks: [taskRow('Tako', zh: '章鱼', countable: false)],
++    );
++    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pump();
++
++    expect(find.text('次数'), findsNothing);
++    expect(find.textContaining('按存量'), findsOneWidget);
++  });
++
++  testWidgets('模式不是"列表优先"时给出醒目警告', (tester) async {
++    // 用一个把 scheduleRule 改成 Priority 的子类
++    final c = _WrongModeController();
++    await tester.pumpWidget(wrap(RunListPanel(c: c)));
++    await tester.pump();
++
++    expect(find.textContaining('这个列表不生效'), findsOneWidget);
++  });
++}
++
++/// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
++class _WrongModeController extends FakeTaskListController {
++  _WrongModeController()
++      : super(entries: const [], tasks: const []);
++
++  @override
++  String get scheduleRule => 'Priority';
++
++  @override
++  String get scheduleRuleLabel => '优先级';
++}
 -- 
 2.41.0.windows.1
 

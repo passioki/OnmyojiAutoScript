@@ -46,6 +46,11 @@ class Period(str, Enum):
     NONE = 'none'          # 不重置(只靠 interval/slots 补充)
     DAILY = 'daily'        # 每天 0 点(或 reset_at)重置
     WEEKLY = 'weekly'      # 每周一 0 点重置
+    # ★ 用户明确要求: "选择周期选择每天, 每周则是每周一0点到周日24点,
+    #   每月以此类推" —— 所以需要 MONTHLY。
+    #   窗口 = 当月 1 日 00:00 到 月末 24:00
+    #   （见 `availability.window_for_period()`）。
+    MONTHLY = 'monthly'    # 每月 1 日 0 点重置
 
 
 @dataclass(frozen=True)

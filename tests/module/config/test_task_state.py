@@ -234,7 +234,9 @@ class TestSchedulerConfig:
                                      datetime(2026, 10, 8, 0, 1)) == '2026-10-08'
 
     def test_task_period_values(self):
-        assert [p.value for p in TaskPeriod] == ['none', 'daily', 'weekly']
+        assert [p.value for p in TaskPeriod] == [
+            'none', 'daily', 'weekly', 'monthly'
+        ], '★ 用户要求"每月以此类推" -> 需要 MONTHLY'
 
     def test_existing_fields_unchanged(self):
         s = Scheduler()

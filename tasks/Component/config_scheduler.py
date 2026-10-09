@@ -22,6 +22,8 @@ class TaskPeriod(str, Enum):
     NONE = 'none'
     DAILY = 'daily'
     WEEKLY = 'weekly'
+    # ★ 与 `resource.Period` 对齐（用户要求"每月以此类推"）
+    MONTHLY = 'monthly'
 
 
 class Scheduler(ConfigBase):

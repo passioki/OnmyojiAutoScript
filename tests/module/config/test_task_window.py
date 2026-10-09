@@ -119,7 +119,9 @@ class TestWindowField:
 
     def test_no_window_means_unrestricted(self):
         spec = TC.TaskSpec(task='X', name_zh='X')
-        assert spec.window_describe == '不限时段'
+        assert spec.window_describe == '未声明开放时段', (
+            '★ 未声明 window 是**缺失**, 不是"不限时段"'
+        )
         assert spec.in_window(at(3, 3, 33)) is True     # 任何时刻都可以
         assert spec.next_opening(at(3, 3)) == at(3, 3)
 

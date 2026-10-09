@@ -31,7 +31,9 @@ class TestDefaults:
         w = Scheduler().build_window()
         assert w.enabled is False
         assert w.is_unrestricted is True
-        assert w.describe() == '不限时段'
+        # ★ 措辞刻意区分: 未声明 window 是**缺失**, 不是"不限时段"
+        #   （用户要求"所有的定时都有着 window 属性"）
+        assert w.describe() == '未声明开放时段'
 
     def test_default_times_are_sane_but_inactive(self):
         s = Scheduler()
@@ -40,6 +42,113 @@ class TestDefaults:
         assert s.window_start == time(17, 0)
         assert s.window_end == time(23, 0)
         assert s.window_days == '0,1,2,3,4,5,6'
+
+
+class TestWindowForPeriod:
+    """★ F2: 由**周期**推导默认窗口（用户新澄清的设计）。
+
+    用户原话:
+        "window 的设计应当再展开说下, 每天的任务其实也有 window,
+         只不过是每天的 0 点到 24 点。但是选择周期选择每天, 每周则是
+         每周一 0 点到周日 24 点, 每月以此类推。而逢魔则是每天的 17 点-23 点,
+         等等。**所有的定时都有着 window 属性**。"
+    """
+
+    def test_daily_is_full_day(self):
+        from module.config.availability import window_for_period
+        from module.config.resource import Period
+        w = window_for_period(Period.DAILY)
+        assert w is not None and w.enabled is True
+        assert w.describe() == '每天 00:00-23:59'
+        assert set(w.days) == set(range(7))
+        assert not w.days_of_month
+
+    def test_weekly_is_full_week(self):
+        """★ 一周 = 7 天, 所以 WEEKLY 的窗口**也是全周**。
+
+        它表达"节奏是每周", 不是"只允许某几天跑" —— 后者是**活动窗口**
+        （由各任务 `meta.py` 显式声明, 会覆盖默认）。
+        """
+        from module.config.availability import window_for_period
+        from module.config.resource import Period
+        w = window_for_period(Period.WEEKLY)
+        assert w is not None and w.enabled is True
+        assert set(w.days) == set(range(7))
+        assert not w.days_of_month
+
+    def test_monthly_covers_whole_month(self):
+        from module.config.availability import window_for_period
+        from module.config.resource import Period
+        w = window_for_period(Period.MONTHLY)
+        assert w is not None and w.enabled is True
+        assert w.describe() == '每月 00:00-23:59'
+        assert set(w.days_of_month) == set(range(1, 32))
+        # 整月的每一天都该命中
+        from datetime import datetime
+        for d in (1, 15, 28, 31):
+            assert w.contains(datetime(2026, 10, d, 12, 0)), f'{d} 日应命中'
+
+    def test_none_period_has_no_derivable_window(self):
+        """`Period.NONE` 没有周期 -> 没有可推导的窗口（返回 None）。"""
+        from module.config.availability import window_for_period
+        from module.config.resource import Period
+        assert window_for_period(Period.NONE) is None
+
+    def test_fengmo_narrows_time(self):
+        """逢魔 = 每天 17:00-23:00（周期 daily + 收窄时刻）。"""
+        from datetime import time
+
+        from module.config.availability import window_for_period
+        from module.config.resource import Period
+        w = window_for_period(Period.DAILY, start=time(17, 0), end=time(23, 0))
+        assert w.describe() == '每天 17:00-23:00'
+
+    def test_monthly_days_of_month_gate(self):
+        """★ 月内日**真的**参与判定（不能只是显示）。"""
+        from datetime import time
+
+        from module.config.availability import AvailabilityWindow, window_for_period
+        from module.config.resource import Period
+        from datetime import datetime
+        # 只有 1-15 日
+        w = AvailabilityWindow(True, time(0, 0), time(23, 59),
+                               days_of_month=tuple(range(1, 16)))
+        assert w.contains(datetime(2026, 10, 5, 12, 0)) is True
+        assert w.contains(datetime(2026, 10, 20, 12, 0)) is False
+        assert w.describe() == '每月 1-15 日 00:00-23:59'
+        # 16-月末
+        w2 = AvailabilityWindow(True, time(0, 0), time(23, 59),
+                                days_of_month=tuple(range(16, 32)))
+        assert w2.contains(datetime(2026, 10, 5, 12, 0)) is False
+        assert w2.contains(datetime(2026, 10, 20, 12, 0)) is True
+        assert w2.describe() == '每月 16-月末 日 00:00-23:59'
+
+    def test_invalid_days_of_month_rejected(self):
+        from datetime import time as _t
+
+        from module.config.availability import AvailabilityWindow
+        import pytest
+        with pytest.raises(ValueError):
+            AvailabilityWindow(True, _t(0, 0), _t(23, 59), days_of_month=(0,))
+        with pytest.raises(ValueError):
+            AvailabilityWindow(True, _t(0, 0), _t(23, 59), days_of_month=(32,))
+
+    def test_is_unrestricted_accounts_for_month(self):
+        """★ 反向守卫: `enabled=True` + 全 7 天 + 整月 = 实质不限。
+
+        若不看 `days_of_month`, 只判 `len(days)==7`, 会把"每月"误判。
+        这里钉住两个方向都正确。
+        """
+        from datetime import time
+
+        from module.config.availability import window_for_period
+        from module.config.resource import Period
+        assert window_for_period(Period.DAILY).is_unrestricted is True
+        assert window_for_period(Period.MONTHLY).is_unrestricted is True
+        # 真正的活动窗口**不是**"不限"
+        from module.config.availability import AvailabilityWindow
+        narrow = AvailabilityWindow(True, time(17, 0), time(23, 0))
+        assert narrow.is_unrestricted is False
 
 
 class TestDailyWindow:

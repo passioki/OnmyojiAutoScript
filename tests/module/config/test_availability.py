@@ -48,7 +48,10 @@ class TestDisabledByDefault:
         assert w.next_opening(now) == now
 
     def test_describe(self):
-        assert AvailabilityWindow().describe() == '不限时段'
+        assert AvailabilityWindow().describe() == '未声明开放时段', (
+            '★ 措辞刻意区分: 未声明 window 是**缺失**(用户要求所有定时任务都有 window), 不是"不限时段"。'
+            '旧措辞会掩盖缺失。'
+        )
 
 
 class TestDailyWindow:

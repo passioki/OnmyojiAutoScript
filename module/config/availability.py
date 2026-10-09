@@ -59,17 +59,27 @@ class AvailabilityWindow:
                  这样新字段不改变既有行为(与 `period` 的处理方式一致)。
         start / end: 起止时刻。
         days: 允许的星期(0=周一)。默认全周。
+        days_of_month: 允许的**月内日**(1-31)。**默认空 = 不限**。
+                       ★ 用户明确要求"每月以此类推" —— 即 `Period.MONTHLY`
+                         的窗口是"当月 1 日 00:00 到 月末 24:00",
+                         用 `days_of_month=range(1, 32)` + `days=ALL_DAYS` 表达。
+                         空元组 = 不限（**不能**用"空集"表示"都不允许",
+                         那样会让任务的窗口永远关闭）。
 
     例:
         AvailabilityWindow(True, time(17), time(23))                    # 每天 17-23
         AvailabilityWindow(True, time(19), time(21), days=(4, 5, 6))    # 周五六日 19-21
         AvailabilityWindow(True, time(22), time(2))                     # 跨午夜 22-次日2
+        AvailabilityWindow(True, time(0), time(23, 59),
+                           days_of_month=tuple(range(1, 32)))           # 每月（整月）
     """
 
     enabled: bool = False
     start: time = time(0, 0)
     end: time = time(23, 59)
     days: tuple = ALL_DAYS
+    # ★ 空元组 = 不限月内日（**不是**"都不允许"）
+    days_of_month: tuple = ()
 
     def __post_init__(self):
         if not self.days:
@@ -79,6 +89,19 @@ class AvailabilityWindow:
                 raise ValueError(f'非法星期: {d!r}(应为 0-6, 周一=0)')
         if not any(int(d) != d for d in self.days):     # 全是整数
             object.__setattr__(self, 'days', tuple(sorted({int(d) for d in self.days})))
+        # 月内日: 1-31; 空 = 不限
+        if self.days_of_month:
+            for d in self.days_of_month:
+                if not (1 <= int(d) <= 31):
+                    raise ValueError(f'非法月内日: {d!r}(应为 1-31)')
+            object.__setattr__(
+                self, 'days_of_month',
+                tuple(sorted({int(d) for d in self.days_of_month})))
+
+    @property
+    def restricts_month_day(self) -> bool:
+        """是否限制了月内日。"""
+        return bool(self.days_of_month) and len(self.days_of_month) < 31
 
     # ------------------------------------------------------------ 基本属性
     @property
@@ -96,7 +119,24 @@ class AvailabilityWindow:
 
     @property
     def is_unrestricted(self) -> bool:
-        return not self.enabled or len(self.days) == 7
+        """是否"实质上不限时段"（全周 + 整天 + 不限月内日）。
+
+        ★ 三个维度**都要看** —— 曾经只判 `len(self.days) == 7`, 于是
+          `AvailabilityWindow(True, 17:00, 23:00)` 被**误判成"不限"**
+          （它明明只开放 6 小时）。这个 bug 由
+          `test_is_unrestricted_accounts_for_month` 抓到。
+        """
+        if not self.enabled:
+            return True
+        if len(self.days) != 7 or self.restricts_month_day:
+            return False
+        # 时刻必须覆盖整天才算不限。
+        # `end` 用 23:59 表示"当天结束"（`AvailabilityWindow` 的默认值）,
+        # 因此把 `end <= start` 且 start 为 00:00 的情况也算作整天
+        # （即 00:00-23:59 或跨午夜的 00:00-00:00）。
+        if _minutes(self.start) != 0:
+            return False
+        return _minutes(self.end) >= 23 * 60 + 59
 
     # ------------------------------------------------------------ 判定
     def contains(self, at: datetime) -> bool:
@@ -111,6 +151,10 @@ class AvailabilityWindow:
             return True
         m = _minutes(at)
         s, e = _minutes(self.start), _minutes(self.end)
+
+        # ★ 月内日门禁（`Period.MONTHLY` 用）。空元组 = 不限。
+        if self.days_of_month and at.day not in self.days_of_month:
+            return False
 
         if not self.crosses_midnight:
             if not (s <= m < e):
@@ -196,14 +240,80 @@ class AvailabilityWindow:
     def describe(self) -> str:
         """人类可读描述, 供界面与日志使用。"""
         if not self.enabled:
-            return '不限时段'
+            return '未声明开放时段'
         span = f'{self.start:%H:%M}-{self.end:%H:%M}'
         if self.crosses_midnight:
             span += '(跨夜)'
+        # ★ 月内日（`Period.MONTHLY`）
+        if self.days_of_month and len(self.days_of_month) == 31:
+            return f'每月 {span}'
+        if self.days_of_month:
+            if set(self.days_of_month) == set(range(1, 16)):
+                label = '1-15'
+            elif set(self.days_of_month) == set(range(16, 32)):
+                label = '16-月末'
+            else:
+                label = ','.join(str(d) for d in self.days_of_month)
+            return f'每月 {label} 日 {span}'
         if len(self.days) == 7:
             return f'每天 {span}'
         names = ''.join(DAY_NAMES[d] for d in self.days)
         return f'{names} {span}'
+
+
+# --------------------------------------------------------------------------- 周期 -> 窗口
+def window_for_period(period, start: time = None, end: time = None):
+    """由**周期**推导默认开放时段（用户新澄清的设计）。
+
+    ## 用户原话
+
+    > "window 的设计应当再展开说下, 每天的任务其实也有 window,
+    >  只不过是每天的 0 点到 24 点。但是选择周期选择每天, 每周则是
+    >  每周一 0 点到周日 24 点, 每月以此类推。而逢魔则是每天的 17 点-23 点。
+    >  等等。**所有的定时都有着 window 属性**。"
+
+    ## 推导规则
+
+    | `period` | window |
+    |---|---|
+    | `DAILY` | 每天 **00:00-24:00**（全周）|
+    | `WEEKLY` | **周一 00:00 - 周日 24:00**（全周 —— 一周就是一个周期）|
+    | `MONTHLY` | 当月 **1 日 00:00 - 月末 24:00**（`days_of_month=1..31`）|
+    | `NONE` | 没有周期 -> **没有可推导的窗口**, 返回 `None`（调用方回退）|
+
+    ★ 注意 `WEEKLY` 的窗口**也是全周** —— 因为"一周"这个周期本身就覆盖 7 天。
+      它表达的是"这个任务的**节奏**是每周", 而不是"只允许某几天跑"。
+      真正限制到具体某几天/某几个小时的, 是**活动窗口**
+      （如 `AbyssShadows` 周五六日 19:00-20:00）—— 那由各任务
+      `meta.py` **显式声明**, 会覆盖这里的默认值。
+
+    :param period: `module.config.resource.Period`（或同值的 str）
+    :param start/end: 可选, 进一步收窄时刻（如逢魔 17:00-23:00）
+    """
+    val = getattr(period, 'value', period)
+    val = str(val).lower() if val is not None else 'none'
+
+    if val == 'daily':
+        return AvailabilityWindow(
+            enabled=True,
+            start=start if start is not None else time(0, 0),
+            end=end if end is not None else time(23, 59),
+            days=ALL_DAYS)
+    if val == 'weekly':
+        return AvailabilityWindow(
+            enabled=True,
+            start=start if start is not None else time(0, 0),
+            end=end if end is not None else time(23, 59),
+            days=ALL_DAYS)
+    if val == 'monthly':
+        return AvailabilityWindow(
+            enabled=True,
+            start=start if start is not None else time(0, 0),
+            end=end if end is not None else time(23, 59),
+            days=ALL_DAYS,
+            days_of_month=tuple(range(1, 32)))
+    # NONE: 没有周期可推导
+    return None
 
 
 # --------------------------------------------------------------------------- 自学习

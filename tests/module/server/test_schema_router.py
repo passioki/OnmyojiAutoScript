@@ -412,6 +412,72 @@ class TestRunRecordEndpoints:
         assert '分钟' in r['archive'][0]['seconds_text']
 
 
+class TestManualRunEndpoints:
+    """
+    「运行一次」—— 按**点击顺序**插队，跑一次就出队。
+
+    ★ 用户确认: "点击后按照点击先后顺序，直接排在最高优先级
+      （就是跑完当前任务/战斗后插队运行）"。
+    """
+
+    @pytest.fixture(autouse=True)
+    def clean_queue(self, tmp_path, monkeypatch):
+        from module.config import manual_run
+        monkeypatch.setattr(manual_run, '_queue_file',
+                            lambda: tmp_path / '.manual_run.json',
+                            raising=True)
+        yield
+        manual_run.clear(CONFIG)
+
+    def test_put_preserves_click_order(self, have_config):
+        import asyncio
+
+        from module.server.schema_router import get_manual_run, put_manual_run
+        r = asyncio.run(put_manual_run(CONFIG, tasks=['Orochi', 'FallenSun',
+                                                      'GoryouRealm']))
+        assert 'error' not in r, r.get('error')
+        assert r['tasks'] == ['Orochi', 'FallenSun', 'GoryouRealm'], \
+            '必须保留点击顺序'
+        assert r['count'] == 3
+        assert r['head'] == 'Orochi'
+
+        again = asyncio.run(get_manual_run(CONFIG))
+        assert again['tasks'] == ['Orochi', 'FallenSun', 'GoryouRealm']
+
+    def test_duplicate_not_double_queued(self, have_config):
+        import asyncio
+
+        from module.server.schema_router import put_manual_run
+        asyncio.run(put_manual_run(CONFIG, tasks=['Orochi']))
+        r = asyncio.run(put_manual_run(CONFIG, tasks=['Orochi']))
+        assert r['count'] == 1, '重复点不该排两次'
+
+    def test_delete_cancels_one(self, have_config):
+        import asyncio
+
+        from module.server.schema_router import (delete_manual_run,
+                                                 put_manual_run)
+        asyncio.run(put_manual_run(CONFIG, tasks=['Orochi', 'FallenSun']))
+        r = asyncio.run(delete_manual_run(CONFIG, task='Orochi'))
+        assert r['cancelled'] is True
+        assert r['tasks'] == ['FallenSun']
+
+    def test_delete_empty_task_clears_all(self, have_config):
+        import asyncio
+
+        from module.server.schema_router import (delete_manual_run,
+                                                 put_manual_run)
+        asyncio.run(put_manual_run(CONFIG, tasks=['Orochi', 'FallenSun']))
+        r = asyncio.run(delete_manual_run(CONFIG, task=''))
+        assert r['cleared'] is True
+        assert r['tasks'] == []
+
+    def test_schema_exposes_queue(self, schema):
+        """`/schema` 里带一份队列摘要 —— 进页面只发一次请求。"""
+        assert 'manual_run' in schema['list']
+        assert 'tasks' in schema['list']['manual_run']
+
+
 class TestRobustness:
     """接口挂了整个总览页会空白, 因此必须不抛异常。"""
 

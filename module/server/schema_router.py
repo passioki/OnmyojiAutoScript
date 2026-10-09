@@ -183,7 +183,21 @@ def _list_meta(config_name: str = '') -> dict:
         # 与 `/run_record` 端点同一份数据 —— 放这里是为了让"进页面"只发
         # 一次请求；需要归档明细时才去调那个端点。
         'run_record': _run_record_summary(config_name),
+        # 「运行一次」当前队列 —— 界面据此显示"排队中"与取消按钮
+        'manual_run': _manual_run_summary(config_name),
     }
+
+
+def _manual_run_summary(config_name: str = '') -> dict:
+    """「运行一次」队列摘要（**失败返回空**, 不影响页面）。"""
+    if not config_name:
+        return {'tasks': [], 'count': 0}
+    try:
+        from module.config import manual_run
+        return manual_run.summarize(config_name)
+    except Exception as exc:
+        logger.warning(f'运行一次队列读取失败({type(exc).__name__}: {exc}), 忽略')
+        return {'tasks': [], 'count': 0}
 
 
 def _run_record_summary(config_name: str = '') -> dict:
@@ -809,6 +823,59 @@ async def get_task_archive(script_name: str, task: str):
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc), 'archive': []}
+
+
+# --------------------------------------------------------------------------- 运行一次
+@schema_app.get('/{script_name}/manual_run')
+async def get_manual_run(script_name: str):
+    """读「运行一次」队列（按点击顺序）。"""
+    try:
+        from module.config import manual_run
+
+        return {'script': script_name, **manual_run.summarize(script_name)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'tasks': [], 'count': 0}
+
+
+@schema_app.put('/{script_name}/manual_run')
+async def put_manual_run(script_name: str, tasks: list = Body(...)):
+    """
+    请求「运行一次」（body 是任务名数组，**按数组顺序**排队）。
+
+    ★ 用户确认的语义: "点击后按照点击先后顺序，直接排在最高优先级
+      （就是跑完当前任务/战斗后插队运行）"。
+
+    ★ **不是立即打断** —— 插队点在**任务边界**。
+      立即打断会卡在半途（战斗中 / 组队房间里），
+      与「暂停调度」同样的理由。
+    """
+    try:
+        from module.config import manual_run
+
+        manual_run.request_many(script_name, tasks)
+        return {'script': script_name, **manual_run.summarize(script_name)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.delete('/{script_name}/manual_run')
+async def delete_manual_run(script_name: str, task: str = ''):
+    """取消排队（`task` 留空则清空整个队列）。"""
+    try:
+        from module.config import manual_run
+
+        if task:
+            ok = manual_run.cancel(script_name, task)
+            return {'script': script_name, 'cancelled': ok,
+                    **manual_run.summarize(script_name)}
+        manual_run.clear(script_name)
+        return {'script': script_name, 'cleared': True,
+                **manual_run.summarize(script_name)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
 
 
 # --------------------------------------------------------------------------- 运行控制

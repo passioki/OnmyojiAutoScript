@@ -260,6 +260,34 @@ PUT /{script}/script/optimization/enable_fixed/value?types=boolean&value=false
 
 ---
 
+### 2.7 「运行一次」（v2 新增）
+
+放在「停用选中」旁边（与「重置选中」是邻居）。
+
+| 操作 | 接口 |
+|---|---|
+| 点一次 | `PUT /{script}/manual_run`  body: `["Orochi"]` |
+| 按顺序点多个 | `PUT /{script}/manual_run`  body: `["A","B"]`（**数组顺序 = 点击顺序**）|
+| 读队列 | `GET /{script}/manual_run` |
+| 取消一个 | `DELETE /{script}/manual_run?task=Orochi` |
+| 清空 | `DELETE /{script}/manual_run` |
+
+`/schema` 的 `list.manual_run` 带一份摘要（`{tasks, count, head}`），
+界面可以直接显示"排队中（2）"。
+
+★ 语义要点：
+
+| 项 | 说明 |
+|---|---|
+| 排队顺序 | **按点击先后**（不是按任务名/优先级）|
+| 插队时机 | **任务边界** —— 跑完当前任务/战斗后才切过去 |
+| 只跑一次 | 跑完**自动出队** |
+| 重复点同一任务 | **不会重复排队** |
+| 请求但不在 `pending` | **忽略**（不能跳过调度约束）|
+| 恢复方式 | 无 —— 它是一次性请求 |
+
+★ **不是立即打断** —— 与「暂停调度」同样的理由（打断会卡在半途）。
+
 ## 3. 开放时段表单（原型里没有，新增功能）
 
 原型里**没有**开放时段控件（那时后端还没有这个概念）。现在接口已支持：

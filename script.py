@@ -568,6 +568,15 @@ class Script:
         if not self._try_acquire_queue_token():
             return False
 
+        # ★ 「运行一次」: 任务**真正要跑了**才把它从队列里取走。
+        #
+        #   为什么不放在 `Config._order_by_manual_run()`（排序那一步）:
+        #   `get_next()` 每轮会被调多次（等待/重试/暂停恢复都会重算），
+        #   在排序时消耗队列会导致"点了 3 个只跑 1 个"。
+        #
+        #   放在这里（派发点）语义最清楚: **跑一次就出队一次**。
+        self._consume_manual_run(command)
+
         if self.instance_guard and self.instance_guard.token_lost:
             logger.warning(f'Token lost, stopping emulator and rejoining queue')
             try:
@@ -660,6 +669,27 @@ class Script:
             self.config.notifier.push(title=f'{I18n.trans_zh_cn(command)}{command}', content=f"<{self.config_name}> Exception occured")
             self._task_failed = True
             return False
+
+    def _consume_manual_run(self, command: str) -> None:
+        """
+        「运行一次」出队。
+
+        ★ 队列是 **FIFO 且只跑一次**，但**不必**严格等于队首:
+          若队首那个任务还没到点（`get_next()` 选了别人), 就先让它等下 ——
+          用户的点击顺序是"优先级提示", 不是"必须插在调度约束之前"。
+
+        ★ 失败只记 warning —— 插队是锦上添花, 不该影响跑任务。
+        """
+        try:
+            from module.config import manual_run
+
+            if not manual_run.is_pending(self.config_name, command):
+                return
+            manual_run.cancel(self.config_name, command)
+            left = manual_run.pending(self.config_name)
+            logger.info(f'运行一次: {command} 已出队（剩余 {len(left)} 个）')
+        except Exception as exc:
+            logger.warning(f'运行一次出队失败({type(exc).__name__}: {exc}), 忽略')
 
     # ---------------------------------------------------------------- 运行记录
     def _task_runs_snapshot(self, task_obj) -> int:

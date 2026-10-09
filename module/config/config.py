@@ -297,6 +297,8 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 run_list=self.build_run_list())
             # ★ 定时任务**内部**排序 + 定时优先时提到最前（见 docs §5.4.1）
             pending_task = self._order_by_timed_priority(pending_task)
+            # ★ 「运行一次」: 手动请求的任务提到**最前**（按点击顺序）
+            pending_task = self._order_by_manual_run(pending_task)
             # 防止正在运行的任务被新上来的pending队列中的任务给顶替掉
             if self.model.running_task and pending_task:
                 for i, obj in enumerate(pending_task):
@@ -314,6 +316,34 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         self.waiting_task = waiting_task
 
     # ------------------------------------------------------------------ 定时任务排序
+    def _order_by_manual_run(self, pending):
+        """
+        「运行一次」: 把手动请求的任务提到**最前**（按点击顺序）。
+
+        ★ 用**队列**而不是布尔标记: 用户要求"按点击先后顺序",
+          而 `set` 会丢顺序。
+
+        ★ 这里**只排序、不消耗队列** —— 队列在任务真正被派发时才
+          `take()`（见 `script.py`）。否则 `get_next()` 每被调一次就
+          消耗一个, 用户点了 3 个却只跑 1 个。
+        """
+        try:
+            from module.config import manual_run
+
+            queue = manual_run.pending(self.config_name)
+            if not queue:
+                return pending
+            ordered = manual_run.order_first(pending, queue)
+            head = getattr(ordered[0], 'command', '') if ordered else ''
+            if head and manual_run.is_pending(self.config_name, head):
+                logger.info(f'运行一次: 优先派发 {head}'
+                            f'（队列剩余 {len(queue)} 个）')
+            return ordered
+        except Exception as exc:
+            logger.warning(f'运行一次排序失败({type(exc).__name__}: {exc}), '
+                           f'保持原顺序')
+            return pending
+
     def _order_by_timed_priority(self, pending):
         """
         定时任务排序, 并在 `timed_priority=timed` 时**提到最前**。

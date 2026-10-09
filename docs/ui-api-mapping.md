@@ -431,49 +431,47 @@ pydantic 的 `model_json_schema()` 里，**带 `$ref` 的属性没有 `default` 
 
 ---
 
-## 7. 统一控制台（三轮用户反馈后的最终结构）
+## 7. 统一控制台（四轮用户反馈后的最终结构：**单页**）
 
-### 两个 tab + 日志常驻（宽度可拖）
+### 没有 tab —— 一页从上到下
 
-| tab | 内容 |
-|---|---|
-| **调度** | 状态行 · 批量操作（进程开关/启停/运行一次/重置/搜索/筛选）<br>**全局开关（顶部）** · 任务表格 · **执行队列（拖拽）** |
-| **监控 / 计划** | 调度器 · 正在运行 · 待执行 · 等待中 · 预期执行流程 |
+| 顺序 | 面板 | 接口 |
+|---|---|---|
+| 1 | 状态行（进程状态 / 待执行数 / 等待中数 / 冷却数）| **WebSocket** 推送 |
+| 2 | 批量操作（进程开关 + 批量启停/运行一次/重置选中/搜索/筛选）| PUT /{script}/{task}/scheduler/enable/value |
+| 3 | **全局开关** | GET /{script}/schema 的 list.global_fields<br>PUT /{script}/optimization/{field}/value |
+| 4 | **执行队列**（正在运行 + 待执行 + 等待中, 可拖拽, 每行可改次数/耗时/优先级）| GET/PUT /{script}/run_list<br>POST/DELETE /{script}/run_list/entry<br>PUT /{script}/{task}/scheduler/{target,priority,expected_minutes}/value |
+| 5 | 任务表格（Excel 式批量管理, 不改顺序）| GET /{script}/overview |
+| 侧 | 运行控制条（暂停/继续）| GET /{script}/run_control · PUT /{script}/run_control/{pause,resume} |
+| 侧 | 日志常驻右半栏（宽度可拖, 记忆在偏好）| subscribeLog 订阅（**不要另开 WebSocket**）|
 
-### 各面板需要的接口
+★ 「预期执行流程」对应的 GET /{script}/run_list/preview **接口保留**,
+  但**界面不再单独画一块** —— 队列已经按顺序列出接下来会跑什么, 重复。
 
-| 面板 | 接口 |
-|---|---|
-| **全局开关** | `GET /{script}/schema` 的 `list.global_fields`（标签/类型/当前值/可选值/说明）<br>`PUT /{script}/script/optimization/{field}/value` |
-| **任务表格** | `GET /{script}/overview`（每任务: `can_run`/`slot`/`reason`/`priority`/`expected_minutes`/`count`/`effective_target`/`failure_count`/`in_cooldown`）<br>`PUT /{script}/{task}/scheduler/{enable,target,priority,expected_minutes}/value` |
-| **执行队列** | `GET/PUT /{script}/run_list` · `POST/DELETE /{script}/run_list/entry` |
-| **监控 / 计划** | **WebSocket** 推送（`state`/`running`/`pending`/`waiting`）—— **不是 REST**<br>`GET /{script}/run_list/preview`（预期流程）|
-| **运行控制** | `GET /{script}/run_control` · `PUT /{script}/run_control/{pause,resume}` |
-| **其他** | 运行记录 / 运行一次 / 失败冷却（见 §2.6 §2.7）|
+### ★ 六个易错点
 
-### ★ 五个易错点
-
-1. **`target` / `count` / `effective_target` 是三个不同的东西** ——
-   界面**编辑**的是 `target`，**显示**的是 `effective_target`：
+1. **	arget / count / effective_target 是三个不同的东西** ——
+   界面**编辑**的是 	arget, **显示**的是 effective_target:
 
    | 字段 | 含义 |
    |---|---|
-   | `target` | **用户设的**（0 = 用默认值）—— 输入框读写它 |
-   | `count` | 任务配置里的**能力默认值**（`limit_count` 等）|
-   | `effective_target` | **本次真正会用**的（`target` > `count` > meta 默认）|
+   | 	arget | **用户设的**（0 = 用默认值）—— 输入框读写它 |
+   | count | 任务配置里的**能力默认值** |
+   | effective_target | **本次真正会用**的（三级回落）|
 
-   ★ 曾经 `/overview` **漏了 `target`**，于是队列里的"次数"**永远显示默认**
-     （读到 0），用户改了看不到反馈。
-
-   ★ **这类"漏一个字段"的 bug 只会在界面上表现为"改了没用"** ——
-     很难从后端日志发现。所以改动 `/overview` 时务必对照本节检查三个字段都在。
-2. **`priority` / `expected_minutes` 在 `/{task}/scheduler/` 分组**,
-   不在 `script.optimization`
-3. **写入要传下划线键**（`row['name']`, 如 `experience_youkai`）,
-   不是大驼峰命令名（`ExperienceYoukai`）—— 踩过这个混淆
-4. **日志用订阅**（`ScriptService.subscribeLog`）,**不要另开 WebSocket 连接**
-5. **运行控制条的状态要看脚本进程**（`ScriptModel.state`）,
-   不能只看 `run_control.paused` —— 否则进程停了还显示"运行中"（踩过）
+   ★ 曾经 /overview **漏了 	arget** → 队列次数永远显示默认,
+     用户改了看不到反馈。**这类漏一个字段只在界面上表现为改了没用**,
+     很难从后端日志发现。
+2. **priority / expected_minutes 在 /{task}/scheduler/ 分组**
+3. **写入要传下划线键**（
+ow['name']）不是大驼峰命令名
+4. **日志用订阅**, 不要另开 WebSocket 连接
+5. **运行控制条的状态要看脚本进程**（ScriptModel.state）,
+   不能只看 
+un_control.paused —— 否则进程停了还显示运行中
+6. **Obx 的回调必须直接读一个 Rx 变量** —— 写 sm?.runningTask.value
+   在 sm == null 时**一次都没读**, GetX 会抛 improper use of a GetX
+   并让整块面板渲染失败。**拿不到服务时返回静态 widget, 不要进 Obx。**
 
 ## 附：字段命名对照（前端易错点）
 

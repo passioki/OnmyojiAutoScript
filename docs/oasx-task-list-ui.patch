@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 01/16] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 01/17] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 02/16] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 02/17] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 03/16] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 03/17] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 04/16] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 04/17] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 05/16] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 05/17] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 06/16] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
+Subject: [PATCH 06/17] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
  =?UTF-8?q?=E6=9C=AC=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8?=
  =?UTF-8?q?=E4=B9=85=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20?=
  =?UTF-8?q?=E8=B4=A6=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 07/16] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 07/17] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 08/16] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 08/17] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6256,7 +6256,7 @@ index ea36b95..4ce7384 100644
 From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:58:58 +0800
-Subject: [PATCH 09/16] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+Subject: [PATCH 09/17] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
  =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
  =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
  =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
@@ -7416,7 +7416,7 @@ index 3577f1c..ffedaed 100644
 From 331ba7e9e1de080f71a267b595341dcaced0b5a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 14:03:01 +0800
-Subject: [PATCH 10/16] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
+Subject: [PATCH 10/17] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
  =?UTF-8?q?=E7=A8=8B=E5=BC=80=E5=85=B3=E4=B8=8A=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=20+=20=E4=BC=91=E6=81=AF=E7=BD=AE=E9=A1=B6/=E5=88=86=E7=B1=BB?=
  =?UTF-8?q?=E7=AD=9B=E9=80=89=20+=20=E7=82=B9=E8=A1=8C=E8=BF=9B=E8=AE=BE?=
@@ -7979,7 +7979,7 @@ index 4d59df0..3c57afd 100644
 From 7f7e4925c91c0fb8bd1d6195ea864f8b751781a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 18:29:47 +0800
-Subject: [PATCH 11/16] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
+Subject: [PATCH 11/17] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
  =?UTF-8?q?=E5=8F=AA=E6=94=B6=E5=9B=BA=E5=AE=9A=E4=BB=BB=E5=8A=A1"?=
  =?UTF-8?q?=E7=9A=84=E8=BF=87=E6=BB=A4=20=E2=80=94=E2=80=94=20=E5=AE=83?=
  =?UTF-8?q?=E6=9B=BE=E9=9D=99=E9=BB=98=E4=B8=A2=E6=8E=89=E7=94=A8=E6=88=B7?=
@@ -8449,7 +8449,7 @@ index 3c57afd..47314bc 100644
 From 015d55e1a06fcf895312771b29413dc0fe791f95 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:07:38 +0800
-Subject: [PATCH 12/16] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
+Subject: [PATCH 12/17] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
  =?UTF-8?q?=E9=83=A8**=E5=BC=80=E5=85=B3=E4=B8=8E=E4=BC=98=E5=85=88?=
  =?UTF-8?q?=E7=BA=A7=E5=AD=97=E6=AE=B5=20=E2=80=94=E2=80=94=20=E5=90=8E?=
  =?UTF-8?q?=E7=AB=AF=E6=97=A9=E5=B0=B1=E5=81=9A=E4=BA=86,=20=E5=89=8D?=
@@ -9334,7 +9334,7 @@ index 47314bc..97f7740 100644
 From e78445611c6f2b1f1b4b000d32e007467767eaca Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 19:13:48 +0800
-Subject: [PATCH 13/16] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
+Subject: [PATCH 13/17] =?UTF-8?q?feat(ui):=20=E5=90=88=E5=B9=B6=E6=88=90?=
  =?UTF-8?q?=E4=B8=80=E4=B8=AA**=E7=BB=9F=E4=B8=80=E6=8E=A7=E5=88=B6?=
  =?UTF-8?q?=E5=8F=B0**=20=E2=80=94=E2=80=94=20=E4=B8=89=E4=B8=AA=20tab=20+?=
  =?UTF-8?q?=20=E6=97=A5=E5=BF=97=E5=B8=B8=E9=A9=BB=EF=BC=88=E7=94=A8?=
@@ -10001,7 +10001,7 @@ index 97f7740..96648d8 100644
 From fd7e402e488353803351cbc63b3a608cd1b729ec Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 20:21:45 +0800
-Subject: [PATCH 14/16] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E5=AE=9E?=
+Subject: [PATCH 14/17] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E5=AE=9E?=
  =?UTF-8?q?=E6=B5=8B=E5=8F=8D=E9=A6=88=204=20=E9=A1=B9=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E9=87=8D=E5=A4=8D=E6=8C=89=E9=92=AE=20/=20?=
  =?UTF-8?q?=E8=8B=B1=E6=96=87=E6=98=BE=E7=A4=BA=20/=20=E9=A1=B5=E9=9D=A2?=
@@ -11169,7 +11169,7 @@ index 96648d8..7a0420a 100644
 From 94756b714d018ba91e3bbbefdf2cc4020badd2a1 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 21:20:48 +0800
-Subject: [PATCH 15/16] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E7=AC=AC?=
+Subject: [PATCH 15/17] =?UTF-8?q?fix(ui):=20=E7=94=A8=E6=88=B7=E7=AC=AC?=
  =?UTF-8?q?=E4=BA=8C=E8=BD=AE=E5=8F=8D=E9=A6=88=20=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E7=8A=B6=E6=80=81=E8=B0=8E=E6=8A=A5=20/=20=E5=8E=BB=E6=8C=89?=
  =?UTF-8?q?=E9=92=AE=20/=20=E9=98=9F=E5=88=97=E5=90=88=E5=B9=B6=20/=20?=
@@ -13605,7 +13605,7 @@ index 7a0420a..35c14b9 100644
 From 7f20440742cdbaec8fd0289f06d2495bc7ce80d7 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 21:43:27 +0800
-Subject: [PATCH 16/16] =?UTF-8?q?fix:=20`/overview`=20=E6=BC=8F=20`target`?=
+Subject: [PATCH 16/17] =?UTF-8?q?fix:=20`/overview`=20=E6=BC=8F=20`target`?=
  =?UTF-8?q?=20=E5=AD=97=E6=AE=B5=EF=BC=88"=E6=AC=A1=E6=95=B0"=E6=B0=B8?=
  =?UTF-8?q?=E8=BF=9C=E6=98=BE=E7=A4=BA=E9=BB=98=E8=AE=A4=EF=BC=89+=20?=
  =?UTF-8?q?=E9=98=9F=E5=88=97=E5=90=88=E5=B9=B6"=E6=AD=A3=E5=9C=A8?=
@@ -14184,6 +14184,1238 @@ index 35c14b9..0167d81 100644
    _accountSwitchTests();
  
    _runControlV2Tests();
+-- 
+2.41.0.windows.1
+
+
+From cd1514071de7d1130888b4078024562e15878f99 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 22:02:33 +0800
+Subject: [PATCH 17/17] =?UTF-8?q?fix(ui):=20=E5=8D=95=E9=A1=B5=E5=8C=96?=
+ =?UTF-8?q?=EF=BC=88=E9=98=9F=E5=88=97=20=3D=20=E5=94=AF=E4=B8=80=E5=85=A5?=
+ =?UTF-8?q?=E5=8F=A3=EF=BC=89+=20=E5=88=A0=E6=8E=89=E5=86=97=E4=BD=99?=
+ =?UTF-8?q?=E7=9A=84=E9=A2=84=E6=9C=9F=E6=B5=81=E7=A8=8B=20+=20=E4=BF=AE"?=
+ =?UTF-8?q?=E8=BF=90=E8=A1=8C=E4=B8=AD=E8=BF=98=E8=83=BD=E5=8A=A0=E5=85=A5?=
+ =?UTF-8?q?"=E7=9A=84=20bug?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+用户三点反馈:
+
+> 执行队列应该和队列视图是一个东西吧，可否合在一起。
+> 然后正在运行的逢魔之时，下边显示还可以加入逢魔之时，这是不是个bug。
+> 预期执行流程可以删去了，似乎和上边的队列冗余了。
+
+## 1. ★ bug: 正在运行的任务**同时**被列为"可加入"
+
+用户: "正在运行的逢魔之时，下边显示还可以加入逢魔之时，这是不是个bug"
+
+**是 bug。** 根因: 若 `run_list` 是空的（你的 `伴生树` 就是空的 —— 还没编排过）,
+那么**所有**启用任务都会落进"未编排（可加入）"候选 ——
+包括**此刻正在跑**的那个。于是队列里出现同一个任务两条。
+
+**它其实只是"不在编排列表里"（调度器用内置默认顺序）**,
+和"可以加入队列"是两件事。
+
+修法: 控制器新增 **`runningTaskCommand`**（安全读 WebSocket 的
+`ScriptModel.runningTask`）, `unqueuedEnabledTasks` **排除**它。
+
+★ 用**安全查找**（检查 `Get.isRegistered<ScriptService>()`）——
+  服务未注册（widget 测试 / 启动瞬间）时返回空串, 不能让队列整块渲染失败。
+
+## 2. 单页化: 队列与"队列视图"合成一个（无 tab）
+
+用户指出它们也是一个东西。现在**整页从上到下**:
+
+```
+1. 状态行（进程状态 / 待执行数 / 等待中数 / 冷却数）
+2. 批量操作（脚本进程开关 + 批量启停 / 运行一次 / 重置选中 / 搜索 / 筛选）
+3. ★ 全局开关（顶部）
+4. ★ 执行队列 —— 正在运行(第 0 项) + 待执行 + 等待中, 可拖拽,
+   每行的次数 / 预期耗时 / 优先级可直接改
+5. 任务表格（Excel 式批量查看与管理, 不改执行顺序）
+```
+
+`TabBar` / `TabBarView` / `DefaultTabController` 全部移除。
+左右分栏**仍可拖拽调整**（用户上一轮的要求）, 日志常驻右半栏。
+
+## 3. 删除「预期执行流程」
+
+用户: "可以删去了，似乎和上边的队列冗余了" —— **确实冗余**:
+队列本身就按顺序列出"接下来会跑什么", 再画一遍推算流程是重复。
+
+删除 `_FlowPanelMixin` / `_FlowTab` / `_flowPanel` 共约 400 行。
+
+★ 后端 `/run_list/preview` **接口保留**（它是有用的能力,
+  只是界面不再单独画一块）—— 与「本轮跑完再停」「只停列表」同样的处置。
+
+## 4. ★ 又跨过一个 `Obx` 的坑（同一个坑第二遍）
+
+给队列加"正在运行"队首时我写成 `Obx(() { final cur = sm?.runningTask.value; ... })`
+—— `sm == null` 时**一次 Rx 都没读**, GetX 抛
+`improper use of a GetX` 并让**整块面板渲染失败**。
+
+**这次的结构性修法**（不只是打补丁）:
+
+* 把"有没有 Rx 可读"交给**控制器的安全 getter**（`runningTaskCommand`）
+* `Obx` 里只放**一定非空**的读取; 拿不到服务时返回**静态** widget
+* 行内容拆成独立方法 `_runningRow(context, cur)` —— 便于单独复用与测试
+
+★ 同一个坑犯两次, 所以这次写成了**结构上的约束**而不是注释提醒。
+
+## 测试 74/74
+
+* 守卫重写: **单页**（`TabBar` 必须不存在）、日志常驻 + 宽度可拖 + 持久记忆
+* 新增: **「预期执行流程」相关的类/方法必须已删除**（防回退）
+* 新增: `_ScheduleTab` 的**顺序**（全局开关 -> 队列 -> 表格）
+* 新增**: 未编排列表必须排除正在运行的任务**（钉住本次 bug）
+* 删除无用的 `_WrongModeController`（模式警告 UI 已不存在）
+
+前端 **74/74**；`flutter analyze` 相关文件干净；release 构建通过。
+---
+ .../task_list/task_list_controller.dart       |  32 +-
+ lib/views/tasks/queue_panel.dart              | 119 ++--
+ lib/views/tasks/task_list_view.dart           | 625 ++++++------------
+ test/task_list_panel_test.dart                | 172 ++---
+ 4 files changed, 331 insertions(+), 617 deletions(-)
+
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index 7baaa5d..c746099 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -915,16 +915,46 @@ class TaskListController extends GetxController with LogMixin {
+   }
+ 
+   /// 不在运行列表里的**启用**任务（可作为"未编排"候选）。
++  ///
++  /// ## ★ 必须排除**正在运行**的那个（修一个真 bug）
++  ///
++  /// 用户反馈: "正在运行的逢魔之时，下边显示还可以加入逢魔之时，这是不是个bug"
++  ///
++  /// **是 bug。** 原因: 若 `run_list` 是空的（还没编排过）, 那么**所有**启用任务
++  /// 都会落进这里 —— 包括**此刻正在跑**的那个。于是"正在运行"和
++  /// "未编排（可加入）"里出现同一个任务, 看起来像调度器把它忘了。
++  ///
++  /// 实际上它只是**不在编排列表里**（默认顺序调度）, 这跟
++  /// "可以加入队列" 是两件事。排除掉正在跑的, 队列就不会重复显示。
+   List<Map<String, dynamic>> get unqueuedEnabledTasks {
+     final inList = {
+       for (final e in entries)
+         if ('${e['kind']}' == 'task') '${e['task']}',
+     };
++    final running = runningTaskCommand;
+     return _allTasks
+-        .where((t) => t['enable'] == true && !inList.contains('${t['command']}'))
++        .where((t) =>
++            t['enable'] == true &&
++            !inList.contains('${t['command']}') &&
++            '${t['command']}' != running)
+         .toList();
+   }
+ 
++  /// **正在运行**的任务命令名（从 WebSocket 的 `ScriptModel` 取; 没有则空串）。
++  ///
++  /// ★ 安全查找: 服务未注册（widget 测试 / 启动瞬间）时返回空串,
++  ///   不能让队列整块渲染失败。
++  String get runningTaskCommand {
++    try {
++      if (!Get.isRegistered<ScriptService>()) return '';
++      final sm = Get.find<ScriptService>().scriptModelMap[scriptName];
++      final cur = sm?.runningTask.value;
++      return (cur == null) ? '' : cur.taskName;
++    } catch (_) {
++      return '';
++    }
++  }
++
+   /// 命令名 -> `/overview` 那一行（拿不到给空 map）。
+   Map<String, dynamic> taskRowOf(String command) {
+     for (final t in _allTasks) {
+diff --git a/lib/views/tasks/queue_panel.dart b/lib/views/tasks/queue_panel.dart
+index 5df5c5b..2646cfd 100644
+--- a/lib/views/tasks/queue_panel.dart
++++ b/lib/views/tasks/queue_panel.dart
+@@ -157,20 +157,22 @@ class _QueuePanelState extends State<QueuePanel> {
+   ///
+   /// ```dart
+   /// Obx(() {
+-  ///   final sm = maybeNull();      // 可能是 null
++  ///   final sm = maybeNull();              // 可能是 null
+   ///   final cur = sm?.runningTask.value;   // null 时**一次 Rx 都没读**
+   ///   ...
+   /// })
+   /// ```
+   ///
+-  /// 当 `sm == null` 时回调里没有任何 Rx 读取 —— GetX 就抛
+-  /// `[Get] the improper use of a GetX has been detected` 并让**整块面板渲染失败**。
++  /// 当 `sm == null` 时回调里没有任何 Rx 读取 —— GetX 抛
++  /// `[Get] the improper use of a GetX has been detected`, **整块面板渲染失败**。
+   ///
+-  /// **修法**: `sm == null` 时**根本不用 `Obx`**, 返回静态 widget。
+-  /// 这样"没有 Rx 可读"的情况永远不会进入 `Obx`。
++  /// **修法**: 把"有没有 Rx 可读"这件事交给**控制器的安全 getter**
++  /// （`c.runningTaskCommand` —— 它内部检查 `ScriptService` 是否注册）,
++  /// 于是这里只有一种情况: `Obx` 里的读**一定**非空。
+   ///
+-  /// （`sm` 为 null 的真实场景: widget 测试、页面比 WebSocket 服务先构建。）
++  /// （`sm` 拿不到的真实场景: widget 测试、页面比 WebSocket 服务先构建。）
+   Widget _obxRow(BuildContext context, dynamic sm) {
++    // ★ 服务未就绪 —— 用**静态** widget, 不进 `Obx`（否则没有 Rx 可读 -> 抛异常）
+     if (sm == null) {
+       return Padding(
+         padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+@@ -179,9 +181,6 @@ class _QueuePanelState extends State<QueuePanel> {
+             const SizedBox(width: 4),
+             Icon(Icons.pause, size: 18, color: Theme.of(context).disabledColor),
+             const SizedBox(width: 6),
+-            Text('—',
+-                style: TextStyle(color: Theme.of(context).disabledColor)),
+-            const SizedBox(width: 6),
+             Text('（还没有运行状态 —— 脚本未启动）',
+                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                       color: Theme.of(context).disabledColor,
+@@ -190,59 +189,59 @@ class _QueuePanelState extends State<QueuePanel> {
+         ),
+       );
+     }
+-    return Obx(() {
+-      final cur = sm.runningTask.value;
+-      final name = (cur == null) ? '' : '${cur.taskName}';
+-      final running = name.isNotEmpty;
+-      return Container(
+-        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+-        color: running
+-            ? Colors.green.withValues(alpha: 0.12)
+-            : Colors.transparent,
+-        child: Row(
+-          children: [
+-            const SizedBox(width: 4),
+-            Icon(
+-              running ? Icons.play_arrow : Icons.pause,
+-              size: 18,
+-              color: running ? Colors.green : Theme.of(context).disabledColor,
+-            ),
+-            const SizedBox(width: 6),
+-            SizedBox(
+-              width: 22,
+-              child: Text('0',
+-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+-                        fontWeight: FontWeight.bold,
+-                        color: running
+-                            ? Colors.green
+-                            : Theme.of(context).disabledColor,
+-                      )),
+-            ),
+-            Expanded(
+-              child: Text(
+-                running ? _zhName(name) : '（当前没有任务在跑）',
+-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+-                      fontWeight: running ? FontWeight.bold : null,
+-                      color: running ? null : Theme.of(context).disabledColor,
+-                    ),
+-                overflow: TextOverflow.ellipsis,
+-              ),
+-            ),
+-            Text('正在运行',
++    return Obx(() => _runningRow(context, sm.runningTask.value));
++  }
++
++  /// 「正在运行」这一行的**内容**（读 Rx 的结果传进来, 便于单独测/复用）。
++  Widget _runningRow(BuildContext context, dynamic cur) {
++    final name = (cur == null) ? '' : '${cur.taskName}';
++    final running = name.isNotEmpty;
++    return Container(
++      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
++      color:
++          running ? Colors.green.withValues(alpha: 0.12) : Colors.transparent,
++      child: Row(
++        children: [
++          const SizedBox(width: 4),
++          Icon(
++            running ? Icons.play_arrow : Icons.pause,
++            size: 18,
++            color: running ? Colors.green : Theme.of(context).disabledColor,
++          ),
++          const SizedBox(width: 6),
++          SizedBox(
++            width: 22,
++            child: Text('0',
+                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
+-                      color: running ? Colors.green : null,
+-                      fontWeight: FontWeight.w600,
++                      fontWeight: FontWeight.bold,
++                      color: running
++                          ? Colors.green
++                          : Theme.of(context).disabledColor,
+                     )),
+-            // 中文名之外再标命令名（方便核对 / 搜日志）
+-            if (running)
+-              TextButton(
+-                onPressed: () => Get.find<NavCtrl>().openTaskSettings(name),
+-                child: const Text('任务设置'),
+-              ),
+-          ],
+-        ),
+-      );
+-    });
++          ),
++          Expanded(
++            child: Text(
++              running ? _zhName(name) : '（当前没有任务在跑）',
++              style: Theme.of(context).textTheme.labelLarge?.copyWith(
++                    fontWeight: running ? FontWeight.bold : null,
++                    color: running ? null : Theme.of(context).disabledColor,
++                  ),
++              overflow: TextOverflow.ellipsis,
++            ),
++          ),
++          Text('正在运行',
++              style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                    color: running ? Colors.green : null,
++                    fontWeight: FontWeight.w600,
++                  )),
++          if (running)
++            TextButton(
++              onPressed: () => Get.find<NavCtrl>().openTaskSettings(name),
++              child: const Text('任务设置'),
++            ),
++        ],
++      ),
++    );
+   }
+ 
+   // ---------------------------------------------------------------- 已编排行
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 884d631..824990e 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -225,7 +225,7 @@ class _TaskListViewState extends State<TaskListView> {
+       builder: (_) => DefaultTabController(
+         // ★ 必须与下面 `TabBar` 的 tab 数**一致**（TabBarView 的 children 也是）——
+         //   不匹配会在运行时崩。用户要求合并后从 3 个减到 2 个。
+-        length: 2,
++        length: 1,
+         child: Column(
+           children: [
+             // ★ 这里**不要**用 `Obx` 包 `RunControlBar` ——
+@@ -238,26 +238,11 @@ class _TaskListViewState extends State<TaskListView> {
+             //   （`RunControlBar` 内部的脚本状态区）。
+             RunControlBar(controller: c),
+             _header(context, c),
+-            const TabBar(
+-              tabs: [
+-                // ★ 三轮反馈后的最终两个 tab:
+-                //
+-                //   * **调度**   —— 状态行 · 批量操作 · 全局开关 ·
+-                //                  **执行队列**（拖拽 + 每行设置）· 预期流程 · 任务表格
+-                //   * **队列视图** —— 只读的观察窗（待执行 / 等待中 / 预期流程）
+-                //                    —— 和「调度」里的队列**同源**, 只是不动手改
+-                //
+-                // 用户的核心意见: 「正在运行 / 待执行 / 等待中 / 预期流程」
+-                // **本来就是一件事** —— 所以都收进「执行队列」。
+-                Tab(text: '调度'),
+-                Tab(text: '队列视图'),
+-              ],
+-            ),
+             Expanded(
+               child: wide
+                   // ★ 左右分栏宽度**可拖拽调整**（用户要求）
+                   //
+-                  //   用 `Stack` + 一个 6px 宽的拖拽条, 而不是
++                  //   用 `Stack` + 一个 7px 宽的拖拽条, 而不是
+                   //   `Row` + 固定 `SizedBox` —— 后者没法调。
+                   //
+                   //   范围限制在 [420, 可用宽度-320]: 任一侧都不会被拖没。
+@@ -276,13 +261,8 @@ class _TaskListViewState extends State<TaskListView> {
+                                 children: [
+                                   SizedBox(
+                                     width: left,
+-                                    child: TabBarView(
+-                                      children: [
+-                                        _ScheduleTab(
+-                                            c: c, searchCtrl: _searchCtrl),
+-                                        _FlowTab(c: c),
+-                                      ],
+-                                    ),
++                                    child: _ScheduleTab(
++                                        c: c, searchCtrl: _searchCtrl),
+                                   ),
+                                   const VerticalDivider(width: 1),
+                                   Expanded(child: logs),
+@@ -319,12 +299,8 @@ class _TaskListViewState extends State<TaskListView> {
+                   : Column(
+                       children: [
+                         Expanded(
+-                          child: TabBarView(
+-                            children: [
+-                              _ScheduleTab(c: c, searchCtrl: _searchCtrl),
+-                              _FlowTab(c: c),
+-                            ],
+-                          ),
++                          child: _ScheduleTab(
++                              c: c, searchCtrl: _searchCtrl),
+                         ),
+                         SizedBox(height: 200, child: logs),
+                       ],
+@@ -403,9 +379,190 @@ class _TaskListViewState extends State<TaskListView> {
+ /// ## 混入两个 mixin
+ ///
+ /// * `_GlobalPanelMixin` -> `_globalPanel`（全局设置）
+-/// * `_FlowPanelMixin`   -> `_flowPanel`（预期流程, 与「预期流程」tab 共用）
+-class _ScheduleTab extends StatelessWidget
+-    with _GlobalPanelMixin, _FlowPanelMixin {
++mixin _GlobalPanelMixin {
++  TaskListController get c;
++
++  /// 全局设置 —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据。
++  Widget _globalPanel(BuildContext context) {
++    final modes = c.modes;
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(12),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            _panelTitle(context, '全局设置', null),
++            const SizedBox(height: 8),
++
++            // ---------- 两个总开关 + 两者关系 ----------
++            //
++            // ★★ 这一段是补一个**重大遗漏** ★★
++            //
++            // 后端把两个总开关 + 定时优先 + 休息穿插全做完了, `/schema` 的
++            // `global_fields` 也暴露了 —— 但前端**一个都没渲染**,
++            // 于是它们永远停在默认值, 用户在界面上根本改不了。
++            //
++            // 标签与说明一律从 `/schema` 读（`c.globalFieldLabel`）,
++            // 前端**不硬编码**字段名与文案。
++            _switchRow(
++              context,
++              key: 'enable_fixed',
++              value: c.enableFixed,
++              fallbackLabel: '启用固定任务',
++              onChanged: c.toggleEnableFixed,
++            ),
++            _switchRow(
++              context,
++              key: 'enable_timed',
++              value: c.enableTimed,
++              fallbackLabel: '启用定时任务',
++              onChanged: c.toggleEnableTimed,
++            ),
++            const SizedBox(height: 4),
++            // 定时任务到点时怎么跟固定任务抢
++            Row(
++              children: [
++                SizedBox(
++                  width: 168,
++                  child:
++                      Text(c.globalFieldLabel('timed_priority', '定时任务优先级')),
++                ),
++                DropdownButton<String>(
++                  value: c.timedPriorityChoices
++                          .any((e) => '${e['value']}' == c.timedPriority)
++                      ? c.timedPriority
++                      : (c.timedPriorityChoices.isNotEmpty
++                          ? '${c.timedPriorityChoices.first['value']}'
++                          : null),
++                  isDense: true,
++                  items: [
++                    for (final e in c.timedPriorityChoices)
++                      DropdownMenuItem<String>(
++                        value: '${e['value']}',
++                        child: Text('${e['label']}'),
++                      ),
++                  ],
++                  onChanged: (v) {
++                    if (v != null) c.setTimedPriority(v);
++                  },
++                ),
++              ],
++            ),
++            _switchRow(
++              context,
++              key: 'rest_interleave',
++              value: c.restInterleave,
++              fallbackLabel: '休息时可穿插定时任务',
++              onChanged: c.toggleRestInterleave,
++            ),
++            const Divider(height: 16),
++
++            Wrap(
++              spacing: 16,
++              runSpacing: 8,
++              crossAxisAlignment: WrapCrossAlignment.center,
++              children: [
++                // 队列跑空后 —— **后端真实支持**的字段
++                // （原型的"跑完循环整表"后端没有, 见 controller 里的说明）
++                if (c.queueEmptyChoices.isNotEmpty)
++                  Row(
++                    mainAxisSize: MainAxisSize.min,
++                    children: [
++                      Text(c.queueEmptyLabel),
++                      const SizedBox(width: 8),
++                      DropdownButton<String>(
++                        value: c.queueEmptyChoices.any(
++                                (e) => '${e['value']}' == c.whenQueueEmpty)
++                            ? c.whenQueueEmpty
++                            : '${c.queueEmptyChoices.first['value']}',
++                        isDense: true,
++                        items: [
++                          for (final e in c.queueEmptyChoices)
++                            DropdownMenuItem<String>(
++                              value: '${e['value']}',
++                              child: Text('${e['label']}'),
++                            ),
++                        ],
++                        onChanged: (v) {
++                          if (v != null) c.setWhenQueueEmpty(v);
++                        },
++                      ),
++                    ],
++                  ),
++                Row(
++                  mainAxisSize: MainAxisSize.min,
++                  children: [
++                    const Text('优先级依据'),
++                    const SizedBox(width: 8),
++                    DropdownButton<String>(
++                      value: c.scheduleRule,
++                      isDense: true,
++                      items: [
++                        for (final m in modes)
++                          DropdownMenuItem<String>(
++                            value: '${m['value']}',
++                            child: Text('${m['label']}'),
++                          ),
++                      ],
++                      onChanged: (v) {
++                        if (v != null) c.setScheduleRule(v);
++                      },
++                    ),
++                  ],
++                ),
++                if (c.scheduleRule != c.listModeValue)
++                  Chip(
++                    label: Text('⚠ 顺序要生效需选「${c.listModeLabel}」'),
++                    visualDensity: VisualDensity.compact,
++                  ),
++              ],
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  /// 一个**全局布尔开关**的行（标签 + Switch + 说明）。
++  ///
++  /// 标签与说明都从 `/schema` 的 `global_fields` 读 ——
++  /// 后端改名/改说明前端自动跟上, 前端不维护一份文案。
++  Widget _switchRow(
++    BuildContext context, {
++    required String key,
++    required bool value,
++    required String fallbackLabel,
++    required Future<void> Function() onChanged,
++  }) {
++    final help = '${c.globalField(key)['help'] ?? ''}';
++    return Padding(
++      padding: const EdgeInsets.symmetric(vertical: 2),
++      child: Row(
++        children: [
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                Text(c.globalFieldLabel(key, fallbackLabel)),
++                if (help.isNotEmpty)
++                  Text(help,
++                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                            color: Theme.of(context).disabledColor,
++                          )),
++              ],
++            ),
++          ),
++          Switch(
++            value: value,
++            onChanged: c.busy ? null : (_) => onChanged(),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _ScheduleTab extends StatelessWidget with _GlobalPanelMixin {
+   const _ScheduleTab({required this.c, required this.searchCtrl});
+ 
+   @override
+@@ -453,7 +610,6 @@ class _ScheduleTab extends StatelessWidget
+         QueuePanel(controller: c),
+         const SizedBox(height: 8),
+         // 预期流程就是"接下来的计划终点" —— 紧跟队列, 与它同源
+-        _flowPanel(context),
+         const SizedBox(height: 8),
+         _tablePanel(context),
+       ],
+@@ -927,407 +1083,6 @@ class _ScheduleTab extends StatelessWidget
+   }
+ }
+ 
+-// ============================================================ tab 2: 预期流程
+-
+-/// **`_flowPanel` 的共享实现**。
+-///
+-/// ## 为什么用 mixin（而不是顶层函数 / 放进某个类）
+-///
+-/// * 顶层函数要显式收 `c` —— 那就得改所有调用点, 还丢掉"这是页面方法"的语义
+-/// * 放进 `_ScheduleTab` —— `_FlowTab` 调不到（Dart 私有成员是**库级**的,
+-///   但实例方法仍要在同一个类里才能调）
+-///
+-/// mixin 让两个 tab **共用同一份实现**, 且都能直接用 `this.c`
+-/// （两个类都有 `final TaskListController c`）。
+-mixin _FlowPanelMixin {
+-  /// 子类必须提供控制器。
+-  TaskListController get c;
+-
+-  /// 预期执行流程 —— **推算**, 不是保证。
+-  Widget _flowPanel(BuildContext context) {
+-    final flow = c.flow;
+-    return Card(
+-      child: Padding(
+-        padding: const EdgeInsets.all(12),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            _panelTitle(context, '预期执行流程', '按当前列表推算'),
+-            const SizedBox(height: 8),
+-            if (flow.isEmpty)
+-              const Text('（列表为空 —— 请先在「调度面板」里添加条目）')
+-            else ...[
+-              for (final f in flow)
+-                Padding(
+-                  padding: const EdgeInsets.symmetric(vertical: 2),
+-                  child: Row(
+-                    children: [
+-                      SizedBox(
+-                        width: 130,
+-                        child: Text('${f['at']}',
+-                            style: Theme.of(context).textTheme.labelSmall),
+-                      ),
+-                      Expanded(
+-                        child: Text('${f['text']}',
+-                            style: Theme.of(context).textTheme.labelMedium),
+-                      ),
+-                    ],
+-                  ),
+-                ),
+-              const SizedBox(height: 8),
+-              // ★ **必须显示 disclaimer** —— 它是推算不是保证
+-              //   （实际还受体力 / 网络 / 开放时段影响）, 不能让用户以为精确。
+-              Text(
+-                c.flowDisclaimer,
+-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+-                      color: Theme.of(context).disabledColor,
+-                    ),
+-              ),
+-            ],
+-          ],
+-        ),
+-      ),
+-    );
+-  }
+-}
+-
+-/// **队列视图** —— 只读的观察窗（与「调度」里的执行队列**同源**）。
+-///
+-/// ## 为什么两个 tab 都看"队列"
+-///
+-/// 用户三轮反馈后的结论是: 「正在运行 / 待执行 / 等待中 / 预期流程」
+-/// **本来就是一件事** —— 都是"接下来会跑什么"。
+-///
+-/// 所以**编排与设置**收进「调度」tab 的执行队列（那里能拖、能改数值）;
+-/// 这个 tab 留**不动手**的观察视图, 用来"盯着看":
+-///
+-/// * 调度器 / 正在运行
+-/// * 待执行（马上要跑 = **计划**）
+-/// * 等待中（还没到点 = **预期**）
+-/// * 预期执行流程（**推算**）
+-///
+-/// ★ 数据同源（`scriptModelMap` + `/run_list/preview`）——
+-///   不是两套逻辑, 只是"一个改 / 一个看"。
+-class _FlowTab extends StatelessWidget with _FlowPanelMixin {
+-  const _FlowTab({required this.c});
+-
+-  @override
+-  final TaskListController c;
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    final svc = Get.find<ScriptService>();
+-    final sm = svc.scriptModelMap[c.script];
+-
+-    return ListView(
+-      padding: const EdgeInsets.all(12),
+-      children: [
+-        // ---------- 调度器 + 正在运行 ----------
+-        _obxPanel(context, '调度器 / 正在运行', () {
+-          final state = sm?.state.value;
+-          final running = state == ScriptState.running;
+-          final cur = sm?.runningTask.value;
+-          final curName = (cur == null) ? '' : cur.taskName;
+-          return Column(
+-            crossAxisAlignment: CrossAxisAlignment.start,
+-            children: [
+-              Row(
+-                children: [
+-                  Icon(
+-                    running ? Icons.play_circle : Icons.pause_circle_outline,
+-                    size: 18,
+-                    color: running ? Colors.green : Colors.grey,
+-                  ),
+-                  const SizedBox(width: 6),
+-                  // ★ 中文标签 —— `'$state'` 会打印英文枚举名
+-                  Text(_stateLabel(state)),
+-                ],
+-              ),
+-              const SizedBox(height: 4),
+-              Text('正在运行: ${curName.isEmpty ? "（空闲）" : _zhName(context, curName)}'),
+-            ],
+-          );
+-        }),
+-
+-        // ---------- 待执行（马上要跑 = **计划**）----------
+-        _obxPanel(context, '待执行（马上要跑）', () {
+-          final list = sm?.pendingTaskList ?? const [];
+-          if (list.isEmpty) return const Text('（无）');
+-          return Column(
+-            children: [for (final t in list) _monitorRow(context, t)],
+-          );
+-        }),
+-
+-        // ---------- 等待中（还没到点 = **预期**）----------
+-        _obxPanel(context, '等待中（还没到点）', () {
+-          final list = sm?.waitingTaskList ?? const [];
+-          if (list.isEmpty) return const Text('（无）');
+-          return Column(
+-            children: [for (final t in list) _monitorRow(context, t)],
+-          );
+-        }),
+-
+-        // ---------- 预期执行流程（**推算**）----------
+-        _flowPanel(context),
+-      ],
+-    );
+-  }
+-
+-  /// 一个带标题的观察窗。
+-  ///
+-  /// ★ `Obx` 必须包住**直接读 Rx** 的那一小块 —— 反面例子（回调里只构造
+-  ///   组件、没读 Rx）会让 GetX 抛 `improper use of a GetX` 并**整页白屏**。
+-  Widget _obxPanel(BuildContext context, String title, Widget Function() body) {
+-    return Card(
+-      margin: const EdgeInsets.only(bottom: 12),
+-      child: Padding(
+-        padding: const EdgeInsets.all(12),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            Text(title, style: Theme.of(context).textTheme.titleSmall),
+-            const Divider(height: 12),
+-            // ★ 固定最大高度 + 内部滚动 —— 等待中的任务可能有几十个,
+-            //   不能把页面撑爆（用户反馈过"看不到"就是怕这种情况）。
+-            ConstrainedBox(
+-              constraints: const BoxConstraints(maxHeight: 220),
+-              child: SingleChildScrollView(child: Obx(body)),
+-            ),
+-          ],
+-        ),
+-      ),
+-    );
+-  }
+-
+-  /// 一行任务（**中文名** + 下次运行 + 任务设置入口）。
+-  Widget _monitorRow(BuildContext context, dynamic t) {
+-    final name = '${t.taskName}';
+-    if (name.isEmpty) return const SizedBox.shrink();
+-    final zh = _zhName(context, name);
+-    return Padding(
+-      padding: const EdgeInsets.symmetric(vertical: 2),
+-      child: Row(
+-        children: [
+-          Expanded(
+-            child: Column(
+-              crossAxisAlignment: CrossAxisAlignment.start,
+-              children: [
+-                Text(zh, style: Theme.of(context).textTheme.labelLarge),
+-                // 中文名与命令名不同时补上命令名（方便核对 / 搜日志）
+-                if (zh != name)
+-                  Text(name,
+-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+-                            color: Theme.of(context).disabledColor,
+-                          )),
+-                if ('${t.nextRun}'.isNotEmpty)
+-                  Text('${t.nextRun}',
+-                      style: Theme.of(context).textTheme.labelSmall),
+-              ],
+-            ),
+-          ),
+-          TextButton(
+-            onPressed: () => Get.find<NavCtrl>().openTaskSettings(name),
+-            child: const Text('任务设置'),
+-          ),
+-        ],
+-      ),
+-    );
+-  }
+-
+-  /// 命令名 -> 中文名（拿不到回退命令名）。
+-  String _zhName(BuildContext context, String command) {
+-    final zh = c.zhNameOf(command);
+-    return zh.isEmpty ? command : zh;
+-  }
+-}
+-
+-/// **`_globalPanel` 的共享实现**（`_ScheduleTab` 用）。
+-///
+-/// 原来它在 `_OrderTab` 里; `_OrderTab` 已被合并进「调度面板」,
+-/// 所以搬到这里 —— 与 `_FlowPanelMixin` 同样的理由（跨不过类的私有成员）。
+-mixin _GlobalPanelMixin {
+-  TaskListController get c;
+-
+-  /// 全局设置 —— 两个总开关 / 定时优先 / 休息穿插 / 队列跑空 / 优先级依据。
+-  Widget _globalPanel(BuildContext context) {
+-    final modes = c.modes;
+-    return Card(
+-      child: Padding(
+-        padding: const EdgeInsets.all(12),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.start,
+-          children: [
+-            _panelTitle(context, '全局设置', null),
+-            const SizedBox(height: 8),
+-
+-            // ---------- 两个总开关 + 两者关系 ----------
+-            //
+-            // ★★ 这一段是补一个**重大遗漏** ★★
+-            //
+-            // 后端把两个总开关 + 定时优先 + 休息穿插全做完了, `/schema` 的
+-            // `global_fields` 也暴露了 —— 但前端**一个都没渲染**,
+-            // 于是它们永远停在默认值, 用户在界面上根本改不了。
+-            //
+-            // 标签与说明一律从 `/schema` 读（`c.globalFieldLabel`）,
+-            // 前端**不硬编码**字段名与文案。
+-            _switchRow(
+-              context,
+-              key: 'enable_fixed',
+-              value: c.enableFixed,
+-              fallbackLabel: '启用固定任务',
+-              onChanged: c.toggleEnableFixed,
+-            ),
+-            _switchRow(
+-              context,
+-              key: 'enable_timed',
+-              value: c.enableTimed,
+-              fallbackLabel: '启用定时任务',
+-              onChanged: c.toggleEnableTimed,
+-            ),
+-            const SizedBox(height: 4),
+-            // 定时任务到点时怎么跟固定任务抢
+-            Row(
+-              children: [
+-                SizedBox(
+-                  width: 168,
+-                  child:
+-                      Text(c.globalFieldLabel('timed_priority', '定时任务优先级')),
+-                ),
+-                DropdownButton<String>(
+-                  value: c.timedPriorityChoices
+-                          .any((e) => '${e['value']}' == c.timedPriority)
+-                      ? c.timedPriority
+-                      : (c.timedPriorityChoices.isNotEmpty
+-                          ? '${c.timedPriorityChoices.first['value']}'
+-                          : null),
+-                  isDense: true,
+-                  items: [
+-                    for (final e in c.timedPriorityChoices)
+-                      DropdownMenuItem<String>(
+-                        value: '${e['value']}',
+-                        child: Text('${e['label']}'),
+-                      ),
+-                  ],
+-                  onChanged: (v) {
+-                    if (v != null) c.setTimedPriority(v);
+-                  },
+-                ),
+-              ],
+-            ),
+-            _switchRow(
+-              context,
+-              key: 'rest_interleave',
+-              value: c.restInterleave,
+-              fallbackLabel: '休息时可穿插定时任务',
+-              onChanged: c.toggleRestInterleave,
+-            ),
+-            const Divider(height: 16),
+-
+-            Wrap(
+-              spacing: 16,
+-              runSpacing: 8,
+-              crossAxisAlignment: WrapCrossAlignment.center,
+-              children: [
+-                // 队列跑空后 —— **后端真实支持**的字段
+-                // （原型的"跑完循环整表"后端没有, 见 controller 里的说明）
+-                if (c.queueEmptyChoices.isNotEmpty)
+-                  Row(
+-                    mainAxisSize: MainAxisSize.min,
+-                    children: [
+-                      Text(c.queueEmptyLabel),
+-                      const SizedBox(width: 8),
+-                      DropdownButton<String>(
+-                        value: c.queueEmptyChoices.any(
+-                                (e) => '${e['value']}' == c.whenQueueEmpty)
+-                            ? c.whenQueueEmpty
+-                            : '${c.queueEmptyChoices.first['value']}',
+-                        isDense: true,
+-                        items: [
+-                          for (final e in c.queueEmptyChoices)
+-                            DropdownMenuItem<String>(
+-                              value: '${e['value']}',
+-                              child: Text('${e['label']}'),
+-                            ),
+-                        ],
+-                        onChanged: (v) {
+-                          if (v != null) c.setWhenQueueEmpty(v);
+-                        },
+-                      ),
+-                    ],
+-                  ),
+-                Row(
+-                  mainAxisSize: MainAxisSize.min,
+-                  children: [
+-                    const Text('优先级依据'),
+-                    const SizedBox(width: 8),
+-                    DropdownButton<String>(
+-                      value: c.scheduleRule,
+-                      isDense: true,
+-                      items: [
+-                        for (final m in modes)
+-                          DropdownMenuItem<String>(
+-                            value: '${m['value']}',
+-                            child: Text('${m['label']}'),
+-                          ),
+-                      ],
+-                      onChanged: (v) {
+-                        if (v != null) c.setScheduleRule(v);
+-                      },
+-                    ),
+-                  ],
+-                ),
+-                if (c.scheduleRule != c.listModeValue)
+-                  Chip(
+-                    label: Text('⚠ 顺序要生效需选「${c.listModeLabel}」'),
+-                    visualDensity: VisualDensity.compact,
+-                  ),
+-              ],
+-            ),
+-          ],
+-        ),
+-      ),
+-    );
+-  }
+-
+-  /// 一个**全局布尔开关**的行（标签 + Switch + 说明）。
+-  ///
+-  /// 标签与说明都从 `/schema` 的 `global_fields` 读 ——
+-  /// 后端改名/改说明前端自动跟上, 前端不维护一份文案。
+-  Widget _switchRow(
+-    BuildContext context, {
+-    required String key,
+-    required bool value,
+-    required String fallbackLabel,
+-    required Future<void> Function() onChanged,
+-  }) {
+-    final help = '${c.globalField(key)['help'] ?? ''}';
+-    return Padding(
+-      padding: const EdgeInsets.symmetric(vertical: 2),
+-      child: Row(
+-        children: [
+-          Expanded(
+-            child: Column(
+-              crossAxisAlignment: CrossAxisAlignment.start,
+-              children: [
+-                Text(c.globalFieldLabel(key, fallbackLabel)),
+-                if (help.isNotEmpty)
+-                  Text(help,
+-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+-                            color: Theme.of(context).disabledColor,
+-                          )),
+-              ],
+-            ),
+-          ),
+-          Switch(
+-            value: value,
+-            onChanged: c.busy ? null : (_) => onChanged(),
+-          ),
+-        ],
+-      ),
+-    );
+-  }
+-}
+-
+ // ============================================================ 已删除的旧面板
+ //
+ // 这里原来还留着 `_OrderTab` 的 `_globalPanel` / `_switchRow` / `_flowPanel`
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 0167d81..bf114a8 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -168,16 +168,22 @@ class FakeTaskListController extends TaskListController {
+     return 0;
+   }
+ 
+-  /// 未编排的启用任务。
++  /// 未编排的启用任务（**不含**正在运行的那个）。
++  ///
++  /// ★ 与真实现保持一致: 正在运行的任务**不该**同时出现在"可加入"里
++  ///   （用户反馈过"正在运行的逢魔之时下面还能加入逢魔之时"）。
+   @override
+   List<Map<String, dynamic>> get unqueuedEnabledTasks {
+     final inList = {
+       for (final e in _entries)
+         if ('${e['kind']}' == 'task') '${e['task']}',
+     };
++    final running = runningTaskCommand;
+     return _tasks
+         .where((t) =>
+-            t['enable'] == true && !inList.contains('${t['command']}'))
++            t['enable'] == true &&
++            !inList.contains('${t['command']}') &&
++            '${t['command']}' != running)
+         .toList();
+   }
+ 
+@@ -697,25 +703,27 @@ void _phase1Tests() {
+ 
+ // ============================================================ Phase 2: 合并页面
+ void _phase2Tests() {
+-  test('统一控制台: 两个 tab + 日志常驻右侧（可拖宽）', () {
+-    // ★★ 用户三轮反馈后的最终结构 ★★
++  test('统一控制台: **单页**（无 tab）+ 日志常驻右侧（可拖宽）', () {
++    // ★★ 用户四轮反馈后的最终结构 ★★
++    //
++    // 第一版: 我另建了一个「总览 tab」, 与旧总览页重复。
++    // 第二版: 「执行顺序」并进主面板。
++    // 第三版: 「监控」与「预期流程」合一。
++    // 第四版（用户指出）: 「执行队列」与「队列视图」**也是一个东西** ——
++    //         而且**预期执行流程与队列冗余**, 可以删。
+     //
+-    // 第一版: 我另建了一个「总览 tab」, 与旧总览页重复 ——
+-    //         两套监控界面, 且新代码路径引入了一批 bug。
+-    // 第二版: 「执行顺序」并进主面板（"调度监控里就能控制次数、顺序"）。
+-    // 第三版（用户指出）: 「监控」与「预期流程」是**一回事**（都是计划和预期）,
+-    //         应该合在一起 —— 于是变成:
++    // 所以最终是**一页**, 没有 tab:
+     //
+-    //   * 调度     —— 状态行 + 批量操作 + 全局开关 + 任务表格 + **执行队列**
+-    //   * 监控/计划 —— 调度器 · 正在运行 · 待执行 · 等待中 · 预期流程
++    //   状态行 -> 批量操作 -> 全局开关 -> **执行队列**（正在运行 + 待执行 +
++    //   等待中, 可拖拽）-> 任务表格
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    expect(view.contains("Tab(text: '调度')"), isTrue);
+-    expect(view.contains("Tab(text: '队列视图')"), isTrue);
+-    expect(view.contains('length: 2'), isTrue, reason: '应该是 2 个 tab');
++    expect(view.contains('TabBar('), isFalse,
++        reason: '单页了, 不该再有 TabBar');
++    expect(view.contains('TabBarView('), isFalse);
+ 
+-    // 日志在 build() 里创建一次、常驻右侧（不再放在某个 tab 里）
++    // 日志在 build() 里创建一次、常驻右侧
+     final buildIdx = view.indexOf('Widget build(BuildContext context)');
+-    final body = view.substring(buildIdx, buildIdx + 3600);
++    final body = view.substring(buildIdx, buildIdx + 4200);
+     expect(body.contains('LogWidget('), isTrue,
+         reason: '日志应在 build 里常驻（右半栏 / 窄屏底部）');
+     expect(body.contains('Expanded(child: logs)'), isTrue);
+@@ -729,27 +737,22 @@ void _phase2Tests() {
+     expect(view.contains('_saveSplit'), isTrue, reason: '宽度要持久记忆');
+   });
+ 
+-  test('监控/计划 tab 含四个观察窗 + 预期流程（用户指出它们是一回事）', () {
++  test('★ 「预期执行流程」已删除（与队列冗余）', () {
++    // 用户: "预期执行流程可以删去了，似乎和上边的队列冗余了。"
++    //
++    // 队列本身就按顺序列出"接下来会跑什么", 再画一遍推算流程是重复。
+     final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    final i = view.indexOf('class _FlowTab');
+-    expect(i, greaterThan(-1));
+-    final end = (i + 5200 < view.length) ? i + 5200 : view.length;
+-    final body = view.substring(i, end);
+-    for (final w in ['调度器', '正在运行', '待执行', '等待中']) {
+-      expect(body.contains(w), isTrue, reason: '监控/计划缺「$w」');
++    for (final gone in [
++      'class _FlowTab',
++      'mixin _FlowPanelMixin',
++      'Widget _flowPanel(',
++      '_flowPanel(context)',
++      "Tab(text: '队列视图')",
++      "Tab(text: '监控 / 计划')",
++    ]) {
++      expect(view.contains(gone), isFalse,
++          reason: '「$gone」应已删除（用户要求: 与队列冗余）');
+     }
+-    // 预期流程也在同一个 tab 里（共用 `_FlowPanelMixin`）
+-    expect(body.contains('_flowPanel(context)'), isTrue,
+-        reason: '预期执行流程应与监控窗同一个 tab');
+-    // 实时数据来自 WebSocket
+-    expect(body.contains('scriptModelMap'), isTrue);
+-    expect(body.contains('pendingTaskList'), isTrue);
+-    expect(body.contains('waitingTaskList'), isTrue);
+-    // 中文状态
+-    expect(body.contains('_stateLabel('), isTrue);
+-    // "任务设置"要走 openTaskSettings（不用白名单）
+-    expect(body.contains('openTaskSettings'), isTrue);
+-    expect(body.contains('switchContent'), isFalse);
+   });
+ 
+   test('全局开关在**顶部**；执行队列在表格之前（用户要求）', () {
+@@ -757,26 +760,22 @@ void _phase2Tests() {
+     final i = view.indexOf('class _ScheduleTab');
+     final b = view.indexOf('return ListView(', i);
+     expect(b, greaterThan(-1));
+-    final body = view.substring(b, b + 800);
++    final body = view.substring(b, b + 900);
+     final iGlobal = body.indexOf('_globalPanel(context)');
+     final iQueue = body.indexOf('QueuePanel(');
+-    final iFlow = body.indexOf('_flowPanel(context)');
+     final iTable = body.indexOf('_tablePanel(context)');
+     expect(iGlobal, greaterThan(-1), reason: '缺全局开关');
+     expect(iQueue, greaterThan(-1), reason: '缺执行队列');
+-    expect(iFlow, greaterThan(-1), reason: '缺预期流程');
+     expect(iTable, greaterThan(-1), reason: '缺任务表格');
+ 
+-    // 顺序: 全局开关 -> 队列 -> 预期流程 -> 表格
++    // 顺序: 全局开关 -> 队列 -> 表格
+     expect(iQueue, greaterThan(iGlobal),
+         reason: '全局开关必须在最前（用户要求提到顶部, 不许埋在页底）');
+-    expect(iFlow, greaterThan(iQueue),
+-        reason: '预期流程紧跟队列（它们本来就是一件事）');
+-    expect(iTable, greaterThan(iFlow),
++    expect(iTable, greaterThan(iQueue),
+         reason: '任务表格在最后 —— 它是 Excel 式的批量管理, 不是主工作区');
+   });
+ 
+-  test('★ 队列含"正在运行"作为第 0 项（用户指出它们是一回事）', () {
++  test('★ 队列含"正在运行"作为第 0 项, 且**不再**把它列为"可加入"', () {
+     final q = codeOnly('lib/views/tasks/queue_panel.dart');
+     // 「正在运行」作为队列的队首, 不再是另开的观察窗
+     expect(q.contains('正在运行'), isTrue,
+@@ -784,75 +783,18 @@ void _phase2Tests() {
+     expect(q.contains('_obxRow'), isTrue);
+     expect(q.contains('runningTask'), isTrue,
+         reason: '数据来自 WebSocket 的 runningTask（实时）');
+-    // 空时也要有明确文案, 不能空白
+     expect(q.contains('（当前没有任务在跑）'), isTrue);
+-  });
+ 
+-  test('旧的三个 tab / 类名都已消失', () {
+-    final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    for (final gone in [
+-      "Tab(text: '任务总览')",
+-      "Tab(text: '任务列表（调度器）')",
+-      "Tab(text: '执行顺序')",
+-      "Tab(text: '监控')",
+-      'class _OverviewTab',
+-      'class _ListTab',
+-      'class _OrderTab',
+-      'class _MonitorTab',
+-    ]) {
+-      expect(view.contains(gone), isFalse, reason: '「$gone」应已被合并掉');
+-    }
+-  });
+-
+-  test('调度面板**一页管完**：监控 + 表格 + 执行顺序 + 全局设置', () {
+-    final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    final i = view.indexOf('class _ScheduleTab');
+-    expect(i, greaterThan(-1));
+-    // 从 `_ScheduleTab` 的 build 里取一段检查五个面板都在
+-    final b = view.indexOf('Widget build(BuildContext context)', i);
+-    final body = view.substring(b, b + 1400);
+-    expect(body.contains('_monitorStrip'), isTrue, reason: '缺监控条');
+-    expect(body.contains('_bulkPanel'), isTrue, reason: '缺批量操作');
+-    expect(body.contains('_tablePanel'), isTrue, reason: '缺任务表格');
+-    expect(body.contains('QueuePanel(controller: c)'), isTrue,
+-        reason: '缺执行队列（拖拽改顺序）');
+-    expect(body.contains('_globalPanel'), isTrue, reason: '缺全局设置');
+-  });
+-
+-  test('监控条是紧凑的、实时、中文', () {
+-    final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    final i = view.indexOf('Widget _monitorStrip');
++    // ★★ 回归守卫: 正在运行的任务**不能**同时出现在"未编排（可加入）"里
++    //
++    // 用户反馈: "正在运行的逢魔之时，下边显示还可以加入逢魔之时，这是不是个bug"
++    // —— **是 bug**。`run_list` 为空时所有任务都算"未编排", 把正在跑的也列进去了。
++    final ctrl = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    final i = ctrl.indexOf('List<Map<String, dynamic>> get unqueuedEnabledTasks');
+     expect(i, greaterThan(-1));
+-    final end = (i + 2600 < view.length) ? i + 2600 : view.length;
+-    final body = view.substring(i, end);
+-    // 实时数据来自 WebSocket 推送
+-    expect(body.contains('scriptModelMap'), isTrue);
+-    expect(body.contains('pendingTaskList'), isTrue);
+-    expect(body.contains('waitingTaskList'), isTrue);
+-    // 状态必须是**中文** —— `'$state'` 会打印 ScriptState.inactive
+-    expect(body.contains('_stateLabel(state)'), isTrue,
+-        reason: '状态要走中文映射，不能直接插值枚举');
+-    expect(body.contains(r"'${state"), isFalse,
+-        reason: '不能直接插值枚举（会显示英文）');
+-    // 任务名要翻中文
+-    expect(body.contains('_zhName('), isTrue,
+-        reason: 'WebSocket 推的是命令名（英文），要翻成中文');
+-  });
+-
+-  test('点数/顺序的入口都在调度面板里（用户要求）', () {
+-    final view = codeOnly('lib/views/tasks/task_list_view.dart');
+-    // 执行顺序面板就在主面板里
+-    expect(view.contains('QueuePanel(controller: c)'), isTrue);
+-    // 表格行里有执行顺序位次 + ↑↓
+-    final row = codeOnly('lib/views/tasks/task_row_view.dart');
+-    expect(row.contains('_inQueueCell'), isTrue,
+-        reason: '缺队列列（只读, 表格不管执行顺序）');
+-    expect(row.contains('moveEntryUp'), isFalse);
+-    expect(row.contains('moveEntryDown'), isFalse);
+-    // 全局设置与预期流程用 mixin 共享实现（避免两份）
+-    expect(view.contains('mixin _GlobalPanelMixin'), isTrue);
+-    expect(view.contains('mixin _FlowPanelMixin'), isTrue);
+-    expect(view.contains('with _GlobalPanelMixin, _FlowPanelMixin'), isTrue);
++    final body = ctrl.substring(i, i + 900);
++    expect(body.contains('runningTaskCommand'), isTrue,
++        reason: '未编排列表必须排除正在运行的任务, 否则队列里会出现两条同一个任务');
+   });
+ 
+   test('菜单隐藏了重复的旧「总览」', () {
+@@ -882,18 +824,6 @@ void main() {
+   _phase2Tests();
+ }
+ 
+-/// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
+-class _WrongModeController extends FakeTaskListController {
+-  _WrongModeController()
+-      : super(entries: const [], tasks: const []);
+-
+-  @override
+-  String get scheduleRule => 'Priority';
+-
+-  @override
+-  String get scheduleRuleLabel => '优先级';
+-}
+-
+ // ============================================================ 切换账号
+ //
+ // 用户实测反馈: **伴生树和恋鸟树在前端显示了同一个任务列表**。
 -- 
 2.41.0.windows.1
 

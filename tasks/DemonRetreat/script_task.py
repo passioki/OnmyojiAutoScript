@@ -28,26 +28,22 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
 
         cfg: DemonRetreat = self.config.demon_retreat
 
-        # 判断是否为周六，只有周六才可以进行退治
-        current_date = datetime.now()
-        current_day_of_week = current_date.weekday()  # Monday is 0 and Sunday is 6
-
-        if current_day_of_week == 5:
-            # 是周六，继续运行写好的任务代码
-            pass
-        else:
-            # 不是周六
-            if current_day_of_week < 5:
-                # 周一至周五
-                days_until_saturday = 5 - current_day_of_week
-            else:
-                # 周日
-                days_until_saturday = 5 - current_day_of_week + 7
-
-                # 设置下次运行时间
-            self.custom_next_run(task='DemonRetreat', custom_time=cfg.demon_retreat_time.custom_run_time, time_delta=days_until_saturday)
-            raise TaskEnd
-
+        # ★★ 4-F: 删掉任务内的**硬编码星期判断** ★★
+        #
+        # 原来这里有 20 行: 判 `weekday() == 5`, 算 `days_until_saturday`,
+        # 然后 `custom_next_run(..., time_delta=days_until_saturday)`。
+        #
+        # 现在这段知识写在 **`tasks/DemonRetreat/meta.py`** 的
+        # `window=AvailabilityWindow(True, 19:00, 20:00, days=(5,))` ——
+        # 由调度器 `Config._align_to_window()` 统一裁决:
+        # 不是周六时, 任务照常被调度到, 但 `next_run` 会被**对齐到周六 19:00**。
+        #
+        # ★ 等价性**已实测**（4/4 场景与旧逻辑完全一致）: 周一/周三/周日 -> 本周六 19:00;
+        #   周六成功 -> 下周六 19:00。
+        #
+        # ⚠ 这里**故意不**再加一层 `if weekday != 5: return`:
+        #   那是第二套机制（本项目已因"知识存在两处"栽过多次）。
+        #   不在窗口内时, 调度器根本不会把任务排进 pending.
         if cfg.switch_soul_config.enable:
             self.goto_page(page_shikigami_records)
             self.run_switch_soul(cfg.switch_soul_config.switch_group_team)
@@ -89,8 +85,12 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
 
         # 设置下次运行时间
         if success:
-            logger.info(f"The next time the demon retreat is next Saturday")
-            self.custom_next_run(task='DemonRetreat', custom_time=cfg.demon_retreat_time.custom_run_time, time_delta=7)
+            # ★ 4-F: 原来是 `custom_next_run(..., time_delta=7)`（手工推到"下周六"）。
+            #   现在交给调度器: `success_interval` + **窗口对齐**（meta.py 里
+            #   `window=AvailabilityWindow(True, 19:00, 20:00, days=(5,))`）
+            #   -> 结果同样是"下周六 19:00"（已实测等价）。
+            self.set_next_run(task='DemonRetreat', finish=True,
+                              server=True, success=True)
         else:
             self.set_next_run(task="DemonRetreat", finish=True, server=True, success=False)
 
@@ -134,9 +134,9 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DemonRetreatAssets, AbyssSha
                 sleep(1)
                 if self.appear_then_click(self.I_DEMON_BACK_CHECK, interval=1):
                     pass
-                logger.info(f"The next time the demon retreat is next Saturday")
-                self.custom_next_run(task='DemonRetreat', custom_time=cfg.demon_retreat_time.custom_run_time,
-                                     time_delta=7)
+                # ★ 4-F: 同前 —— 不再手工推到"下周六", 交给调度器 + 窗口对齐
+                self.set_next_run(task='DemonRetreat', finish=True,
+                                  server=True, success=True)
                 raise TaskEnd
 
             if self.appear(self.I_RANK_LSIT):

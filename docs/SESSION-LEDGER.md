@@ -304,12 +304,37 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
 且需要先核实"任务自己的存量簿记"与 `Resource` 的语义是否等价
 （**不能猜**, 见 4-B 的教训）。台账标 ⬜, 不虚报。
 
-### 4-F ~ 4-G · 待做
+### 4-F · 删任务内硬编码时段 —— 🔄 **进行中**（2/16 任务已清理）
 
-| # | 子项 | 状态 |
-|---|---|---|
-| 4-F | 删 22 处任务内硬编码日期判断 + `BaseTask.custom_next_run()` + 61 处 `con.charge_*` | ⬜ |
-| 4-G | 测试重写（预计 200-300 个既有测试需适配）| ⬜ |
+**原则: 逐任务核实语义后再删, 不批量盲删。** 每个任务都要先证明"新逻辑与旧逻辑等价"。
+
+| # | 任务 | 状态 | 等价性证据 |
+|---|---|---|---|
+| 1 | **DemonRetreat** | ✅ | 删 20 行 `weekday()` 判断 + 3 处 `custom_next_run` → `set_next_run(success=True)`。<br>**实测 4/4 场景等价**: 周一/周三/周日 → 本周六 19:00; 周六成功 → 下周六 19:00 |
+| 2 | **AbyssShadows** | ✅ | 删 `today not in [4,5,6]` 判断 + 4 处 `custom_next_run` → `set_next_run(success=True)`。<br>**实测 3/3 等价**: 周五→周六 · 周六→周日 · **周日→下周五** |
+| 3~16 | 其余 14 个（Hunt / GuildBanquet / Dokan / MysteryShop / Secret / Restart / Tako / MemoryScrolls / RyouToppa / DemonEncounter / GuildActivityMonitor / AreaBoss / 等）| ⬜ | 待逐个核实 |
+
+**self-scheduling 行数: 22 → 17 → 13**（实测）
+
+★ 守卫测试: 新增 `tests/tasks/test_no_hardcoded_windows.py`（**8 passed**）
+* 清理过的文件里**不得**再出现 `custom_next_run` / `days_until`
+* **不得**用 `weekday()` 决定"能不能跑"（`weekday()` 与 `raise TaskEnd` 同段即判失败）
+* `DemonRetreat` 的 window 必须是"仅周六"
+* 直接比对**旧算法 vs 新算法**的结果（等价性回归）
+
+★ 期间踩到一个坑: 测试文件在 `tests/tasks/`, **比其他测试浅一层**,
+`REPO` 应是 `parents[2]` 而不是 `parents[3]` —— 写成 3 会得到
+`D:\OAS-dev` 并报 `FileNotFoundError`。已在注释里标明。
+
+#### ★ 为什么删掉任务里的判断是**安全**的
+
+`custom_next_run(task, custom_time, delta)` 的实现就是
+`set_next_run(target=(now + delta).replace(hour=..., minute=...))`。
+而 `set_next_run` 会在算完后由 `_align_to_window()`（4-C）**把结果纠正到窗口内**。
+所以"手工算到周六"与"让它走 `success_interval` 再由窗口对齐"**结果相同**
+—— 这是逐个任务实测过的, 不是推测。
+
+### 4-G · 测试重写 · ⬜ 待做
 
 ---
 

@@ -101,12 +101,16 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
         if cfg.switch_soul_config.enable_switch_by_name:
             self.goto_page(page_shikigami_records)
             self.run_switch_soul_by_name(cfg.switch_soul_config.group_name, cfg.switch_soul_config.team_name)
-        today = datetime.now().weekday()
-        if today not in [4, 5, 6]:
-            logger.info(f"Today is not abyss shadows day, exit")
-            # 设置下次运行时间为本周五
-            self.custom_next_run(task='AbyssShadows', custom_time=cfg.abyss_shadows_time.custom_run_time_friday, time_delta=4-today)
-            raise TaskEnd
+        # ★★ 4-F: 删掉任务内的**硬编码星期判断** ★★
+        #
+        # 原来这里判 `today not in [4, 5, 6]` 就 `custom_next_run(本周五)` + 退出。
+        # 现在这段知识写在 `tasks/AbyssShadows/meta.py` 的
+        # `window=AvailabilityWindow(True, 19:00, 20:00, days=(4,5,6))` ——
+        # 由调度器 `Config._align_to_window()` 统一裁决:
+        # 不在周五六日时, 任务根本不会被排进 pending。
+        #
+        # ⚠ 故意**不**再加一层 `if today not in [4,5,6]: return` ——
+        #   那是第二套机制（本项目已因"知识存在两处"栽过多次）。
         success = True
         # 进入狭间
         self.goto_abyss_shadows()
@@ -198,19 +202,13 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, AbyssShadowsAssets):
 
         # 设置下次运行时间
         if success:
-            print("我要重新设置时间了")
-            if today == 4:
-                # 周五推迟到周六
-                logger.info(f"The next abyss shadows day is Saturday")
-                self.custom_next_run(task='AbyssShadows', custom_time=cfg.abyss_shadows_time.custom_run_time_saturday, time_delta=1)
-            elif today == 5:
-                # 周六推迟到周日
-                logger.info(f"The next abyss shadows day is Sunday")
-                self.custom_next_run(task='AbyssShadows', custom_time=cfg.abyss_shadows_time.custom_run_time_sunday, time_delta=1)
-            elif today == 6:
-                # 周日推迟到下周五
-                logger.info(f"The next abyss shadows day is Friday")
-                self.custom_next_run(task='AbyssShadows', custom_time=cfg.abyss_shadows_time.custom_run_time_friday, time_delta=5)
+            # ★ 4-F: 原来是按 `today == 4/5/6` 分别 `custom_next_run(+1 天 / +5 天)`,
+            #   手工在"周五→周六→周日→下周五"之间挪。
+            #   现在交给调度器: `success_interval`(1 天) + **窗口对齐**
+            #   （meta.py 里 `days=(4,5,6)`）—— 周日跑完会自动落到**下周五**,
+            #   与旧逻辑一致（已实测等价）。
+            self.set_next_run(task='AbyssShadows', finish=True,
+                              server=True, success=True)
         else:
             self.set_next_run(task='AbyssShadows', finish=True, server=True, success=False)
         raise TaskEnd

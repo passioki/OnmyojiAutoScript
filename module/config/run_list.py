@@ -13,11 +13,10 @@
 
 ## 本模型(条目清单)
 
-列表是**有序条目**的序列, 条目有三种:
+列表是**有序条目**的序列, 条目有两种:
 
-    kind=task   —— 跑某个任务
-    kind=rest   —— **全部停止** N 分钟(连定时任务一起停)
-    kind=delay  —— **只停列表** N 分钟(定时任务照常)
+    kind=task   —— 跑某个任务（**任意任务**都可以）
+    kind=rest   —— **休息** N 分钟(去庭院待着, 阻塞列表)
 
 例(JSON 里就是一个数组, 顺序天然保留):
 
@@ -28,13 +27,35 @@
         {"kind": "task",  "task": "GoldYoukai"}
     ]
 
+## ★★ 列表里为什么**不限制**任务类型(踩过的坑) ★★
+
+曾经为了"固定任务与定时任务分开管理", 在这里加了校验:
+**只允许 `countable`(fixed/toppa) 的任务进列表**, 其余一律跳过并记 warning。
+
+结果是一次**静默的数据破坏**:
+
+* `countable` 的判据是"有 `count_field`", 全仓 54 个任务里只有 **14 个**满足
+* `WantedQuests` 是 `fixed`(固定任务) 却**没有** `count_field` -> 被丢弃
+* 用户的列表里有 `DemonEncounter` / `WantedQuests` / `MysteryShop` / `Duel` /
+  `ExperienceYoukai` / `TrueOrochi` / `WeeklyTrifles` -> **全部被跳过**
+* 更糟的是 `build_run_list()` 过滤后, `save_run_list()` 会把**过滤后的结果写回**
+  -> 用户的编排可能被永久抹掉
+
+**结论: 列表接受任意任务名。** 理由:
+
+1. "固定/定时分开管理"是**调度器**的事(两个总开关 + `timed_priority`),
+   不该由**列表的准入规则**来承担
+2. 把定时任务放进列表只是给它一个**上下文顺序**, 与它自己的 window/周期
+   **不冲突** —— 调度器仍会检查 window
+3. 用户要的是"按我的顺序跑", 不是"只能放我批准的"
+4. **静默丢弃用户的配置**是比"类型混用"严重得多的错误
+
 ## 语义(★ 关键设计决定)
 
 | 条目 | 是否**阻塞**列表 | 说明 |
 |---|---|---|
 | `task` | ❌ **不阻塞** | 轮到时若任务未就绪(冷却/额度/不在时段), **跳过它继续看后面的** |
-| `rest` | ✅ **阻塞** | 轮到时暂停一切(含定时任务)到时刻 T; 到点后**移除该条目**并继续 |
-| `delay` | ✅ **阻塞** | 轮到时只推迟**列表**; 定时任务照常。到点后移除该条目并继续 |
+| `rest` | ✅ **阻塞** | 轮到时去庭院待着到时刻 T; 到点后**移除该条目**并继续 |
 
 ### ★ 为什么 `task` 不阻塞
 
@@ -42,13 +63,13 @@
 这显然不是用户想要的。所以:
 
 * 列表提供的是**优先顺序**(排在前面的先跑), 而不是"必须按顺序做完"
-* 真正的"在此处停下"由 `rest` / `delay` 条目显式表达
+* 真正的"在此处停下"由 `rest` 条目显式表达
 
 这与 `ScheduleRule.FILTER/FIFO/PRIORITY` 保持一致: 它们也是**排序**而非**阻塞**。
 
-### ★ `rest` / `delay` 是一次性条目
+### ★ `rest` 是一次性条目
 
-它们被"轮到时"就生效, 生效期间列表**停在该条目之前**;
+它被"轮到时"就生效, 生效期间列表**停在该条目之前**;
 时间到了以后该条目**被移除**(持久化), 列表继续。
 
 这样用户看到的是"休息这一行消失了", 而不是"每次循环都休息一次" ——
@@ -109,10 +130,15 @@ DURATION_CHOICES = (10, 30, 60, 120, 240)
 
 def is_list_task(task: str) -> bool:
     """
-    该任务能不能进"运行列表"。
+    **查询辅助**: 该任务是不是"可计数"的固定任务（`fixed` / `toppa`）。
 
-    只有**固定任务**（`fixed` / `toppa`，即"有打满 N 次语义"的）能进。
-    定时 / 充能 / 限时任务由**定时调度器**管，不进列表。
+    ## ⚠️ 它**不是**列表的准入规则
+
+    曾经用它在 `from_list()` 里过滤列表条目, 结果是**静默丢弃用户配置**
+    （见模块 docstring 的"踩过的坑"）。
+
+    **列表接受任意任务名** —— 这个函数只用于"想筛出固定任务"的**展示/统计**
+    场景。任何会写回配置的路径都不该用它排除条目。
 
     未知任务名 -> False（不崩）。
     """
@@ -332,15 +358,24 @@ class RunList:
         return [e.to_dict() for e in self.entries]
 
     @classmethod
-    def from_list(cls, data, on_bad=None, only_list_tasks=True) -> 'RunList':
+    def from_list(cls, data, on_bad=None, only_list_tasks=False) -> 'RunList':
         """
-        宽松解析: 坏条目**跳过**并记 warning, 而不是整份配置加载失败。
+        宽松解析: **只跳过真正坏的条目**（结构错误 / 未知类型 / 数字非法）,
+        并记 warning —— 而不是整份配置加载失败。
 
-        理由: 列表是用户编辑的内容, 一条写坏不该让整个配置不可用。
+        ## ★★ `only_list_tasks` 默认必须是 `False`（踩过的坑）★★
 
-        :param only_list_tasks: **默认 True** —— 只接受固定任务,
-            定时任务会被跳过并记录（定时任务由定时调度器管理）。
-            传 False 可跳过该校验（读取旧配置时用, 免得丢条目）。
+        曾经默认 `True`(只允许 `countable` 的任务进列表), 结果是一次
+        **静默的数据破坏**: 用户的 7 个条目被跳过, 而
+        `build_run_list()` 过滤后 `save_run_list()` 会把**过滤后的结果写回**
+        —— 编排可能被永久抹掉。
+
+        **列表接受任意任务名**（理由见模块 docstring）。
+
+        该参数**保留**只是为了将来可能出现的"只想看固定任务"的**查询**场景;
+        **任何会把结果写回配置的路径都不该传 `True`**。
+
+        :param on_bad: 坏条目的回调 `(item, exc)`; 传了才记录（避免静默丢弃）
         """
         out = cls()
         for item in (data or []):
@@ -349,8 +384,8 @@ class RunList:
                 if (only_list_tasks and entry.kind == EntryKind.TASK
                         and not is_list_task(entry.task)):
                     raise ValueError(
-                        f'{entry.task} 不是固定任务, 不能进运行列表'
-                        f'（定时任务由定时调度器管理）')
+                        f'{entry.task} 不是固定任务'
+                        f'（仅在 only_list_tasks=True 的查询场景下才排除）')
                 out.entries.append(entry)
             except ValueError as exc:
                 if on_bad is not None:

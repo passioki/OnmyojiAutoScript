@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 01/10] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 01/11] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 02/10] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 02/11] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 03/10] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 03/11] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 04/10] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 04/11] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 05/10] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 05/11] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 06/10] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
+Subject: [PATCH 06/11] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
  =?UTF-8?q?=E6=9C=AC=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8?=
  =?UTF-8?q?=E4=B9=85=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20?=
  =?UTF-8?q?=E8=B4=A6=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 07/10] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 07/11] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 08/10] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 08/11] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6256,7 +6256,7 @@ index ea36b95..4ce7384 100644
 From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:58:58 +0800
-Subject: [PATCH 09/10] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+Subject: [PATCH 09/11] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
  =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
  =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
  =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
@@ -7416,7 +7416,7 @@ index 3577f1c..ffedaed 100644
 From 331ba7e9e1de080f71a267b595341dcaced0b5a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 14:03:01 +0800
-Subject: [PATCH 10/10] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
+Subject: [PATCH 10/11] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
  =?UTF-8?q?=E7=A8=8B=E5=BC=80=E5=85=B3=E4=B8=8A=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=20+=20=E4=BC=91=E6=81=AF=E7=BD=AE=E9=A1=B6/=E5=88=86=E7=B1=BB?=
  =?UTF-8?q?=E7=AD=9B=E9=80=89=20+=20=E7=82=B9=E8=A1=8C=E8=BF=9B=E8=AE=BE?=
@@ -7969,6 +7969,476 @@ index 4d59df0..3c57afd 100644
    _sortAndPrefsTests();
 +
 +  _round4Tests();
+ }
+ 
+ /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
+-- 
+2.41.0.windows.1
+
+
+From 7f7e4925c91c0fb8bd1d6195ea864f8b751781a6 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 18:29:47 +0800
+Subject: [PATCH 11/11] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
+ =?UTF-8?q?=E5=8F=AA=E6=94=B6=E5=9B=BA=E5=AE=9A=E4=BB=BB=E5=8A=A1"?=
+ =?UTF-8?q?=E7=9A=84=E8=BF=87=E6=BB=A4=20=E2=80=94=E2=80=94=20=E5=AE=83?=
+ =?UTF-8?q?=E6=9B=BE=E9=9D=99=E9=BB=98=E4=B8=A2=E6=8E=89=E7=94=A8=E6=88=B7?=
+ =?UTF-8?q?=E7=9A=84=E9=85=8D=E7=BD=AE=20+=20Phase=200=20=E6=94=B6?=
+ =?UTF-8?q?=E5=B0=BE?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+## 日志读出来的事（用户让我看运行日志）
+
+`log/2026-10-09_伴生树.txt` 里反复出现:
+
+```
+WARNING | 运行列表里有无法解析的条目, 已跳过:
+   {'kind':'task','task':'DemonEncounter'} (DemonEncounter 不是固定任务...)
+   {'kind':'task','task':'WantedQuests'}   (WantedQuests 不是固定任务...)
+   {'kind':'task','task':'MysteryShop'} / 'Duel' / 'ExperienceYoukai'
+   / 'TrueOrochi' / 'WeeklyTrifles'
+```
+
+**而且理由本身是错的** —— `WantedQuests` 是 `fixed`(固定任务),
+只是没有 `count_field`:
+
+| 任务 | 类别 | countable |
+|---|---|---|
+| `WantedQuests` | **fixed** | False |
+| `DemonEncounter` `MysteryShop` `Duel` `TrueOrochi` `WeeklyTrifles` | timed | False |
+| `ExperienceYoukai` | charge | False |
+
+我用 `countable` 当"固定任务"的判据, 而 `countable` 的定义是
+**"category ∈ (fixed, toppa) 且有 count_field"** ——
+54 个任务里只有 **14 个**满足。所以我实际上**禁止了 40 个任务进列表**。
+
+## ★ 更严重的是它会**写回**
+
+`Config.build_run_list()` 过滤 → `apply_run_list_blocker()` 在休息条目结束时
+调 `save_run_list(rl)` → **把过滤后的结果持久化**。
+也就是说这不是"显示时少几行", 而是**可能永久抹掉用户的编排**。
+
+## 修法
+
+* `RunList.from_list()` 的 `only_list_tasks` **默认改为 `False`**
+  （只跳过**真正坏的**条目: 结构错误 / 未知类型 / 数字非法）
+* **列表接受任意任务名** —— "固定/定时分开管理"是**调度器**的事
+  （`enable_fixed` / `enable_timed` / `timed_priority`）,
+  不该由**列表的准入规则**承担
+* `is_list_task()` 降级为**查询辅助**, docstring 写明它**不是准入规则**
+* `build_run_list()` 的日志从 WARNING 提到 **ERROR**, 并加**数量自检**:
+  解析后条目数若少于原始条数就记 ERROR —— 把"静默丢弃"变成"看得见"
+
+## 测试
+
+* `TestListAcceptsAnyTask` —— 含 **`test_the_seven_tasks_that_were_destroyed`**:
+  把日志里真实被丢弃的那 7 个任务固化成回归用例
+* `test_only_list_tasks_is_opt_in_and_not_default` —— 用
+  `inspect.signature` 断言默认值是 `False`（防止被改回去）
+* `test_bad_entries_are_still_skipped` —— 真正坏的仍然要跳过
+
+后端 **1416 passed**。
+
+## 日志读出的其他问题（**未修**，等用户决定）
+
+以下不在本轮范围, 已向用户报告:
+
+1. **任务连续失败 3 次 → `exit(1)`**（`script.py:803-818`）——
+   `failure_record` 在内存里, 进程一重启就归零, 于是
+   **每 3 次失败重启一次, 永远停不下来**。日志里 97 次 `START` 块。
+2. **`RyouToppa` 被派发 25 次, 一次都没打成** ——
+   导航到 `page_kekkai_toppa` 半途进程就死了（既没到 `ryou_toppa_start_flag`
+   也没抛 `TaskEnd`）, 然后被重新派发, 每 14 秒一轮。
+   `Duel` 20 次、`WantedQuests` 20 次同理。**需要实机复现**。
+3. 用户的 `run_list` 现在是空的（`伴生树` / `恋鸟树` 都是 `[]`）。
+   10-06 的旧生产配置里**连这个字段都没有**, 且 10-09 10:25 的 pending
+   顺序就是默认 `list_pos` —— 说明它在 10:25 之前就空了。
+   **我没有找到能证明是我清掉的证据**, 但我的过滤器有能力造成这种破坏,
+   所以一并拆掉（就是本提交）。用户可能需要重新拖一遍执行顺序。
+---
+ .../task_list/task_list_controller.dart       | 61 +++++++++++++++
+ lib/views/overview/taskitem_view.dart         | 12 ++-
+ lib/views/tasks/run_list_panel.dart           | 17 ++++-
+ lib/views/tasks/task_list_view.dart           | 64 ++++++++++++++--
+ test/task_list_panel_test.dart                | 76 ++++++++++++++++++-
+ 5 files changed, 216 insertions(+), 14 deletions(-)
+
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index 7ae50bf..49c3dba 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -292,6 +292,7 @@ class TaskListController extends GetxController with LogMixin {
+ 
+   @override
+   void onClose() {
++    _searchDebounce?.cancel();
+     // ★ 一定要取消订阅 —— 否则控制器销毁后 sink 还挂在
+     //   `ScriptService` 上, 日志会往一个死控制器里塞。
+     _unsubscribeLog?.call();
+@@ -366,6 +367,11 @@ class TaskListController extends GetxController with LogMixin {
+       // ★ 偏好要在**第一次过滤之前**载入 —— 否则首帧会用默认排序,
+       //   然后第二帧跳到用户的排序, 看起来像"界面闪了一下"。
+       _loadPrefs();
++      // ★ 把载入的搜索词**同步回输入框** —— 否则重启后
++      //   `query` 有值但输入框是空的（状态与显示不一致）。
++      //   `TextEditingController.text` 同值赋值不会触发 listener,
++      //   所以每次 reload 都调用是安全的。
++      onQueryChanged?.call(query);
+ 
+       // 全局设置: 当前值来自 `/schema` 的 `global_fields`
+       // ★ 只在**首次**读取时赋值 —— 否则用户刚改完、下次刷新又被打回去
+@@ -396,13 +402,65 @@ class TaskListController extends GetxController with LogMixin {
+   }
+ 
+   // ---------------------------------------------------------------- 过滤
++  //
++  // ★★ 搜索框必须**受控**（踩过的坑）★★
++  //
++  // 以前搜索框只有 `onChanged: c.setQuery`（没有 `TextEditingController`），
++  // 而 `setQuery` 里的 `update()` **故意不重建输入框那部分**（为了输入流畅）。
++  // 于是出现了"清空搜索后任务不恢复"：
++  //
++  //   * 控制器里 `query` 已经清了，但**输入框的显示与视图状态没跟着复位**
++  //   * 反向也坏: `恢复默认` 清了 `query`, **输入框里的旧文字还在**
++  //   * 重启后 `_loadPrefs()` 恢复了 `query`，但**输入框是空的**
++  //
++  // 修法: 视图持有一个 `TextEditingController`，并由控制器通过
++  // `onQueryChanged` 回调**反向同步** —— 任何改动 `query` 的路径
++  // （清空 / 恢复默认 / 加载偏好 / 切换账号）都会更新输入框。
++  //
++  // 同一时刻只有一个视图，所以用**单个回调**而不是监听器列表。
++
++  /// 视图注册进来的"把 query 写回输入框"的回调。
++  void Function(String query)? onQueryChanged;
++
++  /// 搜索防抖 —— 输入时不要每敲一个键就重排 54 行。
++  ///
++  /// ★ 之前是**每击键**都 `_applyFilter() + update()`（54 行全重建），
++  ///   这正是用户说的"调配并不流畅"的一个来源。
++  Timer? _searchDebounce;
++
++  static const _searchDebounceMs = 250;
++
++  /// 输入框变化（**每击键**调用）。
++  ///
++  /// 立刻记住 `query`（便宜），但**延迟**过滤与重建（贵）。
+   void setQuery(String v) {
+     query = v.trim();
+     _savePrefs();
++    _searchDebounce?.cancel();
++    _searchDebounce = Timer(
++      const Duration(milliseconds: _searchDebounceMs),
++      () {
++        _applyFilter();
++        update();
++      },
++    );
++  }
++
++  /// 立刻应用搜索（不防抖）—— 用于"清除"按钮与回车。
++  void applyQueryNow(String v) {
++    query = v.trim();
++    _savePrefs();
++    _searchDebounce?.cancel();
+     _applyFilter();
+     update();
++    // 同步输入框（例如点了"清除"，输入框要跟着空）
++    onQueryChanged?.call(query);
+   }
+ 
++  /// **清除搜索** —— 一键复位。
++  void clearQuery() => applyQueryNow('');
++
++
+   void toggleOnlyEnabled() {
+     onlyEnabled = !onlyEnabled;
+     _savePrefs();
+@@ -560,6 +618,9 @@ class TaskListController extends GetxController with LogMixin {
+     query = '';
+     _applyFilter();
+     update();
++    // ★ 必须把输入框也清空 —— 否则界面显示"还在搜索"（踩过:
++    //   控制器里清了、输入框里的旧文字还在, 用户以为没生效）。
++    onQueryChanged?.call('');
+     Get.snackbar('已恢复默认', '界面偏好已重置');
+     return true;
+   }
+diff --git a/lib/views/overview/taskitem_view.dart b/lib/views/overview/taskitem_view.dart
+index 7c0a6c5..6306de2 100644
+--- a/lib/views/overview/taskitem_view.dart
++++ b/lib/views/overview/taskitem_view.dart
+@@ -31,7 +31,17 @@ class TaskItemView extends StatelessWidget {
+             borderRadius: BorderRadius.circular(10.0),
+           ),
+         ),
+-        onPressed: () => Get.find<NavCtrl>().switchContent(model.taskName),
++        // ★ 用 `openTaskSettings` 而不是 `switchContent`。
++        //
++        //   `switchContent` 开头有 `useablemenus.contains(menu)` 守卫 ——
++        //   侧边栏只列**当前账号启用/常用**的任务, 所以点一个不在侧边栏里的
++        //   任务会被**静默忽略**（用户看到"点了没反应", 很难排查）。
++        //
++        //   这里是"用户明确点了这一行的设置按钮" —— 最强的意图表达,
++        //   不该被白名单挡掉。
++        //   （同一个坑在 `views/tasks/task_list_view.dart` 里也踩过。）
++        onPressed: () =>
++            Get.find<NavCtrl>().openTaskSettings(model.taskName),
+         child: Text(I18n.task_setting.tr,
+             style: Theme.of(context).textTheme.bodySmall))
+         .constrained(maxWidth: 100, maxHeight: 30);
+diff --git a/lib/views/tasks/run_list_panel.dart b/lib/views/tasks/run_list_panel.dart
+index 4f32af8..1339db9 100644
+--- a/lib/views/tasks/run_list_panel.dart
++++ b/lib/views/tasks/run_list_panel.dart
+@@ -388,10 +388,19 @@ class _TaskPickerDialogState extends State<_TaskPickerDialog> {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    // ★ 只列可进列表的（= 固定任务）—— 与后端 `is_list_task()` 同一条规则,
+-    //   而 `countable` 就是后端给的标志, 前端不重新定义。
+-    final all =
+-        widget.controller.allTasks.where((t) => t['countable'] == true).toList();
++    // ★★ **不过滤任务类型**（踩过的坑）★★
++    //
++    // 曾经这里写 `.where((t) => t['countable'] == true)` —— "只列固定任务"。
++    // 结果是**静默丢用户的配置**:
++    // `countable` 只覆盖 54 个任务里的 **14 个**, 于是
++    // `DemonEncounter` / `WantedQuests` / `MysteryShop` / `Duel` /
++    // `ExperienceYoukai` / `TrueOrochi` / `WeeklyTrifles` 全被排除,
++    // 而且后端过滤后还会把结果写回配置。
++    //
++    // 现在: **列表接受任意任务名**。"固定/定时分开管理"是**调度器**的事
++    // （两个总开关 + `timed_priority`），不由列表的准入规则承担。
++    // 详见 `module/config/run_list.py` 的"踩过的坑"。
++    final all = widget.controller.allTasks;
+     final inList = widget.controller.entries
+         .where((e) => e['kind'] == 'task')
+         .map((e) => '${e['task']}')
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 38fb1c3..50995fe 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -91,6 +91,17 @@ class _TaskListViewState extends State<TaskListView> {
+   Timer? _clock;
+   DateTime _now = DateTime.now();
+ 
++  /// 搜索框的控制器 —— **受控**（踩过的坑）。
++  ///
++  /// ★ 以前搜索框只有 `onChanged`，没有 controller，于是：
++  ///   * 清空搜索后列表不恢复（控制器里 query 清了，显示没复位）
++  ///   * `恢复默认` 清了 query，**输入框里的旧文字还在**
++  ///   * 重启后偏好里的 query 恢复了，但**输入框是空的**
++  ///
++  /// ★ 放在 `State` 里并在 `dispose` 释放 —— 不能在 `build()` 里新建
++  ///   （`TextEditingController` 是 `ChangeNotifier`，每帧新建会泄漏监听器）。
++  final _searchCtrl = TextEditingController();
++
+   @override
+   void initState() {
+     super.initState();
+@@ -112,6 +123,7 @@ class _TaskListViewState extends State<TaskListView> {
+   @override
+   void dispose() {
+     _clock?.cancel();
++    _searchCtrl.dispose();
+     super.dispose();
+   }
+ 
+@@ -135,6 +147,21 @@ class _TaskListViewState extends State<TaskListView> {
+     }
+     _tag = tag;
+     _c = Get.find<TaskListController>(tag: tag);
++
++    // ★ 注册"控制器 -> 输入框"的反向同步。
++    //
++    //   任何改动 `query` 的路径（清空 / 恢复默认 / 载入偏好 / 切账号）
++    //   都会通过它把文字写回搜索框 —— 这就是"清空后显示不同步"的修法。
++    //
++    //   同一时刻只有一个视图, 所以用**单个回调**即可;
++    //   换控制器时直接覆盖, 不必维护监听器列表。
++    _c!.onQueryChanged = (q) {
++      if (!mounted) return;
++      if (_searchCtrl.text == q) return;   // 同值不写, 免得把光标弄跳
++      _searchCtrl.text = q;
++    };
++    // 立刻用控制器里的当前值初始化输入框
++    _searchCtrl.text = _c!.query;
+   }
+ 
+   @override
+@@ -170,7 +197,7 @@ class _TaskListViewState extends State<TaskListView> {
+             Expanded(
+               child: TabBarView(
+                 children: [
+-                  _OverviewTab(c: c),
++                  _OverviewTab(c: c, searchCtrl: _searchCtrl),
+                   _ListTab(c: c),
+                 ],
+               ),
+@@ -235,10 +262,17 @@ class _TaskListViewState extends State<TaskListView> {
+ ///
+ /// ★ 目标次数这里**只读**(用户决定: 只在列表页可改)。
+ class _OverviewTab extends StatelessWidget {
+-  const _OverviewTab({required this.c});
++  const _OverviewTab({required this.c, required this.searchCtrl});
+ 
+   final TaskListController c;
+ 
++  /// 搜索框的控制器 —— 由 `_TaskListViewState` 持有并释放。
++  ///
++  /// ★ 为什么从这里传进来而不是在这里 `new`: 这个类是 `StatelessWidget`,
++  ///   自己 new 一个 `TextEditingController` 就没人 `dispose` ——
++  ///   而且它会在每次重建时泄漏一个（`ChangeNotifier`）。
++  final TextEditingController searchCtrl;
++
+   @override
+   Widget build(BuildContext context) {
+     // ★ 用 Column + Expanded + ListView.builder 而不是
+@@ -432,15 +466,33 @@ class _OverviewTab extends StatelessWidget {
+                 ],
+                 const SizedBox(width: 8),
+                 SizedBox(
+-                  width: 180,
++                  width: 200,
+                   child: TextField(
+-                    decoration: const InputDecoration(
++                    // ★ 受控: 用 `_TaskListViewState` 里的那个 controller
++                    //   （它负责 dispose）。之前没有 controller,
++                    //   导致"清空搜索后任务不恢复"。
++                    controller: searchCtrl,
++                    decoration: InputDecoration(
+                       isDense: true,
+-                      prefixIcon: Icon(Icons.search, size: 18),
++                      prefixIcon: const Icon(Icons.search, size: 18),
+                       hintText: '搜索任务名…',
+-                      border: OutlineInputBorder(),
++                      border: const OutlineInputBorder(),
++                      // ★ 有内容时才显示"清除" —— 一键让列表恢复
++                      suffixIcon: c.query.isEmpty
++                          ? null
++                          : IconButton(
++                              icon: const Icon(Icons.clear, size: 16),
++                              tooltip: '清除搜索',
++                              onPressed: () {
++                                searchCtrl.clear();
++                                c.clearQuery();
++                              },
++                            ),
+                     ),
++                    // 每击键 -> 控制器里**防抖**后再过滤（不阻塞输入）
+                     onChanged: c.setQuery,
++                    // 回车 -> 立刻应用（不等防抖）
++                    onSubmitted: c.applyQueryNow,
+                   ),
+                 ),
+                 FilterChip(
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 3c57afd..47314bc 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -405,7 +405,7 @@ void _round4Tests() {
+         reason: 'Obx 回调必须**直接读 Rx**，否则抛 improper use of a GetX');
+   });
+ 
+-  test('任务选择器：休息置顶 + 分类筛选 + 只列固定任务', () {
++  test('任务选择器：休息置顶 + 分类筛选', () {
+     final src = codeOnly('lib/views/tasks/run_list_panel.dart');
+     final i = src.indexOf('class _TaskPickerDialogState');
+     expect(i, greaterThan(-1));
+@@ -414,8 +414,23 @@ void _round4Tests() {
+     expect(body.contains('休息（去庭院待着）'), isTrue, reason: '休息应置顶');
+     expect(body.contains('_PickedEntry.rest'), isTrue);
+     expect(body.contains('FilterChip'), isTrue, reason: '缺分类筛选');
+-    expect(body.contains("t['countable'] == true"), isTrue,
+-        reason: '只该列固定任务 —— 定时任务不能进列表');
++  });
++
++  test('任务选择器**不再**按 countable 过滤（曾静默丢用户的配置）', () {
++    // ★★ 回归守卫 ★★
++    //
++    // 曾经选择器与后端都按 `countable` 过滤, 结果:
++    // `countable` 只覆盖 54 个任务里的 **14 个**, 用户列表里的
++    // DemonEncounter / WantedQuests / MysteryShop / Duel /
++    // ExperienceYoukai / TrueOrochi / WeeklyTrifles **全被丢弃**,
++    // 而且过滤结果会被 `save_run_list()` 写回配置 -> 静默的数据破坏。
++    //
++    // 现在**列表接受任意任务名**。选择器也不该再自己过滤。
++    final src = codeOnly('lib/views/tasks/run_list_panel.dart');
++    final i = src.indexOf('class _TaskPickerDialogState');
++    final body = src.substring(i, i + 2600);
++    expect(body.contains("t['countable'] == true"), isFalse,
++        reason: '选择器不该再按 countable 过滤, 否则又会丢任务');
+   });
+ 
+   test('休息选项排在其他任务之前', () {
+@@ -445,6 +460,59 @@ void _round4Tests() {
+   });
+ }
+ 
++// ============================================================ Phase 0 修复
++void _phase0Tests() {
++  test('搜索框是**受控**的（曾"清空后任务不恢复"）', () {
++    // ★★ 回归守卫 ★★
++    //
++    // 之前的 bug: 搜索框只有 `onChanged: c.setQuery`（没有 controller），
++    // 而 `setQuery` 里的 `update()` 故意不重建输入框那部分（为输入流畅）。
++    // 于是:
++    //   * 清空搜索后列表不恢复（控制器里 query 清了，显示没复位）
++    //   * `恢复默认` 清了 query，**输入框里的旧文字还在**
++    //   * 重启后偏好里的 query 恢复了，但**输入框是空的**
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    expect(view.contains('TextEditingController'), isTrue,
++        reason: '搜索框必须有 controller');
++    expect(view.contains('controller: searchCtrl'), isTrue,
++        reason: 'TextField 必须接上受控 controller');
++    expect(view.contains('_searchCtrl.dispose()'), isTrue,
++        reason: 'controller 必须被释放（否则每帧泄漏监听器）');
++    // 一键清除
++    expect(view.contains('clearQuery'), isTrue, reason: '缺"清除搜索"入口');
++  });
++
++  test('控制器 -> 输入框 的反向同步必须存在', () {
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    expect(view.contains('onQueryChanged'), isTrue,
++        reason: '控制器改动 query 后要能同步回输入框');
++
++    final ctrl = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    // 三条会改 query 的路径都要通知输入框
++    for (final where in ['void applyQueryNow', 'Future<bool> restoreDefaults']) {
++      final i = ctrl.indexOf(where);
++      expect(i, greaterThan(-1), reason: '找不到 $where');
++      expect(ctrl.substring(i, i + 1200).contains('onQueryChanged'), isTrue,
++          reason: '$where 应同步输入框');
++    }
++    // 载入偏好后也要同步（否则重启后输入框是空的）
++    final rl = ctrl.indexOf('Future<void> reload()');
++    expect(ctrl.substring(rl, rl + 4000).contains('onQueryChanged'), isTrue,
++        reason: '载入偏好后要把 query 同步回输入框');
++  });
++
++  test('搜索有防抖（不再每击键重建 54 行）', () {
++    final ctrl = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    expect(ctrl.contains('_searchDebounce'), isTrue, reason: '缺搜索防抖');
++    expect(ctrl.contains('_searchDebounce?.cancel()'), isTrue,
++        reason: 'onClose 必须取消定时器，否则控制器销毁后还在跑');
++  });
++
++  // 后端"列表接受任意任务名"的回归守卫在 pytest 里:
++  //   tests/module/config/test_run_list.py::TestListAcceptsAnyTask
++  //   （含真实被丢弃的那 7 个任务）
++}
++
+ void main() {
+   testWidgets('只含任务条目时能正常渲染', (tester) async {
+     final c = FakeTaskListController(
+@@ -547,6 +615,8 @@ void main() {
+   _sortAndPrefsTests();
+ 
+   _round4Tests();
++
++  _phase0Tests();
  }
  
  /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。

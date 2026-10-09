@@ -422,17 +422,36 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         """
         把配置里的 `run_list`(原始 JSON 数组)解析成 `RunList`。
 
-        坏条目**跳过**并记 warning —— 列表是用户编辑的内容,
-        一条写坏不该让整个配置加载失败。
+        ## 两条护栏（都是踩过坑之后加的）
+
+        1. **只跳过真正坏的条目**（结构错误 / 未知类型 / 数字非法）,
+           不是"跳过不合我心意的条目"。列表**接受任意任务名** ——
+           详见 `module/config/run_list.py` 的"踩过的坑"。
+        2. 解析后条目数若少于原始条数, **每次都记 ERROR 级日志**（不是 debug）,
+           让"静默丢弃"变成"看得见"。
+
+        ★ 为什么第 2 条重要: 曾经一个过滤器把用户 7 个条目全跳过,
+          而日志是 WARNING、埋在几千行里, 用户与我都**很久没发现**。
         """
         from module.config.run_list import RunList
 
         raw = getattr(self.model.script.optimization, 'run_list', None) or []
+        dropped = []
 
         def _on_bad(item, exc):
-            logger.warning(f'运行列表里有无法解析的条目, 已跳过: {item!r} ({exc})')
+            dropped.append((item, exc))
+            logger.error(f'运行列表条目无法解析, 已跳过: {item!r} ({exc})')
 
-        return RunList.from_list(raw, on_bad=_on_bad)
+        rl = RunList.from_list(raw, on_bad=_on_bad)
+
+        # 护栏: 数量对不上就是有东西被丢了 —— 这不是"正常解析"
+        if len(rl) != len(raw):
+            logger.error(
+                f'运行列表解析后条目数变少: 原始 {len(raw)} -> 解析 {len(rl)}, '
+                f'丢弃 {len(dropped)} 条。'
+                f'若这不是你预期的, 请检查列表内容是否被写坏。')
+
+        return rl
 
     def save_run_list(self, run_list) -> bool:
         """把 `RunList` 写回配置(供界面排序 / 条目增减调用)。"""

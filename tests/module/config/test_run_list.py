@@ -205,32 +205,99 @@ class TestRunListBasics:
         assert RunList.from_list([]).is_empty()
 
 
-class TestOnlyFixedTasks:
-    """列表里**只该有固定任务** —— 定时任务由定时调度器管。"""
+class TestListAcceptsAnyTask:
+    """
+    ★★ 列表**接受任意任务名** —— 这是踩过坑之后的决定 ★★
 
-    def test_is_list_task(self):
+    ## 曾经的错误
+
+    为了"固定/定时分开管理", 在 `from_list()` 里加了校验:
+    **只允许 `countable`(fixed/toppa) 的任务进列表**, 其余跳过。
+
+    后果是一次**静默的数据破坏**:
+
+    * `countable` 的判据是"有 `count_field`", 54 个任务里只有 **14 个**
+    * `WantedQuests` 是 `fixed` 却**没有** `count_field` -> 被丢弃
+    * 用户的 7 个条目（`DemonEncounter` / `WantedQuests` / `MysteryShop` /
+      `Duel` / `ExperienceYoukai` / `TrueOrochi` / `WeeklyTrifles`）**全被跳过**
+    * 更糟: `build_run_list()` 过滤后 `save_run_list()` 会把**过滤结果写回**
+      -> 用户的编排可能被永久抹掉
+
+    ## 现在的规则
+
+    列表接受任意任务名。"固定/定时分开管理"是**调度器**的事
+    （`enable_fixed` / `enable_timed` / `timed_priority`），
+    不该由**列表的准入规则**承担。
+    """
+
+    def test_is_list_task_is_only_a_query_helper(self):
+        """
+        `is_list_task` 仍是"是否可计数"的**查询辅助**, 但**不用于过滤**。
+        """
         assert is_list_task('Orochi') is True
         assert is_list_task('FallenSun') is True
         assert is_list_task('DemonEncounter') is False   # timed
         assert is_list_task('GoldYoukai') is False        # charge
         assert is_list_task('NotARealTask') is False      # 未知 -> 不崩
 
-    def test_timed_task_is_skipped(self):
+    def test_timed_task_is_kept(self):
+        """★ 定时任务**不该**被跳过（这就是那个数据破坏）。"""
         bad = []
         rl = RunList.from_list([
             {'kind': 'task', 'task': 'Orochi'},           # 固定
-            {'kind': 'task', 'task': 'DemonEncounter'},   # 定时 -> 跳过
+            {'kind': 'task', 'task': 'DemonEncounter'},   # 定时
             {'kind': 'rest', 'minutes': 10},
         ], on_bad=lambda item, exc: bad.append(item))
-        assert rl.task_order() == ['Orochi']
-        assert len(bad) == 1, f'应记录被跳过的条目: {bad}'
+        assert rl.task_order() == ['Orochi', 'DemonEncounter'], \
+            f'定时任务不该被丢弃: {rl.task_order()}'
+        assert bad == [], f'不该有坏条目: {bad}'
 
-    def test_can_disable_the_check_for_migration(self):
-        """读旧配置时可关掉校验, 免得静默丢条目。"""
+    def test_the_seven_tasks_that_were_destroyed(self):
+        """
+        ★ **回归守卫**: 日志里被丢弃的那 7 个条目必须全部保留。
+
+        它们来自真实用户的 `run_list`, 我把它固化成测试 ——
+        这样"只收固定任务"这类改动一旦回来, 立刻红。
+        """
+        tasks = ['DemonEncounter', 'WantedQuests', 'MysteryShop', 'Duel',
+                 'ExperienceYoukai', 'TrueOrochi', 'WeeklyTrifles']
+        bad = []
+        rl = RunList.from_list(
+            [{'kind': 'task', 'task': t} for t in tasks],
+            on_bad=lambda item, exc: bad.append(item))
+        assert rl.task_order() == tasks, f'条目被丢弃: {rl.task_order()}'
+        assert bad == []
+
+    def test_only_list_tasks_is_opt_in_and_not_default(self):
+        """
+        `only_list_tasks` 默认必须是 `False`。
+
+        ★ 曾经默认 `True` -> 静默丢条目。这个断言防止它被改回去。
+        """
+        import inspect
+        sig = inspect.signature(RunList.from_list)
+        assert sig.parameters['only_list_tasks'].default is False
+
+    def test_opt_in_filter_still_works(self):
+        """显式传 `True` 时过滤仍生效（供"只想看固定任务"的查询场景）。"""
         rl = RunList.from_list(
             [{'kind': 'task', 'task': 'DemonEncounter'}],
-            only_list_tasks=False)
-        assert rl.task_order() == ['DemonEncounter']
+            only_list_tasks=True)
+        assert rl.task_order() == []
+
+    def test_bad_entries_are_still_skipped(self):
+        """只跳过**真正坏的**（结构错误 / 未知类型 / 数字非法）。"""
+        bad = []
+        rl = RunList.from_list([
+            {'kind': 'task', 'task': 'Orochi'},
+            {'kind': 'rest', 'minutes': 0},      # 数字非法
+            None,                                 # 不是对象
+            {'kind': 'xx'},                       # 未知类型
+            {'kind': 'delay', 'minutes': 5},      # v1 遗留
+            {'kind': 'task'},                     # 缺 task
+        ], on_bad=lambda item, exc: bad.append(item))
+        assert len(rl) == 1
+        assert len(bad) == 5, f'应记录 5 条坏条目: {len(bad)}'
 
 
 class TestLegacyCompat:

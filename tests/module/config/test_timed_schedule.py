@@ -357,32 +357,41 @@ class TestTimedSortKey:
         self.key(next_run=None, window_end=None)
 
 
-class TestRunListContainsOnlyFixed:
-    """列表里**只该有固定任务** —— 定时任务由定时调度器管。"""
+class TestRunListAndTaskCategories:
+    """
+    ⚠️ 这里曾经断言"列表**只该有固定任务**"（定时任务被拒绝）。
 
-    def test_run_list_rejects_timed_task(self):
-        """
-        往列表里塞定时任务时应被**拒绝**（宽容: 跳过并记录）。
+    **那个设计是错的** —— 它在真实使用中造成了一次**静默的数据破坏**:
+    `countable` 的判据是"有 `count_field`", 54 个任务里只有 14 个满足,
+    于是用户列表里的 `DemonEncounter` / `WantedQuests` / `MysteryShop` /
+    `Duel` / `ExperienceYoukai` / `TrueOrochi` / `WeeklyTrifles`
+    **全部被跳过**, 而过滤结果还会被 `save_run_list()` 写回配置。
 
-        ★ 为什么不让它进列表: 定时任务有自己的 window/存量/周期,
-          "在列表里执行"跟它的机制冲突。
-        """
+    现在的规则（见 `module/config/run_list.py` 的"踩过的坑"）:
+
+    **列表接受任意任务名。** "固定/定时分开管理"是**调度器**的事
+    （`enable_fixed` / `enable_timed` / `timed_priority`）。
+    """
+
+    def test_run_list_keeps_timed_task(self):
         from module.config.run_list import RunList
 
         bad = []
         rl = RunList.from_list(
             [
-                {'kind': 'task', 'task': 'Orochi'},        # 固定任务
-                {'kind': 'task', 'task': 'DemonEncounter'},  # 定时任务 -> 跳过
+                {'kind': 'task', 'task': 'Orochi'},           # 固定
+                {'kind': 'task', 'task': 'DemonEncounter'},   # 定时
                 {'kind': 'rest', 'minutes': 10},
             ],
             on_bad=lambda item, exc: bad.append(item))
-        assert rl.task_order() == ['Orochi'], \
-            f'定时任务不该进列表: {rl.task_order()}'
-        assert len(bad) == 1, f'应记录一条被跳过: {bad}'
+        assert rl.task_order() == ['Orochi', 'DemonEncounter'], \
+            f'定时任务不该被丢弃: {rl.task_order()}'
+        assert bad == [], f'不该有坏条目: {bad}'
 
-    def test_only_fixed_via_helper(self):
-        """提供一个便捷判断: 该任务能不能进列表。"""
+    def test_is_list_task_is_only_a_query_helper(self):
+        """
+        `is_list_task` = "是否可计数"的查询辅助, **不是列表准入规则**。
+        """
         from module.config.run_list import is_list_task
         assert is_list_task('Orochi') is True
         assert is_list_task('FallenSun') is True

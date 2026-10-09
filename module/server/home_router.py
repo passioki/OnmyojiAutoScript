@@ -81,11 +81,107 @@ async def execute_update():
 
 @home_app.put('/chinese_translate')
 async def chinese_translate(data: dict = Body(...)):
+    """
+    ⚠ **不要再用这个接口覆盖整份翻译表。**
+
+    背景(踩过的坑): OASX 启动时会 `PUT` 它自己那份 `i18n_cn.dart`(746 条),
+    而这里做的是 `I18n.save_zh_cn(data)` —— **整份覆盖**。
+    结果是 `module/config/i18n/zh-CN.json`(1090 条)每次启动都被削到 746 条,
+    **丢 344 条**。翻译也就永远补不齐。
+
+    现在改为**增量合并**: 只补充"后端还没有的 key",
+    **绝不删除**后端已有的条目。整份覆盖请用 `PUT /home/chinese_translate/replace`。
+    """
+    try:
+        existing = I18n.load_zh_cn()
+        added = {k: v for k, v in (data or {}).items()
+                 if k not in existing or not existing[k]}
+        if added:
+            existing.update(added)
+            I18n.save_zh_cn(existing)
+        logger.info(f'chinese_translate: 合并 {len(added)} 条新增, '
+                    f'现有 {len(existing)} 条')
+    except Exception as e:
+        logger.error(e)
+    return True
+
+
+@home_app.put('/chinese_translate/replace')
+async def chinese_translate_replace(data: dict = Body(...)):
+    """**整份替换**翻译表(危险, 会丢掉 data 里没有的 key)。
+
+    只在明确知道自己在做什么时使用; 正常流程不需要它。
+    """
     try:
         I18n.save_zh_cn(data)
     except Exception as e:
         logger.error(e)
     return True
+
+
+@home_app.get('/chinese_translate')
+async def chinese_translate_all() -> dict:
+    """
+    **权威全量**的中文翻译表(单一数据源)。
+
+    OASX 启动时改为**拉取它**, 而不是推自己那份 —— 这样:
+      * 翻译只有一处维护(`module/config/i18n/zh-CN.json`)
+      * 前端缺什么, 后端补一次就全局生效
+      * 不会再出现"前端覆盖后端"导致条目丢失
+
+    含 `module/config/i18n/zh-CN.json` 与 `assets/i18n/zh-CN.json` 两层,
+    后者优先(它是额外的补充词条)。
+    """
+    try:
+        merged = dict(I18n.load_zh_cn())
+        additions = I18n.load_additions().get('zh-CN') or {}
+        merged.update(additions)
+        return merged
+    except Exception as e:
+        logger.error(e)
+    return {}
+
+
+@home_app.post('/missing_translate')
+async def missing_translate(data: dict = Body(...)) -> dict:
+    """
+    接收**前端运行时发现缺失的翻译 key**。
+
+    ## 为什么需要
+
+    界面文案是 `Text(model.title.tr)` —— GetX 的 `.tr` 在**查不到 key 时
+    原样返回 key**，于是 `charge_enable_help` 就赤裸裸显示在界面上，
+    **没有任何报错**。这种"静默降级"正是翻译长期补不齐的原因之一。
+
+    前端现在会记录未命中的 key 并上报到这里；后端写到
+    `log/missing_translate.txt`（去重、带计数），便于持续补齐。
+
+    :param data: {"keys": ["key1", "key2", ...]}
+    :return: {"accepted": n, "file": 路径}
+    """
+    from pathlib import Path as _Path
+    keys = (data or {}).get('keys') or []
+    if not isinstance(keys, list):
+        return {'accepted': 0, 'file': ''}
+    keys = [str(k) for k in keys if k][:500]
+
+    out = _Path.cwd() / 'log' / 'missing_translate.txt'
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        known = set()
+        if out.exists():
+            for line in out.read_text(encoding='utf-8').splitlines():
+                if '|' in line:
+                    known.add(line.split('|', 1)[0].strip())
+        new = [k for k in keys if k not in known]
+        if new:
+            with open(out, 'a', encoding='utf-8') as f:
+                for k in new:
+                    f.write(f'{k}|前端上报\n')
+            logger.warning(f'缺失的翻译 key ({len(new)} 个新): {new[:10]}')
+    except Exception as e:
+        logger.error(e)
+    return {'accepted': len(keys), 'file': str(out)}
 
 
 @home_app.get('/additional_translate')

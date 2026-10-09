@@ -106,7 +106,7 @@ class CostumeBase:
         if config is None:
             config: CostumeConfig = self.config.model.global_game.costume_config
         current_task = self.get_task_name()
-        logger.info(f'Current task: {current_task}')
+        logger.info(f'当前任务: {current_task}')
         self.check_costume_main(config.costume_main_type)
         self.check_costume_carpbanner(config.costume_carpbanner_type)
         self.check_costume_battle(config.costume_battle_type)
@@ -147,7 +147,7 @@ class CostumeBase:
     def check_costume_carpbanner(self, carpbanner_type: CarpBannerType):
         if carpbanner_type == CarpBannerType.COSTUME_CARPBANNER_DEFAULT:
             return
-        logger.info(f'Switch carp banner theme {carpbanner_type} (override realm assets) ({I18n.trans_zh_cn(carpbanner_type)})')
+        logger.info(f'切换鲤鱼旗主题为 {I18n.trans_zh_cn(carpbanner_type)}（会覆盖结界皮肤资源）')
         carpbanner_assets = CostumeCarpBannerAssets()
         model = carpbanner_costume_model.get(carpbanner_type, {})
         for key, value in model.items():
@@ -161,7 +161,7 @@ class CostumeBase:
     def check_costume_battle(self, battle_type: BattleType):
         if battle_type == BattleType.COSTUME_BATTLE_DEFAULT:
             return
-        logger.info(f'Switch battle theme {battle_type} ({I18n.trans_zh_cn(battle_type)})')
+        logger.info(f'切换战斗主题为 {I18n.trans_zh_cn(battle_type)}')
         costume_battle_assets = CostumeBattleAssets()
         for key, value in battle_theme_model[battle_type].items():
             if not hasattr(costume_battle_assets, value):
@@ -177,7 +177,7 @@ class CostumeBase:
     def check_costume_battle_scene(self, scene_type: BattleSceneType):
         if scene_type == BattleSceneType.COSTUME_BATTLE_SCENE_DEFAULT:
             return
-        logger.info(f'Switch battle scene skin {scene_type} ({I18n.trans_zh_cn(scene_type)})')
+        logger.info(f'切换战斗场景皮肤为 {I18n.trans_zh_cn(scene_type)}')
         current_task = self.get_task_name()
         allowed_tasks = {
             'Orochi',
@@ -196,7 +196,7 @@ class CostumeBase:
     def check_costume_shikigami(self, shikigami_type: ShikigamiType):
         if shikigami_type == ShikigamiType.COSTUME_SHIKIGAMI_DEFAULT:
             return
-        logger.info(f'Switch shikigami theme {shikigami_type} ({I18n.trans_zh_cn(shikigami_type)})')
+        logger.info(f'切换式神主题为 {I18n.trans_zh_cn(shikigami_type)}')
         shikigami_assets = CostumeShikigamiAssets()
         model = shikigami_costume_model.get(shikigami_type, {})
         for key, value in model.items():

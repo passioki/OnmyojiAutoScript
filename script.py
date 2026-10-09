@@ -329,14 +329,14 @@ class Script:
         :return:
         """
         while True:
-            # ---- 运行列表的阻塞条目(rest / delay) ----
+            # ---- 运行列表的「休息」条目 ----
             #
-            # 这是模型 B(条目清单)的落地: 列表里可以插「全部停止 / 只停列表」条目,
-            # 它们**阻塞列表推进**, 而不是像任务那样只影响排序。
+            # 休息条目**阻塞列表推进**（不像 task 那样只影响排序）——
+            # 这就是它存在的意义: "执行到这一行时去庭院待着 N 分钟"。
             #
-            # 放在派发之前检查, 所以:
-            #   rest  -> 连定时任务一起停(实现为全局暂停)
-            #   delay -> 只停列表, 定时任务照常
+            # ★ `apply_run_list_blocker()` 内部会考虑「休息时可穿插定时任务」:
+            #   若存在**能在休息剩余时间内跑完**的到点定时任务, 它会返回 False
+            #   让那个任务先跑（判据见 `config.can_interleave_timed`）。
             try:
                 if self.config.apply_run_list_blocker():
                     time.sleep(run_control.wait_seconds() or 15)

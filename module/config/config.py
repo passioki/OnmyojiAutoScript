@@ -458,12 +458,70 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             logger.info(f'运行列表: 「{blocker.describe()}」生效'
                         f'（休息 = 去庭院待着）')
         if until is not None and now < until:
+            # ★ 「休息时可穿插定时任务」: 若有能在休息剩余时间内**跑完**的
+            #   到点定时任务, 就**不阻塞** —— 让那个任务先跑。
+            #
+            #   用户确认的判据: 定时任务的预期完成时间 < 休息剩余时间。
+            #   目的: 保护**组队任务**（休息期间在庭院干等会让组队很难凑齐人）。
+            candidate = self.pick_interleave_candidate(now)
+            if candidate:
+                logger.info(f'运行列表: 休息中穿插定时任务 {candidate}'
+                            f'（剩余 {self.rest_remaining_minutes(now)} 分钟）')
+                return False
             return True
         # 到点了 -> 移除条目, 列表继续
         rl.remove_blocker()
         self.save_run_list(rl)
         logger.info(f'运行列表: 「{blocker.describe()}」已结束, 条目移除')
         return False
+
+    def pick_interleave_candidate(self, now=None) -> str:
+        """
+        挑一个"能在休息剩余时间内跑完"的**到点定时任务**；没有则 ''。
+
+        判据（用户确认）:
+
+            定时任务的 `scheduler.expected_minutes` < 休息剩余分钟数
+
+        ★ `expected_minutes == 0`（用户没配）-> **不穿插** ——
+          拿未知值去比会得出错误结论, 宁可少穿插。
+        """
+        if not self.can_interleave_timed(now):
+            return ''
+        try:
+            from module.config import task_catalog as TC
+            from module.config import timed_schedule as TS
+
+            left = self.rest_remaining_minutes(now)
+            if left <= 0:
+                return ''
+            # 只看到点的（`pending_task` 就是"已到点"的集合）
+            for func in (self.pending_task or []):
+                cmd = getattr(func, 'command', '') or ''
+                meta = TC.get(cmd)
+                if meta is None or not TS.is_timed(meta.category.value):
+                    continue
+                exp = self._expected_minutes(cmd)
+                if TS.can_interleave(
+                        rest_interleave=True,
+                        enable_timed=True,
+                        is_due=True,
+                        expected_minutes=exp,
+                        rest_remaining_minutes=left):
+                    return cmd
+        except Exception as exc:
+            logger.warning(f'挑穿插候选失败({type(exc).__name__}: {exc}), 放弃穿插')
+        return ''
+
+    def _expected_minutes(self, task_command: str) -> int:
+        """读某任务的 `scheduler.expected_minutes`（读不到给 0 = 未知）。"""
+        try:
+            from module.config.utils import convert_to_underscore
+            sub = getattr(self, convert_to_underscore(task_command), None)
+            sch = getattr(sub, 'scheduler', None) if sub else None
+            return int(getattr(sch, 'expected_minutes', 0) or 0)
+        except Exception:
+            return 0
 
     # ------------------------------------------------------------------ 固定/定时 分开管理
     def fixed_enabled(self) -> bool:

@@ -492,3 +492,121 @@ class TestRobustness:
         assert isinstance(o, dict)
         # 可能返回 error, 但不应抛异常
         assert 'tasks' in o or 'error' in o
+
+
+class TestOverviewSchedulingFields:
+    """
+    `/overview` 里**每任务**的调度字段 —— 前端渲染与编辑要靠它们。
+
+    用户明确要求补齐: 优先级 / 预期完成时间 / 次数 / 失败冷却。
+    """
+
+    def test_has_priority(self, overview):
+        for r in overview['tasks']:
+            assert 'priority' in r, f'{r["command"]} 缺 priority'
+
+    def test_has_expected_minutes(self, overview):
+        for r in overview['tasks']:
+            assert 'expected_minutes' in r, f'{r["command"]} 缺 expected_minutes'
+
+    def test_expected_minutes_default_is_zero(self, overview):
+        """默认 0 = 未知 -> 不参与"休息时穿插"判定（保守）。"""
+        for r in overview['tasks']:
+            assert r['expected_minutes'] >= 0
+
+    def test_count_is_actually_populated(self, overview):
+        """
+        ★★ 回归守卫 ★★
+
+        `count` 曾经写成 `value.get('limit_count')`, 于是**所有任务都返回 None**,
+        因为真实值嵌套在子 dict 里（`orochi_config.limit_count` /
+        `bondling_config.limit_count` / …）。界面上就看不到默认次数。
+        """
+        countable = [r for r in overview['tasks'] if r.get('countable')]
+        assert countable, '前提: 应有可计数任务'
+        got = [r for r in countable if r.get('count') is not None]
+        assert got, (
+            f'可计数任务的 count 全是 None —— 说明又用了直接 get。'
+            f'样本: {[(r["command"], r.get("count")) for r in countable[:5]]}')
+
+    def test_effective_target_matches_count_when_no_override(self, overview):
+        """
+        没设 `scheduler.target` 时, `effective_target` 应等于任务配置里的 `count`。
+        """
+        for r in overview['tasks']:
+            if r.get('countable') and r.get('count') is not None:
+                assert r['effective_target'] == r['count'], (
+                    f'{r["command"]}: effective={r["effective_target"]} '
+                    f'count={r["count"]}')
+
+    def test_has_failure_fields(self, overview):
+        for r in overview['tasks']:
+            for k in ('failure_count', 'in_cooldown', 'cooldown_minutes',
+                      'cooldown_until'):
+                assert k in r, f'{r["command"]} 缺 {k}'
+
+    def test_failure_fields_default_to_healthy(self, overview):
+        for r in overview['tasks']:
+            assert r['failure_count'] >= 0
+            assert r['in_cooldown'] is False or r['cooldown_minutes'] >= 0
+
+    def test_effective_target_is_none_for_non_countable(self, overview):
+        """定时/充能/限时任务没有"次数"这回事。"""
+        rows = [r for r in overview['tasks'] if not r.get('countable')]
+        assert rows
+        assert all(r['effective_target'] is None for r in rows)
+
+
+class TestEffectiveTargetOverride:
+    """
+    ★ `scheduler.target` 覆盖任务配置值 —— 这是"次数统一"的**闭环**。
+
+    改造前 `scheduler.target` 是**空壳**（全仓无人读取）,
+    界面上改它什么都不会发生。现在它必须真的覆盖。
+    """
+
+    def test_target_overrides_count(self, have_config):
+        from module.server.main_manager import mm
+        from module.server.schema_router import build_overview
+
+        config = mm.config_cache(CONFIG)
+        sch = config.model.orochi.scheduler
+        old = sch.target
+        try:
+            def eff():
+                rows = build_overview(CONFIG)['tasks']
+                return next(r for r in rows if r['command'] == 'Orochi')
+
+            before = eff()
+            assert before['effective_target'] == before['count'], \
+                '前提: 没设 target 时两者应相同'
+
+            sch.target = 7
+            config.save()
+            after = eff()
+            assert after['effective_target'] == 7, \
+                f'target=7 应覆盖, 实际 {after["effective_target"]}'
+            assert after['count'] == before['count'], \
+                '任务配置里的值不该被 target 改动'
+        finally:
+            sch.target = old
+            config.save()
+
+    def test_target_zero_falls_back(self, have_config):
+        """`target=0` = 用任务配置的值（0 不是"打 0 次"）。"""
+        from module.server.main_manager import mm
+        from module.server.schema_router import build_overview
+
+        config = mm.config_cache(CONFIG)
+        sch = config.model.orochi.scheduler
+        old = sch.target
+        try:
+            sch.target = 0
+            config.save()
+            rows = build_overview(CONFIG)['tasks']
+            r = next(x for x in rows if x['command'] == 'Orochi')
+            assert r['effective_target'] == r['count']
+            assert r['effective_target'] > 0
+        finally:
+            sch.target = old
+            config.save()

@@ -476,6 +476,9 @@ def build_overview(config_name: str) -> dict:
                 meta.category if meta else TC.FALLBACK_CATEGORY, ''),
             'enable': enabled,
             'priority': sch.get('priority'),
+            # ★ 预期完成时间（分钟）—— "休息时可穿插"的判据输入，
+            #   也是界面上要让用户可编辑的字段。
+            'expected_minutes': sch.get('expected_minutes', 0),
             'next_run': str(sch.get('next_run') or ''),
             'snapshot': str(sch.get('last_run') or ''),
             'period': getattr(period, 'value', period) or 'none',
@@ -487,7 +490,18 @@ def build_overview(config_name: str) -> dict:
                 or ('' if can_run else ('未启用' if not enabled else '等待到点')),
             'in_window': in_window,
             'countable': bool(meta.countable) if meta else False,
-            'count': value.get('limit_count') if meta and meta.countable else None,
+            # ★ `count` = **任务配置里的值**（不一定是根层的 `limit_count` ——
+            #   各任务把它放在不同层级: `orochi_config.limit_count` 等）。
+            #   曾经这里写 `value.get('limit_count')`, 于是**所有任务都返回 None**
+            #   （因为值嵌套在子 dict 里）—— 界面上就看不到默认次数。
+            #   现在用与 `effective_target` 同一套遍历。
+            'count': _count_from_value(meta, value),
+            # ★ **实际生效的次数**: 三级回落（`scheduler.target` > 任务配置 > 默认）。
+            #
+            #   界面上该显示的是**真正会用的那个** —— 否则用户改了 `target`
+            #   却看到旧数字, 会以为没生效。
+            #   见 `tasks/base_task.py` 的 `effective_target()`。
+            'effective_target': _effective_target_of(meta, sch, value),
             # ---- 界面渲染需要的补充字段(避免前端再发一次请求) ----
             # 充能类任务的"存量 x / 上限 y"(如金币妖怪 1/2)
             'charges': charges.get(_norm(key)),
@@ -498,6 +512,10 @@ def build_overview(config_name: str) -> dict:
             'in_list': _spec_list_pos(meta) is not None,
             # 该任务的效果说明(供界面展示"这个任务是干什么的")
             'resource_describe': _resource_describe(meta),
+            # ---- 连续失败冷却（见 `module/config/failure_state.py`）----
+            # 到阈值时不再 `exit(1)`, 而是给该任务加冷却。界面上要让用户
+            # **看见**并**能清除**（修好之后不想等 1 小时）。
+            **_failure_fields(config_name, command, now),
         })
 
     # 按 可跑 -> 优先级 -> 名称 排序, 便于界面直接渲染
@@ -522,6 +540,110 @@ def _spec_of(meta):
         return TC.get_spec(meta.task)
     except Exception:
         return None
+
+
+def _count_from_value(meta, value: dict):
+    """
+    任务配置里的次数（**按字段名遍历嵌套 dict**）。
+
+    ★ 这里曾经是 `value.get('limit_count')` —— 于是**所有任务都返回 None**,
+      因为值嵌套在子 dict 里（`orochi_config.limit_count` /
+      `bondling_config.limit_count` / …）。界面上就看不到默认次数。
+
+      `orochi_config` 那种层级用直接 `get` 是拿不到的, 必须遍历。
+    """
+    if meta is None or not meta.countable:
+        return None
+    field = getattr(meta, 'count_field_effective', None)
+    if not field:
+        return None
+    v = _find_in_mapping(value, field)
+    return v if isinstance(v, int) else None
+
+
+def _failure_fields(config_name: str, command: str, now=None) -> dict:
+    """
+    连续失败 / 冷却字段（供界面显示铭牌与"清除失败"）。
+
+    ★ 读不到就给"正常"值 —— 失败记录坏了不该让任务列表打不开。
+
+    见 `module/config/failure_state.py`: 到阈值时不再 `exit(1)`，
+    而是给该任务加冷却。界面上要让用户**看见**并**能清除**
+    （修好之后不想等 1 小时）。
+    """
+    try:
+        from module.config import failure_state
+
+        until = failure_state.cooldown_until(config_name, command, now)
+        return {
+            'failure_count': failure_state.failure_count(config_name, command),
+            'in_cooldown': until is not None,
+            'cooldown_minutes': failure_state.cooldown_remaining_minutes(
+                config_name, command, now) if until else 0,
+            'cooldown_until': until.strftime('%Y-%m-%d %H:%M:%S')
+                              if until else None,
+        }
+    except Exception:
+        return {'failure_count': 0, 'in_cooldown': False,
+                'cooldown_minutes': 0, 'cooldown_until': None}
+
+
+def _effective_target_of(meta, sch: dict, value: dict):
+    """
+    该任务**这一次真正会用**的目标次数（三级回落）。
+
+    与 `BaseTask.effective_target()` **同一套规则**，但这里是纯 dict 运算
+    （`/overview` 里没有任务对象可调）:
+
+        1. `scheduler.target > 0`  ->  用它
+        2. 否则                    ->  任务配置里的 `count_field`
+        3. 再否则                  ->  `meta.count_default`
+
+    ★ 为什么界面要这个而不是 `count`: `count` 只是"任务配置里的值"，
+      用户在界面上改的是 `scheduler.target`。若显示 `count`，
+      用户改完会看到旧数字，**以为没生效**。
+    """
+    if meta is None or not meta.countable:
+        return None
+    try:
+        target = int((sch or {}).get('target', 0) or 0)
+        if target > 0:
+            return target
+    except (TypeError, ValueError):
+        pass
+    # 任务配置里的值（字段名已由 meta 归一化）
+    field = getattr(meta, 'count_field_effective', None)
+    if field:
+        v = _find_in_mapping(value, field)
+        if isinstance(v, int):
+            return v
+    return getattr(meta, 'count_default', None)
+
+
+def _find_in_mapping(data, field: str):
+    """
+    在**嵌套 dict** 里按字段名找值（BFS）。
+
+    为什么遍历而不是硬编码路径: 各任务把 `limit_count` 放在不同层级
+    （`orochi_config.limit_count` / `bondling_config.limit_count` / 根上…），
+    硬编码路径必然漏。这一点与 `BaseTask._find_count_field` 同理。
+
+    ★ 带上限（200 个节点）—— 配置对象树可能有环或非常深。
+    """
+    if not isinstance(data, dict):
+        return None
+    if field in data:
+        return data[field]
+    queue = list(data.values())
+    seen = 0
+    while queue and seen < 200:
+        seen += 1
+        obj = queue.pop(0)
+        if isinstance(obj, dict):
+            if field in obj:
+                return obj[field]
+            queue.extend(obj.values())
+    return None
 
 
 def _spec_list_pos(meta):

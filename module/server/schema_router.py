@@ -116,20 +116,26 @@ def _list_meta(config_name: str = '') -> dict:
     """
     任务列表的元信息(供界面渲染排序控件)。
 
-    列表是**有序条目清单**(模型 B, 见 `module/config/run_list.py`),
-    条目三种 —— 按**效果**命名:
+    ## 列表 = **固定任务 + 休息**（有序条目）
 
-        task   执行某个任务
-        rest   **全部停止** N 分钟(连定时任务一起停)
-        delay  **只停列表** N 分钟(定时任务照常)
+    条目只有两种 —— 按**行为**命名:
 
-    ★ 命名按效果而非"休息/延后": 效果名一目了然, 不会歧义。
+        task   跑一个**固定任务**
+        rest   **休息** —— 去**庭院**待着 N 分钟
 
-    顺序来源分两级:
-      1. `Script.optimization.run_list` —— **用户编排**(有序条目数组)
-      2. 各任务 `meta.py` 的 `list_pos` —— 内置默认顺序
+    ## ★ 为什么定时任务不在列表里
+
+    定时任务有它自己的 window / 存量 / 周期, "放进列表按顺序执行" 与那些
+    机制冲突。所以**固定与定时分开管理**:
+
+    | 谁来管 | 内容 | 排序依据 |
+    |---|---|---|
+    | **运行列表** | 固定任务 + 休息 | 用户拖拽的顺序 |
+    | **定时调度器** | timed / charge / limited | window、剩余时间、预计耗时、自定义优先级 |
+
+    见 `docs/architecture.md` §5.4 与 `module/config/timed_schedule.py`。
     """
-    from tasks.Script.config_optimization import ScheduleRule
+    from tasks.Script.config_optimization import ScheduleRule, TimedPriority
 
     try:
         from module.config.run_list import (DURATION_CHOICES, EntryKind,
@@ -170,7 +176,7 @@ def _list_meta(config_name: str = '') -> dict:
         # 当前用户编排(原始数组; 空表示未编排)
         'entries': _current_run_list(config_name),
         'note': ('task 条目**不阻塞**列表(未就绪就跳过); '
-                 'rest/delay 条目**阻塞**列表, 生效后自动移除'),
+                 'rest 条目**阻塞**列表, 生效后自动移除'),
         # 全局开关 —— 界面直接渲染, 不必知道字段名
         'global_fields': _global_fields(config_name),
     }
@@ -192,54 +198,98 @@ def _config_of(config_name: str):
         return None
 
 
+def _opt_value(config_name: str, field: str, default=None):
+    """
+    读 `Script.optimization.<field>` 的**当前值**。
+
+    ★ 枚举必须取 `.value` —— 直接 `str(枚举)` 会得到
+      `'WhenTaskQueueEmpty.GOTO_MAIN'`（枚举名）而不是 `'goto_main'`,
+      前端拿去比对会永远不匹配。(踩过。)
+    """
+    config = _config_of(config_name)
+    if config is None:
+        return default
+    try:
+        v = getattr(config.model.script.optimization, field, None)
+    except Exception:
+        return default
+    if v is None:
+        return default
+    return getattr(v, 'value', v)
+
+
 def _global_fields(config_name: str = '') -> dict:
     """
     `Script.optimization` 里值得放到「全局设置」面板的字段。
 
-    ## ★ 为什么这里**没有**"跑完循环整表"
+    ★ **不给假字段**: 原型里画了"跑完循环整表", 但后端没有这个字段。
+      造一个假的会**静默失效**（`script_set_arg` 返回 False 并记 error,
+      界面看不出来）。所以这里只暴露后端真实支持的字段。
 
-    原型里画了一个"跑完循环整表"开关, 但**后端根本没有这个字段**
-    (`Script.optimization` 里既没有 `loop_whole_list`, 也没有循环开关)。
+    ## 字段分组
 
-    我没有为了"界面上有这一项"就造一个假字段 —— 那会**静默失效**:
-    `script_set_arg` 遇到不存在的字段会返回 `False` 并记 error, 界面看不出来。
-
-    若将来要真正实现"循环整表", 需要**后端加字段 + 调度器支持**。
-    见 `docs/ui-api-mapping.md` 的缺口清单。
-
-    这里暴露的是**后端真实支持**的 `when_task_queue_empty`。
+    | 组 | 字段 |
+    |---|---|
+    | **总开关** | `enable_fixed` / `enable_timed` |
+    | **两者关系** | `timed_priority` / `rest_interleave` |
+    | **杂项** | `when_task_queue_empty` |
     """
-    from tasks.Script.config_optimization import WhenTaskQueueEmpty
+    from tasks.Script.config_optimization import (TimedPriority,
+                                                  WhenTaskQueueEmpty)
 
-    labels = {
+    priority_labels = {
+        TimedPriority.TIMED.value: '定时优先（打完当前这场就让位）',
+        TimedPriority.LIST.value: '列表优先（等固定任务跑完）',
+    }
+    queue_labels = {
         WhenTaskQueueEmpty.GOTO_MAIN.value: '回庭院待命',
         WhenTaskQueueEmpty.CLOSE_GAME.value: '关闭游戏',
     }
-    current = ''
-    config = _config_of(config_name)
-    if config is not None:
-        try:
-            v = getattr(config.model.script.optimization,
-                        'when_task_queue_empty', None)
-            # ⚠ 不能直接 `str(v)` —— 枚举实例的 `str()` 会得到
-            #   `'WhenTaskQueueEmpty.GOTO_MAIN'`(枚举名), 而不是 `'goto_main'`。
-            #   前端拿去比对会永远不匹配。
-            current = str(getattr(v, 'value', v) or '')
-        except Exception:
-            current = ''
-    if not current:
-        # 兜底: 给后端默认值, 免得界面下拉框空着
-        current = WhenTaskQueueEmpty.GOTO_MAIN.value
 
     return {
+        # ---- 两个总开关 ----
+        'enable_fixed': {
+            'group': 'script.optimization', 'field': 'enable_fixed',
+            'type': 'boolean', 'label': '启用固定任务',
+            'current': bool(_opt_value(config_name, 'enable_fixed', True)),
+            'help': '固定任务 = 有"打满 N 次"语义的, 由运行列表管',
+        },
+        'enable_timed': {
+            'group': 'script.optimization', 'field': 'enable_timed',
+            'type': 'boolean', 'label': '启用定时任务',
+            'current': bool(_opt_value(config_name, 'enable_timed', True)),
+            'help': '定时任务 = 有开放时段/存量的, 由定时调度器管',
+        },
+        # ---- 两者关系 ----
+        'timed_priority': {
+            'group': 'script.optimization', 'field': 'timed_priority',
+            'type': 'string', 'label': '定时任务优先级',
+            'current': str(_opt_value(config_name, 'timed_priority',
+                                      TimedPriority.TIMED.value)),
+            'choices': [
+                {'value': k.value, 'label': priority_labels.get(k.value, k.value)}
+                for k in TimedPriority
+            ],
+            'help': '定时任务到点时, 固定任务要不要在**战斗边界**让位',
+        },
+        'rest_interleave': {
+            'group': 'script.optimization', 'field': 'rest_interleave',
+            'type': 'boolean', 'label': '休息时可穿插定时任务',
+            'current': bool(_opt_value(config_name, 'rest_interleave', False)),
+            'help': '判据: 定时任务的预期完成时间 < 休息剩余时间。'
+                    '用于保护组队任务（避免在庭院干等）。'
+                    '默认关 —— 因为"预期完成时间"没配(为 0)时不能瞎比。',
+        },
+        # ---- 杂项 ----
         'when_task_queue_empty': {
             'group': 'script.optimization',
             'field': 'when_task_queue_empty',
             'type': 'string',
             'label': '队列跑空后',
-            'current': current,
+            'current': str(_opt_value(config_name, 'when_task_queue_empty',
+                                      WhenTaskQueueEmpty.GOTO_MAIN.value)),
             'choices': [
-                {'value': k.value, 'label': labels.get(k.value, k.value)}
+                {'value': k.value, 'label': queue_labels.get(k.value, k.value)}
                 for k in WhenTaskQueueEmpty
             ],
         },

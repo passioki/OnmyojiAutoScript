@@ -268,9 +268,10 @@ class TestRunListSection:
         for m in lst['modes']:
             assert 'value' in m and 'label' in m
 
-    def test_entry_kinds_cover_three(self, lst):
+    def test_entry_kinds_cover_two(self, lst):
+        """v2 只有两种条目: `task`（固定任务）与 `rest`（休息）。"""
         kinds = {k['value'] for k in lst['entry_kinds']}
-        assert kinds == {'task', 'rest', 'delay'}, kinds
+        assert kinds == {'task', 'rest'}, kinds
 
     def test_entry_kind_flags_are_consistent(self, lst):
         """`needs_task` / `needs_minutes` / `blocks_list` 必须自洽。"""
@@ -283,18 +284,23 @@ class TestRunListSection:
                 assert k['blocks_list'], f'{k["value"]} 应阻塞列表'
 
     def test_effect_based_naming(self, lst):
-        """
-        ★ 按**效果**命名(用户明确要求), 不叫"休息/延后"。
-        """
+        """按**行为**命名: `task` -> 任务, `rest` -> 休息。"""
         label = {k['value']: k['label'] for k in lst['entry_kinds']}
-        assert label['rest'] == '全部停止'
-        assert label['delay'] == '只停列表'
+        assert label['task'] == '任务'
+        assert label['rest'] == '休息'
 
-    def test_help_explains_timed_task_difference(self, lst):
-        """说明必须写明对**定时任务**的不同处理 —— 这是两者唯一区别。"""
+    def test_rest_help_mentions_town(self, lst):
+        """休息的说明必须写明**去庭院**（不是"什么都不做"）。"""
         help_ = {k['value']: k['help'] for k in lst['entry_kinds']}
-        assert '定时任务一起停' in help_['rest']
-        assert '定时任务照常' in help_['delay']
+        assert '庭院' in help_['rest'], help_['rest']
+
+    def test_exposes_two_master_switches(self, lst):
+        """暴露"启用固定/启用定时"与相关开关的定义, 前端不必硬编码字段名。"""
+        gf = lst.get('global_fields') or {}
+        for key in ('enable_fixed', 'enable_timed',
+                    'timed_priority', 'rest_interleave'):
+            assert key in gf, f'list.global_fields 缺 {key}'
+            assert gf[key].get('label'), f'{key} 缺 label'
 
     def test_duration_choices_positive_sorted(self, lst):
         d = lst['duration_choices']

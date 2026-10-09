@@ -1,38 +1,59 @@
 # -*- coding: utf-8 -*-
-"""运行列表（条目清单 / 模型 B）的测试。
+"""运行列表（**固定任务 + 休息**）的测试。
 
-## 为什么是"条目清单"而不是"任务顺序"
+## v2 的设计（用户确认）
 
-早期实现只有 `task_order`（逗号分隔任务名）—— 那**只能排任务**，无法表达
-"打完御魂后全部停止 30 分钟"这类**在序列中间发生的事**。
-
-本模型把列表做成**有序条目**，条目三种：
-
-    task   执行某个任务
-    rest   **全部停止** N 分钟（连定时任务一起停）
-    delay  **只停列表** N 分钟（定时任务照常）
-
-★ 命名按**效果**而非"休息/延后"—— 用户明确要求，因为效果名一目了然。
-
-## 关键语义（设计决定，不是实现细节）
-
-| 条目 | 是否**阻塞**列表 | 理由 |
+| 谁来管 | 内容 | 排序依据 |
 |---|---|---|
-| `task` | ❌ 不阻塞 | 若阻塞，则"第一个任务在 6 小时冷却中"会卡死整个列表 |
-| `rest` | ✅ 阻塞 | 这就是它存在的意义 |
-| `delay` | ✅ 阻塞 | 同上 |
+| **运行列表** | 固定任务 + **休息** | 用户拖拽的顺序 |
+| **定时调度器** | `timed` / `charge` / `limited` | window、剩余时间、预计耗时、自定义优先级 |
 
-`rest` / `delay` 是**一次性条目**：时间到后**被移除**（持久化），
-而不是每次循环都触发一次 —— 后者会让用户以为软件坏了。
+### 条目只有两种（按效果命名）
+
+    task   跑一个**固定任务**
+    rest   **休息** —— 去**庭院**待着 N 分钟
+
+### 为什么去掉了 v1 的 `delay`
+
+v1 有 `delay`（"只停列表"）与 `rest`（"全部停止"），用于表达
+"连定时任务一起停 / 只停列表"。但 v2 之后**固定与定时分开管理**
+（定时任务有自己的总开关），这两个概念都不需要了 ——
+想只停列表就关掉定时任务开关。
+
+### 关键语义
+
+* `task` **不阻塞**列表 —— 未就绪（冷却/额度/不在时段）就**跳过它继续看后面的**。
+  否则"列表里第一个任务在 6 小时冷却中"会**卡死整个列表**。
+* `rest` **阻塞**列表 —— 这就是它存在的意义。生效后**移除该条目**
+  （用户看到的是"这一行消失了"，而不是每次循环都休息一次）。
 """
 from datetime import datetime, timedelta
 
 import pytest
 
 from module.config.run_list import (DURATION_CHOICES, KIND_HELP, KIND_LABEL,
-                                    EntryKind, RunEntry, RunList)
+                                    EntryKind, RunEntry, RunList, is_list_task)
 from module.config.scheduler import TaskScheduler
 from tasks.Script.config_optimization import ScheduleRule
+
+
+class TestEntryKind:
+    def test_only_two_kinds(self):
+        """v2 只保留 `task` 与 `rest`（`delay` 已作废）。"""
+        assert {k.value for k in EntryKind} == {'task', 'rest'}
+
+    def test_labels_are_effect_based(self):
+        """按**效果**命名, 不用"停止/延后"那种容易误解的词。"""
+        assert KIND_LABEL[EntryKind.TASK] == '任务'
+        assert KIND_LABEL[EntryKind.REST] == '休息'
+
+    def test_rest_help_mentions_town(self):
+        """休息 = **去庭院**待着（不是"什么都不做"）。"""
+        assert '庭院' in KIND_HELP[EntryKind.REST]
+
+    def test_duration_choices_positive_sorted(self):
+        assert DURATION_CHOICES == tuple(sorted(DURATION_CHOICES))
+        assert all(m > 0 for m in DURATION_CHOICES)
 
 
 class TestRunEntry:
@@ -41,61 +62,54 @@ class TestRunEntry:
         assert e.describe() == 'FallenSun'
         assert e.to_dict() == {'kind': 'task', 'task': 'FallenSun'}
 
-    def test_rest_entry(self):
+    def test_rest_entry_shows_unit(self):
+        """界面显示要带单位 —— `30 分钟` / `2 小时`, 不是裸数字。"""
         e = RunEntry(kind=EntryKind.REST, minutes=30)
         assert '30 分钟' in e.describe()
         assert e.to_dict() == {'kind': 'rest', 'minutes': 30}
-
-    def test_delay_entry(self):
-        e = RunEntry(kind=EntryKind.DELAY, minutes=60)
-        assert e.to_dict() == {'kind': 'delay', 'minutes': 60}
-
-    def test_hours_are_readable(self):
         assert '小时' in RunEntry(kind=EntryKind.REST, minutes=120).describe()
 
     def test_string_kind_accepted(self):
-        """宽松解析: 从 JSON 读出来是字符串。"""
         assert RunEntry(kind='rest', minutes=5).kind == EntryKind.REST
 
     def test_invalid_kind_rejected(self):
         with pytest.raises(ValueError):
             RunEntry(kind='nonsense')
 
+    def test_delay_kind_rejected(self):
+        """v1 的 `delay` 不再合法。"""
+        with pytest.raises(ValueError):
+            RunEntry(kind='delay', minutes=5)
+
     def test_task_requires_name(self):
         with pytest.raises(ValueError):
             RunEntry(kind=EntryKind.TASK, task='')
 
     @pytest.mark.parametrize('mins', [0, -1])
-    def test_non_task_requires_positive_minutes(self, mins):
+    def test_rest_requires_positive_minutes(self, mins):
         with pytest.raises(ValueError):
             RunEntry(kind=EntryKind.REST, minutes=mins)
 
-    def test_non_task_rejects_bad_minutes(self):
-        with pytest.raises(ValueError):
-            RunEntry(kind=EntryKind.DELAY, minutes='abc')
-
     def test_task_entry_forces_minutes_zero(self):
-        """task 条目不该带 minutes —— 自动归一化。"""
         assert RunEntry(kind=EntryKind.TASK, task='A', minutes=99).minutes == 0
-
-    def test_non_task_forces_task_empty(self):
-        assert RunEntry(kind=EntryKind.REST, minutes=5, task='X').task == ''
 
 
 class TestRunEntryFromDict:
     def test_roundtrip(self):
         for e in (RunEntry(kind=EntryKind.TASK, task='A'),
-                  RunEntry(kind=EntryKind.REST, minutes=7),
-                  RunEntry(kind=EntryKind.DELAY, minutes=9)):
+                  RunEntry(kind=EntryKind.REST, minutes=7)):
             assert RunEntry.from_dict(e.to_dict()) == e
 
     def test_lenient_kind_missing(self):
-        """没有 kind 但给了 task -> 当作 task(旧数据兼容)。"""
         assert RunEntry.from_dict({'task': 'A'}).kind == EntryKind.TASK
 
     def test_rejects_non_dict(self):
         with pytest.raises(ValueError):
             RunEntry.from_dict('not a dict')
+
+    def test_rejects_delay(self):
+        with pytest.raises(ValueError):
+            RunEntry.from_dict({'kind': 'delay', 'minutes': 5})
 
     def test_rejects_unknown_kind(self):
         with pytest.raises(ValueError):
@@ -104,44 +118,53 @@ class TestRunEntryFromDict:
 
 class TestRunListBasics:
     def sample(self):
+        # ★ 只用固定任务（Orochi / FallenSun / GoryouRealm 都是 fixed）
         return RunList.from_list([
-            {'kind': 'task', 'task': 'Exploration'},
             {'kind': 'task', 'task': 'Orochi'},
+            {'kind': 'task', 'task': 'FallenSun'},
             {'kind': 'rest', 'minutes': 30},
-            {'kind': 'task', 'task': 'GoldYoukai'},
-            {'kind': 'delay', 'minutes': 60},
+            {'kind': 'task', 'task': 'GoryouRealm'},
         ])
 
     def test_length_and_iter(self):
         rl = self.sample()
-        assert len(rl) == 5
+        assert len(rl) == 4
         assert [e.kind for e in rl] == [
-            EntryKind.TASK, EntryKind.TASK, EntryKind.REST,
-            EntryKind.TASK, EntryKind.DELAY]
+            EntryKind.TASK, EntryKind.TASK, EntryKind.REST, EntryKind.TASK]
 
     def test_task_order_dedupes(self):
         rl = RunList.from_list([
-            {'kind': 'task', 'task': 'A'},
-            {'kind': 'task', 'task': 'B'},
-            {'kind': 'task', 'task': 'A'},
+            {'kind': 'task', 'task': 'Orochi'},
+            {'kind': 'task', 'task': 'FallenSun'},
+            {'kind': 'task', 'task': 'Orochi'},
         ])
-        assert rl.task_order() == ['A', 'B'], '同名任务应去重'
+        assert rl.task_order() == ['Orochi', 'FallenSun'], '同名任务应去重'
 
-    def test_blocking_entry_is_first_control(self):
+    def test_blocking_entry_is_rest(self):
         b = self.sample().blocking_entry()
-        assert b.kind == EntryKind.REST and b.minutes == 30
-
-    def test_index_of_blocker(self):
+        assert b is not None and b.kind == EntryKind.REST and b.minutes == 30
         assert self.sample().index_of_blocker() == 2
 
-    def test_no_blocker_when_only_tasks(self):
-        rl = RunList.from_list([{'kind': 'task', 'task': 'A'}])
+    def test_task_does_not_block(self):
+        """
+        `task` **不阻塞** —— 只有 rest 会。
+
+        ★ 若 task 阻塞, "列表里第一个任务在 6 小时冷却中"会卡死整个列表。
+        """
+        rl = RunList.from_list([{'kind': 'task', 'task': 'Orochi'}])
         assert rl.blocking_entry() is None
         assert rl.index_of_blocker() == -1
 
+    def test_total_rest_minutes(self):
+        assert self.sample().total_rest_minutes() == 30
+
+    def test_total_rest_minutes_zero_when_no_rest(self):
+        rl = RunList.from_list([{'kind': 'task', 'task': 'Orochi'}])
+        assert rl.total_rest_minutes() == 0
+
     def test_add_and_remove(self):
         rl = RunList()
-        rl.add(RunEntry(kind=EntryKind.TASK, task='A'))
+        rl.add(RunEntry(kind=EntryKind.TASK, task='Orochi'))
         rl.add(RunEntry(kind=EntryKind.REST, minutes=5), index=0)
         assert rl.to_list()[0]['kind'] == 'rest'
         removed = rl.remove_at(0)
@@ -151,28 +174,26 @@ class TestRunListBasics:
     def test_remove_blocker(self):
         rl = self.sample()
         rl.remove_blocker()
-        assert rl.index_of_blocker() == 3, '移除第一个阻塞条目后, 应是后面的 delay'
+        assert rl.index_of_blocker() == -1, '示例里只有一个 rest'
+        assert len(rl) == 3
 
     def test_serialization_roundtrip(self):
         rl = self.sample()
         assert RunList.from_list(rl.to_list()).to_list() == rl.to_list()
 
     def test_from_list_is_lenient(self):
-        """
-        坏条目**跳过**, 不让一条写坏整份配置。
-
-        这是刻意的: 列表是用户编辑的内容。
-        """
+        """坏条目**跳过**, 不让一条写坏整份配置（列表是用户编辑的内容）。"""
         rl = RunList.from_list([
-            {'kind': 'task', 'task': 'A'},
-            {'kind': 'rest', 'minutes': 0},    # 非法
-            None,                               # 不是对象
-            {'kind': 'xx'},                     # 未知类型
-            {'kind': 'task'},                   # 缺 task
-            {'kind': 'delay', 'minutes': 15},   # 合法
+            {'kind': 'task', 'task': 'Orochi'},
+            {'kind': 'rest', 'minutes': 0},      # 非法
+            None,                                 # 不是对象
+            {'kind': 'xx'},                       # 未知类型
+            {'kind': 'delay', 'minutes': 5},      # v1 遗留
+            {'kind': 'task'},                     # 缺 task
+            {'kind': 'rest', 'minutes': 15},      # 合法
         ])
         assert len(rl) == 2
-        assert [e.kind for e in rl] == [EntryKind.TASK, EntryKind.DELAY]
+        assert [e.kind for e in rl] == [EntryKind.TASK, EntryKind.REST]
 
     def test_on_bad_callback(self):
         seen = []
@@ -184,26 +205,49 @@ class TestRunListBasics:
         assert RunList.from_list([]).is_empty()
 
 
-class TestLegacyCompat:
-    """旧的 `task_order`(逗号分隔)必须还能用。"""
+class TestOnlyFixedTasks:
+    """列表里**只该有固定任务** —— 定时任务由定时调度器管。"""
 
+    def test_is_list_task(self):
+        assert is_list_task('Orochi') is True
+        assert is_list_task('FallenSun') is True
+        assert is_list_task('DemonEncounter') is False   # timed
+        assert is_list_task('GoldYoukai') is False        # charge
+        assert is_list_task('NotARealTask') is False      # 未知 -> 不崩
+
+    def test_timed_task_is_skipped(self):
+        bad = []
+        rl = RunList.from_list([
+            {'kind': 'task', 'task': 'Orochi'},           # 固定
+            {'kind': 'task', 'task': 'DemonEncounter'},   # 定时 -> 跳过
+            {'kind': 'rest', 'minutes': 10},
+        ], on_bad=lambda item, exc: bad.append(item))
+        assert rl.task_order() == ['Orochi']
+        assert len(bad) == 1, f'应记录被跳过的条目: {bad}'
+
+    def test_can_disable_the_check_for_migration(self):
+        """读旧配置时可关掉校验, 免得静默丢条目。"""
+        rl = RunList.from_list(
+            [{'kind': 'task', 'task': 'DemonEncounter'}],
+            only_list_tasks=False)
+        assert rl.task_order() == ['DemonEncounter']
+
+
+class TestLegacyCompat:
     def test_from_task_order(self):
-        rl = RunList.from_task_order('A,B,C')
-        assert len(rl) == 3
-        assert all(e.kind == EntryKind.TASK for e in rl)
-        assert rl.task_order() == ['A', 'B', 'C']
+        rl = RunList.from_task_order('Orochi,FallenSun')
+        assert rl.task_order() == ['Orochi', 'FallenSun']
 
     def test_from_task_order_tolerates_spaces_and_blanks(self):
-        rl = RunList.from_task_order(' A , , B ,')
-        assert rl.task_order() == ['A', 'B']
+        assert RunList.from_task_order(' A , , B ,').task_order() == ['A', 'B']
 
     def test_to_task_order(self):
         rl = RunList.from_list([
-            {'kind': 'task', 'task': 'A'},
+            {'kind': 'task', 'task': 'Orochi'},
             {'kind': 'rest', 'minutes': 5},
-            {'kind': 'task', 'task': 'B'},
+            {'kind': 'task', 'task': 'FallenSun'},
         ])
-        assert rl.to_task_order() == 'A,B'
+        assert rl.to_task_order() == 'Orochi,FallenSun'
 
     def test_from_empty(self):
         assert RunList.from_task_order('').is_empty()
@@ -211,53 +255,44 @@ class TestLegacyCompat:
 
 
 class TestReorder:
-    """
-    两种重排方式, 用途不同 —— 混用会出错。
-    """
+    """两种重排方式, 用途不同 —— 混用会出错。"""
 
     def test_set_from_task_order_keeps_control_in_place(self):
-        """
-        只给任务名时, 控制条目的**下标不变**。
-
-        因为任务名列表里没有控制条目的位置信息, 只能原地不动。
-        """
+        """只给任务名时, 休息条目的**下标不变**。"""
         rl = RunList.from_list([
-            {'kind': 'task', 'task': 'A'},
+            {'kind': 'task', 'task': 'Orochi'},
             {'kind': 'rest', 'minutes': 10},
-            {'kind': 'task', 'task': 'B'},
-            {'kind': 'task', 'task': 'C'},
+            {'kind': 'task', 'task': 'FallenSun'},
+            {'kind': 'task', 'task': 'GoryouRealm'},
         ])
-        rl.set_from_task_order(['C', 'A', 'B'])
+        rl.set_from_task_order(['GoryouRealm', 'Orochi', 'FallenSun'])
         lst = rl.to_list()
-        assert [e['task'] for e in lst if e['kind'] == 'task'] == ['C', 'A', 'B']
+        assert [e['task'] for e in lst if e['kind'] == 'task'] == \
+            ['GoryouRealm', 'Orochi', 'FallenSun']
         assert lst[1]['kind'] == 'rest', 'rest 应仍在第 2 位'
 
-    def test_set_from_task_order_appends_new_tasks(self):
-        rl = RunList.from_list([{'kind': 'task', 'task': 'A'}])
-        rl.set_from_task_order(['A', 'B', 'C'])
-        assert rl.task_order() == ['A', 'B', 'C']
+    def test_set_from_task_order_appends_new(self):
+        rl = RunList.from_list([{'kind': 'task', 'task': 'Orochi'}])
+        rl.set_from_task_order(['Orochi', 'FallenSun', 'GoryouRealm'])
+        assert rl.task_order() == ['Orochi', 'FallenSun', 'GoryouRealm']
 
     def test_set_from_task_order_can_shrink(self):
         rl = RunList.from_list([
-            {'kind': 'task', 'task': 'A'},
-            {'kind': 'task', 'task': 'B'},
-            {'kind': 'task', 'task': 'C'},
+            {'kind': 'task', 'task': 'Orochi'},
+            {'kind': 'task', 'task': 'FallenSun'},
+            {'kind': 'task', 'task': 'GoryouRealm'},
         ])
-        rl.set_from_task_order(['A'])
-        assert rl.task_order() == ['A'], '应只留下给定的任务'
+        rl.set_from_task_order(['Orochi'])
+        assert rl.task_order() == ['Orochi']
         assert len(rl) == 1, '多余的槽位应被移除'
 
-    def test_replace_all_allows_inserting_control_anywhere(self):
-        """
-        ★ 模型 B 的核心: 控制条目可以**插到任意位置**。
-
-        界面拖拽走这条路径 —— 用户拖的就是完整清单, 位置信息完整。
-        """
-        rl = RunList([RunEntry(kind=EntryKind.TASK, task='A')])
+    def test_replace_all_inserts_control_anywhere(self):
+        """★ 核心: 休息条目可以插到**任意位置**。"""
+        rl = RunList([RunEntry(kind=EntryKind.TASK, task='Orochi')])
         rl.replace_all([
-            {'kind': 'task', 'task': 'A'},
+            {'kind': 'task', 'task': 'Orochi'},
             {'kind': 'rest', 'minutes': 20},
-            {'kind': 'task', 'task': 'B'},
+            {'kind': 'task', 'task': 'FallenSun'},
         ])
         lst = rl.to_list()
         assert [e['kind'] for e in lst] == ['task', 'rest', 'task']
@@ -265,12 +300,12 @@ class TestReorder:
 
     def test_replace_all_accepts_runentry_objects(self):
         rl = RunList()
-        rl.replace_all([RunEntry(kind=EntryKind.TASK, task='A'),
-                        RunEntry(kind=EntryKind.DELAY, minutes=5)])
+        rl.replace_all([RunEntry(kind=EntryKind.TASK, task='Orochi'),
+                        RunEntry(kind=EntryKind.REST, minutes=5)])
         assert len(rl) == 2
 
     def test_replace_all_with_empty(self):
-        rl = RunList([RunEntry(kind=EntryKind.TASK, task='A')])
+        rl = RunList([RunEntry(kind=EntryKind.TASK, task='Orochi')])
         rl.replace_all([])
         assert rl.is_empty()
 
@@ -289,109 +324,79 @@ class TestListRuleScheduling:
 
     def test_orders_by_run_list(self):
         rl = RunList.from_list([
-            {'kind': 'task', 'task': 'Exploration'},
             {'kind': 'task', 'task': 'Orochi'},
-            {'kind': 'task', 'task': 'GoldYoukai'},
+            {'kind': 'task', 'task': 'FallenSun'},
+            {'kind': 'task', 'task': 'GoryouRealm'},
         ])
-        pend = [self.F('GoldYoukai'), self.F('MemoryScrolls'),
-                self.F('Exploration'), self.F('Orochi')]
+        pend = [self.F('GoryouRealm'), self.F('Exploration'),
+                self.F('Orochi'), self.F('FallenSun')]
         got = [f.command for f in
                TaskScheduler.schedule(ScheduleRule.LIST, list(pend), rl)]
-        assert got[:3] == ['Exploration', 'Orochi', 'GoldYoukai']
-        assert got[-1] == 'MemoryScrolls', '未编排的排最后'
+        assert got[:3] == ['Orochi', 'FallenSun', 'GoryouRealm']
+        assert got[-1] == 'Exploration', '未编排的排最后'
 
-    def test_control_entries_do_not_appear_as_tasks(self):
+    def test_rest_does_not_appear_as_task(self):
         rl = RunList.from_list([
             {'kind': 'rest', 'minutes': 10},
-            {'kind': 'task', 'task': 'A'},
+            {'kind': 'task', 'task': 'Orochi'},
         ])
-        pend = [self.F('A'), self.F('B')]
+        pend = [self.F('Orochi'), self.F('FallenSun')]
         got = [f.command for f in
                TaskScheduler.schedule(ScheduleRule.LIST, list(pend), rl)]
-        assert got[0] == 'A'
-        assert set(got) == {'A', 'B'}, '控制条目不该引入任务'
+        assert got[0] == 'Orochi'
+        assert set(got) == {'Orochi', 'FallenSun'}, '休息不该引入任务'
 
     def test_legacy_string_still_works(self):
-        pend = [self.F('B'), self.F('A')]
+        pend = [self.F('FallenSun'), self.F('Orochi')]
         got = [f.command for f in
-               TaskScheduler.schedule(ScheduleRule.LIST, list(pend), 'B,A')]
-        assert got[:2] == ['B', 'A']
+               TaskScheduler.schedule(ScheduleRule.LIST, list(pend),
+                                      'FallenSun,Orochi')]
+        assert got[:2] == ['FallenSun', 'Orochi']
 
     def test_empty_run_list_falls_back_to_list_pos(self):
         """空清单 -> 回退到各任务 `meta.py` 的 `list_pos`。"""
         pend = [self.F('FallenSun'), self.F('SoulsTidy')]
         got = [f.command for f in
                TaskScheduler.schedule(ScheduleRule.LIST, list(pend), RunList())]
-        # SoulsTidy 的 list_pos 是 1, 应排在前面
-        assert got[0] == 'SoulsTidy', f'应按 list_pos 排(期望 SoulsTidy 在前): {got}'
-
-    def test_restart_always_first(self):
-        rl = RunList.from_list([
-            {'kind': 'task', 'task': 'FallenSun'},
-            {'kind': 'task', 'task': 'Restart'},
-        ])
-        pend = [self.F('FallenSun'), self.F('Restart')]
-        got = [f.command for f in
-               TaskScheduler.schedule(ScheduleRule.LIST, list(pend), rl)]
-        assert got[0] == 'Restart'
+        assert got[0] == 'SoulsTidy', f'应按 list_pos 排: {got}'
 
 
 class TestPreview:
-    """预演(界面「预期执行流程」面板)。
-
-    ★ 必须标注是**推算**, 不是保证。
-    """
+    """预演（界面「预期执行流程」面板）—— 推算, 不是保证。"""
 
     def test_rest_advances_time(self):
         rl = RunList.from_list([
-            {'kind': 'task', 'task': 'A'},
+            {'kind': 'task', 'task': 'Orochi'},
             {'kind': 'rest', 'minutes': 30},
-            {'kind': 'task', 'task': 'B'},
+            {'kind': 'task', 'task': 'FallenSun'},
         ])
         pv = rl.preview(datetime(2026, 10, 9, 10, 0))
+        assert len(pv) == 3
         assert pv[0]['at'] == datetime(2026, 10, 9, 10, 0)
+        assert pv[1]['at'] == datetime(2026, 10, 9, 10, 30)
         assert pv[2]['at'] == datetime(2026, 10, 9, 10, 30)
-
-    def test_delay_advances_time(self):
-        rl = RunList.from_list([
-            {'kind': 'delay', 'minutes': 60},
-            {'kind': 'task', 'task': 'A'},
-        ])
-        pv = rl.preview(datetime(2026, 10, 9, 10, 0))
-        assert pv[1]['at'] == datetime(2026, 10, 9, 11, 0)
 
     def test_tasks_share_same_instant(self):
         """任务条目只定**先后**, 不定间隔。"""
         rl = RunList.from_list([
-            {'kind': 'task', 'task': 'A'},
-            {'kind': 'task', 'task': 'B'},
+            {'kind': 'task', 'task': 'Orochi'},
+            {'kind': 'task', 'task': 'FallenSun'},
         ])
         pv = rl.preview(datetime(2026, 10, 9, 10, 0))
         assert pv[0]['at'] == pv[1]['at']
 
+    def test_timestamps_monotonic(self):
+        rl = RunList.from_list([
+            {'kind': 'task', 'task': 'Orochi'},
+            {'kind': 'rest', 'minutes': 10},
+            {'kind': 'rest', 'minutes': 10},
+            {'kind': 'task', 'task': 'FallenSun'},
+        ])
+        ats = [p['at'] for p in rl.preview(datetime(2026, 10, 9, 10, 0))]
+        assert ats == sorted(ats), '预演时间必须单调不减'
+
     def test_note_marks_running(self):
-        rl = RunList.from_list([{'kind': 'task', 'task': 'A'}])
+        rl = RunList.from_list([{'kind': 'task', 'task': 'Orochi'}])
         pv = rl.preview(datetime(2026, 10, 9, 10, 0),
-                        running_lookup=lambda t: t == 'A')
+                        running_lookup=lambda t: t == 'Orochi')
         assert pv[0]['note'] == '进行中'
-
-
-class TestNamingAndLabels:
-    """效果命名(用户明确要求)。"""
-
-    def test_effect_based_names(self):
-        assert KIND_LABEL[EntryKind.REST] == '全部停止'
-        assert KIND_LABEL[EntryKind.DELAY] == '只停列表'
-
-    def test_labels_are_distinguishable(self):
-        """两个名字必须能一眼区分 —— 这是改名的目的。"""
-        assert KIND_LABEL[EntryKind.REST] != KIND_LABEL[EntryKind.DELAY]
-
-    def test_help_text_explains_timed_task_behaviour(self):
-        """说明里必须写明对**定时任务**的不同处理(这是两者唯一区别)。"""
-        assert '定时任务一起停' in KIND_HELP[EntryKind.REST]
-        assert '定时任务照常' in KIND_HELP[EntryKind.DELAY]
-
-    def test_duration_choices_positive(self):
-        assert all(m > 0 for m in DURATION_CHOICES)
-        assert DURATION_CHOICES == tuple(sorted(DURATION_CHOICES))

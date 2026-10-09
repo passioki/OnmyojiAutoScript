@@ -67,29 +67,61 @@ from enum import Enum
 
 
 class EntryKind(str, Enum):
-    """列表条目类型。"""
+    """
+    列表条目类型。
 
-    TASK = 'task'      # 跑某个任务
-    REST = 'rest'      # **全部停止** N 分钟(连定时任务一起停)
-    DELAY = 'delay'    # **只停列表** N 分钟(定时任务照常)
+    ## v2 只保留两种
+
+    * `task` —— 跑一个**固定任务**
+    * `rest` —— **休息**: 去庭院待着 N 分钟
+
+    ## 为什么去掉了 `delay`
+
+    v1 里有 `delay`（"只停列表"），那是为了表达"定时任务照常、只停列表"。
+    但 v2 之后**固定任务与定时任务分开管理**（定时任务有自己的总开关），
+    "只停列表" 这个概念不再有意义 —— 想只停列表就关掉定时任务开关。
+
+    ## 为什么 `task` 只能是固定任务
+
+    定时任务有它自己的 window / 存量 / 周期，
+    "放进列表按顺序执行" 与那些机制冲突（见 `is_list_task()`）。
+    """
+
+    TASK = 'task'      # 跑一个固定任务
+    REST = 'rest'      # **休息**: 去庭院待着 N 分钟
 
 
-# 效果命名(用户要求): 不叫"休息/延后", 而按**效果**命名, 一目了然
+# 效果命名(用户要求): 按**行为**命名, 不叫"停止/延后"那种容易误解的词
 KIND_LABEL = {
     EntryKind.TASK: '任务',
-    EntryKind.REST: '全部停止',
-    EntryKind.DELAY: '只停列表',
+    EntryKind.REST: '休息',
 }
 
 # 条目类型的可读说明(界面直接显示, 不必前端维护)
 KIND_HELP = {
-    EntryKind.TASK: '执行这个任务',
-    EntryKind.REST: '暂停调度 N 分钟 —— 连定时任务一起停',
-    EntryKind.DELAY: '只推迟列表 N 分钟 —— 定时任务照常',
+    EntryKind.TASK: '执行这个固定任务',
+    EntryKind.REST: '去庭院待着 N 分钟（游戏不会断线，组队回来时人在）',
 }
 
 # 时长的默认可选项(分钟)
 DURATION_CHOICES = (10, 30, 60, 120, 240)
+
+
+def is_list_task(task: str) -> bool:
+    """
+    该任务能不能进"运行列表"。
+
+    只有**固定任务**（`fixed` / `toppa`，即"有打满 N 次语义"的）能进。
+    定时 / 充能 / 限时任务由**定时调度器**管，不进列表。
+
+    未知任务名 -> False（不崩）。
+    """
+    try:
+        from module.config import task_catalog as TC
+        meta = TC.get(task)
+        return bool(meta and meta.countable)
+    except Exception:
+        return False
 
 
 @dataclass(frozen=True)
@@ -98,9 +130,8 @@ class RunEntry:
     列表里的**一个条目**。
 
     字段按 `kind` 使用:
-        kind=TASK   -> `task`(任务名, 大驼峰)
+        kind=TASK   -> `task`(任务名, 大驼峰; **必须是固定任务**)
         kind=REST   -> `minutes`
-        kind=DELAY  -> `minutes`
     """
 
     kind: EntryKind = EntryKind.TASK
@@ -138,6 +169,7 @@ class RunEntry:
         if self.kind == EntryKind.TASK:
             return self.task
         mins = self.minutes
+        # ★ 带单位 —— 用户要求显示 `[30 分钟]` / `[2 小时]`, 不是裸数字
         if mins % 60 == 0 and mins >= 60:
             return f'{KIND_LABEL[self.kind]} {mins // 60} 小时'
         return f'{KIND_LABEL[self.kind]} {mins} 分钟'
@@ -150,16 +182,19 @@ class RunEntry:
 
     @classmethod
     def from_dict(cls, data) -> 'RunEntry':
-        """宽松解析: 认不出来就抛 ValueError, 由调用方决定跳过还是报错。"""
+        """
+        宽松解析。
+
+        ★ v1 的 `delay` 条目会是 `ValueError` —— 由调用方（`RunList.from_list`）
+          跳过并记录，**不让整份配置加载失败**（旧配置升级时很常见）。
+        """
         if not isinstance(data, dict):
             raise ValueError(f'条目必须是对象, 实际 {type(data).__name__}')
         kind = data.get('kind')
-        if kind == EntryKind.TASK.value or kind is None and data.get('task'):
+        if kind == EntryKind.TASK.value or (kind is None and data.get('task')):
             return cls(kind=EntryKind.TASK, task=str(data.get('task') or ''))
         if kind == EntryKind.REST.value:
             return cls(kind=EntryKind.REST, minutes=data.get('minutes'))
-        if kind == EntryKind.DELAY.value:
-            return cls(kind=EntryKind.DELAY, minutes=data.get('minutes'))
         raise ValueError(f'未知条目类型: {kind!r}')
 
 
@@ -197,19 +232,28 @@ class RunList:
         """
         返回**阻塞列表**的那个条目, 若没有则 None。
 
-        只有 `rest` / `delay` 会阻塞(`task` 不阻塞, 见模块文档)。
+        v2 里只有 `rest` 会阻塞 —— `task` 不阻塞（未就绪就跳过, 见模块文档）。
         """
         for e in self.entries:
-            if e.kind in (EntryKind.REST, EntryKind.DELAY):
+            if e.kind == EntryKind.REST:
                 return e
         return None
 
     def index_of_blocker(self):
         """阻塞条目的下标; 没有则 -1。"""
         for i, e in enumerate(self.entries):
-            if e.kind in (EntryKind.REST, EntryKind.DELAY):
+            if e.kind == EntryKind.REST:
                 return i
         return -1
+
+    def total_rest_minutes(self) -> int:
+        """
+        整份列表的**休息总时长**（分钟）。
+
+        供「预期执行流程」与"休息时可穿插"的判定使用。
+        """
+        return sum(e.minutes for e in self.entries
+                   if e.kind == EntryKind.REST)
 
     # ------------------------------------------------------------------ 写
     def add(self, entry: RunEntry, index: int = None) -> None:
@@ -288,16 +332,26 @@ class RunList:
         return [e.to_dict() for e in self.entries]
 
     @classmethod
-    def from_list(cls, data, on_bad=None) -> 'RunList':
+    def from_list(cls, data, on_bad=None, only_list_tasks=True) -> 'RunList':
         """
         宽松解析: 坏条目**跳过**并记 warning, 而不是整份配置加载失败。
 
         理由: 列表是用户编辑的内容, 一条写坏不该让整个配置不可用。
+
+        :param only_list_tasks: **默认 True** —— 只接受固定任务,
+            定时任务会被跳过并记录（定时任务由定时调度器管理）。
+            传 False 可跳过该校验（读取旧配置时用, 免得丢条目）。
         """
         out = cls()
         for item in (data or []):
             try:
-                out.entries.append(RunEntry.from_dict(item))
+                entry = RunEntry.from_dict(item)
+                if (only_list_tasks and entry.kind == EntryKind.TASK
+                        and not is_list_task(entry.task)):
+                    raise ValueError(
+                        f'{entry.task} 不是固定任务, 不能进运行列表'
+                        f'（定时任务由定时调度器管理）')
+                out.entries.append(entry)
             except ValueError as exc:
                 if on_bad is not None:
                     on_bad(item, exc)
@@ -309,7 +363,10 @@ class RunList:
         """
         从旧的 `task_order`(逗号分隔任务名)迁移。
 
-        旧字段只能表达"任务顺序", 所以迁移结果里**没有** rest/delay 条目。
+        旧字段只能表达"任务顺序", 所以迁移结果里**没有** rest 条目。
+
+        ★ 这里**不做**"只收固定任务"的校验 —— 旧配置里可能混着定时任务,
+          迁移时宁可先留着（用户自己会看到并清理）, 也不要静默丢掉。
         """
         out = cls()
         for part in str(task_order or '').split(','):

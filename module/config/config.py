@@ -253,6 +253,16 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             func = Function(key, value)
             if not func.enable:
                 continue
+            # ★ 两个总开关（用户确认的设计）:
+            #   固定任务（fixed/toppa）看 `enable_fixed`,
+            #   定时任务（timed/charge/limited）看 `enable_timed`。
+            #   两者**互不影响** —— 关掉固定任务不该影响定时任务。
+            #
+            #   类别由 `tasks/<Name>/meta.py` 声明（`TaskMeta.category`）,
+            #   这里只做"该不该考虑"的判断, 不重复定义知识。
+            if not self._category_enabled(func.command):
+                waiting_task.append(func)
+                continue
             if not isinstance(func.next_run, datetime):
                 error.append(func)
             elif func.next_run < self.scheduler_update_dt:
@@ -351,33 +361,109 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         from module.config.run_list import EntryKind
 
-        if blocker.kind == EntryKind.REST:
-            until = run_control.rest_until()
-            if until is None:
-                # 该条目还没生效 -> 起算并写状态
-                run_control.rest(minutes=blocker.minutes)
-                until = run_control.rest_until()
-                logger.info(f'运行列表: 「{blocker.describe()}」生效')
-            if until is not None and now < until:
-                return True
-            # 到点了 -> 移除条目, 列表继续
+        if blocker.kind != EntryKind.REST:
+            # v2 只有 rest 会阻塞 —— 别的情况不该走到这里
+            logger.warning(f'运行列表: 未知的阻塞条目 {blocker!r}, 已移除')
             rl.remove_blocker()
             self.save_run_list(rl)
-            logger.info(f'运行列表: 「{blocker.describe()}」已结束, 条目移除')
             return False
 
-        # delay: 只停列表, 不影响定时任务
-        until = run_control.list_resume_at()
+        until = run_control.rest_until()
         if until is None:
-            run_control.delay(minutes=blocker.minutes)
-            until = run_control.list_resume_at()
-            logger.info(f'运行列表: 「{blocker.describe()}」生效(定时任务照常)')
+            # 该条目还没生效 -> 起算并写状态
+            run_control.rest(minutes=blocker.minutes)
+            until = run_control.rest_until()
+            logger.info(f'运行列表: 「{blocker.describe()}」生效'
+                        f'（休息 = 去庭院待着）')
         if until is not None and now < until:
             return True
+        # 到点了 -> 移除条目, 列表继续
         rl.remove_blocker()
         self.save_run_list(rl)
         logger.info(f'运行列表: 「{blocker.describe()}」已结束, 条目移除')
         return False
+
+    # ------------------------------------------------------------------ 固定/定时 分开管理
+    def fixed_enabled(self) -> bool:
+        """固定任务总开关。"""
+        try:
+            return bool(getattr(self.model.script.optimization,
+                                'enable_fixed', True))
+        except Exception:
+            return True
+
+    def timed_enabled(self) -> bool:
+        """定时任务总开关。"""
+        try:
+            return bool(getattr(self.model.script.optimization,
+                                'enable_timed', True))
+        except Exception:
+            return True
+
+    def opt_value(self, field: str, default=None):
+        """读 `Script.optimization.<field>`（枚举取 `.value`）。"""
+        try:
+            v = getattr(self.model.script.optimization, field, None)
+        except Exception:
+            return default
+        if v is None:
+            return default
+        return getattr(v, 'value', v)
+
+    def should_schedule(self, category_value: str) -> bool:
+        """
+        该**类别**的任务现在是否参与调度。
+
+        固定任务看 `enable_fixed`，定时任务看 `enable_timed` ——
+        两个开关**互不影响**。
+        """
+        from module.config.timed_schedule import should_consider
+        return should_consider(category_value,
+                               enable_fixed=self.fixed_enabled(),
+                               enable_timed=self.timed_enabled())
+
+    def _category_enabled(self, task_command: str) -> bool:
+        """
+        该**任务**现在是否参与调度（按它在 `meta.py` 里声明的类别）。
+
+        ★ 元数据缺失的任务（还没写 `meta.py` 的）**默认放行** ——
+          否则新加的任务会因为"没登记"而被静默跳过, 很难排查。
+        """
+        try:
+            from module.config import task_catalog as TC
+            meta = TC.get(task_command)
+            if meta is None:
+                return True
+            return self.should_schedule(meta.category.value)
+        except Exception as exc:
+            logger.warning(f'{task_command}: 判断类别开关失败'
+                           f'({type(exc).__name__}: {exc}), 按放行处理')
+            return True
+
+    def rest_remaining_minutes(self, now=None) -> int:
+        """休息还剩多少分钟（不在休息则 0）。供"休息时穿插"判定。"""
+        from datetime import datetime
+
+        from module.config import run_control
+
+        now = now or datetime.now()
+        until = run_control.rest_until()
+        if until is None or now >= until:
+            return 0
+        return max(0, int((until - now).total_seconds() // 60))
+
+    def can_interleave_timed(self, now=None) -> bool:
+        """
+        **当前**是否处于"休息且允许穿插"的状态。
+
+        具体某个定时任务能不能塞进去，还要看它自己的
+        `scheduler.expected_minutes`（见 `pick_interleave_candidate`）。
+        """
+        if not bool(self.opt_value('rest_interleave', False)):
+            return False
+        if not self.timed_enabled():
+            return False
+        return self.rest_remaining_minutes(now) > 0
 
     def _skip_by_period(self, task_key: str, task_value: dict) -> bool:
         """

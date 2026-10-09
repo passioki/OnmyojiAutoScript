@@ -94,6 +94,20 @@ class Scheduler(ConfigBase):
         ge=0,
         le=999)
 
+    # 本任务一次运行的**预期完成时间**(分钟)。
+    #
+    # ★ 用途: 判定"休息期间能不能穿插这个定时任务" ——
+    #   若 `expected_minutes <= 休息剩余时间`, 就可以插进去跑。
+    #   见 `module/config/timed_schedule.py` 的 `can_interleave()`。
+    #
+    # `0` = **未知** -> 不参与穿插判定（保守处理, 不能拿 0 去比）。
+    expected_minutes: int = Field(
+        default=0,
+        description='expected_minutes_help',
+        title='预期完成时间(分钟)',
+        ge=0,
+        le=24 * 60)
+
     # ------------------------------------------------------------ 开放时段: 便捷访问
     def build_window(self) -> 'AvailabilityWindow':
         """

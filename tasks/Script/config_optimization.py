@@ -13,6 +13,21 @@ class WhenTaskQueueEmpty(str, Enum):
     GOTO_MAIN = 'goto_main'
     CLOSE_GAME = 'close_game'
 
+class TimedPriority(str, Enum):
+    """
+    **定时任务**到点时, 怎么跟**固定任务**抢设备。
+
+    ★ 插队时机是**战斗边界**, 不是立即打断 ——
+      与"暂停调度"用同一个安全点（那会卡在半途）。
+
+    | 取值 | 界面名 | 行为 |
+    |---|---|---|
+    | `TIMED` | 定时优先 | 固定任务在跑, 定时任务到点 -> **打完当前这场战斗**就让位 |
+    | `LIST`  | 列表优先 | 定时任务等固定任务跑完 |
+    """
+    TIMED = 'timed'
+    LIST = 'list'
+
 class ScheduleRule(str, Enum):
     FILTER = 'Filter'  # 默认的基于过滤器，（按照开发者设定的调度规则进行调度）
     FIFO = 'FIFO'  # 先来后到，（按照任务的先后顺序进行调度）
@@ -64,6 +79,47 @@ class Optimization(BaseModel):
         default_factory=list,
         description='run_list_help',
         title='运行列表')
+
+    # ------------------------------------------------------------ 固定 / 定时 分开管理
+    #
+    # 用户确认的设计: **固定任务**（有"打满 N 次"语义）与**定时任务**
+    # （有自己的 window / 存量 / 周期）分开管理。
+    #
+    # | 谁来管 | 内容 | 排序依据 |
+    # |---|---|---|
+    # | **运行列表** | 固定任务 + 休息 | 用户拖拽的顺序 |
+    # | **定时调度器** | timed / charge / limited | window、剩余时间、预计耗时、自定义优先级 |
+    #
+    # 见 `docs/architecture.md` §5.4 与 `module/config/timed_schedule.py`。
+
+    # 固定任务总开关
+    enable_fixed: bool = Field(
+        default=True,
+        description='enable_fixed_help',
+        title='启用固定任务')
+
+    # 定时任务总开关
+    enable_timed: bool = Field(
+        default=True,
+        description='enable_timed_help',
+        title='启用定时任务')
+
+    # 定时任务到点时怎么跟固定任务抢（见 TimedPriority）
+    timed_priority: TimedPriority = Field(
+        default=TimedPriority.TIMED,
+        description='timed_priority_help',
+        title='定时任务优先级')
+
+    # 休息期间能否**穿插**定时任务
+    #
+    # 判据: 定时任务的**预期完成时间** < 休息剩余时间。
+    # 目的: 保护**组队任务** —— 休息期间在庭院干等会让组队很难凑齐人。
+    #
+    # ★ 默认**关**: 判据依赖"预期完成时间", 那个值为 0(未知)时不能瞎比。
+    rest_interleave: bool = Field(
+        default=False,
+        description='rest_interleave_help',
+        title='休息时可穿插定时任务')
 
     # 排队模式：多个实例排队依次执行任务，避免同时执行造成服务器压力
     queue_mode: bool = Field(default=False, description='queue_mode_help')

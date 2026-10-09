@@ -550,15 +550,29 @@ def _count_from_value(meta, value: dict):
       因为值嵌套在子 dict 里（`orochi_config.limit_count` /
       `bondling_config.limit_count` / …）。界面上就看不到默认次数。
 
-      `orochi_config` 那种层级用直接 `get` 是拿不到的, 必须遍历。
+    ★★ 两个字段名都要试 ★★
+
+    各任务的字段名不统一, 而且 `meta` 上正好有**两个**:
+
+    | meta 字段 | 值 | 例子 |
+    |---|---|---|
+    | `count_field` | 任务**实际用的**字段名 | `number_attack` / `minions_cnt` / `hya_limit_count` |
+    | `count_field_effective` | **归一化后**的名字 | `limit_count` |
+
+    只查归一化名会漏掉那三个用别名的任务
+    （`RealmRaid` / `Exploration` / `Hyakkiyakou` —— 实测 `count` 全为 `None`）。
+    所以**先查实际名, 再查归一化名**。
     """
     if meta is None or not meta.countable:
         return None
-    field = getattr(meta, 'count_field_effective', None)
-    if not field:
-        return None
-    v = _find_in_mapping(value, field)
-    return v if isinstance(v, int) else None
+    for field in (getattr(meta, 'count_field', None),
+                  getattr(meta, 'count_field_effective', None)):
+        if not field:
+            continue
+        v = _find_in_mapping(value, field)
+        if isinstance(v, int):
+            return v
+    return None
 
 
 def _failure_fields(config_name: str, command: str, now=None) -> dict:
@@ -611,12 +625,10 @@ def _effective_target_of(meta, sch: dict, value: dict):
             return target
     except (TypeError, ValueError):
         pass
-    # 任务配置里的值（字段名已由 meta 归一化）
-    field = getattr(meta, 'count_field_effective', None)
-    if field:
-        v = _find_in_mapping(value, field)
-        if isinstance(v, int):
-            return v
+    # 任务配置里的值 —— 与 `_count_from_value` 同一套查找（两个字段名都试）
+    v = _count_from_value(meta, value)
+    if v is not None:
+        return v
     return getattr(meta, 'count_default', None)
 
 

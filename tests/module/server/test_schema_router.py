@@ -521,13 +521,33 @@ class TestOverviewSchedulingFields:
         `count` 曾经写成 `value.get('limit_count')`, 于是**所有任务都返回 None**,
         因为真实值嵌套在子 dict 里（`orochi_config.limit_count` /
         `bondling_config.limit_count` / …）。界面上就看不到默认次数。
+
+        ★ 后来又发现**只查归一化后的字段名**会漏掉用**别名**的任务:
+
+        | 任务 | 实际字段 | 归一化名 |
+        |---|---|---|
+        | `RealmRaid` | `number_attack` | `limit_count` |
+        | `Exploration` | `minions_cnt` | `limit_count` |
+        | `Hyakkiyakou` | `hya_limit_count` | `limit_count` |
+
+        这三个的 `count` 全是 `None`。所以要**两个字段名都试**。
         """
         countable = [r for r in overview['tasks'] if r.get('countable')]
         assert countable, '前提: 应有可计数任务'
-        got = [r for r in countable if r.get('count') is not None]
-        assert got, (
-            f'可计数任务的 count 全是 None —— 说明又用了直接 get。'
-            f'样本: {[(r["command"], r.get("count")) for r in countable[:5]]}')
+        missing = [r['command'] for r in countable if r.get('count') is None]
+        assert not missing, (
+            f'这些可计数任务的 count 是 None: {missing}\n'
+            f'-> 说明字段名查找漏了（别名任务 / 没遍历嵌套 dict）')
+
+    def test_alias_field_tasks_have_count(self, overview):
+        """★ 用别名字段的三个任务必须有 `count`（它们是漏掉过的那批）。"""
+        by_cmd = {r['command']: r for r in overview['tasks']}
+        for cmd in ('RealmRaid', 'Exploration', 'Hyakkiyakou'):
+            r = by_cmd.get(cmd)
+            if r is None:      # 该账号没有这个任务就跳过
+                continue
+            assert r.get('count') is not None, \
+                f'{cmd} 用的是别名字段, count 不该是 None'
 
     def test_effective_target_matches_count_when_no_override(self, overview):
         """

@@ -453,8 +453,20 @@ pydantic 的 `model_json_schema()` 里，**带 `$ref` 的属性没有 `default` 
 
 ### ★ 五个易错点
 
-1. **`effective_target` vs `count`** —— 界面显示**前者**
-   （`count` 只是任务配置里的默认值；用户改的是 `scheduler.target`）
+1. **`target` / `count` / `effective_target` 是三个不同的东西** ——
+   界面**编辑**的是 `target`，**显示**的是 `effective_target`：
+
+   | 字段 | 含义 |
+   |---|---|
+   | `target` | **用户设的**（0 = 用默认值）—— 输入框读写它 |
+   | `count` | 任务配置里的**能力默认值**（`limit_count` 等）|
+   | `effective_target` | **本次真正会用**的（`target` > `count` > meta 默认）|
+
+   ★ 曾经 `/overview` **漏了 `target`**，于是队列里的"次数"**永远显示默认**
+     （读到 0），用户改了看不到反馈。
+
+   ★ **这类"漏一个字段"的 bug 只会在界面上表现为"改了没用"** ——
+     很难从后端日志发现。所以改动 `/overview` 时务必对照本节检查三个字段都在。
 2. **`priority` / `expected_minutes` 在 `/{task}/scheduler/` 分组**,
    不在 `script.optimization`
 3. **写入要传下划线键**（`row['name']`, 如 `experience_youkai`）,

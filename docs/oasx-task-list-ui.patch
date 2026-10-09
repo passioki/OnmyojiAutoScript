@@ -1,7 +1,7 @@
 ﻿From f02ac88ed009ee6d3f4446def4cfa99b9b812891 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:16:59 +0800
-Subject: [PATCH 01/11] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
+Subject: [PATCH 01/12] =?UTF-8?q?feat(ui):=20=E4=BB=BB=E5=8A=A1=E6=80=BB?=
  =?UTF-8?q?=E8=A7=88=20/=20=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=EF=BC=88?=
  =?UTF-8?q?=E8=B0=83=E5=BA=A6=E5=99=A8=EF=BC=89=E2=80=94=E2=80=94=20?=
  =?UTF-8?q?=E6=89=81=E5=B9=B3=E8=A1=A8=E6=A0=BC=E5=8F=96=E4=BB=A3=E6=A0=91?=
@@ -2245,7 +2245,7 @@ index 0000000..01dd4f9
 From 5ae0e64c45838b52f1140d1235c5c68b9a7d02fb Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:28:55 +0800
-Subject: [PATCH 02/11] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
+Subject: [PATCH 02/12] =?UTF-8?q?perf(ui):=20=E4=BF=AE=E6=8E=89=E5=9B=9B?=
  =?UTF-8?q?=E4=B8=AA=E6=80=A7=E8=83=BD=E9=97=AE=E9=A2=98=20=E2=80=94?=
  =?UTF-8?q?=E2=80=94=20=E5=88=AB=E5=86=8D=E7=BB=99=20Debug=20=E6=9E=84?=
  =?UTF-8?q?=E5=BB=BA?=
@@ -2656,7 +2656,7 @@ index 01dd4f9..36f386e 100644
 From 5fd0a7d304b9915a2449dc513421a5a11238a4bc Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 01:36:13 +0800
-Subject: [PATCH 03/11] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
+Subject: [PATCH 03/12] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E6=8E=89"=E4=B8=80?=
  =?UTF-8?q?=E7=82=B9=E8=BF=9B=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8=E5=B0=B1?=
  =?UTF-8?q?=E5=8D=A1=E6=AD=BB"=20=E2=80=94=E2=80=94=20=E8=A6=86=E7=9B=96?=
  =?UTF-8?q?=E4=BA=86=20GetX=20=E7=9A=84=20refresh()?=
@@ -2897,7 +2897,7 @@ index 36f386e..3178e51 100644
 From 4352d61118a9cdaa9ecedd7168863a5ba17365e3 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 02:22:03 +0800
-Subject: [PATCH 04/11] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
+Subject: [PATCH 04/12] =?UTF-8?q?fix(ui):=20=E4=BF=AE=20500=20=E7=9B=B8?=
  =?UTF-8?q?=E5=85=B3=E7=9A=84=E8=8F=9C=E5=8D=95=E9=97=AE=E9=A2=98=20+=20?=
  =?UTF-8?q?=E8=A1=A5=E5=90=AF=E5=81=9C/=E6=AC=A1=E6=95=B0/=E5=BC=80?=
  =?UTF-8?q?=E5=A7=8B=E6=8C=89=E9=92=AE/=E5=8F=96=E6=B6=88=20+=20=E6=97=B6?=
@@ -3975,7 +3975,7 @@ index cd793bd..5e32a3d 100644
 From 71229d8437099b87b0a3d7c9973a33f7b4ecdff5 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 10:35:48 +0800
-Subject: [PATCH 05/11] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
+Subject: [PATCH 05/12] =?UTF-8?q?fix(ui):=20=E4=BF=AE=E4=BB=BB=E5=8A=A1?=
  =?UTF-8?q?=E5=88=97=E8=A1=A8=E7=99=BD=E5=B1=8F=20=E2=80=94=E2=80=94=20Obx?=
  =?UTF-8?q?=20=E8=AF=AF=E7=94=A8=20+=20=E8=A1=A5=20widget=20=E6=B5=8B?=
  =?UTF-8?q?=E8=AF=95?=
@@ -4553,7 +4553,7 @@ index 0000000..3b167de
 From 42615538f0e9d4550d6ccda56b9fe274914a5486 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 11:11:27 +0800
-Subject: [PATCH 06/11] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
+Subject: [PATCH 06/12] =?UTF-8?q?fix:=20=E4=BF=AE=E3=80=8C=E8=84=9A?=
  =?UTF-8?q?=E6=9C=AC=E9=87=8D=E5=90=AF=E5=90=8E=E6=97=A5=E5=BF=97=E6=B0=B8?=
  =?UTF-8?q?=E4=B9=85=E4=B8=8D=E5=86=8D=E6=8E=A8=E9=80=81=E3=80=8D+=20?=
  =?UTF-8?q?=E8=B4=A6=E5=8F=B7=E9=97=B4=E4=BB=BB=E5=8A=A1=E5=88=97=E8=A1=A8?=
@@ -4887,7 +4887,7 @@ index 3b167de..8916990 100644
 From 2133d25923df605b71b87cad4fb170d26f327e4d Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:48:12 +0800
-Subject: [PATCH 07/11] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
+Subject: [PATCH 07/12] =?UTF-8?q?feat(ui):=20=E8=BF=90=E8=A1=8C=E6=8E=A7?=
  =?UTF-8?q?=E5=88=B6=E6=9D=A1=20v2=20+=20=E4=BB=BB=E5=8A=A1=E5=88=97?=
  =?UTF-8?q?=E8=A1=A8=E9=A1=B5=E5=B7=A6=E5=8F=B3=E5=88=86=E6=A0=8F=20+=20?=
  =?UTF-8?q?=E6=97=A5=E5=BF=97=E6=90=AC=E8=BF=87=E6=9D=A5?=
@@ -5677,7 +5677,7 @@ index 8916990..ea36b95 100644
 From 6885ef1c5ac4e5e241e0f47d55eca9ba585c36fe Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:52:34 +0800
-Subject: [PATCH 08/11] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
+Subject: [PATCH 08/12] =?UTF-8?q?feat(ui):=20=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=E8=A1=A5=E9=BD=90=E3=80=8C=E9=87=8D=E7=BD=AE=E9=80=89=E4=B8=AD?=
  =?UTF-8?q?=20/=20=E8=BF=90=E8=A1=8C=E4=B8=80=E6=AC=A1=20/=20=E7=AD=9B?=
  =?UTF-8?q?=E9=80=89=20/=20=E8=BF=90=E8=A1=8C=E8=AE=B0=E5=BD=95=E5=88=97?=
@@ -6256,7 +6256,7 @@ index ea36b95..4ce7384 100644
 From 9cd65c60cbcd5c21ada42e05d9d280403d5d6380 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 13:58:58 +0800
-Subject: [PATCH 09/11] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
+Subject: [PATCH 09/12] =?UTF-8?q?feat(ui):=20=E5=A4=9A=E5=88=97=E6=8E=92?=
  =?UTF-8?q?=E5=BA=8F=20+=20=E5=81=8F=E5=A5=BD=E6=8C=81=E4=B9=85=E8=AE=B0?=
  =?UTF-8?q?=E5=BF=86=20+=20=E6=81=A2=E5=A4=8D=E9=BB=98=E8=AE=A4=EF=BC=88?=
  =?UTF-8?q?=E5=BC=B9=E7=AA=97=E7=A1=AE=E8=AE=A4=EF=BC=89?=
@@ -7416,7 +7416,7 @@ index 3577f1c..ffedaed 100644
 From 331ba7e9e1de080f71a267b595341dcaced0b5a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 14:03:01 +0800
-Subject: [PATCH 10/11] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
+Subject: [PATCH 10/12] =?UTF-8?q?feat(ui):=20=E8=84=9A=E6=9C=AC=E8=BF=9B?=
  =?UTF-8?q?=E7=A8=8B=E5=BC=80=E5=85=B3=E4=B8=8A=E6=80=BB=E8=A7=88=E9=A1=B5?=
  =?UTF-8?q?=20+=20=E4=BC=91=E6=81=AF=E7=BD=AE=E9=A1=B6/=E5=88=86=E7=B1=BB?=
  =?UTF-8?q?=E7=AD=9B=E9=80=89=20+=20=E7=82=B9=E8=A1=8C=E8=BF=9B=E8=AE=BE?=
@@ -7979,7 +7979,7 @@ index 4d59df0..3c57afd 100644
 From 7f7e4925c91c0fb8bd1d6195ea864f8b751781a6 Mon Sep 17 00:00:00 2001
 From: passioki <1756531828@qq.com>
 Date: Fri, 9 Oct 2026 18:29:47 +0800
-Subject: [PATCH 11/11] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
+Subject: [PATCH 11/12] =?UTF-8?q?fix(run=5Flist):=20=E6=8B=86=E6=8E=89"?=
  =?UTF-8?q?=E5=8F=AA=E6=94=B6=E5=9B=BA=E5=AE=9A=E4=BB=BB=E5=8A=A1"?=
  =?UTF-8?q?=E7=9A=84=E8=BF=87=E6=BB=A4=20=E2=80=94=E2=80=94=20=E5=AE=83?=
  =?UTF-8?q?=E6=9B=BE=E9=9D=99=E9=BB=98=E4=B8=A2=E6=8E=89=E7=94=A8=E6=88=B7?=
@@ -8439,6 +8439,891 @@ index 3c57afd..47314bc 100644
    _round4Tests();
 +
 +  _phase0Tests();
+ }
+ 
+ /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。
+-- 
+2.41.0.windows.1
+
+
+From 015d55e1a06fcf895312771b29413dc0fe791f95 Mon Sep 17 00:00:00 2001
+From: passioki <1756531828@qq.com>
+Date: Fri, 9 Oct 2026 19:07:38 +0800
+Subject: [PATCH 12/12] =?UTF-8?q?feat(ui):=20=E8=A1=A5=E4=B8=8A**=E5=85=A8?=
+ =?UTF-8?q?=E9=83=A8**=E5=BC=80=E5=85=B3=E4=B8=8E=E4=BC=98=E5=85=88?=
+ =?UTF-8?q?=E7=BA=A7=E5=AD=97=E6=AE=B5=20=E2=80=94=E2=80=94=20=E5=90=8E?=
+ =?UTF-8?q?=E7=AB=AF=E6=97=A9=E5=B0=B1=E5=81=9A=E4=BA=86,=20=E5=89=8D?=
+ =?UTF-8?q?=E7=AB=AF=E4=B8=80=E4=B8=AA=E9=83=BD=E6=B2=A1=E6=B8=B2=E6=9F=93?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+用户的核心诉求: "还有单独的开关——列表任务和定时任务，
+还有好几个关于优先级的功能，请彻查文档或者对话，不要遗漏功能点。"
+
+## 彻查结果: 一个**重大遗漏**
+
+后端把两个总开关 + 定时优先 + 休息穿插全做完了, `/schema` 的
+`global_fields` 也**完整暴露**了 —— 但前端**一个都没渲染**:
+
+| 字段 | 后端读 | `/schema` | **前端 UI（改造前）** |
+|---|---|---|---|
+| `enable_fixed` | 是 | 是 | **❌ 无** |
+| `enable_timed` | 是 | 是 | **❌ 无** |
+| `timed_priority` | 是 | 是 | **❌ 无** |
+| `rest_interleave` | 是 | 是 | **❌ 无** |
+
+**后果**: 它们永远停在默认值, 用户在界面上根本改不了 ——
+"调度器不听话"的直接原因之一。
+
+## 现在渲染了什么
+
+### 1. 全局设置面板 —— 4 个开关
+
+* **启用固定任务** / **启用定时任务**（两个总开关）
+* **定时任务优先级**：`timed`（打完当前这场就让位）/ `list`（等固定跑完）
+* **休息时可穿插定时任务**
+
+★ **标签、说明、可选值一律从 `/schema` 的 `global_fields` 读**
+（`c.globalFieldLabel(key, fallback)`）—— 前端**不硬编码**字段名与文案,
+后端改名/改说明前端自动跟上。
+
+### 2. 每任务两列可编辑（表格里）
+
+| 列 | 字段 | 作用 |
+|---|---|---|
+| **优先级** | `scheduler.priority` | 定时任务内部排序的**最终裁判**（数字小的先跑）|
+| **预期耗时** | `scheduler.expected_minutes` | 「休息时可穿插」的**判据输入**（`0` = 未知 -> 不穿插）|
+
+★ 这两个字段原backend**连接口都没暴露**，本轮先在 `/overview` 暴露,
+再在界面上可编辑。
+
+### 3. 失败冷却徽标（可一键清除）
+
+在冷却中的任务, **状态格变成冷却徽标**（"冷却 N 分"）——
+比"等待到点"有用得多（那会让人以为调度器只是还没轮到它）。
+徽标上的 × 直接**清除失败记录 + 解除冷却**, 修好之后不用等 1 小时。
+
+## 新增 `_NumberCell`
+
+一个**行内数字输入格**（优先级与预期耗时共用）:
+
+```dart
+_NumberCell(value: p, min: 1, max: 9, onCommit: ...)
+```
+
+三个刻意的行为:
+
+1. **失焦或回车才提交** —— 每击键提交会打爆后端（每行一个 PUT）
+2. **有焦点时不覆盖用户输入** —— 否则外部刷新会把正在输的内容冲掉
+3. 控制器活在 `State` 里并 `dispose` —— `TextEditingController` 是
+   `ChangeNotifier`, 在 `build` 里 `new` 会**每帧泄漏一个监听器**
+   （54 行 × 每次重建 = 卡顿; 这个坑在本项目踩过）
+
+## ★ 顺带修掉「次数输入框显示错值」
+
+`_targetText()` 原来读 `task['count']` —— 那是**任务配置里的默认值**,
+而用户在界面上改的是 **`scheduler.target`**。
+
+于是改完次数、看到的是配置里的旧数字, **以为没生效**
+（这正是"次数双轨"那套 bug 的表现）。
+
+现在:
+* 输入框读写 **`target`**（`0` = 空 = 用默认值）
+* **hint 里显示默认值**（`默认 30`）, 让用户知道留空会发生什么
+* 总览页只读显示 **`effective_target`**（实际生效值）,
+  自定义时标注"（自定义）"
+
+## 测试 74/74
+
+新增 7 条守卫:
+
+* 全局设置渲染**全部 4 个开关**（缺一个就红）
+* 开关标签/说明/可选值**从 `/schema` 读**，不硬编码
+* 优先级与预期完成时间可编辑，且走各任务的 `scheduler` 分组
+* **数字输入格不能每击键提交** + 必须有焦点保护 + 必须 dispose
+* **目标次数输入框读写 `target`, 不是 `count`**
+* 失败冷却徽标可一键清除
+* 排序支持优先级与预期耗时两列
+
+### 写测试时踩的坑
+
+`substring(i, i + 2200)` 越界 —— `_NumberCellState` 在文件末尾附近。
+已改为 `min(i + 2200, length)`。
+
+`flutter test` **74/74**；`flutter build windows --release` 通过。
+
+## 下一步
+
+* 「清除失败」的批量入口（现在只有行内 ×）
+* Phase 2 合并页面（按用户要求: 把次数列/排序/筛选并进旧总览页,
+  删掉重复的「总览 tab」）
+---
+ lib/api/api_client.dart                       |  22 ++
+ .../task_list/task_list_controller.dart       | 119 ++++++++
+ lib/service/task_prefs.dart                   |  11 +
+ lib/views/tasks/task_list_view.dart           | 105 +++++++-
+ lib/views/tasks/task_row_view.dart            | 253 +++++++++++++++++-
+ test/task_list_panel_test.dart                | 101 +++++++
+ 6 files changed, 599 insertions(+), 12 deletions(-)
+
+diff --git a/lib/api/api_client.dart b/lib/api/api_client.dart
+index 6ac65db..d7011ca 100644
+--- a/lib/api/api_client.dart
++++ b/lib/api/api_client.dart
+@@ -395,6 +395,28 @@ class ApiClient {
+     return res.data ?? {};
+   }
+ 
++// -------------------------   失败冷却   -------------------------
++//
++// ★ 后端改造: 任务连续失败到阈值**不再 `exit(1)`** 退出进程
++//   （那会造成"失败 3 次 → 重启 → 计数归零 → 又失败 3 次"的无限循环），
++//   而是给该任务加**冷却**（默认 1 小时）。计数落盘，跨重启不丢。
++
++  /// 读失败/冷却状态（`{task: {count, cooldown_until, cooldown_minutes}}`）。
++  Future<Map<String, dynamic>> getFailureState(String scriptName) async {
++    final res = await request(() => get('/$scriptName/failure_state'));
++    return res.data ?? {};
++  }
++
++  /// 清除失败记录（**同时解除冷却**）—— 修好之后立刻重试，不用等。
++  Future<Map<String, dynamic>> clearFailureState(String scriptName,
++      {String task = ''}) async {
++    final res = await request(() => delete(
++          '/$scriptName/failure_state',
++          queryParameters: task.isEmpty ? null : {'task': task},
++        ));
++    return res.data ?? {};
++  }
++
+ // -------------------------   运行列表(有序条目清单)   --------------------------
+ //
+ // 列表不只是"任务顺序", 而是**有序条目**的序列。条目三种(按**效果**命名):
+diff --git a/lib/controller/task_list/task_list_controller.dart b/lib/controller/task_list/task_list_controller.dart
+index 49c3dba..ebc0aa0 100644
+--- a/lib/controller/task_list/task_list_controller.dart
++++ b/lib/controller/task_list/task_list_controller.dart
+@@ -858,6 +858,125 @@ class TaskListController extends GetxController with LogMixin {
+         'schedule_rule', 'string', rule);
+   }
+ 
++  // ---------------------------------------------------------------- 全局开关
++  //
++  // ★★ 这一段是补一个**重大遗漏** ★★
++  //
++  // 后端把两个总开关 + 定时优先 + 休息穿插全做完了, `/schema` 的
++  // `global_fields` 也暴露了 —— 但前端**一个都没渲染**。
++  // 后果: 它们永远停在默认值, 用户在界面上根本改不了。
++  //
++  // 所以下面**不硬编码字段名与可选值**: 一律从 `schemaGlobalFields` 拿
++  // （标签 / 类型 / 当前值 / 可选值 / 说明）。后端加字段前端自动跟上。
++
++  /// 读一个全局字段的定义（来自 `/schema`）。
++  Map<String, dynamic> globalField(String key) {
++    final v = schemaGlobalFields[key];
++    return v is Map ? v.cast<String, dynamic>() : const {};
++  }
++
++  /// 该全局字段的界面标签（后端给中文, 前端不维护映射）。
++  String globalFieldLabel(String key, String fallback) =>
++      '${globalField(key)['label'] ?? fallback}';
++
++  /// 该全局字段的当前值。
++  dynamic globalFieldValue(String key, dynamic fallback) {
++    final f = globalField(key);
++    return f.containsKey('current') ? f['current'] : fallback;
++  }
++
++  /// 布尔型全局开关的当前值。
++  bool globalSwitch(String key, {bool fallback = false}) {
++    final v = globalFieldValue(key, fallback);
++    return v == true;
++  }
++
++  /// 写一个全局字段（走既有的通用接口 `/script/optimization/<field>/value`）。
++  Future<void> setGlobalField(String key, String type, dynamic value) async {
++    final f = globalField(key);
++    final field = '${f['field'] ?? key}';
++    // 乐观更新: 先改界面, 再发请求（失败时 reload 会把真实值拉回来）
++    await _api.putScriptArg(scriptName, 'script', 'optimization',
++        field, type, value);
++  }
++
++  // ---- 两个总开关 ----
++
++  /// **启用固定任务** 总开关。
++  bool get enableFixed => globalSwitch('enable_fixed', fallback: true);
++  Future<void> toggleEnableFixed() async {
++    final next = !enableFixed;
++    await setGlobalField('enable_fixed', 'boolean', next);
++    await reload();
++  }
++
++  /// **启用定时任务** 总开关。
++  bool get enableTimed => globalSwitch('enable_timed', fallback: true);
++  Future<void> toggleEnableTimed() async {
++    final next = !enableTimed;
++    await setGlobalField('enable_timed', 'boolean', next);
++    await reload();
++  }
++
++  // ---- 两者关系 ----
++
++  /// **定时任务优先级**：`timed`（打完当前这场就让位）/ `list`（等固定跑完）。
++  String get timedPriority =>
++      '${globalFieldValue('timed_priority', 'timed')}';
++
++  /// 可选值（后端给, 前端不硬编码）。
++  List<Map<String, dynamic>> get timedPriorityChoices =>
++      ((globalField('timed_priority')['choices'] as List?) ?? const [])
++          .map((e) => Map<String, dynamic>.from(e as Map))
++          .toList();
++
++  Future<void> setTimedPriority(String v) async {
++    await setGlobalField('timed_priority', 'string', v);
++    await reload();
++  }
++
++  /// **休息时可穿插定时任务**。
++  bool get restInterleave =>
++      globalSwitch('rest_interleave', fallback: false);
++  Future<void> toggleRestInterleave() async {
++    final next = !restInterleave;
++    await setGlobalField('rest_interleave', 'boolean', next);
++    await reload();
++  }
++
++  // ---------------------------------------------------------------- 每任务字段
++  //
++  // 这些走**各任务自己的** `scheduler` 分组（不是 `script.optimization`）,
++  // 路径是 `/{script}/{task}/scheduler/{field}/value`。
++  //
++  // ★ `target` 的写入口是上面那个**已存在**的 `setTarget()`
++  //   （`/value` 的 `types` 参数后端并不使用, 所以统一写 `'integer'`）。
++
++  /// **优先级** —— 定时任务内部排序的最终裁判（数字小的先跑）。
++  ///
++  /// 见 `docs/architecture.md` §5.4.1 的五级排序:
++  /// 能否跑 > 到点程度 > 窗口快关 > 耗时短 > **用户自定义优先级**。
++  Future<bool> setTaskPriority(String taskName, int priority) =>
++      _api.putScriptArg(
++          scriptName, taskName, 'scheduler', 'priority', 'integer', priority);
++
++  /// **预期完成时间**（分钟）—— "休息时可穿插"的判据输入。
++  ///
++  /// 判据: `预期完成时间 < 休息剩余时间` -> 允许穿插。
++  /// `0` = 未知 -> 不参与判定（保守, 宁可不穿插）。
++  Future<bool> setTaskExpectedMinutes(String taskName, int minutes) =>
++      _api.putScriptArg(scriptName, taskName, 'scheduler',
++          'expected_minutes', 'integer', minutes);
++
++  /// **清除失败记录 + 解除冷却**。
++  ///
++  /// 用途: 用户修好了问题（改配置 / 换素材）之后**不想等 1 小时**,
++  /// 点一下就能立刻重试。见 `module/config/failure_state.py`。
++  Future<void> clearFailure(String taskKey) async {
++    await _api.clearFailureState(scriptName, task: taskKey);
++    await reload();
++  }
++
+   Future<bool> _confirm(String title, String content) async {
+     final r = await Get.dialog<bool>(
+       AlertDialog(
+diff --git a/lib/service/task_prefs.dart b/lib/service/task_prefs.dart
+index 3e0a5ac..2583434 100644
+--- a/lib/service/task_prefs.dart
++++ b/lib/service/task_prefs.dart
+@@ -72,6 +72,10 @@ class TaskSorter {
+     {'id': 'target', 'label': '目标次数'},
+     {'id': 'progress', 'label': '进度 / 存量'},
+     {'id': 'next_run', 'label': '下次运行'},
++    // 定时任务内部排序的最终裁判（数字小的先跑）
++    {'id': 'priority', 'label': '优先级'},
++    // "休息时可穿插"的判据输入
++    {'id': 'expected', 'label': '预期耗时'},
+     {'id': 'record_runs', 'label': '累计次数'},
+     {'id': 'record_seconds', 'label': '累计耗时'},
+   ];
+@@ -107,6 +111,13 @@ class TaskSorter {
+       case 'next_run':
+         // 空值给一个远期字符串, 保证同类型可比
+         return '${task['next_run'] ?? '9999'}';
++      case 'priority':
++        // 数字小的先跑；缺失给一个大值排后面
++        return (task['priority'] as num?)?.toInt() ?? 99;
++      case 'expected':
++        // 0（未知）排后面 —— 它与"很快能跑完"是两回事
++        final e = (task['expected_minutes'] as num?)?.toInt() ?? 0;
++        return e > 0 ? e : 99999;
+       case 'record_runs':
+         return (record['runs'] as num?)?.toInt() ?? 0;
+       case 'record_seconds':
+diff --git a/lib/views/tasks/task_list_view.dart b/lib/views/tasks/task_list_view.dart
+index 50995fe..d775754 100644
+--- a/lib/views/tasks/task_list_view.dart
++++ b/lib/views/tasks/task_list_view.dart
+@@ -603,12 +603,14 @@ class _OverviewTab extends StatelessWidget {
+           const SizedBox(width: 28),
+           _sortableHeader(context, 'name', '任务', 22, s),
+           _sortableHeader(context, 'category', '类型', 12, s),
+-          _sortableHeader(context, 'state', '状态', 14, s),
++          _sortableHeader(context, 'state', '状态', 18, s),
+           _sortableHeader(context, 'target', '目标次数', 12, s),
+           _sortableHeader(context, 'progress', '进度 / 存量', 12, s),
+           _sortableHeader(context, 'next_run', '下次运行', 16, s),
+           Expanded(flex: 12, child: Text('对方', style: s)),
+           Expanded(flex: 12, child: Text('在列表', style: s)),
++          _sortableHeader(context, 'priority', '优先级', 8, s),
++          _sortableHeader(context, 'expected', '预期耗时', 12, s),
+           _sortableHeader(context, 'record_runs', '运行记录', 20, s),
+         ],
+       ),
+@@ -731,6 +733,69 @@ class _ListTab extends StatelessWidget {
+           children: [
+             _panelTitle(context, '全局设置', null),
+             const SizedBox(height: 8),
++
++            // ---------- 两个总开关 + 两者关系 ----------
++            //
++            // ★★ 这一段是补一个**重大遗漏** ★★
++            //
++            // 后端把两个总开关 + 定时优先 + 休息穿插全做完了, `/schema` 的
++            // `global_fields` 也暴露了 —— 但前端**一个都没渲染**,
++            // 于是它们永远停在默认值, 用户在界面上根本改不了。
++            //
++            // 标签与说明一律从 `/schema` 读（`c.globalFieldLabel`），
++            // 前端**不硬编码**字段名与文案。
++            _switchRow(
++              context,
++              key: 'enable_fixed',
++              value: c.enableFixed,
++              fallbackLabel: '启用固定任务',
++              onChanged: c.toggleEnableFixed,
++            ),
++            _switchRow(
++              context,
++              key: 'enable_timed',
++              value: c.enableTimed,
++              fallbackLabel: '启用定时任务',
++              onChanged: c.toggleEnableTimed,
++            ),
++            const SizedBox(height: 4),
++            // 定时任务到点时怎么跟固定任务抢
++            Row(
++              children: [
++                SizedBox(
++                  width: 168,
++                  child: Text(c.globalFieldLabel('timed_priority', '定时任务优先级')),
++                ),
++                DropdownButton<String>(
++                  value: c.timedPriorityChoices
++                          .any((e) => '${e['value']}' == c.timedPriority)
++                      ? c.timedPriority
++                      : (c.timedPriorityChoices.isNotEmpty
++                          ? '${c.timedPriorityChoices.first['value']}'
++                          : null),
++                  isDense: true,
++                  items: [
++                    for (final e in c.timedPriorityChoices)
++                      DropdownMenuItem<String>(
++                        value: '${e['value']}',
++                        child: Text('${e['label']}'),
++                      ),
++                  ],
++                  onChanged: (v) {
++                    if (v != null) c.setTimedPriority(v);
++                  },
++                ),
++              ],
++            ),
++            _switchRow(
++              context,
++              key: 'rest_interleave',
++              value: c.restInterleave,
++              fallbackLabel: '休息时可穿插定时任务',
++              onChanged: c.toggleRestInterleave,
++            ),
++            const Divider(height: 16),
++
+             Wrap(
+               spacing: 16,
+               runSpacing: 8,
+@@ -797,6 +862,44 @@ class _ListTab extends StatelessWidget {
+     );
+   }
+ 
++  /// 一个**全局布尔开关**的行（标签 + Switch + 说明）。
++  ///
++  /// 标签与说明都从 `/schema` 的 `global_fields` 读 ——
++  /// 后端改名/改说明前端自动跟上, 前端不维护一份文案。
++  Widget _switchRow(
++    BuildContext context, {
++    required String key,
++    required bool value,
++    required String fallbackLabel,
++    required Future<void> Function() onChanged,
++  }) {
++    final help = '${c.globalField(key)['help'] ?? ''}';
++    return Padding(
++      padding: const EdgeInsets.symmetric(vertical: 2),
++      child: Row(
++        children: [
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                Text(c.globalFieldLabel(key, fallbackLabel)),
++                if (help.isNotEmpty)
++                  Text(help,
++                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
++                            color: Theme.of(context).disabledColor,
++                          )),
++              ],
++            ),
++          ),
++          Switch(
++            value: value,
++            onChanged: c.busy ? null : (_) => onChanged(),
++          ),
++        ],
++      ),
++    );
++  }
++
+   /// 预期执行流程 —— **推算**, 不是保证。
+   Widget _flowPanel(BuildContext context) {
+     final flow = c.flow;
+diff --git a/lib/views/tasks/task_row_view.dart b/lib/views/tasks/task_row_view.dart
+index 7db2100..459df57 100644
+--- a/lib/views/tasks/task_row_view.dart
++++ b/lib/views/tasks/task_row_view.dart
+@@ -89,8 +89,14 @@ class _TaskRowViewState extends State<TaskRowView> {
+ 
+   final _targetFocus = FocusNode();
+ 
+-  String _targetText() =>
+-      (task['count'] as num?)?.toInt().toString() ?? '';
++  /// 目标次数输入框的初始值 —— 读 **`target`**（用户设的值），不是 `count`。
++  ///
++  /// `target == 0` 表示"用任务默认值", 所以显示为**空**
++  /// （hint 里会写出默认值是多少）。
++  String _targetText() {
++    final t = (task['target'] as num?)?.toInt() ?? 0;
++    return t > 0 ? t.toString() : '';
++  }
+ 
+   @override
+   Widget build(BuildContext context) {
+@@ -99,6 +105,7 @@ class _TaskRowViewState extends State<TaskRowView> {
+     final canRun = task['can_run'] == true;
+     final countable = task['countable'] == true;
+     final isOverview = mode == TaskRowMode.overview;
++    final inCooldown = task['in_cooldown'] == true;
+ 
+     final row = Padding(
+       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+@@ -120,7 +127,13 @@ class _TaskRowViewState extends State<TaskRowView> {
+               flex: 12,
+               child: Text('${task['category_label'] ?? task['category'] ?? ''}',
+                   style: Theme.of(context).textTheme.labelSmall)),
+-          Expanded(flex: 14, child: _statusCell(context, canRun, enabled)),
++          // ★ 在冷却中时**状态格改成冷却徽标** —— 比"等待到点"有用得多
++          //   （那会让人以为调度器只是还没轮到它）。
++          Expanded(
++              flex: 18,
++              child: inCooldown
++                  ? _cooldownBadge(context)
++                  : _statusCell(context, canRun, enabled)),
+           Expanded(flex: 12, child: _targetCell(context, countable, isOverview)),
+           Expanded(flex: 12, child: _progressCell(context, countable)),
+           Expanded(
+@@ -129,6 +142,9 @@ class _TaskRowViewState extends State<TaskRowView> {
+                   style: Theme.of(context).textTheme.labelSmall)),
+           Expanded(flex: 12, child: _peerCell(context)),
+           Expanded(flex: 12, child: _inListCell(context, isOverview)),
++          // 优先级 / 预期完成时间 —— 定时任务排序与"休息时穿插"的输入
++          Expanded(flex: 8, child: _priorityCell(context, isOverview)),
++          Expanded(flex: 12, child: _expectedCell(context, isOverview)),
+           // 运行记录（累计次数 + 耗时）—— v2 新增
+           Expanded(flex: 20, child: _recordCell(context)),
+           // 列表页多一格:启停开关
+@@ -230,25 +246,51 @@ class _TaskRowViewState extends State<TaskRowView> {
+   ///
+   /// ★ **只在列表页可改**（用户决定）; 总览页只读显示当前值。
+   /// ★ 非 countable(fixed/toppa)的任务**不显示输入框**, 而不是显示一个无效的框。
++  /// **目标次数** —— 编辑的是 `scheduler.target`。
++  ///
++  /// ★★ 这里曾经读 `task['count']` ★★
++  ///
++  /// `count` 是**任务配置里的默认值**（能力上限），不是用户设的值。
++  /// 用户在界面上改的是 `scheduler.target` —— 所以:
++  ///
++  /// * 输入框该显示 **`target`**（0 = 空, 表示"用下面的默认值"）
++  /// * 旁边用**淡色**标出默认值, 让用户知道留空会发生什么
++  /// * 两者相同时不显示提示（省得吵）
++  ///
++  /// 否则用户改了次数、看到的是配置里的旧数字, 会**以为没生效**
++  /// （这正是"次数双轨"那套 bug 的表现）。
+   Widget _targetCell(BuildContext context, bool countable, bool isOverview) {
+     if (!countable) return const SizedBox.shrink();
+-    final cur = (task['count'] as num?)?.toInt();
++    final target = (task['target'] as num?)?.toInt() ?? 0;
++    final fallback = (task['count'] as num?)?.toInt();
++    final effective = (task['effective_target'] as num?)?.toInt();
++
+     if (isOverview) {
+-      return Text(cur == null ? '默认' : '$cur',
+-          style: Theme.of(context).textTheme.labelMedium);
++      // 总览页只读: 显示**实际生效**的值, 并在覆盖时标出来
++      final text = effective == null
++          ? '—'
++          : (target > 0 ? '$effective（自定义）' : '$effective');
++      return Tooltip(
++        message: target > 0
++            ? '自定义 $target 次（任务的默认上限是 ${fallback ?? "?"}）'
++            : '用任务默认值 ${fallback ?? "?"}',
++        child: Text(text, style: Theme.of(context).textTheme.labelMedium),
++      );
+     }
+     return SizedBox(
+-      width: 68,
++      width: 76,
+       child: TextField(
+         // 复用 State 里的控制器 —— 不在 build 里新建(会每帧泄漏)
+         controller: _targetCtrl,
+         focusNode: _targetFocus,
+         keyboardType: TextInputType.number,
+-        decoration: const InputDecoration(
++        decoration: InputDecoration(
+           isDense: true,
+-          hintText: '默认',
+-          border: OutlineInputBorder(),
+-          contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
++          // 留空 = 用任务默认值; 把它显示在 hint 里
++          hintText: fallback == null ? '默认' : '默认 $fallback',
++          border: const OutlineInputBorder(),
++          contentPadding:
++              const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+         ),
+         onSubmitted: (v) async {
+           final n = int.tryParse(v.trim()) ?? 0;
+@@ -305,6 +347,85 @@ class _TaskRowViewState extends State<TaskRowView> {
+   ///
+   /// 数据来自 `/schema` 的 `list.run_record`（后端已格式化好 `seconds_text`，
+   /// 前端不重复实现一遍中文格式化）。
++  /// **优先级** —— 定时任务内部排序的**最终裁判**（数字小的先跑）。
++  ///
++  /// 见 `docs/architecture.md` §5.4.1 的五级排序:
++  /// 能否跑 > 到点程度 > 窗口快关 > 耗时短 > **用户自定义优先级**。
++  Widget _priorityCell(BuildContext context, bool isOverview) {
++    final p = (task['priority'] as num?)?.toInt();
++    if (p == null) {
++      return Text('—', style: Theme.of(context).textTheme.labelSmall);
++    }
++    if (isOverview) {
++      return Text('$p', style: Theme.of(context).textTheme.labelSmall);
++    }
++    return _NumberCell(
++      key: ValueKey('pri-$p-${task['name']}'),
++      value: p,
++      width: 44,
++      hint: '5',
++      min: 1,
++      max: 9,
++      onCommit: (n) async {
++        await _c.setTaskPriority('${task['name']}', n);
++        await _c.reload();
++      },
++    );
++  }
++
++  /// **预期完成时间**（分钟）—— "休息时可穿插"的判据输入。
++  ///
++  /// 判据: `预期完成时间 < 休息剩余时间` -> 允许在休息期间穿插这个任务。
++  /// `0` = **未知** -> 不参与判定（保守, 宁可不穿插）。
++  Widget _expectedCell(BuildContext context, bool isOverview) {
++    final m = (task['expected_minutes'] as num?)?.toInt() ?? 0;
++    if (isOverview) {
++      return Tooltip(
++        message: m > 0
++            ? '预期 $m 分钟 —— 休息剩余时间比它长时才会被穿插'
++            : '未设置 —— 不参与"休息时穿插"判定',
++        child: Text(m > 0 ? '$m 分' : '—',
++            style: Theme.of(context).textTheme.labelSmall),
++      );
++    }
++    return _NumberCell(
++      key: ValueKey('exp-$m-${task['name']}'),
++      value: m,
++      width: 64,
++      hint: '未知',
++      min: 0,
++      max: 1440,
++      onCommit: (n) async {
++        await _c.setTaskExpectedMinutes('${task['name']}', n);
++        await _c.reload();
++      },
++    );
++  }
++
++  /// **失败冷却徽标** —— 在冷却中时替代"状态"格显示。
++  ///
++  /// 见 `module/config/failure_state.py`: 连续失败到阈值不再 `exit(1)`,
++  /// 而是给该任务加冷却。界面上要让用户**看见**并**能清除**。
++  Widget _cooldownBadge(BuildContext context) {
++    final mins = (task['cooldown_minutes'] as num?)?.toInt() ?? 0;
++    final until = '${task['cooldown_until'] ?? ''}';
++    return Tooltip(
++      message: '连续失败 '
++          '${task['failure_count'] ?? 0} 次, 冷却中至 $until\n'
++          '修好之后可以点右侧的「清除失败」立刻重试',
++      child: Chip(
++        avatar: const Icon(Icons.error_outline, size: 14),
++        label: Text('冷却 $mins 分'),
++        visualDensity: VisualDensity.compact,
++        // 点一下就能"清除失败 + 解除冷却"（修好之后不用等 1 小时）
++        onDeleted: () => _c.clearFailure('${task['name']}'),
++        deleteIcon: const Icon(Icons.close, size: 14),
++        deleteButtonTooltipMessage: '清除失败记录, 解除冷却, 立刻可重试',
++        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
++      ),
++    );
++  }
++
+   Widget _recordCell(BuildContext context) {
+     final cmd = '${task['command'] ?? ''}';
+     final rec = _c.recordOf(cmd);
+@@ -338,3 +459,113 @@ class _TaskRowViewState extends State<TaskRowView> {
+   static String _shortTime(String s) =>
+       s.length >= 16 ? s.substring(5, 16) : s;
+ }
++
++/// 一个**行内数字输入格**（优先级 / 预期完成时间 都用它）。
++///
++/// ## 为什么单独抽一个 StatefulWidget
++///
++/// `TextEditingController` 是 `ChangeNotifier` —— 在 `build` 里 `new` 一个
++/// 会**每帧泄漏一个监听器**（54 行 × 每次重建 = 卡顿）。
++/// 抽成 `StatefulWidget` 后, 控制器活在 `State` 里, 且能正确 `dispose`。
++///
++/// ## 关键行为
++///
++/// * **失焦或回车才提交** —— 每击键提交会打爆后端（每行都发一个 PUT）
++/// * 外部数据刷新时同步新值, 但**有焦点时不动** ——
++///   否则会把用户正在输的内容冲掉
++class _NumberCell extends StatefulWidget {
++  const _NumberCell({
++    super.key,
++    required this.value,
++    required this.width,
++    required this.hint,
++    required this.onCommit,
++    this.min = 0,
++    this.max,
++  });
++
++  final int value;
++  final double width;
++  final String hint;
++  final int min;
++  final int? max;
++  final Future<void> Function(int) onCommit;
++
++  @override
++  State<_NumberCell> createState() => _NumberCellState();
++}
++
++class _NumberCellState extends State<_NumberCell> {
++  late final TextEditingController _ctrl;
++  final _focus = FocusNode();
++
++  @override
++  void initState() {
++    super.initState();
++    _ctrl = TextEditingController(text: _text());
++    _focus.addListener(() {
++      if (!_focus.hasFocus) _commit();
++    });
++  }
++
++  @override
++  void didUpdateWidget(covariant _NumberCell old) {
++    super.didUpdateWidget(old);
++    // 有焦点时不要覆盖用户正在输的内容
++    if (!_focus.hasFocus) {
++      final t = _text();
++      if (_ctrl.text != t) _ctrl.text = t;
++    }
++  }
++
++  @override
++  void dispose() {
++    _ctrl.dispose();
++    _focus.dispose();
++    super.dispose();
++  }
++
++  String _text() => widget.value > 0 ? '${widget.value}' : '';
++
++  void _commit() {
++    final raw = _ctrl.text.trim();
++    // 空 = 0（优先级不允许 0, 用最小值兜底）
++    var n = raw.isEmpty ? (widget.min > 0 ? widget.min : 0) : int.tryParse(raw);
++    if (n == null) {
++      // 输入了非数字 -> 回退显示
++      _ctrl.text = _text();
++      return;
++    }
++    if (n < widget.min) n = widget.min;
++    if (widget.max != null && n > widget.max!) n = widget.max!;
++    if (n == widget.value) return;   // 没变就不发请求
++    widget.onCommit(n);
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return Tooltip(
++      message: widget.hint,
++      child: SizedBox(
++        width: widget.width,
++        child: TextField(
++          controller: _ctrl,
++          focusNode: _focus,
++          keyboardType: TextInputType.number,
++          style: Theme.of(context).textTheme.labelSmall,
++          decoration: InputDecoration(
++            isDense: true,
++            hintText: widget.hint,
++            hintStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
++                  color: Theme.of(context).disabledColor,
++                ),
++            border: const OutlineInputBorder(),
++            contentPadding:
++                const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
++          ),
++          onSubmitted: (_) => _commit(),
++        ),
++      ),
++    );
++  }
++}
+diff --git a/test/task_list_panel_test.dart b/test/task_list_panel_test.dart
+index 47314bc..97f7740 100644
+--- a/test/task_list_panel_test.dart
++++ b/test/task_list_panel_test.dart
+@@ -513,6 +513,105 @@ void _phase0Tests() {
+   //   （含真实被丢弃的那 7 个任务）
+ }
+ 
++// ============================================================ Phase 1: 开关与优先级
++void _phase1Tests() {
++  test('全局设置渲染**全部**开关（曾一个都没渲染）', () {
++    // ★★ 重大遗漏的回归守卫 ★★
++    //
++    // 后端把两个总开关 + 定时优先 + 休息穿插全做完了, `/schema` 的
++    // `global_fields` 也暴露了 —— 但前端**一个都没渲染**,
++    // 于是它们永远停在默认值, 用户在界面上根本改不了。
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    for (final key in ['enable_fixed', 'enable_timed',
++                       'timed_priority', 'rest_interleave']) {
++      expect(view.contains("'$key'"), isTrue,
++          reason: '全局设置缺开关 $key（后端早就支持了）');
++    }
++    expect(view.contains('_switchRow'), isTrue, reason: '缺开关行组件');
++  });
++
++  test('开关的标签与说明从 `/schema` 读，不硬编码文案', () {
++    final ctrl = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    expect(ctrl.contains('globalFieldLabel'), isTrue);
++    expect(ctrl.contains('globalField('), isTrue);
++    expect(ctrl.contains('timedPriorityChoices'), isTrue,
++        reason: '可选值也要从 /schema 读, 否则后端加选项前端看不到');
++
++    final view = codeOnly('lib/views/tasks/task_list_view.dart');
++    // 开关行必须用 controller 给的标签, 而不是写死中文
++    expect(view.contains('c.globalFieldLabel('), isTrue);
++  });
++
++  test('优先级与预期完成时间可编辑（每任务）', () {
++    final ctrl = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    expect(ctrl.contains('setTaskPriority'), isTrue);
++    expect(ctrl.contains('setTaskExpectedMinutes'), isTrue);
++    // 走各任务的 scheduler 分组
++    expect(ctrl.contains("'scheduler', 'priority'"), isTrue);
++    expect(ctrl.contains("'expected_minutes'"), isTrue);
++
++    final row = codeOnly('lib/views/tasks/task_row_view.dart');
++    expect(row.contains('_priorityCell'), isTrue);
++    expect(row.contains('_expectedCell'), isTrue);
++    expect(row.contains('_NumberCell'), isTrue);
++  });
++
++  test('数字输入格不能每击键提交（会打爆后端）', () {
++    final row = codeOnly('lib/views/tasks/task_row_view.dart');
++    final i = row.indexOf('class _NumberCellState');
++    expect(i, greaterThan(-1));
++    // ⚠ 类在文件末尾附近 —— 直接 +2200 会越界（踩过）。
++    final end = (i + 2200 < row.length) ? i + 2200 : row.length;
++    final body = row.substring(i, end);
++    // 只在失焦/回车提交
++    expect(body.contains('_focus.addListener'), isTrue,
++        reason: '失焦要提交');
++    expect(body.contains('onSubmitted'), isTrue, reason: '回车要提交');
++    // 有焦点时不覆盖用户输入
++    expect(body.contains('_focus.hasFocus'), isTrue);
++    // 必须被释放
++    expect(body.contains('_ctrl.dispose()'), isTrue);
++    expect(body.contains('_focus.dispose()'), isTrue);
++  });
++
++  test('目标次数输入框读写的是 `target`，不是 `count`', () {
++    // ★★ 回归守卫 ★★
++    //
++    // 之前 `_targetText()` 读 `task['count']`（任务配置里的默认值），
++    // 而用户改的是 `scheduler.target` —— 于是改完看到旧数字,
++    // 会**以为没生效**（这就是"次数双轨"那套 bug 的表现）。
++    final row = codeOnly('lib/views/tasks/task_row_view.dart');
++    final i = row.indexOf('String _targetText()');
++    expect(i, greaterThan(-1));
++    final body = row.substring(i, i + 260);
++    expect(body.contains("task['target']"), isTrue,
++        reason: '输入框初始值应读 target');
++    expect(body.contains("task['count']"), isFalse,
++        reason: 'count 是任务配置默认值, 不该当输入框的值');
++  });
++
++  test('失败冷却徽标可一键清除', () {
++    final row = codeOnly('lib/views/tasks/task_row_view.dart');
++    expect(row.contains('_cooldownBadge'), isTrue);
++    expect(row.contains('in_cooldown'), isTrue);
++    expect(row.contains('clearFailure'), isTrue,
++        reason: '修好之后要能立刻重试, 不用等 1 小时');
++    expect(row.contains('onDeleted'), isTrue);
++
++    final ctrl = codeOnly('lib/controller/task_list/task_list_controller.dart');
++    expect(ctrl.contains('clearFailureState'), isTrue);
++  });
++
++  test('排序支持优先级与预期耗时两列', () {
++    final prefs = codeOnly('lib/service/task_prefs.dart');
++    expect(prefs.contains("'priority'"), isTrue);
++    expect(prefs.contains("'expected'"), isTrue);
++    // 键要同类型（缺失时给数字兜底, 不能返回 null）
++    expect(prefs.contains("case 'priority':"), isTrue);
++    expect(prefs.contains("case 'expected':"), isTrue);
++  });
++}
++
+ void main() {
+   testWidgets('只含任务条目时能正常渲染', (tester) async {
+     final c = FakeTaskListController(
+@@ -617,6 +716,8 @@ void main() {
+   _round4Tests();
+ 
+   _phase0Tests();
++
++  _phase1Tests();
  }
  
  /// `scheduleRule` 为 `Priority` 的假控制器 —— 验证警告提示。

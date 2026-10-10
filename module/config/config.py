@@ -1444,6 +1444,51 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                            f'保持原顺序')
         return rl
 
+    def resegment_run_list(self) -> bool:
+        """把**当前 `priority_mode` 的分段顺序**落到 `run_list` 上。
+
+        ## ★★ 为什么需要它（实机验收反馈）★★
+
+        用户原话:
+        > "切换优先级后, **任务排序并没有被重排**, 如固定切换为定时,
+        >  任务列表排序并不会定时排到前边"
+
+        **根因**: 分段只发生在**队列层** —— `build_queue()` 返回
+        `self._segment_queue(rl)`, 那是**派生结果**, `_segment_queue()`
+        **刻意不回写配置**（见它的 docstring）。
+
+        ★ 于是:
+          * **实际执行顺序** = 分段后的（正确）
+          * **界面「执行顺序」显示的顺序** = `GET /run_list` = **`run_list`
+            的原始顺序**（用户以前拖的）
+        -> 用户切换模式后**看不到任何变化**, 以为"模式没生效"。
+
+        ## 为什么"切换模式时回写"不算违反"派生结果不回写"
+
+        `_segment_queue()` 的约定是"**系统自动排的段序不该悄悄覆盖用户的编排**"
+        —— 那对**每次 `build_queue()`** 都成立。
+        ★ 但**用户主动切换优先级模式**, 就是一次**明确的编排表态**
+          （"我要定时任务排前面"）—— 此时把段序落盘正是**执行他的意图**。
+        ★ 之后他仍可以拖（`custom` 下任意拖、其它模式段内拖）,
+          拖动会再写 `run_list` —— 两者不冲突。
+
+        :return 是否成功（**失败只记日志**, 不抛 —— 切换模式不该因此失败）
+        """
+        try:
+            rl = self.build_run_list()
+            before = [getattr(e, 'task', None) or '__rest__'
+                      for e in rl.entries]
+            rl = self._segment_queue(rl)
+            after = [getattr(e, 'task', None) or '__rest__'
+                     for e in rl.entries]
+            if before == after:
+                return True        # 顺序没变 -> 不必写盘
+            return bool(self.save_run_list(rl))
+        except Exception as exc:
+            logger.warning(f'切换优先级后重排 run_list 失败'
+                           f'({type(exc).__name__}: {exc})')
+            return False
+
     def _task_enabled(self, task_command: str) -> bool:
         """任务级 `enable` 开关（失败时保守返回 False —— 不启用就不补进队列）。
 
@@ -1671,6 +1716,56 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             logger.warning(f'{task_command}: 判断失败冷却时出错'
                            f'({type(exc).__name__}: {exc}), 按未冷却处理')
             return False
+
+    def scheduler_next_run_now(self, task_command: str) -> bool:
+        """把某任务的 `next_run` 拉回**现在**（= "立刻可以跑"）。
+
+        ## ★★ 为什么需要它（实机验收发现的真 bug）★★
+
+        用户原话: "**契灵之境为什么显示等待到点?** 这个是次数任务,
+          不应该有[还未到点]这种[拥有 window 的任务类]的属性啊"
+
+        **根因**: 任务进冷却时 `script.py` 会
+        ```python
+        self.config.task_delay(task, success=False, server=True,
+                               target=res['cooldown_until'])
+        ```
+        -> 把 `next_run` **写成冷却结束时刻**（实测 `18:44:00`）。
+
+        ★ 于是**只清失败记录是不够的**: `next_run` 还停在那一刻, 而该任务
+          的 `period=none`（无周期 -> **没有任何东西会重排它**）-> **永久**
+          卡在"等待到点"。
+        ★ 用户看到的就是: 一个**次数任务**却带着"未到点"的属性。
+
+        :return 是否改动成功（**失败只记日志, 不抛** —— 调度不该被它带崩）
+        """
+        try:
+            import copy
+            from datetime import datetime
+
+            key = self._config_key_of(task_command)
+            if not key:
+                return False
+            now = datetime.now().replace(microsecond=0)
+            self.model.deep_set(
+                self.model, keys=f'{key}.scheduler.next_run', value=now)
+            self.save()
+            logger.info(f'{task_command}: `next_run` 已拉回现在（{now}）'
+                        f'—— 解除冷却后立刻可跑')
+            return True
+        except Exception as exc:
+            logger.warning(f'{task_command}: 恢复 next_run 失败'
+                           f'({type(exc).__name__}: {exc})')
+            return False
+
+    @staticmethod
+    def _config_key_of(task_command: str) -> str:
+        """任务名 -> 配置里的键（下划线形式）。取不到返回 `''`。"""
+        try:
+            from module.config.config_model import convert_to_underscore
+            return convert_to_underscore(task_command) or ''
+        except Exception:
+            return ''
 
     def rest_remaining_minutes(self, now=None) -> int:
         """休息还剩多少分钟（不在休息则 0）。供"休息时穿插"判定。"""

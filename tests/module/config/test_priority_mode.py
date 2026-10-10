@@ -145,9 +145,22 @@ class TestSegmentation:
                 f'★ 这不是"通过", 是"没测到"。')
 
         expected = [t for t in q if t not in w]
+        # ★★ 必须排除 **`running_task` 置顶**（设计例外, 见 §3）★★
+        #
+        # `update_scheduler()` 末尾会把**正在跑的那个任务**提到 `pending`
+        # 最前（`_order_by_manual_run()` 之后）。实测:
+        #   queue   = ['Exploration', 'GoryouRealm', ...]
+        #   pending = ['GoryouRealm', 'Exploration', ...]     <- Exploration 被置顶
+        # ★ 这不是 bug, 是**设计上的例外** —— 所以断言要把它排除,
+        #   否则测试会随着"哪个任务在跑"随机红。
+        running = getattr(cfg, 'running_task', None)
+        if running:
+            expected = [t for t in expected if t != running]
+            p = [t for t in p if t != running]
         it = iter(expected)
         assert all(any(x == t for x in it) for t in p), (
-            f'pending 不是 queue 的保序子序列\n  queue={expected}\n  pending={p}')
+            f'pending 不是 queue 的保序子序列（已排除 running={running!r}）\n'
+            f'  queue={expected}\n  pending={p}')
 
 
 class TestRunEntryGroup:

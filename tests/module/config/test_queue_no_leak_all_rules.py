@@ -114,8 +114,17 @@ class TestQueueIsAuthorityForAllRules:
         q, p, w, disabled, done = self._state(live)
         expected = [t for t in q
                     if t not in w and t not in disabled and t not in done]
+        # ★★ 必须排除 **`running_task` 置顶**（设计例外, 见 §3）★★
+        #
+        # `update_scheduler()` 末尾把正在跑的任务提到 `pending` 最前。
+        # 实测: `running_task='Exploration'` 时它从队列第 0 位以外被提到
+        # `pending[0]` -> 严格相等断言会红。★ 这不是 bug。
+        running = getattr(live, 'running_task', None)
+        if running:
+            expected = [t for t in expected if t != running]
+            p = [t for t in p if t != running]
         assert p == expected, (
-            f'pending 不是队列的保序子序列\n'
+            f'pending 不是队列的保序子序列（已排除 running={running!r}）\n'
             f'  队列        : {q}\n'
             f'  waiting     : {sorted(w)}\n'
             f'  未启用      : {sorted(disabled)}\n'

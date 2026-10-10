@@ -167,7 +167,24 @@ class TestBuildQueue:
                 if t and config._task_enabled(t)}
         queue = [getattr(e, 'task', None) for e in config.build_queue()]
         appended = [t for t in queue if t not in user]
-        assert appended, '一个自动任务都没补齐 —— build_queue 没生效'
+
+        # ★★ 实机验收修复: 去掉"**必须有**自动补齐"这个断言 ★★
+        #
+        # 原文: `assert appended, '一个自动任务都没补齐 —— build_queue 没生效'`
+        #
+        # ★ 现在**可以合法地为空** —— 因为前端 `reorderQueue` 修好之后,
+        #   **用户拖动过的自动任务会被写进 `run_list`**（那正是修复的目标:
+        #   原来拖了必弹回）。于是"待补齐"的任务可能**一个都不剩**。
+        #   实测本机就是这种情况: `appended == []`。
+        # ★ 那**不是** `build_queue()` 没生效, 而是**没有东西需要补**。
+        #
+        # ★ 所以改成: ① 队列**非空** ② 若**有**待补齐的, 它们必须全部已启用
+        #   且不与用户条目重复。
+        assert queue, 'build_queue 返回了空队列'
+        if not appended:
+            pytest.skip(
+                '当前**没有**待自动补齐的任务（用户已把自动任务都编排进 '
+                '`run_list` 了）—— ★ 这不是失败, 是"无需补齐"')
 
         # ★ 自动补齐的必须**全部已启用**（未启用的不该进队列）
         disabled_in_queue = [t for t in appended if not config._task_enabled(t)]

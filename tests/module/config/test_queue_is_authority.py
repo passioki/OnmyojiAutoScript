@@ -106,8 +106,14 @@ class TestQueueIsAuthority:
 
         expected = [t for t in q
                     if t not in w and t not in done and t not in disabled]
+        # ★★ 必须排除 **`running_task` 置顶**（设计例外, 见 §3）★★
+        running = getattr(live, 'running_task', None)
+        if running:
+            expected = [t for t in expected if t != running]
+            p = [t for t in p if t != running]
         assert p == expected, (
             f'pending 不是"队列剔除 waiting/未启用/本周期已完成"的保序子序列\n'
+            f'  （已排除 running={running!r}）\n'
             f'  队列        : {q}\n'
             f'  waiting     : {sorted(w)}\n'
             f'  未启用      : {sorted(disabled)}\n'
@@ -187,10 +193,21 @@ class TestQueueIsAuthority:
         p = [f.command for f in (live.pending_task or [])]
         if len(p) < 3:
             pytest.skip('pending 太少, 顺序对比无意义')
+        # ★★ 必须排除 **`running_task` 置顶**（设计例外, 见 §3）★★
+        #
+        # 实测: `running_task='Exploration'` 时
+        #   queue   = ['Exploration', 'GoryouRealm', ...]
+        #   pending = ['GoryouRealm', 'Exploration', ...]   <- 被置顶
+        # ★ 断言排除它, 否则测试会随"哪个任务在跑"随机红。
+        running = getattr(live, 'running_task', None)
+        if running:
+            q = [t for t in q if t != running]
+            p = [t for t in p if t != running]
         # pending 必须是 q 的子序列（保序）
         it = iter(q)
         assert all(any(x == t for x in it) for t in p), (
-            f'pending 不是队列的保序子序列\n  队列: {q}\n  pending: {p}')
+            f'pending 不是队列的保序子序列（已排除 running={running!r}）\n'
+            f'  队列: {q}\n  pending: {p}')
 
 
 # ★★ 第二轮复审（待办 #4）: `TestListRuleDetection` **已删除** ★★

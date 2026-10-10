@@ -541,9 +541,43 @@ def build_overview(config_name: str) -> dict:
             'slot': slot,
             # 现在能不能跑
             'can_run': can_run,
-            # 不能跑的原因(界面可直接显示)
-            'reason': window_reason
-                or ('' if can_run else ('未启用' if not enabled else '等待到点')),
+            # ★★★ 不能跑的原因（界面可直接显示）★★★
+            #
+            # ## ★ 实机验收修复: 原来**漏了"不在执行队列"这一态**
+            #
+            # 用户原话:
+            #   "**契灵之境为什么显示等待到点?** 这个是次数任务, 不应该有
+            #    [还未到点]这种[拥有 window 的任务类]的属性啊"
+            #
+            # **原来的三分支**:
+            # ```python
+            # 'reason': window_reason or (
+            #     '' if can_run else ('未启用' if not enabled else '等待到点'))
+            # ```
+            # -> 凡是"已启用但 `can_run=False`"的, 一律说成 **"等待到点"**。
+            #
+            # ★ 而 `can_run` 只在 `slot == 'pending'` 时为真, 而 `slot` 来自
+            #   `update_scheduler()` 分的 `pending` / `waiting` ——
+            #   **不在执行队列**的任务（`auto_queue=False` 且用户没编排）
+            #   被 `_order_by_queue()` **剔除**, 于是它**既不在 `pending`
+            #   也不在 `waiting`** -> `slot=''` -> **`reason` 恒为"等待到点"**。
+            #
+            # ★★ **铁证**: `Orochi` 的 `next_run` 是 **`2023-01-01`（三年前）**,
+            #   界面**照样**显示"等待到点" —— 证明这个标签**根本不是从
+            #   `next_run` 推出来的**, 它只是那个 `else` 分支的默认值。
+            #
+            # ★ 这也正是用户说的"**次数任务不该有'未到点'这种属性**"的
+            #   **直接成因**: 一个从没进过队列的次数任务, 被贴上了
+            #   "定时任务才有的"说法。
+            #
+            # ★ 修法: 补上**第四态** `不在执行队列`（并说清怎么办）。
+            #   ⚠ 顺序很重要: "不在队列"要排在"等待到点"**之前**判断 ——
+            #     否则队列外的任务永远命中不了这一态。
+            'reason': window_reason or (
+                '' if can_run
+                else ('未启用' if not enabled
+                      else ('不在执行队列' if command not in queued_commands
+                            else '等待到点'))),
             'in_window': in_window,
             'countable': bool(meta.countable) if meta else False,
             # ★★ **用户编排的次数**（`scheduler.target`）★★
@@ -1173,8 +1207,25 @@ async def put_priority_mode(script_name: str, body: dict = Body(...)):
             config.model, keys='script.optimization.priority_mode_explicit',
             value=True)
         config.save()
+        # ★★ 实机验收修复: 切换模式后**把分段顺序落到 `run_list`** ★★
+        #
+        # 用户原话: "切换优先级后, **任务排序并没有被重排**, 如固定切换为
+        #   定时, 任务列表排序并不会定时排到前边"
+        #
+        # ★ 根因: 分段只发生在**队列层**（`build_queue()` ->
+        #   `_segment_queue()`, 那是**派生结果**, 刻意不回写配置）。
+        #   而界面「执行顺序」显示的是 `GET /run_list` = **原始顺序**
+        #   -> 切了模式**看不到变化**。
+        #
+        # ★ 这里显式落盘: 用户**主动切换模式**就是编排表态。
+        #   `custom` 模式下 `_segment_queue()` 原样返回 -> 不会动用户顺序。
+        try:
+            config.resegment_run_list()
+        except Exception as exc:
+            logger.warning(f'切换优先级后重排失败: {exc}')
         return {'ok': True, 'current': val,
-                'drag_within_group_only': val != PriorityMode.CUSTOM.value}
+                'drag_within_group_only': val != PriorityMode.CUSTOM.value,
+                'entries': config.build_run_list().to_list()}
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}
@@ -1786,12 +1837,39 @@ async def put_run_record_reset(script_name: str, tasks: list = Body(...)):
 
         names = [str(t) for t in (tasks or []) if t]
         archived = run_record.reset_many(script_name, names)
-        # ★ 同时解除这些任务的失败冷却
+        # ★ 同时解除这些任务的失败冷却 **并把 `next_run` 拉回现在**
+        #
+        # ★★ 为什么还要改 `next_run`（实机验收发现的真 bug）★★
+        #
+        # 用户原话: "**契灵之境为什么显示等待到点?** 这个是次数任务,
+        #   不应该有[还未到点]这种[拥有 window 的任务类]的属性啊"
+        #
+        # **根因**: 进冷却时 `script.py:846-850` 会
+        #   ```python
+        #   self.config.task_delay(task, success=False, server=True,
+        #                          target=res['cooldown_until'])
+        #   ```
+        #   -> 把 `next_run` **写成冷却结束时刻**（实测 `18:44:00`）。
+        #
+        # ★ 于是**只清失败记录是不够的**: `next_run` 还停在冷却结束时那一刻,
+        #   而该任务的 `period=none`（没有周期 -> **没有任何东西会重排它**）
+        #   -> **永久**卡在"等待到点", 界面就显示成一个次数任务却"未到点"。
+        #
+        # ★ 修法: 清了冷却就把 `next_run` 设成**现在**（"立刻可以跑"）。
+        #   这正是"清除失败"按钮语义的一部分 ——
+        #   `failure_state.clear()` 的 docstring 写着
+        #   "供界面'我修好了, 让我立刻重试'用", **"立刻"就该包括 next_run**。
+        from module.server.main_manager import mm
+        _cfg = mm.config_cache(script_name)
         for n in names:
             try:
                 failure_state.clear(script_name, n)
             except Exception as exc:
                 logger.warning(f'清失败冷却失败({n}): {exc}')
+            try:
+                _cfg.scheduler_next_run_now(n)
+            except Exception as exc:
+                logger.warning(f'恢复 {n} 的 next_run 失败: {exc}')
         return {
             'script': script_name,
             'archived_rounds': archived,
@@ -1911,11 +1989,26 @@ async def delete_failure_state(script_name: str, task: str = ''):
 
     ★ 用途: 用户修好了问题（改配置 / 换素材）之后
       **不想等 1 小时冷却**, 点一下就能立刻重试。
+
+    ## ★★ 实机验收修复: 还要把 `next_run` 拉回现在 ★★
+
+    ★ 光清失败记录**不够** —— 进冷却时 `script.py` 把 `next_run` 写成了
+      **冷却结束时刻**; 而 `period=none` 的任务**没有任何东西会重排它**
+      -> 会**永久**显示"等待到点"（用户实测: 契灵之境）。
+
+    ★ 所以"立刻重试"必须**两件事都做**: 清记录 + 把 `next_run` 拉回现在。
     """
     try:
         from module.config import failure_state
+        from module.server.main_manager import mm
 
         failure_state.clear(script_name, task or None)
+        # ★ 把 `next_run` 拉回现在（否则仍会显示"等待到点"）
+        if task:
+            try:
+                mm.config_cache(script_name).scheduler_next_run_now(task)
+            except Exception as exc:
+                logger.warning(f'恢复 {task} 的 next_run 失败: {exc}')
         return {'script': script_name, 'cleared': task or 'all',
                 'tasks': failure_state.summarize(script_name)}
     except Exception as exc:

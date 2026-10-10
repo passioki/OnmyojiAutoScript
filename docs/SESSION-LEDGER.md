@@ -4305,3 +4305,107 @@ Input should be 'Filter', 'FIFO', 'Priority' or 'List'
 | T12 | `rest` 条目分段位置无测试 |
 | ★ 新 | `test_battle_wait.py` 21 个测试**按当前状态机语义重写** |
 
+---
+
+# 51. T9/T11/T12: 布局超宽 · 状态不刷新 · `rest` 位置无测试
+
+## 51.1 T9: 抽屉与分栏宽度冲突（**超宽 61px**）
+
+**原代码**: `maxLeft = box.maxWidth - 320`（写死"右侧留 320"）,
+但右栏已从"常驻汇报"改成 **380 宽的抽屉**。于是当 `left` 触顶且抽屉打开时:
+
+```
+总宽 = left + 1(VerticalDivider) + 380
+     = (maxWidth - 320) + 1 + 380
+     = maxWidth + 61          -> **RenderFlex 溢出**
+```
+
+★ 触发条件**不是罕见**: 拖动条上限**允许**拖到该区间; 而且**换了更窄的
+  窗口**后, 之前存的偏好值就会触顶。
+
+**修**:
+* `reserved = _reportOpen ? _reportWidth + 1 : 320.0` —— "右侧留多少"**跟随
+  抽屉开合**
+* 给 `maxLeft` 加**下界保护**（`clamp(minLeft, ...)`）—— 窄窗口下
+  `maxWidth - 380` 可能 **小于** 420, 而 `clamp(420, maxLeft)` 会因为
+  `lower > upper` **抛异常**
+* 拖动条的 `clamp` 同步用 `minLeft` / `maxLeft`
+* ★ 拖动条**只在抽屉打开时**渲染 —— 抽屉关着时右侧没面板, 拖它只会让人困惑
+
+## 51.2 T11: `RunControlBar` 状态**永不刷新** + 失败**静默**
+
+### (A) 状态不跟随
+
+`_state` 只在 `initState` 拉一次 -> 队列里 `rest` 条目造成的「休息中」、
+以及**外部**暂停**都不显示**, 圆点/文案长期停在旧值。
+
+★ **我第一版猜错了 API**: 写了 `ever(_c.updateFlag, ...)` ——
+  **`updateFlag` 不存在**（我猜的）。`GetxController.update()` 只是
+  **通知 `GetBuilder` 重建**, 不是可监听对象。
+
+**正解**: 用 **`GetBuilder<TaskListController>`** 包住 + `tag` 与注册时一致
+（多账号必需）; 在 builder 里用 **`addPostFrameCallback`** 推到下一帧再
+`_load()`（⚠ **不能**在 build 里直接 `_load()` —— 会 `setState` during build
+报错）, 并用 `_loadedFor` 去重避免每帧发请求。
+
+### (B) 失败无提示
+
+`_do()` 里 `await fn();` —— 返回的 `bool` **被丢弃**。后端失败时
+`api_client` 返回 `false`, 界面**毫无反应** -> 用户看到"点了没反应"。
+
+**修**: `_do(fn, what)` 检查返回值 -> 失败 `Snackbar` 上屏 + 异常也上屏。
+
+## 51.3 ★★ T12: `rest` 在队列里的位置 **从未被任何断言看过** ★★
+
+### 审计发现
+
+* `test_queue_is_authority.py` 的 `_queue()` **把 rest 过滤掉了**
+  （`if getattr(e, 'task', None)`）-> rest 的位置**从未被观察**
+* `test_run_list.py` 只测 `RunList` 层, 不是 `_segment_queue()` 的行为
+
+★ 这个位置很重要: `rest` 是"**跑完这些之后歇一会儿**"; 排到中间会
+  **挡住后面所有任务**。
+
+### ★ 我写测试时**又发现一处注释与实现不符**
+
+我第一版对**三种模式**都断言"rest 恒排最后" -> **2 条失败**, 因为
+`_segment_queue()` 在 `custom` 时**直接 `return`**, rest **不**被挪走。
+
+**哪个对? 两个都对, 取决于模式**:
+* `timed_first` / `fixed_first` -> 段序由**模式**决定, 而 rest
+  **不属于任何段** -> 只能**垫最后**
+* `custom` -> 用户裁定"**全都可以拖动次序**" —— rest 的位置**也是用户拖出来的**,
+  必须尊重
+
+★ 我原来的代码注释写"rest **始终**排在最后" —— **与实现不符**。已改注释,
+  并让测试**显式覆盖两种行为**。
+
+### 覆盖（16 条）
+
+| 类 | 覆盖 |
+|---|---|
+| `TestRestAlwaysLast` | ★ `timed_first`/`fixed_first` 下 rest **恒最后**（含"两个 rest 都垫底"）; ★ **`custom` 下留在用户放的位置** |
+| `TestRestNotSegmented` | rest **不打段名**; 中间夹 rest 不影响两段先后 |
+| `TestStabilityWithinSegment` | 段**内**用户顺序不变; ★ `custom` **完全不动** |
+| `TestBoundaries` | 空队列 / 只有 rest / 只有一条任务（三模式结果一致）/ 全同段（两模式结果一致）|
+
+★ **我写错了一条**: `test_single_task` 里写成 `== [[F_TASK]]`（**多包一层**）
+  -> 必然失败。已修。
+
+## 51.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest（不 ignore + `-s`）| **1629 passed, 24 skipped**（0 失败, +16）|
+| 前端 flutter test | **85 passed** |
+| 前端 analyze（我改的 2 文件）| **No issues found!** |
+| 配置污染告警 | ★ **无** |
+
+## 51.5 剩余待办
+
+| # | 问题 |
+|---|---|
+| **T3** | **文档整改**（唯一一项大活: 3 份文档自称"唯一权威" · `ui-api-mapping.md` §3/§9 仍教 `window_slots` · `architecture.md` §3 整节已删内容 · 建 `deprecated.md` · 加文档守卫测试）|
+| T10 | 前端死代码一批（含**危险**的 `resetToDefault` —— 会清空 `run_list`）|
+| ★ 新 | `test_battle_wait.py` 21 个测试**按当前状态机语义重写**（现在**无保护**）|
+

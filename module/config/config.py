@@ -1308,7 +1308,22 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                         pass
 
             if mode == 'custom':
-                return rl                 # ★ 完全按用户次序, 不排段
+                # ★★ T12（审计修正）: `custom` 下 **rest 也完全按用户放的位置** ★★
+                #
+                # ⚠ 我原来的注释写"rest **始终**排在最后"—— **与实现不符**:
+                #   这一行**直接返回**, 所以 `custom` 模式下 rest **不**被挪走,
+                #   用户把它放在哪就留在哪。
+                #
+                # ★ 哪个对? **两个都对, 取决于模式**:
+                #   * `timed_first` / `fixed_first` -> 段序由**模式**决定,
+                #     而 rest **不属于任何段** -> 它只能**垫最后**
+                #     （否则会把它"分到的段"后面的任务全挡住）
+                #   * `custom` -> 用户裁定"**全都可以拖动次序**" ——
+                #     rest 的位置**也是用户拖出来的**, 必须尊重
+                #
+                # ★ 这条由 `tests/module/config/test_segment_rest_position.py`
+                #   显式覆盖（三种模式各测一遍）。**我原来漏了它。**
+                return rl
 
             def rank(e) -> int:
                 s = seg_of(e)

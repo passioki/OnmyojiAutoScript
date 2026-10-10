@@ -942,21 +942,33 @@ async def delete_run_list_entry(script_name: str, index: int):
 
 @schema_app.post('/{script_name}/queue/remove')
 async def post_queue_remove(script_name: str, data: dict = Body(...)):
-    """
-    **把任务移出执行队列** —— 并**同时停用它**（用户确认的行为）。
+    """**把任务移出执行队列**。
 
-    为什么必须同时停用:
-        自动进队列的任务（`auto_queue=True`）只要 `enable=true` 就会
-        **被重新补进队列**。只从 `run_list` 删掉是**无效的** ——
-        下次刷新它又回来了。所以"移出"必须落地为 `enable=false`。
+    ## ★★ 行为**分两类**（用户 2026-10-10 明确修正）★★
 
-    用户原话:
-        "可移除，移除后自动变为未启用状态，后续想要启用需自己在任务列表启用
-        （弹窗确认和提示）"
+    | 任务类型 | `auto_queue` | 移除后 |
+    |---|---|---|
+    | **定时任务** | `True` | 出队列 **且 `enable=false`** |
+    | **固定/次数任务** | `False` | **只出队列**, `enable` **保持** -> 回到【添加任务】池子 |
+
+    **为什么定时任务必须同时停用**:
+    自动进队列的任务只要 `enable=true` 就会被
+    `Config.build_queue()` **重新补进队列**。只从 `run_list` 删掉是**无效的**
+    —— 下次刷新它又回来了。所以"移出"必须落地为 `enable=false`。
+
+    **为什么次数任务不能停用**:
+    它们**不在自动补齐范围内**, 出队列后不会被补回来。若也停用, 用户想再跑
+    就得先去任务列表启用 —— 那是**多余的步骤**, 而且用户明确要求它
+    "**返回添加任务的池子里**"。
+
+    ★ 我此前把它写成"**无条件停用**" —— 那是**错的**, 已修正。
+      用户原话:
+        "执行队列中移除后自动停用只针对定时任务, 固定任务移除后应该返回
+         添加任务的池子里。"
 
     :param data: {"task": "RealmRaid"} —— 任务命令名（大驼峰）
     :return: {"ok": True, "task": ..., "removed_entries": n,
-              "enable": False, "message": 给用户看的中文提示}
+              "enable": bool, "auto_queue": bool, "message": 中文提示}
     """
     try:
         from module.server.main_manager import mm
@@ -968,7 +980,16 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
 
         config = mm.config_cache(script_name)
 
-        # ① 从 run_list 里删掉**所有**该任务的条目（可能有重复编排）
+        # ① 判定类别（决定要不要停用）
+        auto = False
+        try:
+            from module.config import task_catalog as TC
+            spec = TC.get_spec(task)
+            auto = bool(spec.auto_queue_effective) if spec else False
+        except Exception:
+            pass
+
+        # ② 从 run_list 里删掉**所有**该任务的条目（可能有重复编排）
         rl = config.build_run_list()
         kept = [e for e in rl
                 if not (getattr(e, 'task', None) == task)]
@@ -979,7 +1000,7 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
             if not config.save_run_list(new_rl):
                 return {'error': '保存运行列表失败(见日志)'}
 
-        # ② **停用**该任务 —— 否则自动进队列的任务会被重新补回来
+        # ③ 只有**定时任务**才停用（否则会被自动补齐）
         key = convert_to_underscore(task)
         node = getattr(config.model, key, None)
         if node is None:
@@ -987,27 +1008,25 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
         sch = getattr(node, 'scheduler', None)
         if sch is None:
             return {'error': f'{key} 没有 scheduler'}
-        sch.enable = False
-        config.save()
 
-        auto = False
-        try:
-            from module.config import task_catalog as TC
-            spec = TC.get_spec(task)
-            auto = bool(spec.auto_queue_effective) if spec else False
-        except Exception:
-            pass
+        if auto:
+            sch.enable = False
+            config.save()
+
+        if auto:
+            msg = (f'已把「{task}」移出队列并停用。'
+                   f'它启用后会自动回到队列。')
+        else:
+            msg = (f'已把「{task}」移出队列。'
+                   f'它仍在【添加任务】里, 可随时加回。')
 
         return {
             'ok': True,
             'task': task,
             'removed_entries': removed_n,
-            'enable': False,
+            'enable': bool(sch.enable),
             'auto_queue': auto,
-            'message': (f'已把「{task}」移出队列并停用。'
-                        f'想再跑请先在任务列表里启用它'
-                        + ('（它启用后会自动回到队列）' if auto else
-                           '，再用【添加任务】加入队列')),
+            'message': msg,
         }
     except Exception as exc:
         logger.exception(exc)

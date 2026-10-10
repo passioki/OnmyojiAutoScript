@@ -796,6 +796,33 @@ async def script_schema(script_name: str):
         return {'error': str(exc), 'tasks': {}}
 
 
+# ------------------------------------------------------------------- 任务完成汇报
+@schema_app.get('/{script_name}/report')
+async def get_task_report(script_name: str):
+    """**任务完成汇报**（用户 2026-10-10 新需求）。
+
+    用户原话:
+        "添加一个**任务完成汇报 tab**, 现在的日志属于原始日志, 应该**转移到
+         单独界面**用来 debug, 当前日志位置替换为**任务完成汇报**的 tab,
+         只会报完成了哪些、**出错任务标注**等等其它可以作为简报的内容"
+
+    ## 为什么不新增状态存储
+
+    现有三份状态文件已经够用（见 `module/config/report.py` 的说明）:
+    `run_record`（几次/多久）· `task_state`（本周期完成/充能）·
+    `failure_state`（失败/冷却）。
+
+    :return: {"config", "at", "summary": {...}, "tasks": [...], "errors": [...]}
+    """
+    try:
+        from module.config.report import build_report
+        return build_report(script_name)
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'tasks': [], 'errors': [],
+                'summary': {}, 'config': script_name}
+
+
 # --------------------------------------------------------------------------- 平台能力
 @schema_app.get('/capabilities')
 async def get_capabilities():

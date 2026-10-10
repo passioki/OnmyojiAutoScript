@@ -560,8 +560,8 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
 | `describe()` 支持每月 | ✅ | "每月 00:00-23:59" / "每月 1-15 日 …" / "每月 16-月末 日 …" |
 | **修一个真 bug**: `is_unrestricted` 漏判时刻 | ✅ | 原来只判 `len(days)==7` -> `AvailabilityWindow(True, 17:00, 23:00)` 被**误判成"不限"**（明明只开放 6 小时）。守卫 `test_is_unrestricted_accounts_for_month` |
 | 措辞修正 | ✅ | `describe()` 对未声明的窗口返回 **"未声明开放时段"**（原"不限时段"会**掩盖缺失** —— 用户要求"所有定时都有 window"）|
-| **`TaskSpec.windows_effective` 回退到周期推导** | ⬜ **未接线** | 目前 `window=None` 仍返回 `AvailabilityWindow()`（`enabled=False`）。**这一条是 F2 的核心**, 还没做 |
-| **46 个任务补显式 window** | ⬜ | 见 §8.3 |
+| **`TaskSpec.windows_effective` 回退到周期推导** | ✅ **已接线** | 取值顺序: ①`meta.py` 显式 `window` ②`window_for_period(period)` ③都没有 -> `enabled=False`。新增 `period_effective` / `declared_window` 两个属性 |
+| **46 个任务补显式 window** | ✅ **已补 18 个（其余 28 个由周期推导）** | 见 §9.5 |
 
 ★ **不算完成**: F2 只是把"能推导"这个能力做好了, **调度器还看不到**。
 按纪律标 🔄, 不标 ✅。
@@ -585,4 +585,58 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
    删掉后 `Exploration` 靠自己队列位置决定; 触发条件是**游戏状态**, 窗口表达不了
 2. **46 个任务补 window 的方式** —— 每任务显式写 vs 周期推导 + 校验脚本
 3. **`Period.MONTHLY` 已加**（实测原本只有 none/daily/weekly）
+
+---
+
+# 9.5 F2b / F2c 完成（本轮）—— ★ 含口径澄清
+
+## 结果（实测）
+
+```
+任务总数 54
+  显式声明 window    26   （原 8 + 本轮补 18）
+  由周期推导         28
+  **缺失**            0   ← 用户要求"所有的定时都有着 window 属性"
+```
+
+`python dev_tools/check_windows.py` -> **exit 0**（此前 exit 1, 报 18 个缺失）。
+
+## ★ 诚实说明: 本轮补的 18 个是"整天窗口", **行为零变化**
+
+补的窗口是 `AvailabilityWindow(True, time(0,0), time(23,59))` ——
+`contains()` 恒 `True`, 与补之前的 `AvailabilityWindow()`（`enabled=False`,
+也恒 `True`）**在行为上完全等价**。
+
+**所以这一步是"纯声明"**: 把"没写"变成"写了", 让**缺失可见**
+（`check_windows.py` 能核对）, 但**不改变任何既有行为**。
+
+★ **仍然要做的**: `AreaBoss` / `Duel` / `WeeklyTrifles` / `TalismanPass` /
+`KekkaiUtilize` / `GoldYoukai` / `ExperienceYoukai` / `Tako` 等有**真实游戏时段**
+的玩法, 需要按机制**收窄** —— 那是**行为变更**, 必须逐个核实（§10.5 不猜语义）。
+已登记, 未做。
+
+## `Function.window` 的优先级（本轮确立）
+
+| 顺序 | 来源 | 说明 |
+|---|---|---|
+| ① | `TaskSpec.window`（`meta.py`）| **游戏机制, 权威** |
+| ② | `scheduler.window_*`（配置项）| 回退（旧机制遗留, 4-E 已从界面移除）|
+| ③ | `AvailabilityWindow()` | 都没有 -> `enabled=False` |
+
+★ 因为①优先, **测试用真实任务名注入 `scheduler.window_*` 不再生效**
+（54 个任务全都有 meta 了）。已改用 `monkeypatch` 屏蔽 `TC.get_spec`
+来测②这条回退路径 —— 见 `test_function_window.py`:
+`TestMetaWindowPriority`（①）/ `TestSchedulerConfigFallback`（②）。
+
+★ 踩过的坑: 想用"合成任务名"走②, 但 `ConfigModel.type()` 对未知任务名抛
+`KeyError` —— **合成名走不通**, 必须用 monkeypatch。
+
+## 守卫测试（新增 17 个）
+
+`tests/module/config/test_every_task_has_window.py`:
+* **一个都不能缺窗口**（含缺失任务的明确报错信息）
+* 每个任务必须落在"显式声明"或"周期推导"之一
+* `dev_tools/check_windows.py` 必须 exit 0（同一份审计, 命令行/CI 可用）
+* 推导出的窗口**不该限制任何时刻**（否则会改变既有行为）
+* 8 个显式活动窗口的内容逐个钉住（逢魔 17:00 / 狭间暗域 周五六日 19:00 …）
 

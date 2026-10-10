@@ -196,7 +196,20 @@ class TestBackfillMigration:
     """★ 一次性回填（用户确认要做）: `scheduler.period` 按出厂默认值补上。"""
 
     def test_backfill_then_idempotent(self):
-        """★ 第一次回填改了东西; 第二次**幂等**返回 False。"""
+        """★ 第一次回填改了东西; 第二次**幂等**返回 False。
+
+        ## ⚠ 为什么必须自己构造前提（我踩过）
+
+        `config/template.json` 已经被**修正过**（38 个任务的 `period` 已按
+        出厂值写好、`period_backfilled` 已是 `True`）—— 那是**正确**的仓库状态。
+
+        ★ 所以本测试**不能**假设模板是"回填前"的旧状态, 否则它断言的是
+          "仓库模板还是旧的" —— 一旦模板被修正, 测试就**假失败**
+          （实测: 报 `Orochi` 得到 `none` 而非 `daily`）。
+
+        ★ 修法: 显式**清掉标记** + 把 `period` 打回 `none`, 自己造出
+          "老配置"的样子, 再验证回填。
+        """
         import server  # noqa: F401
         from module.config.config import Config, task_period_default
         from module.config.config_model import convert_to_underscore
@@ -204,31 +217,40 @@ class TestBackfillMigration:
         os.chdir(REPO)
         tmpl = json.loads((REPO / 'config' / 'template.json').read_text(
             encoding='utf-8'))
-        # ① 先读一份"原始出厂值"（回填前）
-        P.write_text(json.dumps(tmpl, ensure_ascii=False), encoding='utf-8')
-        c0 = Config(CFG)
         before = {n: task_period_default(n) for n in
-                  ('Orochi', 'DemonRetreat', 'AreaBoss')}
-        c0.save()
+                  ('Orochi', 'DemonRetreat')}
 
-        # ② 第一次: 把 period 清成 none, 再回填
+        # ① ★ 显式造出"回填前"的状态:
+        #    标记清掉 + 目标任务的 period 打回 none（不依赖仓库模板现状）
+        tmpl['script']['optimization']['period_backfilled'] = False
         for name in ('Orochi', 'DemonRetreat'):
             key = convert_to_underscore(name)
             node = tmpl.get(key)
-            if isinstance(node, dict):
-                node['scheduler']['period'] = 'none'
+            assert isinstance(node, dict), f'{key} 不在模板里'
+            node['scheduler']['period'] = 'none'
         P.write_text(json.dumps(tmpl, ensure_ascii=False), encoding='utf-8')
-        c1 = Config(CFG)
-        c1.migrate_task_period_once()
-        got = {n: Config(CFG).task_period(n)
-               for n in ('Orochi', 'DemonRetreat')}
+
         try:
+            # ② ★ 核心断言: **构造 `Config` 就会回填**（这就是生产路径 ——
+            #    `migrate_task_period_once()` 在 `__init__` 里被调用）
+            #
+            #    ⚠ 不要"构造后再把状态按回去再手动调" —— `Config` 构造时会
+            #      `save()`, 内存与磁盘会不一致, 那样测出来的是**测试脚手架**
+            #      的行为, 不是生产行为（我踩过两次）。
+            c1 = Config(CFG)
+            got = {n: c1.task_period(n) for n in before}
             assert got['Orochi'] == before['Orochi'], (
-                f'★ Orochi 应回填成 {before["Orochi"]!r}, 实际 {got["Orochi"]!r}')
+                f'★ 构造后 Orochi 应被回填成 {before["Orochi"]!r}, '
+                f'实际 {got["Orochi"]!r}')
             assert got['DemonRetreat'] == before['DemonRetreat']
-            # ③ 第二次幂等
-            assert Config(CFG).migrate_task_period_once() is False, (
+
+            # ③ 幂等: 标记已置上 -> 再调**无改动**
+            assert c1.migrate_task_period_once() is False, (
                 '★ 第二次回填应**无改动**（幂等）')
+            # ④ 且磁盘上确实是回填后的值
+            disk = json.loads(P.read_text(encoding='utf-8'))
+            assert disk[convert_to_underscore('Orochi')]['scheduler'][
+                'period'] == before['Orochi'], '★ 回填没落盘'
         finally:
             try:
                 P.unlink()

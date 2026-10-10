@@ -156,7 +156,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
         # 更改循环顺序
         while 1:
             self.screenshot()
-            if self.should_stop_battle_loop():
+            if self.raise_if_paused():
                 logger.info(f'RealmRaid 暂停请求: 本轮结束')
                 break
             #看到弹窗点掉，不然会卡死

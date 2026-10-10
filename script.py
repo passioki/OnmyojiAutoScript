@@ -607,6 +607,26 @@ class Script:
                 task_obj.run()
             finally:
                 self._record_task_run(task_obj, command, started, runs_before)
+        except TaskPaused:
+            # ★★★ 收到「暂停调度」—— 在安全点中断, **不跳过收尾** ★★★
+            #
+            # ## 为什么在这里接（而不是让任务自己处理）
+            #
+            # `TaskPaused` 是从**任意安全点**抛上来的（战斗循环里 /
+            # `run_general_battle()` 里）。★ 走到这里时:
+            #   * 任务自己的**收尾逻辑已经跑完了**
+            #     （战斗已结束 + 结算 + 领奖 —— 安全点的定义）
+            #   * 上面那个 `finally` 也已记录运行时长/次数
+            #   ★ 所以**不会卡在半途**（见 docs/architecture.md §6.1）
+            #
+            # ## 为什么不直接退出进程
+            #
+            # ★ 暂停是**可恢复**的: 返回 `True` -> 回到 `loop()` ->
+            #   `_handle_run_control()` 发现 `run_control.is_paused()` 为真,
+            #   就**阻塞等待**用户点「继续」, 恢复后照常调度。
+            #   ⚠ 若在这里 `exit()`, 用户点「继续」就**没有进程可恢复**了。
+            logger.info('调度已暂停: 当前任务在安全点中断, 等待「继续」')
+            return True
         except TaskEnd:
             return True
         except GameNotRunningError as e:

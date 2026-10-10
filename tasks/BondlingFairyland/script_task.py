@@ -378,7 +378,7 @@ class ScriptTask(GameUi, GeneralInvite, GeneralRoom, BondlingBattle, SwitchSoul,
         self._switch_soul_search()
         while 1:
             # 检查是不是在探查界面，
-            if self.should_stop_battle_loop():
+            if self.raise_if_paused():
                 logger.info(f'BondlingFairyland 暂停请求: 本轮结束')
                 break
             if not self.in_search_ui(screenshot=True):

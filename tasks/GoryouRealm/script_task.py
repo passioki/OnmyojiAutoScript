@@ -50,7 +50,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GoryouRealmAssets):
         # 开始循环
         while 1:
             self.screenshot()
-            if self.should_stop_battle_loop():
+            if self.raise_if_paused():
                 logger.info(f'GoryouRealm 暂停请求: 本轮结束')
                 break
             if not self.appear(self.I_GR_FIRE):

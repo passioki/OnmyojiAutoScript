@@ -156,7 +156,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         # 这个时候我已经进入房间了哦
         while 1:
             self.screenshot()
-            if self.should_stop_battle_loop():
+            if self.raise_if_paused():
                 logger.info(f'EvoZone 暂停请求: 本轮结束')
                 break
             # 无论胜利与否, 都会出现是否邀请一次队友
@@ -237,7 +237,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         self.device.keep_stuck_exempt('BATTLE_STATUS_S')
         while 1:
             self.screenshot()
-            if self.should_stop_battle_loop():
+            if self.raise_if_paused():
                 logger.info(f'EvoZone 暂停请求: 本轮结束')
                 break
             self.device.keep_stuck_exempt('BATTLE_STATUS_S')
@@ -297,7 +297,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
 
         while 1:
             self.screenshot()
-            if self.should_stop_battle_loop():
+            if self.raise_if_paused():
                 logger.info(f'EvoZone 暂停请求: 本轮结束')
                 break
 

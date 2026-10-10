@@ -46,7 +46,7 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
         self.goto_page(self.page_hero_mode)
         self.check_and_lock_team()
         while True:
-            if self.should_stop_battle_loop():
+            if self.raise_if_paused():
                 logger.info(f'HeroTest 暂停请求: 本轮结束')
                 break
             if self.limit_time is not None and self.limit_time + self.start_time < datetime.now():

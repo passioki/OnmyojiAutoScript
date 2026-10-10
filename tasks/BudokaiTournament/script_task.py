@@ -136,7 +136,7 @@ class Foot(StateMachine, GameUi, BaseActivity, SwitchSoul, ActivityShikigamiAsse
         # 安全点: 一场战斗(含结算领奖)已结束, 此时才检查暂停。
         # 本任务的 `run_general_battle` 在本方法(辅助)里而非循环体内,
         # 故用调用点检查(见 docs/architecture.md §6.1)。
-        if self.should_stop_battle_loop():
+        if self.raise_if_paused():
             logger.info('BudokaiTournament 暂停请求: 本轮结束')
             self._pause_requested = True
         return win

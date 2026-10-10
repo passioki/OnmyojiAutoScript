@@ -70,18 +70,19 @@ class GeneralBattle(BattleWait, GeneralBuff):
         # `battle_wait()` 返回 = 战斗 + 结算 + 领奖全部完成 = **正是安全点**
         # (见 docs/architecture.md §6.1)。此时可以安全地结束本任务循环。
         #
-        # 为什么在这里而不是各任务里: 与 `commit_count()` 同一手法 ——
-        # 放在共享层, **所有走 GeneralBattle 的任务自动受益**。
-        # 任务自身的循环形如 `while 1: ... if <条件>: break`, 因此只要让
-        # `appear_then_click` 之类的条件继续成立, 循环自然会退出。
-        if win and self.requested_pause():
-            logger.info('收到暂停请求: 本场战斗已完成, 结束当前任务')
-            try:
-                # 通知任务循环尽快收敛(不强制 break, 避免干扰任务的收尾逻辑)
-                self._pause_requested = True
-            except Exception:
-                pass
-            return True
+        # ★★★ 为什么改成"抛异常"而不是 `return True` ★★★
+        #
+        # 原来这里是 `if win and self.requested_pause(): return True` ——
+        # 想靠调用方读返回值来决定收尾。★ 但**实测 50 处调用点丢弃了返回值**
+        # （写成 `self.run_general_battle(...)`，没有 `=`/`if`/`return`）,
+        # 信号被**无声忽略** -> 用户点「暂停调度」后这些任务**完全不响应**。
+        #
+        # ★ 现在走 `raise_if_paused()`（抛 `TaskPaused`）——
+        #   **必然**中断, 不依赖调用方是否读返回值。
+        #   异常由 `script.py` 的 `run()` 接住, 任务收尾的 `finally` 照常执行
+        #   -> 不会卡在半途。
+        if win:
+            self.raise_if_paused()
 
         if win:
             return True

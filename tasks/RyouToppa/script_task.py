@@ -327,7 +327,7 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RyouToppaAssets):
         click_failure_count = 0
         while True:
             self.screenshot()
-            if self.should_stop_battle_loop():
+            if self.raise_if_paused():
                 logger.info(f'RyouToppa 暂停请求: 本轮结束')
                 break
             if click_failure_count >= 5:

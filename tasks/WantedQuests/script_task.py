@@ -299,7 +299,7 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
             self.screenshot()
             # 运行控制: 暂停请求在 challenge() 里置位, 这里在下一次迭代时收口
             # (见 docs/architecture.md §6.1)
-            if self.should_stop_battle_loop():
+            if self.raise_if_paused():
                 logger.info('WantedQuests 暂停请求: 本轮结束')
                 break
             if self.appear(self.I_TRACE_TRUE):
@@ -353,7 +353,7 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         # 下面还有"关闭挑战界面"的收尾逻辑, 必须让它执行(否则界面停在挑战页)。
         # 因此只置标志, 由外层 `execute_mission` 的循环在下一次迭代时检测。
         # (见 docs/architecture.md §6.1)
-        if self.should_stop_battle_loop():
+        if self.raise_if_paused():
             logger.info('WantedQuests 暂停请求: 本场结束后退出')
             self._pause_requested = True
         self.wait_until_appear(self.I_WQC_FIRE, wait_time=4)

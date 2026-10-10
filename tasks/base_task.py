@@ -344,6 +344,29 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                     pass
         return True
 
+    def raise_if_paused(self) -> None:
+        """★★★ 在**安全点**中断当前任务（"暂停调度"真正生效的关键）★★★
+
+        ## 为什么不直接 `return True` 让调用方 break
+
+        实测: `should_stop_battle_loop()` 有 **27 处**调用点，而
+        **15/54 个任务**根本没调用它；`run_general_battle()` 的
+        50 处调用点还**丢弃了返回值**。
+
+        ★ 光靠"让调用方自己 break"**覆盖不全** —— 这正是用户报的
+        "暂停调度并没有实现"。所以改成**抛异常**:
+        安全点一命中就**必然**中断, 不依赖调用方是否读返回值。
+
+        ⚠ 异常是 `TaskPaused(BaseException)` —— 任务里的 `except Exception`
+          吞不掉它（否则又会变成"点了没用"）。
+        ⚠ 异常由 `script.py` 的 `run()` 接住, 那里任务收尾的 `finally` 照常
+          执行 -> **不会卡在半途**。
+        """
+        if self.should_stop_battle_loop():
+            from module.exception import TaskPaused
+            logger.info('收到暂停请求: 已在安全点(本场战斗已结束)中断当前任务')
+            raise TaskPaused()
+
     def get_task_name(self) -> str:
         """
         取任务名, 以任务类所在目录名为准。

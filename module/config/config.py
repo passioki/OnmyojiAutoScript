@@ -357,17 +357,64 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # f.load(self.SCHEDULER_PRIORITY)
         if pending_task:
             _opt = self.model.script.optimization
+            _rule = _opt.schedule_rule
             pending_task = TaskScheduler.schedule(
-                rule=_opt.schedule_rule,
+                rule=_rule,
                 pending=pending_task,
                 # ★ 用 `build_queue()`（用户编排 + **自动补齐**）而不是
                 #   `build_run_list()`（只有用户编排）—— 否则
                 #   `auto_queue=True` 的定时任务启用后**不会**自动获得顺序,
                 #   用户还得手动拖一次才生效, 与设计不符。
                 run_list=self.build_queue())
-            # ★ 定时任务**内部**排序 + 定时优先时提到最前（见 docs §5.4.1）
-            pending_task = self._order_by_timed_priority(pending_task)
+            # ★★ F3: **`LIST` 规则下, 队列顺序就是最终次序, 且队列外的不跑** ★★
+            #
+            # 用户明确的设计:
+            #
+            #   "待执行里为什么不能和执行顺序一样拖动呢, 他俩应该并在一起啊"
+            #   "定时任务的拖动代表执行顺序发生了变化。完成上一个任务就会接着
+            #    完成下一个。正在运行 a, 执行顺序 bcd, 待执行 efg, 我把 g 拖到
+            #    bgcd, 这样运行完 B 就会运行 g。"
+            #
+            # ## 此前为什么不按队列顺序跑
+            #
+            # `TaskScheduler.schedule(LIST, ...)` **确实**按队列位置排好了,
+            # 但紧接着 `_order_by_timed_priority()` 又用 `timed_sort_key`
+            # （到点程度 / 窗口快关 / 耗时短）**把整个列表重排** ——
+            # 用户拖的顺序**被完全覆盖**。
+            #
+            # 实测（2026-10-10）: 队列第 9 位的 `ExperienceYoukai`
+            # 被排到 pending **第 1 位**; 队列第 1 位的 `Delegation` 掉到第 4。
+            #
+            # ★★ 还发现**队列外的任务也会跑** ★★
+            #   `pending = 25` 而 `queue = 18`, 多出的 9 个
+            #   （`EternitySea`/`Exploration`/`Orochi`/`FallenSun`/…）
+            #   都是 `auto_queue=False` 的次数任务 —— **不在队列里却在跑**。
+            #   这与"队列是唯一调度依据"直接矛盾, 本方法一并修掉。
+            #
+            # ★ 踩过: 一开始写成 `str(_rule).lower() not in ('schedule_rule.list', 'list')`
+            #   —— `str(ScheduleRule.LIST)` 是 **`'ScheduleRule.LIST'`**（不是 `'List'`）,
+            #   于是判断**永远为 False**, 改动**静默失效**（派发顺序一点没变）。
+            #   改用 `_is_list_rule()` 统一处理（`enum` 用 `.value`, `str` 直接比）。
+            #
+            # ## 现在
+            #
+            # * **`LIST` 规则** -> 队列顺序**就是**执行顺序; **队列外的不参与**
+            # * 其它规则（`FILTER`/`FIFO`/`PRIORITY`）-> 保留 `timed_sort_key`
+            #   行为（那些规则本来就是"按机制排", 不是"按用户顺序排"）
+            #
+            # ★ 用户原话（A 选项）: "间隔完全废弃" —— 曾经的
+            #   `timed_priority='timed'`（定时任务插到最前）是"谁到点先跑"
+            #   的残留; 在"队列顺序为唯一依据"的模型下它**会让用户拖的顺序失效**。
+            if self._is_list_rule(_rule):
+                pending_task = self._order_by_queue(pending_task)
+            else:
+                # ★ 定时任务**内部**排序 + 定时优先时提到最前（见 docs §5.4.1）
+                pending_task = self._order_by_timed_priority(pending_task)
+                pending_task = self._order_by_timed_priority(pending_task)
             # ★ 「运行一次」: 手动请求的任务提到**最前**（按点击顺序）
+            #
+            # 这一条**保留**: 它是用户的**显式即时指令**（"现在就给我跑一次"）,
+            # 不是"按机制自动插队", 与队列顺序不冲突。
             pending_task = self._order_by_manual_run(pending_task)
             # 防止正在运行的任务被新上来的pending队列中的任务给顶替掉
             if self.model.running_task and pending_task:
@@ -411,6 +458,70 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             return ordered
         except Exception as exc:
             logger.warning(f'运行一次排序失败({type(exc).__name__}: {exc}), '
+                           f'保持原顺序')
+            return pending
+
+    @staticmethod
+    def _is_list_rule(rule) -> bool:
+        """判断是否"列表优先"（`ScheduleRule.LIST`）。
+
+        ★ 为什么需要它: `ScheduleRule` 是 `str` 枚举,
+          但 **`str(ScheduleRule.LIST)` 得到的是 `'ScheduleRule.LIST'`**,
+          **不是** `'List'` —— 直接拿 `str()` 去比会**永远不匹配**,
+          改动**静默失效**（实测踩过: 派发顺序一点没变, 也不报错）。
+
+          所以: 枚举取 `.value`, 字符串直接比, 都转小写。
+        """
+        val = getattr(rule, 'value', rule)
+        return str(val).strip().lower() == 'list'
+
+    def _order_by_queue(self, pending):
+        """把 `pending` 按**执行队列顺序**排好, 并**剔除队列外的任务**。
+
+        ## 依据
+
+        ＊ 顺序: `Config.build_queue()`（用户拖的 `run_list` + 自动补齐）
+        ＊ 成员: 同理 —— **不在队列里就不该跑**
+
+        ## 为什么必须"剔除"
+
+        实测（2026-10-10）: `pending=25` 而 `queue=18`, 多出的 9 个
+        （`EternitySea`/`Exploration`/`Orochi`/`FallenSun`/`GoryouRealm`/
+        `Hyakkiyakou`/`RealmRaid`/`RyouToppa`/`Sougenbi`）
+        都是 `auto_queue=False` 的**次数任务** —— 用户**没有**把它们加进队列,
+        它们却在跑。这与"队列是唯一调度依据"直接矛盾。
+
+        ## 不在队列里的任务会怎样
+
+        被**排除出 pending**（不会跑）, 但**不会被停用** ——
+        它们仍在【添加任务】里, 用户随时可以加进队列。
+        见 `docs/SESSION-LEDGER.md` §10（移出队列的分类型语义）。
+
+        ## 稳定排序
+
+        同名的多个条目（理论上不该有）保持原相对顺序;
+        队列里查不到的（理论上被剔除了）排最后, 保证不吞任务。
+        """
+        try:
+            queue = self.build_queue()
+            order = {}
+            for idx, entry in enumerate(queue):
+                cmd = getattr(entry, 'task', None)
+                if cmd and cmd not in order:
+                    order[cmd] = idx
+            if not order:
+                return pending
+            kept = [f for f in pending
+                    if getattr(f, 'command', None) in order]
+            dropped = [getattr(f, 'command', None) for f in pending
+                       if getattr(f, 'command', None) not in order]
+            if dropped:
+                logger.info(
+                    f'F3: 这些任务不在执行队列里, 本次不参与调度: {dropped}')
+            return sorted(
+                kept, key=lambda f: order.get(getattr(f, 'command', None), 10 ** 6))
+        except Exception as exc:
+            logger.warning(f'_order_by_queue 失败({type(exc).__name__}: {exc}), '
                            f'保持原顺序')
             return pending
 
@@ -1229,7 +1340,19 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         run = min(run).replace(microsecond=0)
         next_run = run
 
-        # ★★ 4-C: `next_run` **必须落在任务的开放时段内**（用户要求）★★
+        if server and hasattr(scheduler, 'server_update'):
+            # 加入随机延迟时间
+            float_seconds = (scheduler.float_time.hour * 3600 +
+                             scheduler.float_time.minute * 60 +
+                             scheduler.float_time.second)
+            random_float = random.randint(0, float_seconds)
+            # 如果有强制运行时间
+            if scheduler.server_update == time(hour=9):
+                next_run += timedelta(seconds=random_float)
+            else:
+                next_run = parse_tomorrow_server(scheduler.server_update, scheduler.delay_date, random_float)
+
+        # ★★ 4-C / F3: `next_run` **必须落在任务的开放时段内**（用户要求）★★
         #
         # ## 修的是什么
         #
@@ -1253,19 +1376,18 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # 实现了这个方法, 只是**从来没人调**。
         #
         # 用户原话: "任务调度解决了，K 就没什么问题了，下次的运行应该要落在 window 中"。
+        #
+        # ★★ 修一个**顺序 bug**（本轮发现）★★
+        #
+        # 原来这一段在 `server_update` **之前**, 于是后面那一步会把
+        # `next_run` **覆盖掉**, 对齐**白做**:
+        #
+        #     `server_update` 默认是 `09:00`（`Scheduler` 的默认值）
+        #     -> 走 `else` 分支 -> `next_run = parse_tomorrow_server(...)`
+        #     -> **直接变成"明天的 09:00"**, 完全无视窗口
+        #
+        # 所以必须**放在最后**, 让"落在窗口内"成为不可被覆盖的终态。
         next_run = self._align_to_window(task, next_run)
-
-        if server and hasattr(scheduler, 'server_update'):
-            # 加入随机延迟时间
-            float_seconds = (scheduler.float_time.hour * 3600 +
-                             scheduler.float_time.minute * 60 +
-                             scheduler.float_time.second)
-            random_float = random.randint(0, float_seconds)
-            # 如果有强制运行时间
-            if scheduler.server_update == time(hour=9):
-                next_run += timedelta(seconds=random_float)
-            else:
-                next_run = parse_tomorrow_server(scheduler.server_update, scheduler.delay_date, random_float)
 
         # 将这些连接起来，方便日志输出
         kv = dict_to_kv(

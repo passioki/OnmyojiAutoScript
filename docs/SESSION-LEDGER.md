@@ -2684,3 +2684,75 @@ Deprecated in Pydantic V2.0 to be removed in V3.0.
 | **S5** | 删除充能存量（71 文件 / 327 行, 含 `charge_*` + `Category.CHARGE`）|
 | **S6** | `priority_mode` 三模式 + `run_list` 类别分段 + 拖动约束 |
 
+---
+
+# 35. S4 完成: 前端**窗口列表编辑器**（前后端同步）
+
+## 35.1 ★ 用户要求"前后端要同步改" —— 我核对了事实
+
+| 层 | S3 后的事实 | S4 前的前端 |
+|---|---|---|
+| 后端 `windows` | `List[TaskWindow]`（结构化, 有 id）| — |
+| `/args` 输出 | `type: "array"`, `value` 是 **List** | ❌ **前端完全没有这块 UI** |
+| 前端原生表单 | 只有 `boolean/string/multi_line/number/integer/enum` | ❌ `"array"` 落进 `"string"` 分支 -> `List.toString()` 一堆垃圾, **用户根本改不了** |
+
+★ 这就是用户说的"前后端没同步"。**已补齐。**
+
+## 35.2 后端（S4 前半, §34）
+
+`GET` / `PUT` / `POST` / `PUT {id}` / `DELETE {id}` —— **按 `id`**（"身份不是位置"）。
+
+## 35.3 前端（本轮）
+
+### ① `ArgumentModel` 补 `name`
+
+原来只有 `title`, 而 `title` 是**中文展示名** —— 不能用来判断字段类型。
+**顺手修正**: `fromJson` 里 `title` 原本**错用了 `json['name']`**（拿字段名当标题）。
+
+### ② `api_client` 加 5 个方法
+
+`getTaskWindows` / `putTaskWindows` / `addTaskWindow` /
+`updateTaskWindow` / `deleteTaskWindow`（路径与后端**逐字一致**）。
+
+### ③ 新建 `lib/views/args/window_editor.dart`（`part of args_view.dart`）
+
+| 元素 | 说明 |
+|---|---|
+| 每行 | `启用` 开关 · `周期` 下拉（每天/每周/每月）· `起` · `止` · `周几/几号` · **删除** |
+| `+ 添加窗口` | 新增一行（没 `id`, 由后端补）|
+| `保存窗口` | 走 **`PUT .../windows`**（整单替换, 一次提交全部）|
+| 时刻选择 | `showTimePicker`（`HH:mm` 显示, 提交补成 `HH:mm:ss`）|
+| 说明 | 全部 `Tooltip`（用户要求"括号改悬停"）—— 含"**一天跑两次 = 两个窗口**" |
+| 行 key | `ValueKey('win-<id>')` —— 按 `id`, 不是下标 |
+
+### ④ `args_view.dart` 接入
+
+```dart
+if (model.name == 'windows') {
+  return WindowEditor(scriptName: ..., task: ..., initial: model.value as List);
+}
+```
+
+## 35.4 我修掉的 3 个自己的问题
+
+| # | 问题 | 症状 |
+|---|---|---|
+| 1 | 直接 `import` 一个 `part` 文件 | `error: The included part ... must have a part-of directive`（`part_of_non_part`）。改成 `part of 'args_view.dart';` |
+| 2 | `_form()` 里多余的 `ArgsController controller` | `warning: unused_local_variable` |
+| 3 | **我的守卫测试**用 `'\$task'` 匹配 Dart 的 `$task` 插值 | **假失败**（Python 把 `\$` 当转义）。改用 **raw 字符串** `r'...$task...'` |
+
+## 35.5 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1765 passed, 3 skipped**（+14 前端守卫）|
+| 前端 flutter test | **85 passed** |
+| `flutter analyze`（我改的文件）| 只剩 1 个**既有**的 `withOpacity` 弃用（非我改动行）|
+
+## 35.6 待做
+
+| 步 | 内容 |
+|---|---|
+| **S5** | **删除充能存量**（71 文件 / 327 行, 含 `charge_*` 字段 + `Category.CHARGE` + 总览页"存量"列）|
+| **S6** | `priority_mode` 三模式（定时优先 / 固定优先 / **自定义**）+ `run_list` **类别分段** + 拖动约束 |
+

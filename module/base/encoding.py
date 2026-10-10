@@ -60,6 +60,48 @@ def setup_utf8_stdio() -> bool:
     # 只在调用方未显式设置时写入, 避免覆盖使用者的意图。
     os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
 
+    # ★★★ 先给 `None` 兜底（这一条决定"能不能启动"）★★★
+    #
+    # ## 现象（实测）
+    #
+    # OASX 启动后端用的是:
+    #     .\toolkit\pythonw.exe  server.py      （见 OASX 的 server_controller.dart）
+    #
+    # ★ `pythonw.exe` **没有控制台** -> `sys.stdout` / `sys.stderr` 都是 **None**。
+    #   而 `module/logger.py` 用 `rich` 的 `RichHandler`, 它默认往
+    #   `sys.stdout` 写 -> `None.write(...)` -> `AttributeError` ->
+    #   **进程在启动阶段直接死掉**。
+    #
+    # ★ 实测三组对照（同一台机器、同一份代码）:
+    #
+    #     pythonw.exe server.py              -> 进程死, 端口 22288 永不监听
+    #     pythonw.exe server.py + 重定向输出  -> 正常启动
+    #     python.exe  server.py              -> 正常启动（约 2 秒）
+    #
+    #   -> 证明差别**只在 stdout 是否存在**，与代码逻辑无关。
+    #
+    # ## 后果（用户报的现象）
+    #
+    # 后端起不来 -> 前端连不上 -> 界面显示**默认值**
+    # -> 用户以为"我的配置被重置了"（其实配置一直完好）。
+    #
+    # ## 修法
+    #
+    # stdout/stderr 为 `None` 时**接到 `os.devnull`** ——
+    # ★ 写日志不再崩, 而文件侧的日志（`module/logger.py` 的 FileHandler）
+    #   照常记录, 所以"没有控制台"**不等于"没有日志"**。
+    #
+    # ⚠ 为什么在这里而不是 server.py: 本函数是**两个入口都调用**的
+    #   （server.py / script.py）且已是"启动最早期"的钩子, 放在这里
+    #   一次性覆盖所有入口, 不必每个入口各写一遍。
+    for _name in ('stdout', 'stderr'):
+        if getattr(sys, _name, None) is None:
+            try:
+                setattr(sys, _name,
+                        open(os.devnull, 'w', encoding='utf-8'))
+            except OSError:
+                pass
+
     ok = False
     for name in ('stdout', 'stderr'):
         stream = getattr(sys, name, None)

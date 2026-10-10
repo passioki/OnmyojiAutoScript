@@ -109,7 +109,21 @@ class ScriptTask(GameUi, GuildBanquetAssets):
         self.device.stuck_record_clear()
         self.set_config()
         self.goto_page(page_main)
-        self.plan_next_run()
+        # ★★ 用户裁定: 排期**只用窗口**（`custom_next_run` 已删）★★
+        #
+        # 原来这里是 `self.plan_next_run()` —— 它按**用户配置的宴会日**
+        # （`run_time.day_1` / `day_2`, 周三/周六）手工算"下次哪天几点",
+        # 然后 `custom_next_run(...)`。
+        #
+        # 现在改用**任务窗口**:
+        #   * `window_period = 每周` + `window_days` -> 用户填宴会日（周三/周六）
+        #   * `window_start` / `window_end`          -> 宴会时段
+        # 由调度器的"**队列顺序 + 窗口**"统一裁决（见台账 §11 / §20.2）。
+        #
+        # `.scheduler.window_*` 是**用户可见可改**的（#1 已放开）, 所以
+        # 用户完全可以在界面上把宴会日填成周三/周六、时段填成 18:00-22:00。
+        self.set_next_run(task='GuildBanquet', finish=True,
+                          server=True, success=True)
         raise TaskEnd
     
     def check_runtime(self) -> bool:
@@ -124,20 +138,15 @@ class ScriptTask(GameUi, GuildBanquetAssets):
             return False
         return True
 
-    def plan_next_run(self):
-        # 安排次日宴会，便于复用
-        today = datetime.now().weekday()
-        
-        if today < self.banquet_day_1:
-            logger.info(f"Plan next run: {self.banquet_day_1_start_time}")
-            self.custom_next_run(task='GuildBanquet', custom_time=self.banquet_day_1_start_time, time_delta=self.banquet_day_1 - today) 
-        elif self.banquet_day_1 <= today < self.banquet_day_2:
-            logger.info(f"Plan next run: {self.banquet_day_2_start_time}")
-            self.custom_next_run(task='GuildBanquet', custom_time=self.banquet_day_2_start_time, time_delta=self.banquet_day_2 - today)
-        elif self.banquet_day_2 <= today:
-            logger.info(f"Plan next run: {self.banquet_day_1_start_time}")
-            self.custom_next_run(task='GuildBanquet', custom_time=self.banquet_day_1_start_time, time_delta=7 - today + self.banquet_day_1) 
-    
+    # ★★ `plan_next_run()` **已删除**（2026-10-10）★★
+    #
+    # 它做的事: 按**用户配置的宴会日**（`banquet_day_1` / `banquet_day_2`）
+    # 手工算"下次哪天几点", 然后 `custom_next_run(...)` ——
+    # 那是"**任务内自排期**", 与用户要求的"队列顺序 + 窗口"是**两套机制**。
+    #
+    # 现在由**任务窗口**表达（`window_period=每周` + `window_days` + 起止时刻）,
+    # 用户在界面上直接填。见台账 §20 / §21 / §24。
+
     def get_key_from_value(self, dict, value):
         return [k for k, v in dict.items() if v == value][0]
     

@@ -1082,3 +1082,48 @@ git archive HEAD -o OASX.zip          # 导出当前树的完整内容
   —— 因为 `period` 是 **`$ref`**, `enum` 在 **`$defs`** 里。
   改用端到端的 `/schema` 输出（`enumEnum` 已展开好）。
 
+---
+
+# 16. #4 · 核实 `success_interval` 是否可删 —— ⛔ **仍在使用, 不能直接删**
+
+## 16.1 用户要求
+
+> "success_interval 如果没有用到那么就删掉"
+
+**「如果没有用到」** —— 所以我先核实。**结论: 还在用。**
+
+## 16.2 核实结果（逐处, 2026-10-10）
+
+全库 **54 处**出现（含注释/文档/测试）; 其中**真正执行的代码**是:
+
+| 位置 | 用途 | 能否直接删 |
+|---|---|---|
+| `tasks/DailyTrifles/script_task.py:58` | `next_run = now + self.config.daily_trifles.scheduler.success_interval` | ⛔ **不能** —— 任务直接读它算下次运行 |
+| `tasks/TrueOrochi/script_task.py:207` | `next_run = now + self.config.true_orochi.scheduler.success_interval` | ⛔ **不能** |
+| `module/config/config.py:1315` | `task_delay()` 的**回退分支**（`_next_run_from_resource()` 返回 `None` 时）| ⛔ **不能** —— 有任务走到这条路 |
+| `tasks/*/config.py`（7 个任务）| 覆盖 `success_interval`（`FloatParade` 3 天 · `Secret` 7 天 · `KekkaiUtilize`/`TalismanPass` 6 小时 …）| ⚠ 配置面, 删字段会连带 |
+| `module/config/resource.py:336` | `Resource.from_legacy(success_interval=...)` 迁移桥 | ⚠ 迁移用, 保留 |
+| 其余约 35 处 | 注释 / 文档字符串 / 测试断言 | 非代码 |
+
+## 16.3 正确顺序（先移植, 再删）
+
+1. **移植** `DailyTrifles` / `TrueOrochi` 的 `now + success_interval`
+   -> 改为靠**自己的窗口**（§8.1 的模型: 所有定时任务都有 window）
+2. **删掉** `task_delay()` 的回退分支（L1315-1316）—— 但**必须保留**
+   `retry_interval`（失败退避是**独立概念**, 台账 7.6; 用户没要求删它）
+3. **删字段** `Scheduler.success_interval` + 7 个任务的覆盖 + 相关迁移
+4. 更新测试断言
+
+★ **我没有直接删** —— 那会**破坏 3 处正在执行的代码**。
+  按纪律（§10.5 不猜语义 / 不冒险）, 标 ⬜ 并附上确切的依赖清单。
+
+## 16.4 与用户"间隔完全废弃"的关系
+
+用户 A 选项 = "间隔完全废弃"。**当前状态**:
+
+* ✅ **顺序上已废弃** —— 队列顺序是唯一调度依据（§11 实测）
+* ⛔ **字段还在被读** —— 上面 3 处（本节的清单）
+* ✅ `period` / `window` 已成为**新的**节奏表达（§8.1 / §12）
+
+所以"完全废弃"还差**这 3 处移植**。已登记为 #4 的后续。
+

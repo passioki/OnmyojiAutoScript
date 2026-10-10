@@ -1020,21 +1020,43 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             return []
 
     def queued_commands(self) -> set:
-        """**队列成员** = 运行列表里的任务 + 自动进队列的任务。
+        """**队列成员** = 运行列表里的任务 + **已启用**的自动进队列任务。
 
         定义（用户确认）:
-            * `auto_queue=True` 的任务: 启用后**必定**在队列里
+            * `auto_queue=True` 的任务: **启用后**必定在队列里
             * `auto_queue=False`（次数任务）: 只有被用户【添加任务】后才在队列里
 
         ★ 与 `build_run_list()` 的区别: 后者是"用户编排的清单",
           这里是"实际会跑的清单"。`queued` 判断用这个。
+
+        ## ★★ ② 修: 必须**过滤 `enable`** ★★
+
+        用户反馈: "执行队列-执行顺序页面, 这里出现了很多**未启用**的任务"。
+
+        **实测**: `queued_commands()` 返回 **41** 个, 其中 **23 个未启用**;
+        而权威的 `build_queue()` 只有 **19** 条。
+
+        **根因**: `build_queue()` 里有这个过滤 ——
+        ```python
+        for task in self.auto_queue_tasks():
+            if not self._task_enabled(task):
+                continue
+        ```
+        而这里 `out.update(self.auto_queue_tasks())` **漏了**。
+        **同一个知识（"队列成员"）在两处定义, 其中一处漏了 `enable`**
+        —— 正是台账 §10.8"单一数据源"要防的那类 bug。
+
+        现在改用**同一个过滤**。
         """
         out = set()
         for e in self.build_run_list():
             task = getattr(e, 'task', None)
             if task:
                 out.add(task)
-        out.update(self.auto_queue_tasks())
+        for task in self.auto_queue_tasks():
+            # ★ 未启用的**不在队列里**（`build_queue()` 也是这么判的）
+            if self._task_enabled(task):
+                out.add(task)
         return out
 
     @staticmethod

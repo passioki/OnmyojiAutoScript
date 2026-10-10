@@ -2228,3 +2228,104 @@ cfg.save_run_list(RunList([]))                    # ← 还原成**空**, 不是
 | `flutter analyze`（我改的文件）| No issues |
 | 配置污染测试 | 跑**两次**均 `8 passed` 且配置一致 |
 
+---
+
+# 30. ① 汇报抽屉 + ② 未启用任务出现在队列
+
+## 30.1 ✅ ① 任务汇报 -> **全局可收纳抽屉**
+
+### 用户要求
+
+> "我发现任务汇报已经占用了右半窗口, 但是还有一个 tab 页面, **两个重复了**。
+>  取消单独的 tab 和右半窗口, 改为**可以收纳的形式**,
+>  就是**点一下从右边滑出来, 再点一下收进去**。"
+> （并确认: **全局生效**）
+
+### 实测到的重复
+
+`TaskReportPanel` 在 `task_list_view.dart` 里出现 **4 次**:
+* L287 / L332 —— 作为**第 3 个 tab**
+* L294 —— **宽屏右半栏**
+* L337 —— **窄屏底部 220px**
+
+### 改法
+
+| 项 | 改动 |
+|---|---|
+| `DefaultTabController(length:)` | 3 -> **2** |
+| `TabBar` | 删掉 `Tab(text: '任务汇报')` |
+| `TabBarView` | 两处都删掉第 3 个 child |
+| 宽屏右半栏 | 删 -> `if (_reportOpen) ... _reportDrawer(...)` |
+| 窄屏底部 | 删 -> 同上（高度 260） |
+| 新增 | `bool _reportOpen` / `final double _reportWidth = 380` |
+| 新增 | `_reportDrawer()`（带 180ms 滑入动画）|
+| 新增 | `_reportToggle()`（工具条「简报」/「收起简报」按钮）|
+
+★ 用户原话"**再点一下收进去**" -> 同一个按钮切换（`_reportOpen = !_reportOpen`）。
+
+## 30.2 ★★ ② 的**实测根因**（一个"两处定义"的 bug）★★
+
+### 用户反馈
+
+> "执行队列-执行顺序页面, 这里出现了很多**未启用**的任务,
+>  而且我尝试移除时前端没有生效。"
+
+### 实测数据
+
+```
+queued_commands(): 41 个   ← 其中 23 个**未启用**
+build_queue():     19 条   ← 权威（有 enable 过滤）
+```
+
+### 根因: **同一个知识在两处定义, 其中一处漏了 `enable`**
+
+```python
+# build_queue()   ✅ 正确
+for task in self.auto_queue_tasks():
+    if not self._task_enabled(task):     # ← 有过滤
+        continue
+
+# queued_commands()   ❌ 漏了
+out.update(self.auto_queue_tasks())      # ← 没有 enable 判断
+```
+
+★ 这正是台账 §10.8「**单一数据源**」要防的那类 bug ——
+  "队列成员"这个概念在两个方法里各写了一遍。
+
+### 修 + 实测
+
+`queued_commands()` 改用**同一个** `_task_enabled()` 过滤:
+
+```
+queued = 18   未启用的 = 0      ← 修前 41 / 23
+```
+
+★ 我核对时**又犯了一次错**: 我用自己的脚本按 `GoldYoukai` 去 `model` 里找,
+  但配置键是**压缩小写**（`goldyoukai`）-> 误报"14 个未启用"。
+  改用权威的 `cfg._task_enabled()` 才是 0。**已如实记录。**
+
+### 测试更新
+
+`test_queue_membership_includes_auto` 原来断言"**所有**自动任务都在队列里"
+—— 那正是**错的假设**。改成:
+* 已启用的自动任务 -> 在队列里
+* **未启用的 -> 必须在队列外**（这就是 ② 的修复点）
+
+## 30.3 我这一轮的**过程失误**（如实记录）
+
+改 `task_list_view.dart` 时我**连续 4 次**用行号脚本替换, 每次都因为
+锚点差 1 行 / 范围算错而写坏文件, 最后靠 `git checkout -- <file>` 回退重来。
+
+**教训**: 大文件的结构性改动**不该用行号脚本** —— 应该用**唯一的精确
+字符串替换**（`edit` 工具）, 一次一处, 每步 `flutter analyze` 验证。
+我最后就是这么做的（5 次 `edit` + 分析确认）。
+
+## 30.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1705 passed, 3 skipped** |
+| 前端 flutter test | **85 passed** |
+| `flutter analyze`（我改的文件）| No issues |
+| `queued_commands()` | **41 -> 18**（未启用 23 -> **0**）|
+

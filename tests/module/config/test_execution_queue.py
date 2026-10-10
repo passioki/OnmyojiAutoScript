@@ -130,10 +130,36 @@ class TestBuildQueue:
                 '自动补齐的任务中间夹了用户编排项'
 
     def test_queue_membership_includes_auto(self, config):
-        """`queued_commands()` = 用户编排 + 自动任务。"""
+        """`queued_commands()` = 用户编排 + **已启用**的自动任务。
+
+        ★★ ② 修（2026-10-10）: 自动任务必须**按 `enable` 过滤** ★★
+
+        用户反馈: "执行队列-执行顺序页面, 这里出现了很多**未启用**的任务"。
+
+        **实测根因**: 旧实现 `out.update(self.auto_queue_tasks())` **没有**
+        `enable` 判断, 于是 41 个"队列成员"里混进 23 个未启用的; 而权威的
+        `build_queue()`（它**有** `_task_enabled` 过滤）只有 19 条。
+
+        **同一个知识（"队列成员"）在两处定义, 其中一处漏了 `enable`**
+        —— 台账 §10.8"单一数据源"要防的那类 bug。
+
+        所以断言改成:
+        * **已启用**的自动任务 -> 在队列里
+        * **未启用**的自动任务 -> **不在**队列里
+        """
         queued = config.queued_commands()
-        for task in config.auto_queue_tasks():
-            assert task in queued, f'自动任务 {task} 不在队列成员里'
+        enabled_auto = [t for t in config.auto_queue_tasks()
+                        if config._task_enabled(t)]
+        for task in enabled_auto:
+            assert task in queued, f'已启用的自动任务 {task} 应在队列成员里'
+
+        # ★ 未启用的自动任务**不该**出现（这就是 ② 的修复点）
+        disabled_auto = [t for t in config.auto_queue_tasks()
+                         if not config._task_enabled(t)]
+        bad = [t for t in disabled_auto if t in queued]
+        assert not bad, (
+            f'② 回归: 未启用的自动任务出现在了队列成员里: {bad[:8]}')
+
 
     def test_count_tasks_only_when_ordered(self, config):
         """次数任务只有被编排了才算在队列里。"""

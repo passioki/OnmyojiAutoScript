@@ -163,9 +163,33 @@ def _write_all(data: dict) -> None:
     os.replace(tmp, path)
 
 
+def _state_key(task: str, entry_id: str = None) -> str:
+    """完成记忆的**存储键**。
+
+    ## 为什么从 `task` 改成 `entry_id`（用户选项 2 · 显式）
+
+    队列里同一任务可以出现**多次**（用户用重复条目表达"重复跑整个任务"）:
+
+        a 50次, a 50次
+
+    原来按 `task` 记 -> 第一条跑完就把 `a` 标成"本周期已完成"
+    -> **第二条也被跳过** -> 只跑了 1 次（用户要 2 次）。
+
+    按 `entry_id` 记就分得开了。
+
+    ## 兜底（向后兼容）
+
+    `entry_id` 为空（旧数据 / 没走进队列的任务）-> 退回 `task`。
+    这样**旧状态文件仍能读到**, 不会因为改造让所有任务"重新跑一遍"。
+    """
+    eid = (entry_id or '').strip()
+    return str(eid if eid else task).lower()
+
+
 def record_success(config_name: str, task: str,
                    period: str = 'none',
-                   reset_at: dt_time = DEFAULT_RESET_AT) -> None:
+                   reset_at: dt_time = DEFAULT_RESET_AT,
+                   entry_id: str = None) -> None:
     """
     记录某任务在"当前周期"已成功完成。
 
@@ -174,7 +198,7 @@ def record_success(config_name: str, task: str,
     :param period: 周期类型; 为 none 时仅记录时间戳, 不参与周期判断
     :param reset_at: 游戏重置时间
     """
-    key = str(task).lower()
+    key = _state_key(task, entry_id)
     pkey = period_key(period, reset_at)
     try:
         with _lock():
@@ -194,7 +218,8 @@ def record_success(config_name: str, task: str,
 
 def is_completed_in_period(config_name: str, task: str,
                            period: str,
-                           reset_at: dt_time = DEFAULT_RESET_AT) -> bool:
+                           reset_at: dt_time = DEFAULT_RESET_AT,
+                           entry_id: str = None) -> bool:
     """
     判断某任务在当前周期内是否已成功完成过。
 
@@ -211,7 +236,7 @@ def is_completed_in_period(config_name: str, task: str,
     except Exception as exc:
         logger.warning(f'[TaskState] 读取状态失败({type(exc).__name__}: {exc}), 视为未完成')
         return False
-    item = (data.get(config_name) or {}).get(str(task).lower()) or {}
+    item = (data.get(config_name) or {}).get(_state_key(task, entry_id)) or {}
     return item.get('period_key') == pkey
 
 

@@ -361,10 +361,16 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             if not isinstance(func.next_run, datetime):
                 error.append(func)
             elif func.next_run < self.scheduler_update_dt:
-                # 完成记忆: 本周期已成功完成过的任务不再入队, 并把 next_run 推到下个周期
-                if self._skip_by_period(key, value):
-                    waiting_task.append(func)
-                    continue
+                # ★★ C: "完成记忆"门槛**已移到 `_order_by_queue` 之后** ★★
+                #
+                # 原来在这里判 `_skip_by_period(...)` —— 但那时
+                # `func.entry_id` 还是 `None`（条目身份由 `_order_by_queue`
+                # 在后文逐条写入）-> 门槛退化成"按任务名" ->
+                # **重复条目会被合并**（第二条也被跳过, 只跑 1 次）。
+                #
+                # 现在改为在排完序之后**逐条**按 `entry_id` 复查
+                # （见下面 "完成记忆（按条目）" 那一段）。
+                #
                 # 开放时段(新增, 默认关闭): 游戏机制决定的硬约束。
                 # 不在时段内的任务入 waiting 而不是 pending, 避免白跑一趟 ——
                 # 这正是用户此前只能靠"缩短轮询间隔碰运气"绕过的那个问题。
@@ -430,6 +436,25 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             #   的残留; 在"队列顺序为唯一依据"的模型下它**会让用户拖的顺序失效**。
             if self._is_list_rule(_rule):
                 pending_task = self._order_by_queue(pending_task)
+                # ★★ C: **完成记忆（按条目）** ★★
+                #
+                # `_order_by_queue()` 刚给每个 `Function` 写好了 `entry_id`
+                # （重复条目是**不同的对象、不同的 id**）。这里逐条判断
+                # "这一条本周期做过没有":
+                #
+                # * 做过 -> 移出 pending（同任务**下一条**不受影响）
+                # * 旧数据 / 无 entry_id -> 退回按任务名判断（向后兼容）
+                kept = []
+                for f in pending_task:
+                    tk = convert_to_underscore(getattr(f, 'command', '') or '')
+                    tv = self.model.dict().get(tk) or {}
+                    if self._skip_by_period(
+                            tk, tv,
+                            entry_id=getattr(f, 'entry_id', None)):
+                        waiting_task.append(f)
+                        continue
+                    kept.append(f)
+                pending_task = kept
             else:
                 # ★ 定时任务**内部**排序 + 定时优先时提到最前（见 docs §5.4.1）
                 pending_task = self._order_by_timed_priority(pending_task)
@@ -1082,9 +1107,17 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             return False
         return self.rest_remaining_minutes(now) > 0
 
-    def _skip_by_period(self, task_key: str, task_value: dict) -> bool:
+    def _skip_by_period(self, task_key: str, task_value: dict,
+                        entry_id: str = None) -> bool:
         """
-        完成记忆: 判断该任务是否"本周期已成功完成", 若是则跳过本次调度。
+        完成记忆: 判断该**条目**是否"本周期已成功完成", 若是则跳过本次调度。
+
+        ★★ C(选项 2): 按 **`entry_id`** 判断, 不再只看任务名 ★★
+
+        队列里同一任务可以出现**多次**（"重复跑整个任务"）:
+        * 传了 `entry_id` -> 按**该条目**判断（各条目独立）
+        * 没传 -> 退化为按任务名判断（旧行为, 兼容既有调用与旧状态文件）
+        
 
         task_value 是 model.dict() 里该任务的原始 dict, 其中 scheduler.period /
         reset_at 可能是枚举或字符串(取决于序列化方式), 这里都兼容。
@@ -1112,7 +1145,9 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 reset_at = time.fromisoformat(reset_at)
 
             from module.config.task_state import is_completed_in_period, period_start
-            if not is_completed_in_period(self.config_name, task_key, period_str, reset_at):
+            if not is_completed_in_period(self.config_name, task_key,
+                                          period_str, reset_at,
+                                          entry_id=entry_id):
                 return False
 
             # 已在本周期完成 -> 把 next_run 推到下个周期起点, 避免每轮重复判断
@@ -1334,7 +1369,8 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                            f'({type(exc).__name__}: {exc}), 保持原 next_run')
             return when
 
-    def _record_task_success(self, task_key: str, scheduler) -> None:
+    def _record_task_success(self, task_key: str, scheduler,
+                             entry_id: str = None) -> None:
         """
         完成记忆: 任务成功结束时, 记录"本周期已完成"。
 
@@ -1355,7 +1391,8 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 reset_at = time.fromisoformat(reset_at)
 
             from module.config.task_state import record_success
-            record_success(self.config_name, task_key, period_str, reset_at)
+            record_success(self.config_name, task_key, period_str, reset_at,
+                           entry_id=entry_id)
         except Exception as exc:
             logger.warning(f'_record_task_success({task_key}) 异常 '
                            f'({type(exc).__name__}: {exc}), 忽略')
@@ -1520,7 +1557,11 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
             # 完成记忆: 仅在成功时记录"本周期已完成"
             if success:
-                self._record_task_success(task_key=task, scheduler=scheduler)
+                # ★ C: 记在**当前运行的条目**上（不是任务名上）——
+                #   这样同一任务的重复条目各记各的
+                self._record_task_success(
+                    task_key=task, scheduler=scheduler,
+                    entry_id=getattr(self.task, 'entry_id', None))
         # if server is not None:
         #     if server:
         #         server = scheduler.server_update

@@ -1817,7 +1817,20 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             ② 属于 `by` 段 **但不在开放时段内** -> rank 1
             ③ 另一段 **且在开放时段内**         -> rank 2
             ④ 另一段 **且不在开放时段内**       -> rank 3
-            ⑤ 「休息」条目                       -> rank 9（恒最后）
+
+        ★★ P-2:「休息」条目**不再被特殊处理**（用户裁定）★★
+
+        用户原话:
+        > "休息**也是任务**, 只不过可以选择插入定时任务。"
+        > "休息当然就是**挡住后边的**, 本质为了**防封**, **符合预期**。"
+        > "1 **全删**"
+
+        ⚠ 这里原来是 `⑤ 「休息」条目 -> rank 9（恒最后）`。
+          ★ 那是"休息恒排最后"那条**被误记成裁定**的临时约束的一部分。
+          现在休息按**它自己的位置**参与：`sorted` 是**稳定**排序, 所以
+          ★ 休息在哪个相对位置, 排序后**仍在那个相对位置** —— 不会被甩到最后。
+          （它没有 `task`, 所以走"另一段"那一档, 与普通任务同规则。）
+
         ★ 这样"**能跑的优先**", 与调度器实际行为一致（不在窗口的会入 waiting）。
         ★ **段内保序**仍然成立（`sorted` 稳定）—— 用户编排不被搅乱。
 
@@ -1830,18 +1843,27 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             from module.config import task_catalog as TC
 
             def _rank(e) -> int:
-                """★ 见上面「当前跑不了的排到后面」那一段的 ①~⑤。"""
+                """★ 见上面「当前跑不了的排到后面」那一段的 ①~④。
+
+                ★★ P-2: **不再给「休息」单独的 rank**（用户裁定）★★
+
+                原来这里开头是:
+                    if not task:
+                        return 9              # 休息条目恒最后
+                ★ 那是"休息恒排最后"的一部分（那句**不是**用户的裁定,
+                  是误记的临时约束）。现在删掉 ——
+                  休息与普通任务**同一套规则**参与排序（`sorted` 稳定,
+                  所以它的相对位置不会被甩到最后）。
+                """
                 task = getattr(e, 'task', '') or ''
-                if not task:
-                    return 9              # 休息条目恒最后
                 try:
-                    spec = TC.get_spec(task)
+                    spec = TC.get_spec(task) if task else None
                     runnable = bool(spec.in_window()) if spec else False
                 except Exception:
                     # 判不出来就当成"能跑" —— 保守: 不因为一个异常把用户的
                     # 编排踢到后面
                     runnable = True
-                seg = self._segment_of(task)
+                seg = self._segment_of(task) if task else ''
                 if seg == by:
                     return 0 if runnable else 1
                 return 2 if runnable else 3

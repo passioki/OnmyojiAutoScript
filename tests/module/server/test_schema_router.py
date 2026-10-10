@@ -63,11 +63,6 @@ class TestSchema:
 
     # ★ S5: `test_resource_rules` **已删除** —— `Resource` / `Recharge`
     #   （存量机制）用户裁定删除, 断言它的测试一并删。
-    def test_interval_is_list(self, schema):
-        iv = schema['tasks']['DemonEncounter']['resource']['interval']
-        assert isinstance(iv, list) and len(iv) == 3
-        assert iv == [0, 1, 0]
-
     def test_categories_list(self, schema):
         cats = {c['value'] for c in schema['categories']}
         assert cats == {c.value for c in TC.Category}

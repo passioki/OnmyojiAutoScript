@@ -12,7 +12,7 @@
 
 类别依据: 限时活动: 隔一段时间才推出, 非常驻
 """
-from module.config.resource import Period, Recharge, Resource  # noqa: F401
+from module.config.resource import Period  # noqa: F401
 from module.config.task_catalog import Category, TaskSpec  # noqa: F401
 
 SPEC = TaskSpec(
@@ -23,5 +23,4 @@ SPEC = TaskSpec(
     auto_queue=True,
     list_pos=29,
     period=Period.DAILY,
-    resource=Resource(capacity=1, recharge=Recharge(kind='window', period=Period.DAILY)),
 )

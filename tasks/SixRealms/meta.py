@@ -12,7 +12,7 @@
 
 类别依据: 固定任务: 有"打满 N 次"的语义
 """
-from module.config.resource import Period, Recharge, Resource  # noqa: F401
+from module.config.resource import Period  # noqa: F401
 from module.config.task_catalog import Category, TaskSpec  # noqa: F401
 
 SPEC = TaskSpec(
@@ -23,5 +23,4 @@ SPEC = TaskSpec(
     auto_queue=False,
     list_pos=27,
     period=Period.DAILY,
-    resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

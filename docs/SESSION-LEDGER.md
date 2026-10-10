@@ -3086,3 +3086,83 @@ module\config\task_state.py 存在可能未定义的全局引用:
 | **S5-6** | `task_catalog.py` 删 `charge_*` + `Category.CHARGE` | 15 行 |
 | **S5-7** | `report.py`(7) · `schema_router.py`(5) · `resource.py` 残留 | — |
 
+---
+
+# 40. S5-5: 删 `Recharge` / `Resource` + ★★ 发现死代码 `scheduler_core` ★★
+
+## 40.1 ★★ 重大发现: `scheduler_core`（346 行）是**死代码** ★★
+
+删 `Resource` 前我按纪律先查"**谁还在用它**", 结果:
+
+```
+config.py:1119: from module.config.scheduler_core import RunState, next_available
+                 ^^^^ 这一行在 build_queue() 的 **docstring 里**（L1109-1120）
+```
+
+**生产代码里没有任何地方调用** `next_available` / `RunState` / `credits_at`。
+`scheduler_core.py`（346 行）是**上一代调度器**（`Resource` 池子模型）的纯函数核,
+**已经没有任何调用方**。
+
+★ 佐证: `docs/architecture.md` 记的 §5.4.1「定时优先」那条路径
+  （`_order_by_timed_priority`）也**只剩定义、无调用**（我在 §32.3 已删掉调用）。
+
+**处置**: 删 `scheduler_core.py` + 它的测试 + 引用它的 `dev_tools/compare_scheduler.py`。
+
+## 40.2 对比: `timed_schedule` **是活的**（不能删）
+
+| 模块 | 状态 | 依据 |
+|---|---|---|
+| `scheduler_core.py` | ★ **死** | 唯一出现是 docstring |
+| `timed_schedule.py` | **活** | `pick_interleave_candidate` / `should_schedule` 在调 |
+
+★ **不能因为名字像就一起删** —— 这正是"先查再删"的价值。
+
+## 40.3 本批删了什么
+
+| 位置 | 删掉 | 行数 |
+|---|---|---|
+| `module/config/resource.py` | `class Recharge`（L57-222）+ `class Resource`（L224-391）| **406 -> 76** |
+| `module/config/scheduler_core.py` | **整个文件**（死代码）| 346 |
+| `dev_tools/compare_scheduler.py` | 整个文件（引用死代码）| — |
+| `tests/.../test_scheduler_core.py` | 整个文件 | — |
+| `tests/.../test_availability.py` | 整个文件（全测 `scheduler_core.next_available`）| 299 |
+| `tests/.../test_task_spec.py` `TestSpecResources` | 类级删除 | 27 |
+| `tests/.../test_task_window.py` `TestResourceWiring` | 类级删除 | 81 |
+| `tests/.../test_schema_router.py::test_interval_is_list` | 函数级删除 | 5 |
+| `tests/.../test_success_interval_removed.py::test_migration_bridge_kept` | 函数级删除 | 9 |
+
+**保留 `Period`**（`TaskSpec.period` 在用）:
+```python
+from module.config.resource import Period   # ['none','daily','weekly','monthly']
+```
+
+## 40.4 ★ 54 个 `meta.py` 迁移
+
+| 改动 | 数量 |
+|---|---|
+| import: `Period, Recharge, Resource` -> `Period` | 51 |
+| 删 `resource=Resource(...)` 行 | 51 |
+| （`GoldYoukai`/`ExperienceYoukai`/`Tako` 在 §38 已改）| 3 |
+
+★ **核对**: 54 个 `meta.py` **全部 `py_compile` 通过**, 且
+  `Recharge` / `Resource(` / `resource=` 残留 **0 处**。
+
+★ 这次我只做**两种安全的行级替换**（import 行 + 单行 `resource=...`）,
+  **不再用正则切代码块** —— 吸取 §37/§38 的教训。
+
+## 40.5 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1557 passed, 3 skipped**（0 失败）|
+| `resource.py` | 406 -> **76 行** |
+| `Recharge` / `Resource` | ★ **已删**（`Period` 保留）|
+| 死代码 `scheduler_core` | ★ **已删**（346 行）|
+
+## 40.6 S5 剩余
+
+| 子步 | 内容 | 残留 |
+|---|---|---|
+| **S5-6** | `task_catalog.py` 删 `charge_*` 兼容字段 + `Category.CHARGE` | 15 行 |
+| **S5-7** | `report.py`(7) · `schema_router.py`(5) · 其余 `charge` 残留 | — |
+

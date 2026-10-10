@@ -96,15 +96,6 @@ class TestSuccessIntervalRemoved:
                 if re.match(r'success_interval\s*:', s):
                     bad.append(f'{f.relative_to(REPO)}: {s[:70]}')
         assert not bad, f'这些任务还覆盖 success_interval: {bad}'
-
-    def test_migration_bridge_kept(self):
-        """★ `Resource.from_legacy` 的**参数名**要保留（它读旧 JSON 的原始字符串）。"""
-        import inspect
-        from module.config.resource import Resource
-        sig = inspect.signature(Resource.from_legacy)
-        assert 'success_interval' in sig.parameters, (
-            'from_legacy 的迁移参数被删了 —— 旧配置就迁移不过来了')
-
     def test_task_catalog_field_kept(self):
         """★ `TaskMeta.success_interval`（数据字段）保留 —— 迁移与测试依赖它。"""
         from module.config import task_catalog as TC

@@ -14,7 +14,7 @@
 """
 from datetime import time
 from module.config.availability import AvailabilityWindow
-from module.config.resource import Period, Recharge, Resource  # noqa: F401
+from module.config.resource import Period  # noqa: F401
 from module.config.task_catalog import Category, TaskSpec  # noqa: F401
 
 SPEC = TaskSpec(
@@ -51,5 +51,4 @@ SPEC = TaskSpec(
     ),
     list_pos=18,
     period=Period.DAILY,
-    resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

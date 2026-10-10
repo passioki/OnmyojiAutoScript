@@ -12,7 +12,7 @@
 
 类别依据: 定时任务: 按周期调度
 """
-from module.config.resource import Period, Recharge, Resource  # noqa: F401
+from module.config.resource import Period  # noqa: F401
 from module.config.task_catalog import Category, TaskSpec  # noqa: F401
 
 SPEC = TaskSpec(
@@ -23,5 +23,4 @@ SPEC = TaskSpec(
     auto_queue=True,
     list_pos=45,
     period=Period.WEEKLY,
-    resource=Resource(capacity=2, recharge=Recharge(kind='none', period=Period.WEEKLY)),
 )

@@ -23,7 +23,8 @@
 import pytest
 
 from module.config import task_catalog as TC
-from module.config.resource import Period, Recharge, Resource
+# ★ S5: Recharge / Resource 已删除 —— 只留 Period
+from module.config.resource import Period
 from module.config.task_catalog import (
     FALLBACK_CATEGORY, SPEC_VAR, Category, TaskSpec)
 
@@ -129,30 +130,3 @@ class TestSpecOverridesJson:
         # 所有任务都有 meta.py, 但机制本身要保证退路存在
         assert len(TC.all_meta()) == 54
 
-
-class TestSpecResources:
-    """meta.py 里声明的资源规则应与实测数据一致。"""
-
-    def test_fixed_daily(self):
-        r = TC.get_spec('FallenSun').resource
-        assert r.capacity == 50
-        assert r.period == Period.DAILY
-        assert r.refill == 'none'
-    def test_weekly_capacity(self):
-        r = TC.get_spec('TrueOrochi').resource
-        assert r.capacity == 2
-        assert r.period == Period.WEEKLY
-
-    def test_limited_window(self):
-        r = TC.get_spec('MetaDemon').resource
-        assert r.refill == 'window'
-        assert r.is_activity_gated is True
-
-    def test_interval_preserved(self):
-        """小时级间隔必须保留为 interval, 不能被归成 period(曾踩过)。"""
-        r = TC.get_spec('DemonEncounter').resource
-        assert r.refill == 'interval'
-        assert r.interval == (0, 1, 0)
-    def test_fallback_category_is_timed(self):
-        """未提供 meta.py 的任务降级为定时任务, 而不是报错。"""
-        assert FALLBACK_CATEGORY == Category.TIMED

@@ -12,7 +12,10 @@
 > * [OK] `window_fields` 已删 · 5 个窗口端点都在
 > * [OK] `priority_group` / `category_effective` 在 `/overview` 里
 > * [OK] `pending` 全在队列里 · 是队列的**保序子序列**（`running_task` 置顶是**设计例外**）
-> * **[!!] 前端 Release 产物比源码旧** -> ★ **先重新构建**（见 §0）
+> * **[OK] 前端 Release 产物已重新构建** —— `2026/10/11 01:15`
+>   （`build\windows\x64\runner\Release\oasx.exe` + `data\app.so`,
+>    45.8s, `√ Built build\windows\x64\runner\Release\oasx.exe`）
+>   ★ 含 #6 吸顶 + #9 配置页; **无需**再做 §0 第 1/2 步
 
 ---
 
@@ -24,8 +27,24 @@
 | 2 | 重新构建前端 | `cd D:\OAS-dev\OASX-src` 然后 `D:\flutter3271\bin\flutter.bat build windows --release` |
 | 3 | 起后端 + 前端 | 起 OAS 服务（端口 `22288`）, 再开 OASX |
 
+★ **本次（#6 吸顶 + #9 配置页）第 2 步已做过** —— `oasx.exe` / `data\app.so`
+产出于 `2026/10/11 01:15`, 直接做第 3 步即可。
+★ 下次改完前端**源码**后, 第 2 步要重做（否则跑的还是旧产物 ——
+本项目已因"改了源码没重建"误判过一次）。
+
 ★ 若你用的是**发布版 OASX**（不是 `D:\OAS-dev\OASX-src` 构建出来的），
 需要先把源码推到发布仓（`git archive` 那份流程）。
+
+★ **本次构建证据**（`cd D:\OAS-dev\OASX-src` + `D:\flutter3271\bin\flutter.bat
+build windows --release`）:
+
+```
+Building Windows application...                                    45.8s
+√ Built build\windows\x64\runner\Release\oasx.exe
+```
+
+产物时间戳: `oasx.exe` `2026/10/11 01:15:17` · `data\app.so` `2026/10/11 01:15:13`。
+★ 构建前已确认**没有** OASX 进程在跑（第 1 步）。
 
 ---
 

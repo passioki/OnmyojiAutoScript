@@ -2512,3 +2512,92 @@ queue(19)   pending(22)
 | **S5** | **删除充能存量**（71 文件 / 327 行, 含 `charge_*` 字段）|
 | **S6** | **三模式**（定时优先 / 固定优先 / **自定义**）+ `run_list` **类别分段** + 拖动约束 |
 
+---
+
+# 33. S3: **多窗口结构化** + 废弃 `window_slots`
+
+## 33.1 ★ 我此前**记错**的两件事（用户说对了）
+
+| 我的错误说法 | **代码事实** |
+|---|---|
+| "靠 `window_slots` 就能表达多个时刻" | ★ `window_slots` 是**我自己发明的绕法**, 用户**从未认可**; 已**废弃** |
+| "多 window 已实现" | 只对**一半**成立: `TaskSpec.window` **支持多段**, **但用户配置只有 `window_start`/`window_end` 两个单值** -> **用户只能配一个窗口** |
+| （前端）| 实测: 前端**没有任何 window UI 代码**（0 处）, 只是靠"字段自动渲染"变成文本框 |
+
+★ **真正的缺口**就是"用户配置层只有单窗口"。已按用户裁定 (**a 结构化存储**) 做完。
+
+## 33.2 数据模型（新）
+
+```python
+class TaskWindow(BaseModel):      # 原子实体, 7 个字段
+    id: str                       # ★ 稳定身份（增删改按它, 不按下标）
+    enabled: bool = True
+    period: WindowPeriod          # 每天 / 每周 / 每月（两端共用）
+    start: Time
+    end: Time                     # 可跨午夜（end < start）
+    days: str = ''                # weekly: 周几（空 = 全周）
+    days_of_month: str = ''       # monthly: 几号（空 = 整月）
+
+class Scheduler(ConfigBase):
+    windows: List[TaskWindow] = []   # ★ 替代全部单值 window_*
+```
+
+**删除的字段**（7 个 → 0）:
+`window_enable` · `window_start` · `window_end` · `window_days` ·
+`window_period` · `window_dom` · **`window_slots`**
+
+## 33.3 迁移（`apply_recommended_windows`）
+
+| 旧值 | 新值 |
+|---|---|
+| `window_slots='12:00,20:00'` | ★ **两个窗口**（12:00-14:00 / 20:00-22:00）|
+| `window_enable=True` + 单值时刻 | **一个窗口**（保留 `period`/`days`/`dom`）|
+| 都没配（`restart`/`ryou_toppa`）| **推荐值**（`restart` 两个 / `ryou_toppa` 一个）|
+
+★ 迁移后**删掉**旧字段（避免"两个来源"）。
+★ **幂等**: `windows` 非空 -> 跳过（不能每次启动覆盖用户设置）。
+
+## 33.4 ★★ 关键实测：**一天两次 = 两个窗口** ★★
+
+`_build_windows()` 重写为**只读 `windows` 列表**（优先级: 用户配置 ->
+`meta.py` 兜底 -> 不限时段）。实测:
+
+```
+restart:    2 段 -> ['12:00-14:00', '20:00-22:00']
+ryou_toppa: 1 段 -> ['07:00-09:00']
+
+restart  11:00 False | 12:00 True | 13:00 True | 15:00 False
+         19:00 False | 20:00 True | 21:00 True | 22:00 False
+```
+
+**4 个配置**（`恋鸟树`/`伴生树`/`oas1`/`template`）**磁盘核对**:
+```
+restart: 2 个窗口  旧字段残留=[]
+ryou_toppa: 1 个窗口  旧字段残留=[]
+```
+
+## 33.5 我修掉的 3 个自己的 bug（如实记录）
+
+| # | bug | 症状 |
+|---|---|---|
+| 1 | `getattr(sch.get('window_period', 'daily'), 'value', 'daily')` | ★ 对**字符串** `'weekly'`, `getattr` 返回**默认** `'daily'` -> `weekly` 被**吞掉**。改成 `getattr(_wp, 'value', _wp)` |
+| 2 | 迁移写入**字符串** 时刻 | `Time` 序列化器 `.strftime` 崩（§26 记过同类）-> 现在交给 pydantic 校验 `TaskWindow` |
+| 3 | `period` 没 `strip()` | `' weekly '` 解析失败 -> 已有 `.strip().lower()` |
+
+## 33.6 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1740 passed, 3 skipped**（+12 守卫）|
+| 前端 flutter test | **85 passed** |
+| pydantic 序列化警告 | ★ **已消失**（`-W error::UserWarning` 下加载正常）|
+| 4 个配置磁盘核对 | 窗口数正确, 旧字段**零残留** |
+
+## 33.7 待做
+
+| 步 | 内容 |
+|---|---|
+| **S4** | ★ **前端窗口列表编辑器**（增 / 删 / 改每个窗口）—— **前端目前没有这块 UI** |
+| **S5** | **删除充能存量**（71 文件 / 327 行, 含 `charge_*` 字段 + `Category.CHARGE`）|
+| **S6** | `priority_mode` 三模式 + `run_list` **类别分段** + 拖动约束 |
+

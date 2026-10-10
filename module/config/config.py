@@ -111,163 +111,118 @@ class Function:
         # self.next_run = deep_get(data, keys="Scheduler.NextRun", default=DEFAULT_TIME)
 
     def _build_windows(self, sch: dict) -> tuple:
-        """
-        构造开放时段（**可能是多段**）。**优先读任务 `meta.py` 的
-        `TaskSpec.window`**。
+        """构造开放时段（**可能是多段**）。返回 `AvailabilityWindow` 的 tuple。
 
-        ## ★★ 为什么必须优先读 `meta.py`（此前的严重缺陷）★★
+        ## ★★ S3: 只读 `scheduler.windows`（结构化多窗口）★★
 
-        原实现**只**从 `scheduler.window_enable` / `window_start` / `window_end` /
-        `window_days` 构建。但那些字段是**内部字段**（4-E 已从界面移除）,
-        **全 54 个任务都是 `False`** —— 于是:
+        用户裁定:
+          "不是 window slots, 而是**设置多个 window**！slots 不是已经废弃了吗"
+          "一天跑两次 = **两个窗口**"
 
-            TaskSpec.window (meta.py)    : DemonEncounter = 每天 17:00-23:00
-            Function.window (调度器用的)  : **不限时段**      <- 真正生效的是这个
-            DemonEncounter.in_window()   : True（07:36 本该 False）
+        设计: `docs/scheduler-architecture.md` §1.1 / §3。
 
-        即 **`meta.py` 里写的时段是死代码**, 调度器完全看不到它
-        （`pending = 27` / `waiting = 0`, 没有任何任务因窗口被拦）。
+        ## 优先级
 
-        ## 现在的优先级
-
-        1. **`TaskSpec.window`（游戏机制, 权威）** —— 用户明确: 所有定时任务都有 window
-        2. 退回 `scheduler.window_*`（用户/旧配置覆盖, 兼容用）
+        1. **用户配置**（`sch['windows']` 里 `enabled` 的那些）—— 用户**偏好**
+        2. **`meta.py` 的 `TaskSpec.window`** —— 游戏机制**兜底**
         3. 都没有 -> `AvailabilityWindow()`（**`enabled=False`**）
 
-        ⚠ 依赖 `self.command`, 而它在 `__init__` 里是先于本方法设置的
-          （`self.command = ConfigModel.type(key)` 在 L54, 本方法在 L73 调用）。
-        """
-        from module.config.availability import ALL_DAYS, AvailabilityWindow
+        ★ 已**删除**的单值字段（不再读）:
+          `window_enable` / `window_start` / `window_end` / `window_days` /
+          `window_period` / `window_dom` / `window_slots`
+          —— 旧值由 `migrate_windows_once()` **一次性**折成一条 `windows`。
 
-        # ---------- 1. 优先: 任务元数据里的 window（游戏机制）----------
+        ⚠ 依赖 `self.command`, 而它在 `__init__` 里先于本方法设置。
+        """
+        from module.config.availability import (
+            ALL_DAYS, AvailabilityWindow, parse_time, parse_weekday)
+
+        # ---------- 1. **用户配置的多窗口**（最权威）----------
+        raw_windows = sch.get('windows')
+        if isinstance(raw_windows, (list, tuple)) and raw_windows:
+            segs = []
+            for item in raw_windows:
+                try:
+                    # `item` 可能是 dict（model_dump）或 `TaskWindow`
+                    get = (item.get if isinstance(item, dict)
+                           else lambda k, d=None, _it=item: getattr(_it, k, d))
+                    if not get('enabled', True):
+                        continue              # 这一段不生效
+                    period = get('period', 'daily')
+                    period = str(
+                        getattr(period, 'value', period) or 'daily'
+                    ).strip().lower()
+                    start = parse_time(get('start'))
+                    end = parse_time(get('end'))
+
+                    days, bad = [], []
+                    for part in str(get('days') or '').split(','):
+                        part = part.strip()
+                        if not part:
+                            continue
+                        try:
+                            d = parse_weekday(part)
+                        except ValueError:
+                            bad.append(part)
+                            continue
+                        if 0 <= d <= 6:
+                            days.append(d)
+                        else:
+                            bad.append(part)
+                    if bad:
+                        logger.warning(f'{self.command}: 窗口 days 无效项已忽略 '
+                                       f'{bad}（应为 0-6, 周一=0）')
+
+                    dom, bad_dom = [], []
+                    for part in str(get('days_of_month') or '').split(','):
+                        part = part.strip()
+                        if not part:
+                            continue
+                        if part.isdigit() and 1 <= int(part) <= 31:
+                            dom.append(int(part))
+                        else:
+                            bad_dom.append(part)
+                    if bad_dom:
+                        logger.warning(f'{self.command}: 窗口 days_of_month '
+                                       f'无效项已忽略 {bad_dom}（应为 1-31）')
+
+                    segs.append(AvailabilityWindow(
+                        enabled=True,
+                        start=start,
+                        end=end,
+                        # `weekly` 才用 days; 其它周期保持全周
+                        days=(tuple(sorted(set(days))) or ALL_DAYS)
+                        if period == 'weekly' else ALL_DAYS,
+                        # `monthly` 才用 days_of_month; 其它周期保持不限
+                        days_of_month=(tuple(sorted(set(dom)))
+                                       if period == 'monthly' else ()),
+                    ))
+                except Exception as exc:
+                    logger.warning(
+                        f'{self.command}: 一条窗口配置非法, 已跳过'
+                        f'（{type(exc).__name__}: {exc}）')
+            if segs:
+                return tuple(segs)
+
+        # ---------- 2. 兜底: `meta.py` 的游戏机制窗口 ----------
         spec = None
         try:
             from module.config import task_catalog as TC
             spec = TC.get_spec(self.command)
         except Exception as exc:      # 防御: catalog 坏掉不该让调度崩
             logger.warning(f'{self.command}: 读 task_catalog 失败'
-                           f'({type(exc).__name__}: {exc}), 退回配置项')
-        if spec is not None and not sch.get('window_enable'):
-            # ★★ #1: **用户配置优先** ★★
-            #
-            # 只有用户**没启用**窗口时才用 `meta.py` 的**游戏机制窗口**兜底。
-            # 用户启用了 -> 走下面的配置分支（那是他的**偏好**, 更权威）。
-            #
-            # 用户原话: "用户可以选择每天, 然后把时间改为 17-23 点"
-            # 此前是反的（meta 永远压过用户）-> 实测用户把窗口改成
-            # 17:00-23:00 **完全没用**（meta 的整天窗口生效）。
+                           f'({type(exc).__name__}: {exc}), 按不限时段处理')
+        if spec is not None:
             ws = list(getattr(spec, 'windows_effective', []) or [])
             real = [w for w in ws if getattr(w, 'enabled', False)]
             if real:
-                # ★★ #7: **精确返回所有段**, 不再做有损并集 ★★
-                #
-                # 此前多段被压成"最早开始~最晚结束 + 天的并集",
-                # 于是 `Hunt`（周一~周四 06:00-23:00 与 周五~周日 17:00-23:00）
-                # 变成"每天 06:00-23:00" —— **周五 10:00 被误判成在窗口内**。
-                #
-                # 现在保留每一段, 由 `in_window()` **逐段取或**判定。
+                # ★ 精确返回**所有段**, 不做有损并集
+                #   （踩过: `Hunt` 两段被并成"每天 06:00-23:00",
+                #    于是周五 10:00 被误判成在窗口内）
                 return tuple(real)
 
-        # ---------- 2. 退回: 配置项（用户覆盖 / 旧配置）----------
-        #
-        # ★★ #1: 读用户配置的**周期 / 周几 / 几号**（用户裁定的结构）★★
-        #
-        # 用户原话:
-        #   "窗口开始: 下拉选择：每天、每周、每月 /
-        #    下拉选择：时:分、周几：时：分、几号：时：分"
-        #   "窗口语义：(B) 两端必须同周期"
-        #
-        # 三者关系（按 `window_period`）:
-        #   * `daily`   -> 每天, 用 `window_start` / `window_end`
-        #   * `weekly`  -> 用 `window_days`（周几）, 时刻同上
-        #   * `monthly` -> 用 `window_dom`（几号）, 时刻同上
-        if not sch.get('window_enable'):
-            return (AvailabilityWindow(),)
-
-        # ★★ ⑥(b): **每日固定时刻**（`window_slots`）★★
-        #
-        # 例: `'12:00,20:00'` -> 每天 12:00 与 20:00 各开一个窗口段
-        #     （每段默认 2 小时, 由 `_SLOT_SPAN_MINUTES` 控制）。
-        #
-        # ★ 与 `window_start` / `window_end` **互斥** —— 填了 slots 就用它。
-        #   这样"一天跑两次"由**窗口开放次数**表达, 不引入新的"次数"概念
-        #   （用户裁定: 窗口只回答"这个时间可不可以跑"）。
-        slots_raw = str(sch.get('window_slots') or '')
-        slots = []
-        bad_slots = []
-        for part in slots_raw.split(','):
-            part = part.strip()
-            if not part:
-                continue
-            try:
-                hh, mm = part.split(':')
-                hh, mm = int(hh), int(mm)
-                if not (0 <= hh <= 23 and 0 <= mm <= 59):
-                    raise ValueError(part)
-                slots.append(time(hour=hh, minute=mm))
-            except Exception:
-                bad_slots.append(part)
-        if bad_slots:
-            logger.warning(f'{self.command}: window_slots 无效项已忽略 '
-                           f'{bad_slots}（应为 `时:分`, 逗号分隔）')
-        if slots:
-            segs = []
-            for st in sorted(set(slots)):
-                end_min = st.hour * 60 + st.minute + _SLOT_SPAN_MINUTES
-                end_min = min(end_min, 23 * 60 + 59)
-                segs.append(AvailabilityWindow(
-                    enabled=True, start=st,
-                    end=time(hour=end_min // 60, minute=end_min % 60),
-                    days=ALL_DAYS))
-            return tuple(segs)
-
-        wperiod = sch.get('window_period')
-        wperiod = getattr(wperiod, 'value', wperiod) or 'daily'
-        wperiod = str(wperiod).lower()
-
-        days, bad = [], []
-        for part in str(sch.get('window_days') or '').split(','):
-            part = part.strip()
-            if part == '':
-                continue
-            if part.lstrip('-').isdigit() and 0 <= int(part) <= 6:
-                days.append(int(part))
-            else:
-                bad.append(part)
-        if bad:
-            # 逐项跳过而不是整体丢弃: '4,abc,6' 里 4/6 仍是有效的用户意图
-            logger.warning(f'{self.command}: window_days 无效项已忽略 {bad}'
-                           f'（应为 0-6, 周一=0）')
-
-        dom, bad_dom = [], []
-        for part in str(sch.get('window_dom') or '').split(','):
-            part = part.strip()
-            if part == '':
-                continue
-            if part.isdigit() and 1 <= int(part) <= 31:
-                dom.append(int(part))
-            else:
-                bad_dom.append(part)
-        if bad_dom:
-            logger.warning(f'{self.command}: window_dom 无效项已忽略 {bad_dom}'
-                           f'（应为 1-31）')
-
-        try:
-            return (AvailabilityWindow(
-                enabled=True,
-                start=sch['window_start'],
-                end=sch['window_end'],
-                # `weekly` 才用 days; 其它周期保持全周
-                days=(tuple(sorted(set(days))) or ALL_DAYS)
-                if wperiod == 'weekly' else ALL_DAYS,
-                # `monthly` 才用 days_of_month; 其它周期保持不限
-                days_of_month=(tuple(sorted(set(dom)))
-                               if wperiod == 'monthly' else ()),
-            ),)
-        except Exception as exc:
-            logger.warning(f'{self.command}: 开放时段配置非法'
-                           f'({type(exc).__name__}: {exc}), 按不限时段处理')
-            return (AvailabilityWindow(),)
+        # ---------- 3. 都没有 -> 不限时段 ----------
+        return (AvailabilityWindow(),)
 
     def resolve_windows(self):
         """把**动态** `days`（`days_from_config`）在**运行时**解析成实际星期。
@@ -556,25 +511,29 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
     # ------------------------------------------------------------------ 一次性迁移
     def migrate_windows_once(self) -> bool:
-        """把**推荐窗口**写进这份配置（**只做一次**, 用户要求）。
+        """把**窗口**迁移/配好（**只做一次**, 用户要求）。
 
         用户原话: "你直接帮我配好窗口就好, **改用户配置**。
                   顺带帮我把**现有的配置适配好现有的软件**。"
 
-        推荐值（用户裁定）:
-            restart      `window_slots = '12:00,20:00'` -> 12:00-14:00 + 20:00-22:00
-            ryou_toppa   `window_slots = '07:00'`       -> 07:00-09:00
-            guild_banquet **不设**（用 `days_from_config` 引用宴会日）
+        ## ★★ S3: 旧的单值 / `window_slots` -> **`windows` 列表** ★★
 
-        ★ 幂等: **不能**用自定义键做标记 —— pydantic v2 的 `extra='ignore'`
-          会把它从 `model_dump()` 丢掉 -> 每次启动都覆盖（踩过）。
-          改用**语义本身**: `window_slots` 非空 = 已配过。
+        用户裁定: "不是 window slots, 而是**设置多个 window**！
+                  slots 不是已经废弃了吗"
+                 "**一天跑两次 = 两个窗口**"
 
-        ★ 写回必须**按字段类型转换** —— `model_dump()` 里 `Time` 是**字符串**,
-          直接 `deep_set` 会 (a) 类型错 (b) 保存时 `.strftime` 崩（踩过）。
+        所以本方法:
+        1. 把旧的 `window_enable` / `window_start` / `window_end` /
+           `window_days` / `window_period` / `window_dom` /
+           **`window_slots`** 折成 `windows` 里的若干项
+        2. 用户**没配过**的 -> 给推荐值（`restart` 两个窗口 / `ryou_toppa` 一个）
+        3. **删掉**被替代的旧字段（避免"两个来源"）
+
+        ★ 幂等: `windows` 非空 -> 跳过（**不能**每次启动都覆盖用户设置）。
+          踩过: 用自定义键做标记 —— pydantic v2 的 `extra='ignore'` 会把它从
+          `model_dump()` 丢掉 -> 每次启动都覆盖。
         """
         try:
-            from datetime import time as _time
             from tasks.Component.config_scheduler import (
                 apply_recommended_windows)
 
@@ -583,34 +542,18 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             if not changed:
                 return False
 
-            def _to_time(v, default):
-                if isinstance(v, _time):
-                    return v
-                try:
-                    return _time.fromisoformat(str(v))
-                except Exception:
-                    return default
-
             for key in changed:
                 sch = raw[key]['scheduler']
+                # ★ `windows` 是 `List[TaskWindow]` -> 直接给 list[dict],
+                #   pydantic 会按 `TaskWindow` 校验/转换（`Time` 也认字符串）。
                 self.model.deep_set(
-                    self.model, keys=f'{key}.scheduler.window_enable',
-                    value=bool(sch['window_enable']))
-                self.model.deep_set(
-                    self.model, keys=f'{key}.scheduler.window_slots',
-                    value=str(sch['window_slots']))
-                self.model.deep_set(
-                    self.model, keys=f'{key}.scheduler.window_period',
-                    value=str(sch['window_period']))
-                self.model.deep_set(
-                    self.model, keys=f'{key}.scheduler.window_start',
-                    value=_to_time(sch.get('window_start'), _time(12, 0)))
-                self.model.deep_set(
-                    self.model, keys=f'{key}.scheduler.window_end',
-                    value=_to_time(sch.get('window_end'), _time(22, 0)))
+                    self.model, keys=f'{key}.scheduler.windows',
+                    value=list(sch['windows']))
+                # ★ 旧字段已从模型里**删除**, 不再写回；
+                #   `model_dump()` 里若还有残留, 留 `extra='ignore'` 丢弃。
             # ★ 真正落盘（否则只在内存里, 下次启动又"没配"）
             self.save()
-            logger.info(f'{self.config_name}: 已配好推荐窗口 -> {changed}（已保存）')
+            logger.info(f'{self.config_name}: 已配好窗口 -> {changed}（已保存）')
             return True
         except Exception as exc:
             logger.warning(f'{self.config_name}: 窗口迁移失败'

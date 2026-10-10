@@ -76,33 +76,45 @@ class TestWindowFieldsAreUserEditable:
     """★★ 用户: "用户可以选择每天, 然后把时间改为 17-23 点" ★★
 
     我一开始（4-E）把 `window_*` 当"内部字段"隐藏了 —— 那是**错的**。
+
+    ## ★★ S3: 字段模型换了 ★★
+
+    单值 `window_*` 已删除（用户裁定: "不是 window slots, 而是**设置多个
+    window**！"）。现在只有 **`windows`（列表）** —— 它**必须**用户可见可改。
     """
 
-    def test_window_fields_not_internal(self):
+    def test_windows_field_not_internal(self):
         from tasks.Component.config_scheduler import Scheduler
         s = Scheduler.model_json_schema()['properties']
-        for f in ('window_enable', 'window_start', 'window_end', 'window_days'):
-            assert f in s, f'{f} 不存在'
-            assert not s[f].get('internal'), \
-                f'{f} 不该是内部字段 —— 用户必须能改窗口时刻'
+        assert 'windows' in s, '`windows` 不存在'
+        assert not s['windows'].get('internal'), \
+            '`windows` 不该是内部字段 —— 用户必须能改窗口'
+
+    def test_dead_fields_are_gone(self):
+        """★ S3: 被 `windows` 替代的字段**必须不存在**了。"""
+        from tasks.Component.config_scheduler import Scheduler
+        for dead in ('window_enable', 'window_start', 'window_end',
+                     'window_days', 'window_period', 'window_dom',
+                     'window_slots'):
+            assert dead not in Scheduler.model_fields, \
+                f'{dead} 已废弃, 不该还在（单一数据源）'
 
     def test_window_help_translated(self):
         d = json.loads(
             (REPO / 'module' / 'config' / 'i18n' / 'zh-CN.json')
             .read_text(encoding='utf-8'))
-        for f in ('window_enable_help', 'window_start_help',
-                  'window_end_help', 'window_days_help', 'period_help'):
+        for f in ('window_windows_help', 'period_help'):
             assert d.get(f), f'{f} 缺译文（字段对用户可见了, 必须翻）'
 
     def test_schema_exposes_window_fields(self):
-        """端到端: `/schema` 的 scheduler 组里应能看到窗口字段。"""
+        """端到端: `/schema` 的 scheduler 组里应能看到 `windows`。"""
         import logging
         logging.disable(logging.CRITICAL)
         import server  # noqa: F401
         from module.server.main_manager import mm
         cfg = mm.config_cache('恋鸟树')
         names = {it['name'] for it in cfg.model.script_task('Orochi')['scheduler']}
-        for f in ('window_enable', 'window_start', 'window_end', 'period'):
+        for f in ('windows', 'period'):
             assert f in names, (
                 f'{f} 没出现在界面字段里 —— 用户改不了窗口（实际: {sorted(names)}）')
 

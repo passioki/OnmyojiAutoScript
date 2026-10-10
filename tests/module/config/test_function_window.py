@@ -30,30 +30,30 @@ def make_node(**overrides) -> dict:
     """
     构造一个最小的任务配置节点(模拟 ConfigModel.dict() 的一项)。
 
-    注意必须带上 `window_start` / `window_end` 的**默认值** —— 真实
-    pydantic 模型总会提供它们, 因此这里也要模拟, 否则测试替身与
-    真实契约不符(踩过: 漏了默认值导致解析退化为"不限时段", 测试假失败)。
+    ## ★★ S3: 单值 `window_*` 已删除 -> 改用 `windows` 列表 ★★
+
+    用户裁定: "不是 window slots, 而是**设置多个 window**！"
+    `windows` 是 `List[TaskWindow]`, 传 `windows=[{...}]` 即可。
+
+    ★ 仍然允许**任意**调度器字段覆盖 —— 白名单会让新字段被**静默丢弃**
+      （踩过: 测试说设了 weekly 其实还是 daily）。
     """
     sch = {
         'enable': True,
         'next_run': '2023-01-01 00:00:00',
         'priority': 5,
-        'window_enable': False,
-        # ★ #1: `window_period` 决定"时:分"是**哪一天**的时:分
-        #   （`window_days` 只在 weekly 生效, `window_dom` 只在 monthly 生效）。
-        #   ⚠ 漏了它 -> 测试里传 `window_days` 会**静默不生效**（踩过）。
-        'window_period': 'daily',
-        'window_dom': '',
-        'window_start': time(17, 0),
-        'window_end': time(23, 0),
-        'window_days': '0,1,2,3,4,5,6',
+        # ★ 空 `windows` = 用户没配 -> 回退 `meta.py` 的游戏机制窗口
+        'windows': [],
     }
-    # ★ 允许**任意**调度器字段覆盖（原来是 4 个键的白名单 —— 新字段
-    #   `window_period` / `window_dom` 传进来会**被静默丢弃**, 导致
-    #   "测试说设了 weekly 其实还是 daily" 这种假失败。踩过。）
     for k in list(overrides):
         sch[k] = overrides.pop(k)
     return {'scheduler': sch}
+
+
+def win(start, end, period='daily', days='', dom='', enabled=True, wid='w'):
+    """构造一条 `TaskWindow`（dict 形式, 与 `model_dump()` 一致）。"""
+    return {'id': wid, 'enabled': enabled, 'period': period,
+            'start': start, 'end': end, 'days': days, 'days_of_month': dom}
 
 
 class TestMetaWindowPriority:
@@ -83,14 +83,14 @@ class TestMetaWindowPriority:
     def test_user_config_wins_over_meta(self):
         """★ #1: 用户**启用**了窗口 -> **以用户为准**（meta 只兜底）。"""
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_start=time(22, 0), window_end=time(2, 0)))
+            windows=[win('22:00:00', '02:00:00')]))
         assert f.window is not None and f.window.enabled is True
         assert f.window.crosses_midnight is True, (
             '用户配置的 22:00-02:00 应生效（跨午夜）')
 
     def test_meta_used_when_user_disabled(self):
         """★ #1: 用户**没启用** -> 用 meta 的窗口兜底。"""
-        f = Function('fallen_sun', make_node(window_enable=False))
+        f = Function('fallen_sun', make_node(windows=[]))
         assert f.window is not None and f.window.enabled is True, (
             '用户没启用时应有 meta 窗口兜底')
 
@@ -129,26 +129,26 @@ class TestSchedulerConfigFallback:
         assert f.window_reason is None
 
     def test_window_disabled_explicitly(self, no_meta):
-        f = Function('fallen_sun', make_node(window_enable=False))
+        f = Function('fallen_sun', make_node(windows=[]))
         assert f.in_window() is True
         assert f.window_reason is None
 
     def test_config_window_is_honoured(self, no_meta):
-        f = Function('fallen_sun', make_node(
-            window_enable=True, window_start=time(17, 0), window_end=time(23, 0)))
+        f = Function('fallen_sun', make_node(windows=[win('17:00:00', '23:00:00')]))
         assert f.window.enabled is True
         assert f.window.describe() == '每天 17:00-23:00'
 
     def test_cross_midnight_from_config(self, no_meta):
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_start=time(22, 0), window_end=time(2, 0)))
+            windows=[win('22:00:00', '02:00:00')]))
         assert f.window.crosses_midnight is True
 
     def test_partially_valid_days_keeps_valid(self, no_meta):
         """`'4,abc,6'` -> 有效项保留（4/6）, 无效项忽略。"""
         # ★ #1: `window_days` 只在 `window_period='weekly'` 时生效
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_period='weekly', window_days='4,abc,6'))
+            windows=[win('17:00:00', '23:00:00', period='weekly',
+                         days='4,abc,6')]))
         assert set(f.window.days) == {4, 6}
 
 
@@ -172,12 +172,10 @@ class TestWindowGating:
         today = datetime.now().weekday()
         other = tuple(d for d in range(7) if d != today)
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
-            # ★ #1: `window_days` **只在 `weekly` 时生效**。
-            #   漏了这一行 -> days 被忽略 -> `in_window()` 恒 True ->
-            #   **假失败**（我为此白查了一阵, 记在这里防复犯）。
-            window_period='weekly',
-            window_days=','.join(str(d) for d in other)))
+            # ★ S3: 单值 `window_*` 已删除 -> 用 `windows` 列表。
+            #   `days` 只在 `period=weekly` 时生效。
+            windows=[win('00:00:00', '23:59:00', period='weekly',
+                         days=','.join(str(d) for d in other))]))
         assert f.in_window() is False
         reason = f.window_reason
         assert reason and '不在开放时段' in reason
@@ -200,8 +198,8 @@ class TestWindowGating:
         from datetime import datetime
         now = datetime.now()
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
-            window_days=str(now.weekday())))
+            windows=[win('00:00:00', '23:59:00', period='weekly',
+                         days=str(now.weekday()))]))
         assert f.in_window(now) is True
         reason = f.window_reason
         # `window_reason` 内部用的是"现在", 跨午夜时它可能已到第二天 ——
@@ -235,8 +233,8 @@ class TestRobustness:
         from datetime import datetime
         now = datetime(2026, 10, 5, 12, 0, 0)      # 固定的周一正午, 与真实时刻无关
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
-            window_days='abc,xyz'))
+            windows=[win('00:00:00', '23:59:00', period='weekly',
+                         days='abc,xyz')]))
         assert set(f.window.days) == set(range(7)), '乱码应退化为每天'
         assert f.window.enabled is True
         # 用**固定时刻**断言 -> 完全不受运行时间影响
@@ -245,14 +243,15 @@ class TestRobustness:
     def test_garbage_days_keeps_window_active(self, no_meta):
         """退化的是 **days**, 不是整个时段开关。"""
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
-            window_days='abc,xyz'))
+            windows=[win('00:00:00', '23:59:00', period='weekly',
+                         days='abc,xyz')]))
         assert f.window.enabled is True, '不该因为 days 写错就整个禁用时段'
 
     def test_partially_valid_days_keeps_valid(self, no_meta):
         # ★ #1: `window_days` 只在 `window_period='weekly'` 时生效
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_period='weekly', window_days='4,abc,6'))
+            windows=[win('17:00:00', '23:00:00', period='weekly',
+                         days='4,abc,6')]))
         assert set(f.window.days) == {4, 6}
 
     def test_missing_times_do_not_crash(self, no_meta):

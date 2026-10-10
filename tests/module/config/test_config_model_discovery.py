@@ -145,9 +145,14 @@ class TestModelBehavior:
         assert c.fallen_sun.scheduler.enable is False
 
     def test_window_fields_present(self):
-        """开放时段字段应在每个任务的 Scheduler 里(默认关闭)。"""
+        """★ S3: 窗口字段是 **`windows` 列表**（单值 `window_*` 已删除）。
+
+        默认**空列表** = 用户没配 -> 回退 `meta.py` 的游戏机制窗口。
+        """
         c = ConfigModel()
         sch = c.fallen_sun.scheduler
-        assert sch.window_enable is False
-        assert sch.window_start.hour == 17
-        assert sch.window_end.hour == 23
+        assert sch.windows == [], '默认应是空列表（用户没配窗口）'
+        # 被替代的字段必须**不存在**
+        for dead in ('window_enable', 'window_start', 'window_end',
+                     'window_slots'):
+            assert not hasattr(sch, dead), f'{dead} 已废弃, 不该还在'

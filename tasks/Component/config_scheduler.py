@@ -3,7 +3,10 @@
 # github https://github.com/runhey
 from enum import Enum
 
-from pydantic import AliasChoices, Field
+# ★ S3: `TaskWindow` 是 pydantic 模型（进 JSON / 进 schema）
+from typing import List
+
+from pydantic import AliasChoices, BaseModel, Field
 
 from module.logger import logger
 from tasks.Component.config_base import ConfigBase, TimeDelta, DateTime, Time
@@ -57,18 +60,62 @@ class WindowPeriod(str, Enum):
 #
 # ★ 只做**一次**: 用配置顶层的 `_window_migration` 标记。
 #   否则每次启动都会覆盖用户在界面上改的窗口（本会话踩过这个坑）。
+# ★ S3: 推荐窗口 —— 用 **(start, end) 字符串对**表达（`windows` 里的两项）
 RECOMMENDED_WINDOWS = {
-    'restart': '12:00,20:00',
-    'ryou_toppa': '07:00',
+    # ★ `restart`: **两个窗口** = 一天两次领体力（12:00-14:00 / 20:00-22:00）
+    #   用户原话: "一天跑两次 = 两个窗口"
+    'restart': ((12, 0), (20, 0)),
+    # 'ryou_toppa': **一个窗口** 07:00-09:00（用户原话: "RyouToppa 也同理"）
+    'ryou_toppa': ((7, 0),),
+}
+
+# ★ 每个时刻的窗口跨度（分钟）—— 只在迁移 `window_slots` 时用
+_SLOT_SPAN_MINUTES = 120
+
+# 推荐窗口的具体起止（由 `RECOMMENDED_WINDOWS` 的起点 + 跨度算出）
+RECOMMENDED_SECONDS = {
+    'restart': (('12:00:00', '14:00:00'), ('20:00:00', '22:00:00')),
+    'ryou_toppa': (('07:00:00', '09:00:00'),),
 }
 
 
 def apply_recommended_windows(node_map: dict) -> list:
     """给 `node_map`（`{任务键: 节点dict}`）里**未迁移过**的任务配好窗口。
 
-    :param node_map: 配置的**原始 dict**（可写回）
-    :return: 实际改动的任务键列表（空 = 无需迁移）
+    ## 迁移（S3）
+
+    旧的**单值**窗口字段 -> **一条** `windows` 项:
+      `window_enable` / `window_start` / `window_end` / `window_days` /
+      `window_period` / `window_dom` / **`window_slots`**
+
+    ★ `window_slots`（我此前的绕法, 用户已裁定**废弃**）会被折成
+      **多个窗口**（每个时刻一段, 跨度 `_SLOT_SPAN_MINUTES`）——
+      这正是"**一天跑两次 = 两个窗口**"的正确表达。
+
+    ## 推荐值（用户裁定）
+
+    | 任务 | 窗口 |
+    |---|---|
+    | `restart` | **两个**: 12:00-14:00 与 20:00-22:00（每天两次领体力）|
+    | `ryou_toppa` | **一个**: 07:00-09:00 |
+    | `guild_banquet` | **不设**（`meta.py` 用 `days_from_config` 引用宴会日）|
+
+    ★ 幂等: `windows` 非空 -> 已迁移, 跳过（不能每次启动都覆盖用户设置）。
     """
+    import uuid as _uuid
+    from datetime import time as _time
+
+    def _wid() -> str:
+        return _uuid.uuid4().hex[:8]
+
+    def _to_time(v, default):
+        if isinstance(v, _time):
+            return v
+        try:
+            return _time.fromisoformat(str(v))
+        except Exception:
+            return default
+
     changed = []
     for key, slots in RECOMMENDED_WINDOWS.items():
         node = node_map.get(key)
@@ -77,25 +124,107 @@ def apply_recommended_windows(node_map: dict) -> list:
         sch = node.get('scheduler')
         if not isinstance(sch, dict):
             continue
-        # ★ 已是"用户自己配过"的 -> 不动（window_period 被显式设过 或
-        #   已经有 slots 且非空）
-        if str(sch.get('window_slots') or '').strip():
+        # ★ 幂等: 已有 windows -> 用户配过或已迁移, 不动
+        if sch.get('windows'):
             continue
-        sch['window_enable'] = True
-        sch['window_slots'] = slots
-        # 起止时刻留一个合理的默认（slots 生效时会被忽略, 但界面要显示）。
-        #
-        # ★ 必须是 `datetime.time`, **不是字符串** —— `Settings.Time` 的
-        #   序列化器直接调 `.strftime`, 给字符串会在**保存**时崩:
-        #     AttributeError: 'str' object has no attribute 'strftime'（踩过）
-        from datetime import time as _time
-        if not isinstance(sch.get('window_start'), _time):
-            sch['window_start'] = _time(hour=12, minute=0)
-        if not isinstance(sch.get('window_end'), _time):
-            sch['window_end'] = _time(hour=22, minute=0)
-        sch['window_period'] = 'daily'
+
+        # ① 先把**旧的单值 / `window_slots`** 折成 windows
+        migrated = []
+        old_slots = str(sch.get('window_slots') or '').strip()
+        if old_slots:
+            for part in old_slots.split(','):
+                part = part.strip()
+                if not part:
+                    continue
+                try:
+                    hh, mm = part.split(':')
+                    st = _time(hour=int(hh), minute=int(mm))
+                except Exception:
+                    continue
+                m = st.hour * 60 + st.minute + _SLOT_SPAN_MINUTES
+                m = min(m, 23 * 60 + 59)
+                migrated.append({
+                    'id': _wid(), 'enabled': True, 'period': 'daily',
+                    'start': st.strftime('%H:%M:%S'),
+                    'end': _time(hour=m // 60, minute=m % 60).strftime('%H:%M:%S'),
+                    'days': '', 'days_of_month': '',
+                })
+        elif sch.get('window_enable'):
+            # ⚠ `window_period` 可能是**枚举**, 也可能是**字符串**
+            #   （`model_dump()` 给枚举, 旧 JSON 给字符串）。
+            #   ★ 不能写 `getattr(x, 'value', 'daily')` —— 对**字符串**它会
+            #     返回默认值 `'daily'`，把真实的 `'weekly'` **吞掉**（我踩过）。
+            _wp = sch.get('window_period')
+            migrated.append({
+                'id': _wid(), 'enabled': True,
+                'period': str(getattr(_wp, 'value', _wp) or 'daily').lower(),
+                'start': _to_time(sch.get('window_start'),
+                                  _time(17, 0)).strftime('%H:%M:%S'),
+                'end': _to_time(sch.get('window_end'),
+                                _time(23, 0)).strftime('%H:%M:%S'),
+                'days': str(sch.get('window_days') or ''),
+                'days_of_month': str(sch.get('window_dom') or ''),
+            })
+
+        # ② 用户没配过 -> 给推荐值（两个窗口 = 一天两次）
+        if not migrated:
+            for st, en in RECOMMENDED_SECONDS.get(key, ()):
+                migrated.append({
+                    'id': _wid(), 'enabled': True, 'period': 'daily',
+                    'start': st, 'end': en, 'days': '', 'days_of_month': '',
+                })
+
+        if not migrated:
+            continue
+        sch['windows'] = migrated
+        # ③ 删掉被替代的旧字段（避免"两个来源"）
+        for dead in ('window_enable', 'window_start', 'window_end',
+                     'window_days', 'window_period', 'window_dom',
+                     'window_slots'):
+            sch.pop(dead, None)
         changed.append(key)
     return changed
+
+
+class TaskWindow(BaseModel):
+    """**一个开放窗口**（原子实体, 有稳定 `id`）。
+
+    设计依据: `docs/scheduler-architecture.md` §1.1。
+
+    ## 用户裁定
+
+    > "不是 window slots, 而是**设置多个 window**！"
+    > "一天跑两次 = **两个窗口**"
+
+    ## 字段
+
+    | 字段 | 含义 |
+    |---|---|
+    | `id` | **稳定身份**（增删改都按它, 不按下标 —— "身份不是位置"）|
+    | `enabled` | 这一段是否生效（合起来取并集）|
+    | `period` | **每天 / 每周 / 每月**（两端**共用**, 落实 (B)）|
+    | `start` / `end` | 起止**时刻**（可跨午夜, `end < start` 即跨夜）|
+    | `days` | `period=weekly` 时的**周几**（0=周一 … 6=周日）；空 = 全周 |
+    | `days_of_month` | `period=monthly` 时的**几号**（1-31）；空 = 整月 |
+
+    ★ 与 `AvailabilityWindow`（`module/config/availability.py`）的分工:
+      那个是**纯逻辑**的判定对象（无 pydantic 依赖, 便于单测）;
+      这个是**持久化**模型（进 JSON / 进 schema）。转换见
+      `Scheduler.to_availability()`。
+    """
+
+    id: str = Field(default='', description='窗口标识')
+    enabled: bool = Field(default=True, description='启用这一段')
+    period: WindowPeriod = Field(
+        default=WindowPeriod.DAILY, description='窗口周期')
+    start: Time = Field(
+        default=Time(hour=17, minute=0, second=0), description='开始时刻')
+    end: Time = Field(
+        default=Time(hour=23, minute=0, second=0), description='结束时刻')
+    # 周几: 逗号分隔 0-6（周一=0）; 空 = 全周
+    days: str = Field(default='', description='开放星期')
+    # 几号: 逗号分隔 1-31; 空 = 整月
+    days_of_month: str = Field(default='', description='开放几号')
 
 
 class Scheduler(ConfigBase):
@@ -227,57 +356,26 @@ class Scheduler(ConfigBase):
     #     （如狭间暗域只在周五六日）, 与用户时刻取**并集**
     #
     # 优先级见 `Function._build_window()`。
-    window_enable: bool = Field(
-        default=False,
-        description='window_enable_help',
-        title='启用开放时段')
-    window_start: Time = Field(
-        default=Time(hour=17, minute=0, second=0),
-        description='window_start_help',
-        title='开放开始')
-    window_end: Time = Field(
-        default=Time(hour=23, minute=0, second=0),
-        description='window_end_help',
-        title='开放结束')
-    # 限定星期: 逗号分隔的 0-6(周一=0), 空或 "0,1,2,3,4,5,6" 表示每天。
-    # 用字符串而非列表, 与既有 charge_slots='0,12' 的风格一致, 也便于 GUI 输入。
-    window_days: str = Field(
-        default='0,1,2,3,4,5,6',
-        description='window_days_help',
-        title='开放星期')
-    # ★★ #1: 窗口周期 + 月内日（用户裁定的结构, 两端**共用**周期）★★
+    # ★★★ S3: **多窗口列表**（替代下面全部单值字段）★★★
     #
-    # 用户原话:
-    #   "窗口开始: 下拉选择：每天、每周、每月 / 下拉选择：时:分、周几：时：分、几号：时：分"
-    #   "窗口语义：(B) 两端必须同周期"
+    # 用户裁定:
+    #   "不是 window slots, 而是**设置多个 window**！slots 不是已经废弃了吗"
+    #   "一天跑两次 = **两个窗口**"
+    #   "你直接帮我配好窗口就好"
     #
-    # 所以:
-    #   * `window_period` 决定"时:分"是**哪一天**的时:分
-    #   * `window_days`   在 `weekly` 时有意义（周几）
-    #   * `window_dom`    在 `monthly` 时有意义（几号）
-    window_period: WindowPeriod = Field(
-        default=WindowPeriod.DAILY,
-        description='window_period_help',
-        title='窗口周期')
-    # 月内日: 逗号分隔 1-31; 空 = 整月
-    window_dom: str = Field(
-        default='',
-        description='window_dom_help',
-        title='开放几号')
-    # ★★ ⑥(b): **一天几个固定时刻**（用户裁定推导出的第 4 种语义）★★
+    # 设计: `docs/scheduler-architecture.md` §1.1（原子实体 + 稳定 id）
     #
-    # 例: `'12:00,20:00'` -> 每天 12:00 与 20:00 各跑一次
-    #     （由**窗口开放次数**表达, 不引入新的"次数"概念）
+    # ★ 每个窗口是**独立实体**: 用户可增 / 删 / 改**任意一条**,
+    #   后端按 `id` 定位（**不按下标** —— "身份不是位置"）。
     #
-    # ★ 与 `window_start` / `window_end` **互斥**:
-    #   填了 slots 就用 slots, 否则用 start/end。
+    # ★ 判定: 一个任务的**可跑集合** = 所有 `enabled` 窗口的**并集**。
     #
-    # ⚠ 为什么不能用"重复条目"表达: 重复条目会跑**完整的任务**,
-    #   而 `Restart` 只在体力补充时刻（12/20 点）才有意义。
-    window_slots: str = Field(
-        default='',
-        description='window_slots_help',
-        title='每日固定时刻')
+    # ★ 被它替代并**删除**的字段:
+    #   `window_enable` / `window_start` / `window_end` / `window_days` /
+    #   `window_period` / `window_dom` / **`window_slots`**
+    windows: List[TaskWindow] = Field(
+        default_factory=list, description='window_windows_help',
+        title='开放窗口')
 
     # ------------------------------------------------------------ 任务列表
     #

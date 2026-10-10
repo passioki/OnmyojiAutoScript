@@ -305,17 +305,28 @@ def _global_fields(config_name: str = '') -> dict:
 
     return {
         # ---- 两个总开关 ----
+        #
+        # ★★★ 改名（用户裁定）★★★
+        #
+        # 用户原话: "`period` 不限时是**固定**（固定任务改名为**临时任务**）,
+        #   其他是**定时**（定时任务名字改为**周期任务**）"
+        #
+        # ★ 旧名"定时/固定"**没表达出"周期"这回事** —— 于是同一个任务会被
+        #   理解成两种意思, 用户核对 54 个任务后指出"**分类不对**"。
+        #   新名直接说清判据: **有没有周期记忆**。
         'enable_fixed': {
             'group': 'script.optimization', 'field': 'enable_fixed',
-            'type': 'boolean', 'label': '启用固定任务',
+            'type': 'boolean', 'label': '启用临时任务',
             'current': bool(_opt_value(config_name, 'enable_fixed', True)),
-            'help': '固定任务 = 有"打满 N 次"语义的, 由运行列表管',
+            'help': '临时任务 = **没有周期记忆**（`period=none`）的任务, '
+                    '想跑就跑, 不按周期重置',
         },
         'enable_timed': {
             'group': 'script.optimization', 'field': 'enable_timed',
-            'type': 'boolean', 'label': '启用定时任务',
+            'type': 'boolean', 'label': '启用周期任务',
             'current': bool(_opt_value(config_name, 'enable_timed', True)),
-            'help': '定时任务 = 有开放时段/周期的, 由定时调度器管',
+            'help': '周期任务 = **有周期记忆**（`period` = 每天/每周）的任务, '
+                    '到周期才该再做一次',
         },
         # ★★ S6: 调度优先级三模式 **已删除**（用户裁定）★★
         #

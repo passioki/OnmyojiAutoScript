@@ -44,9 +44,23 @@ logging.disable(logging.CRITICAL)
 CFG = '__sort_probe__'
 P = REPO / 'config' / f'{CFG}.json'
 
-#: 段归属（实测: `task_catalog`）: MetaDemon/Nian = timed; 其余 = fixed
-T1, T2 = 'MetaDemon', 'Nian'
-F1, F2, F3 = 'Orochi', 'Exploration', 'SixRealms'
+#: ★ 段归属 —— **按 `period` 派生**（用户裁定改了判据, 见下）
+#
+# 用户原话:
+# > "按照**有没有设置周期记忆**, `period` 不限时是**固定**（固定任务改名为
+# >  **临时任务**）, 其他是**定时**（定时任务名字改为**周期任务**）"
+#
+# ★ 所以样本任务必须按 **`period`** 挑, 不能再按 `category`:
+#   * T 组 = `period != none`（周期任务）
+#   * F 组 = `period == none`（临时任务）
+#
+# ⚠ 原来写的是 `T1,T2 = MetaDemon,Nian` / `F1,F2,F3 = Orochi,Exploration,
+#   SixRealms` —— 而 **`Orochi`/`SixRealms` 的 `period=DAILY`**, 新判据下
+#   它们是**周期任务**, 于是"F 组"里混进了 timed -> 断言全部失效。
+#
+# ★ 全部选**全天窗口**的, 免得"不在窗口"那一档干扰排 序断言。
+T1, T2 = 'MetaDemon', 'KekkaiActivation'      # period != none -> 周期
+F1, F2, F3 = 'Exploration', 'Hyakkiyakou', 'HeroTest'   # period == none -> 临时
 REST = {'kind': 'rest', 'minutes': 10}
 
 

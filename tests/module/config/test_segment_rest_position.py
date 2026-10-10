@@ -42,7 +42,25 @@ if str(REPO) not in sys.path:
 
 logging.disable(logging.CRITICAL)
 
-T_TASK, F_TASK = 'MetaDemon', 'Orochi'      # T=timed, F=fixed
+# ★★★ 测试用的两个样本任务（★ 用户裁定改了分类判据后换过）★★★
+#
+# 用户裁定:
+# > "按照**有没有设置周期记忆**, `period` 不限时是**固定**（固定任务改名为
+# >  **临时任务**）, 其他是**定时**（定时任务名字改为**周期任务**）"
+#
+# ★ 所以判据是 **`period`**, 不再是 `category`:
+#   * `T_TASK` 必须是 `period != none`（= **周期任务**）
+#   * `F_TASK` 必须是 `period == none`（= **临时任务**）
+#
+# ⚠ 原来写的是 `T_TASK, F_TASK = 'MetaDemon', 'Orochi'` —— 而 **`Orochi`
+#   的 `period=DAILY`**, 新判据下它是**周期任务**, 于是本文件多条断言
+#   （"F 在 T 前面"之类）**全部失效**。这就是"分类规则改了, 测试样本也得换"。
+#
+# ★ 两个都选**全天窗口**的, 免得窗口外的任务被 `sort_run_list` 的特殊
+#   排序影响（那是另一个文件的职责）。
+#   * `KekkaiActivation`  period=DAILY  -> timed（周期）
+#   * `Exploration`       period=NONE   -> fixed（临时）
+T_TASK, F_TASK = 'KekkaiActivation', 'Exploration'
 REST10 = {'kind': 'rest', 'minutes': 10}
 
 

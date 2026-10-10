@@ -62,12 +62,66 @@ def cfg():
 
 class TestSegmentOf:
     def test_segment_of_known_tasks(self, cfg):
-        assert cfg._segment_of('MetaDemon') == 'timed', '限时活动算 timed'
-        assert cfg._segment_of('Nian') == 'timed', '年兽算 timed'
-        assert cfg._segment_of('TrueOrochi') == 'timed', '真蛇算 timed'
-        assert cfg._segment_of('Orochi') == 'fixed'
-        assert cfg._segment_of('RealmRaid') == 'fixed', '结界突破算 fixed'
-        assert cfg._segment_of('Exploration') == 'fixed'
+        """★ 已知任务的段归属。
+
+        ## ★★★ 期望值按 **`period` 派生**，不写死 ★★★
+
+        用户裁定（口径重定）:
+        > "按照**有没有设置周期记忆**, `period` 不限时是**固定**（固定任务
+        >  改名为**临时任务**）, 其他是**定时**（定时任务名字改为**周期任务**）"
+
+        ★ 所以 `Orochi`（`period=DAILY`）**是周期任务**，不再是 fixed ——
+          这正是用户核对 54 个任务后指出的"分类不对"。
+        ★ 断言**从 `task_catalog` 读 `period` 来算期望值**，而不是写死
+          `'timed'`/`'fixed'`：这样"分类规则"与"断言"不会各说各话
+          （写死的话，任务一改 period 测试就假失败，而实现其实是对的）。
+        """
+        from module.config import task_catalog as TC
+        from module.config.resource import Period
+
+        def want(task: str) -> str:
+            spec = TC.get_spec(task)
+            assert spec is not None, f'{task} 不在 catalog'
+            # 与 TaskSpec.priority_group 同一判据: 有周期记忆 = timed
+            return 'fixed' if spec.period_effective == Period.NONE else 'timed'
+
+        for task in ('MetaDemon', 'Nian', 'TrueOrochi', 'Orochi',
+                     'RealmRaid', 'Exploration', 'AbyssShadows',
+                     'BondlingFairyland', 'DemonEncounter'):
+            assert cfg._segment_of(task) == want(task), (
+                f'★ {task} 的段归属与 `period` 不符 '
+                f'(period={TC.get_spec(task).period_effective})')
+
+    def test_judge_is_period_not_category(self, cfg):
+        """★★ 判据必须是 **`period`**，不是 `category` ★★
+
+        ★ 这是本轮改动的**核心**：旧实现读 `category_effective`，
+          于是"有硬性开放时段却叫固定"（逢魔/道馆/狩猎战）与
+          "随时能跑却叫定时"两类矛盾同时存在。
+        """
+        from module.config import task_catalog as TC
+        from module.config.resource import Period
+
+        for name in TC.all_specs():
+            spec = TC.get_spec(name)
+            expect = ('fixed' if spec.period_effective == Period.NONE
+                      else 'timed')
+            assert spec.priority_group == expect, (
+                f'★ {name}: period={spec.period_effective} 但段='
+                f'{spec.priority_group!r} —— 判据必须只看 period')
+
+    def test_orenchi_is_period_task_now(self, cfg):
+        """★ 回归守卫: `Orochi`（period=DAILY）必须是**周期任务**。
+
+        ★ 它原来被算成 `fixed`（因为 `category=FIXED`）—— 用户核对 54 个
+          任务时指出"分类不对"。这条**专门钉住那个修正**。
+        """
+        from module.config import task_catalog as TC
+        from module.config.resource import Period
+        assert TC.get_spec('Orochi').period_effective == Period.DAILY
+        assert cfg._segment_of('Orochi') == 'timed', (
+            '★ Orochi 有 daily 周期 -> 应是周期任务; '
+            '若回到 fixed 说明判据又去看 category 了')
 
     def test_unknown_task_falls_back_to_fixed(self, cfg):
         """★ 未知任务名不崩, 落到 `'fixed'`（保守默认）。
@@ -82,7 +136,21 @@ class TestSegmentOf:
 
         旧的第三种东西是「模式」（`PriorityMode`）—— 那个概念**已删除**:
         执行顺序 = `run_list` 的顺序本身, 段名只是**显示用**的派生值。
+
+        ★ 界面名: `'timed'` = **周期任务**, `'fixed'` = **临时任务**。
         """
         segs = {cfg._segment_of(t) for t in
                 ('MetaDemon', 'Nian', 'Orochi', 'RealmRaid', 'Exploration')}
         assert segs == {'timed', 'fixed'}, segs
+
+    def test_labels_are_renamed(self):
+        """★★ 界面名的改名必须生效（用户裁定）★★
+
+        > "固定任务改名为**临时任务**"、"定时任务名字改为**周期任务**"
+
+        ★ 旧名"定时/固定"确实容易混（"定时"会被读成"必须在某个点跑",
+          而判据其实是"**有没有周期记忆**"）。
+        """
+        from module.config import task_catalog as TC
+        assert TC.PRIORITY_GROUP_LABEL['timed'] == '周期'
+        assert TC.PRIORITY_GROUP_LABEL['fixed'] == '临时'

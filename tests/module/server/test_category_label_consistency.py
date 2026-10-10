@@ -74,41 +74,55 @@ class TestOverviewGivesAuthoritativeLabel:
                 assert k in r, f'{r.get("command")} 缺字段 {k}'
 
     def test_label_matches_group(self, live):
-        """★★ 核心: `priority_group_label` 必须与 `priority_group` **同源**。"""
+        """★★ 核心: `priority_group_label` 必须与 `priority_group` **同源**。
+
+        ★ 断言**从 `PRIORITY_GROUP_LABEL` 读期望值**，不写死 `'定时'`/`'固定'`。
+          因为用户已经裁定**改名**（定时->周期, 固定->临时）——
+          写死的话一改名测试就假失败，而实现其实是对的。
+        """
+        from module.config import task_catalog as TC
         from module.server import schema_router as SR
         ov = SR.build_overview('恋鸟树')
         for r in (ov.get('tasks') or []):
-            want = {'timed': '定时', 'fixed': '固定'}.get(
-                r['priority_group'])
-            assert want is not None, f'未知 priority_group: {r["priority_group"]}'
+            want = TC.PRIORITY_GROUP_LABEL.get(r['priority_group'])
+            assert want, f'未知 priority_group: {r["priority_group"]}'
             assert r['priority_group_label'] == want, (
                 f'{r["command"]}: group={r["priority_group"]} 但 '
                 f'label={r["priority_group_label"]!r} —— 两个字段必须同源')
 
     def test_declared_category_may_differ_but_label_follows_group(self, live):
-        """★★ 正是用户看到的矛盾: 声明 `timed` 而有效分段 `fixed`。
+        """★★ 声明 `timed` 而段是 `fixed`（或反之）时, 标签必须**跟段**。
 
-        ★ 断言**标签跟的是 group（有效分段）, 不是 category（声明）**。
+        ★ 现在判据是 **`period`**（用户裁定），所以"不一致"的意思是:
+          `category_effective` 与 `priority_group` 不同源 —— 这**是正常的**,
+          因为它们回答不同问题（见 `TaskSpec.priority_group` 的 docstring）。
+          ★ 但**标签必须跟 `priority_group`**，否则界面会和分段条自相矛盾。
         """
+        from module.config import task_catalog as TC
         from module.server import schema_router as SR
         ov = SR.build_overview('恋鸟树')
         rows = ov.get('tasks') or []
+        # 找几个 category_effective 与 priority_group 不同的
         mismatch = [r for r in rows
-                    if r.get('category') == 'timed'
-                    and r.get('priority_group') == 'fixed']
+                    if r.get('category_effective')
+                    and (r['category_effective'] in ('timed', 'limited'))
+                    != (r['priority_group'] == 'timed')]
         if not mismatch:
-            pytest.skip('当前没有"声明 timed 但有效分段 fixed"的任务 —— '
+            pytest.skip('当前没有"有效类别与段不同"的任务 —— '
                         '这不是失败, 是没测到')
         for r in mismatch:
-            assert r['priority_group_label'] == '固定', (
-                f'★ {r["command"]}: 声明 timed / 有效 fixed, '
-                f'标签却给 {r["priority_group_label"]!r} —— '
-                f'界面会和分段条自相矛盾（用户报的正是这个）')
+            want = TC.PRIORITY_GROUP_LABEL[r['priority_group']]
+            assert r['priority_group_label'] == want, (
+                f'★ {r["command"]}: 有效类别={r["category_effective"]} / '
+                f'段={r["priority_group"]}, 标签给了 '
+                f'{r["priority_group_label"]!r}（应 {want!r}）—— '
+                f'界面会和分段条自相矛盾')
 
     def test_counts_agree_within_queued(self, live):
         """★★ 分段条统计 == 标签统计（用户报的矛盾点）。"""
         from collections import Counter
 
+        from module.config import task_catalog as TC
         from module.server import schema_router as SR
         ov = SR.build_overview('恋鸟树')
         queued = [r for r in (ov.get('tasks') or []) if r.get('queued')]
@@ -116,12 +130,11 @@ class TestOverviewGivesAuthoritativeLabel:
             pytest.skip('队列为空 —— 没测到')
         by_group = Counter(r['priority_group'] for r in queued)
         by_label = Counter(r['priority_group_label'] for r in queued)
-        assert by_label.get('定时', 0) == by_group.get('timed', 0), (
-            f'★ 分段条说定时 {by_group.get("timed", 0)} 条, '
-            f'标签却有 {by_label.get("定时", 0)} 枚 —— 口径不一致')
-        assert by_label.get('固定', 0) == by_group.get('fixed', 0), (
-            f'★ 分段条说固定 {by_group.get("fixed", 0)} 条, '
-            f'标签却有 {by_label.get("固定", 0)} 枚 —— 口径不一致')
+        for grp in ('timed', 'fixed'):
+            lbl = TC.PRIORITY_GROUP_LABEL[grp]
+            assert by_label.get(lbl, 0) == by_group.get(grp, 0), (
+                f'★ 分段条说 {lbl} {by_group.get(grp, 0)} 条, '
+                f'标签却有 {by_label.get(lbl, 0)} 枚 —— 口径不一致')
 
 
 class TestSortAvoidsOutOfWindowTasks:

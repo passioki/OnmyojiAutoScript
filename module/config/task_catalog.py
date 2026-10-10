@@ -126,6 +126,30 @@ class TaskMeta:
         return self.name_zh or self.task
 
     @property
+    def priority_group(self) -> str:
+        """该任务属于哪个**优先级段** —— `'timed'` 或 `'fixed'`（S6）。
+
+        转发给 `TaskSpec.priority_group` —— ★ **为什么必须转发**:
+
+        `schema_router` / 队列排序用的是 **`TaskMeta`**（`TC.get()`）,
+        而定义在 **`TaskSpec`**（`TC.get_spec()`）上。不加转发 ->
+        `AttributeError`（我实测踩过: **53 errors** —— 与
+        `category_effective` 同一个坑, 见台账 §10.8）。
+
+        ★ 判定逻辑**只有一处**（`TaskSpec.priority_group`）, 这里只转发。
+        """
+        try:
+            spec = get_spec(self.task)
+            if spec is not None:
+                return spec.priority_group
+        except Exception:
+            pass
+        # 兜底: 按自己的 `category_effective` 判（与 `TaskSpec` 同一规则）
+        if self.category_effective in (Category.TIMED, Category.LIMITED):
+            return 'timed'
+        return 'fixed'
+
+    @property
     def count_field_effective(self) -> str or None:
         """
         对外统一的次数字段名。
@@ -247,6 +271,36 @@ class TaskSpec:
     #   我们不该预设"哪个任务该先跑"。默认全部未编排 -> 界面按类别/名称排序,
     #   用户拖拽后才写入位置。
     list_pos: int = None
+
+    # ------------------------------------------------------------------ S6: 类别分段
+    @property
+    def priority_group(self) -> str:
+        """该任务属于哪个**优先级段** —— `'timed'` 或 `'fixed'`（S6）。
+
+        ## 用户裁定
+
+        > "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
+        >  如果选了**列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
+        >  **三个选项: 定时任务优先、固定任务优先、自定义**"
+
+        ## 判据
+
+        | 最终类别（`category_effective`）| 段 |
+        |---|---|
+        | `timed` / `limited` | **`timed`** —— 有窗口/周期约束, 错过就没了 |
+        | `fixed` / `toppa` | **`fixed`** —— 什么时候跑都行, 由用户编排 |
+
+        ★ **为什么 `limited`（限时活动）算 `timed`**: 它同样"过期就没了",
+          与定时任务的紧迫性一致 —— 用户此前也确认过
+          `TIMED_CATEGORIES = ('timed', 'limited')`（`timed_schedule.py`）。
+
+        ★ **为什么 `toppa`（结界突破）算 `fixed`**: 它没有"每天必须做完 1 次"
+          的窗口压力, 属用户随时可跑的固定任务。
+        """
+        eff = self.category_effective
+        if eff in (Category.TIMED, Category.LIMITED):
+            return 'timed'
+        return 'fixed'
 
     @property
     def period_effective(self):

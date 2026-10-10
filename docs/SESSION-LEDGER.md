@@ -3442,3 +3442,124 @@ group: str = ''    # 'timed' / 'fixed' / 空 = 未分段（旧配置）
 | **S6-7** | **前端**: 下拉三选项 + 拖动约束 + 类别分隔视觉 |
 | **S6-8** | 删死代码 `_order_by_timed_priority()` |
 
+---
+
+# 44. S6-2/S6-3: `priority_mode` 迁移 + **队列层分段排序**
+
+## 44.1 ★★ 我第一版做错了: 在 `pending` 上事后重排, **破坏核心不变量** ★★
+
+**第一版做法**: 在 `update_scheduler()` 里 `_order_by_queue()` **之后**调
+`_order_by_priority_mode(pending_task)` —— 直接重排 `pending`。
+
+**实测 3 个测试失败**:
+```
+test_pending_is_ordered_subsequence_of_queue
+test_queue_order_is_respected_not_timed_sort
+test_ordered_subsequence_under_any_rule
+```
+
+**根因**: 设计文档 §W4 / Z1 的核心不变量是
+
+> `pending` 必须是 `queue` 的**保序子序列**
+
+而 `pending` 是**从 `queue` 筛出来的**（只留已到点的）。事后重排它, 就不再是
+子序列了。测试的报错信息很直白:
+```
+pending 不是"队列剔除 waiting 后的保序子序列"
+  队列   : [...]
+  期望   : [...]
+  实际   : [...]
+```
+
+★★ **正确做法: 让队列本身就带分段顺序** —— 于是 `pending` 作为它的子序列,
+  **天然**满足不变量。已撤回第一版的接入, 改为 `Config._segment_queue()`。
+
+## 44.2 `_segment_queue()`（在**队列层**）
+
+| 模式 | 队列顺序 |
+|---|---|
+| `timed_first` | 定时段在前, 固定段在后 |
+| `fixed_first` | 固定段在前, 定时段在后 |
+| `custom`      | ★ **完全按用户拖的顺序**（只打段名, 不排段）|
+
+**规则细节**:
+* **段内相对顺序不变**（`sorted` 是**稳定**的）—— 这正是"拖动只在**同类别内**生效"
+* `rest`（休息）条目**不参与分段**且**始终排最后** —— 它是"跑完这些再歇",
+  排中间会把后面全挡住
+* ★ **不回写配置** —— 段名是派生的（与 `build_queue` 既有约定一致）
+
+## 44.3 ★ 默认值必须是 `custom`（**行为保持**）
+
+我一开始把默认设成 `timed_first`, **立刻打破** `build_queue()` 的两条契约:
+```
+test_user_entries_come_first_in_order   ✗
+test_auto_tasks_are_appended            ✗
+```
+→ 因为 `timed_first` 会把"定时类的自动任务"提到"固定类的用户条目"前面。
+
+**改默认为 `custom`**: 与改造前**完全一致**（用户拖的顺序就是执行顺序）。
+★ 这是本项目一贯做法: **新开关默认不改变行为**; 想要分段排序由用户在新界面
+  **显式**选。
+
+## 44.4 ★ 迁移映射（`migrate_priority_mode_once`）
+
+| 旧 `schedule_rule` | 旧 `timed_priority` | -> 新 | 理由 |
+|---|---|---|---|
+| `List` | 任意 | `custom` | 用户显式选了"列表自定义" |
+| 其它 | `list` | `fixed_first` | 原语义: 等固定任务跑完 |
+| 其它 | `timed` | `custom` | ★ **行为保持** —— `Filter`+`timed` 是**出厂默认组合**（几乎所有用户都是这个）; 迁成 `timed_first` 会**悄悄重排**他们的队列 |
+
+## 44.5 ★★ 幂等: 用**显式标记字段**（不能用默认值当哨兵）★★
+
+我第一版想用"`priority_mode` 是否偏离默认"当判断 —— **逻辑自相矛盾**
+（在"还是默认"时提前 `return False`, 于是默认配置**永远迁不动**）。
+
+**改用** `priority_mode_explicit: bool`（**真实字段**）:
+* `False` -> 还没迁移过, 按旧字段推算, 并**置真**
+* `True`  -> 用户在新界面**表过态**, **永不覆盖**
+
+★ 为什么必须是**真实字段**: pydantic v2 的 `extra='ignore'` 会把"自定义键"
+  从 `model_dump()` 丢掉 -> 标记丢失 -> **每次启动都覆盖用户设置**
+  （这个坑在 `migrate_windows_once` 里踩过）。
+
+## 44.6 ★★ 三模式排序**实测** ★★
+
+用**合成待跑列表**（故意交错 `F T F F F F`）:
+
+```
+输入次序:  Orochi(F) MetaDemon(T) Exploration(F) SixRealms(F) GoldYoukai(F) RealmRaid(F)
+
+timed_first -> TFFFFF  ['MetaDemon', 'Orochi', 'Exploration', ...]
+fixed_first -> FFFFFT  ['Orochi', 'Exploration', ..., 'MetaDemon']
+custom      -> FTFFFF  ['Orochi', 'MetaDemon', 'Exploration', ...]  ★ 与输入完全一致
+```
+
+★ **稳定性验证**: `timed_first` 里 F 段顺序 = 输入顺序
+  （Orochi -> Exploration -> SixRealms -> GoldYoukai -> RealmRaid）✓
+
+## 44.7 我污染了实时配置一次（第 4 次）
+
+测试期间 `戀鳥樹` 的 `priority_mode` 被我写成 `timed_first` +
+`explicit=False` -> 之后每次加载**都被迁移覆盖** -> 测试持续失败。
+**已手工改回 `custom` + `explicit=True`**, 并**核对**。
+
+★ 守卫测试用 `cfg` fixture: **备份 + 必定还原**。
+
+## 44.8 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1578 passed, 3 skipped**（+13 守卫, 0 失败）|
+| 三模式排序 | ★ **实测**（`TFFFFF` / `FFFFFT` / `FTFFFF`）|
+| 核心不变量 | ★ `pending` 仍是 `queue` 的保序子序列 |
+| 默认值 | `custom`（**行为保持**）|
+
+## 44.9 S6 剩余
+
+| 子步 | 内容 |
+|---|---|
+| **S6-4** | 拖动约束: 后端校验（`custom` 自由; 另两模式**同段内**）|
+| **S6-5** | `schema_router`: `/priority` 端点改三模式（返回 `priority_mode` + 可选值）|
+| **S6-6** | **前端**: 下拉三选项 + 拖动约束 + 类别分隔视觉 |
+| **S6-7** | 删死代码 `_order_by_timed_priority()` |
+

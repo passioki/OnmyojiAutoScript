@@ -156,10 +156,37 @@ class Optimization(BaseModel):
     #
     # ★ 它**取代**了下面两个重叠的旧字段（`schedule_rule` / `timed_priority`）,
     #   那两个保留仅为**读旧配置**; 迁移见 `Config.migrate_priority_mode_once()`。
+    # ★ 默认 = `custom`: **行为保持** —— 与改造前一致（用户拖的顺序就是执行
+    #   顺序）。★ 若默认 `timed_first`, 会**悄悄重排**所有既有用户的队列
+    #   （实测: `build_queue()` 的"用户编排在前 + 自动追加在后"两条契约
+    #   立刻被打破, 2 个测试失败）。本项目一贯做法是**新开关默认不改变行为**。
     priority_mode: PriorityMode = Field(
-        default=PriorityMode.TIMED_FIRST,
+        default=PriorityMode.CUSTOM,
         description='priority_mode_help',
         title='调度优先级')
+
+    # ★★ S6: 迁移用**显式标记**（不要用默认值当哨兵！）★★
+    #
+    # ## 为什么必须有这个字段
+    #
+    # `priority_mode` **有默认值**（`timed_first`）—— 所以"用户没设过"与
+    # "用户明确选了 timed_first" **分辨不出来**。
+    #
+    # 我第一版想"用它是否偏离默认"当判断 -> **逻辑自相矛盾**（会在
+    # "还是默认"时提前 `return False`, 于是默认配置永远迁不动）。
+    #
+    # ★ 改用这个**真实字段**当标记:
+    #   * `False` = 还没迁移过 -> 读旧字段推算 `priority_mode`
+    #   * `True`  = 用户在新界面**明确表过态** -> 永不覆盖
+    #
+    # ⚠ 必须是**真实字段**: pydantic v2 的 `extra='ignore'` 会把"自定义键"
+    #   从 `model_dump()` 丢掉 -> 用自定义键做标记会**每次启动都覆盖用户设置**
+    #   （这个坑我们踩过, 见 `migrate_windows_once` 的注释）。
+    priority_mode_explicit: bool = Field(
+        default=False,
+        description='priority_mode_explicit_help',
+        title='调度优先级（是否已由用户明确设置）',
+        json_schema_extra={'internal': True})
 
     # ⚠⚠ **已废弃**（S6）: 请用上面的 `priority_mode`。
     #

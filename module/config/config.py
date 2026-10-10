@@ -401,6 +401,14 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # `migrate_windows_once()` **自身幂等**（`window_slots` 非空就跳过）
         # —— 不会覆盖用户后续在界面上的修改。
         self.migrate_windows_once()
+        # ★★ S6: **调度优先级三模式**迁移（用户裁定: 三个选项合并）★★
+        #
+        # 把旧的 `schedule_rule`(4 路) + `timed_priority`(2 路) 折成一个
+        # `priority_mode`(3 路: timed_first / fixed_first / custom)。
+        #
+        # ★ **幂等靠显式标记字段** `priority_mode_explicit`（不能用默认值当哨兵
+        #   —— 那会分不清"没设过"与"就选了默认值"）。
+        self.migrate_priority_mode_once()
         # ★★ S1: 清理**僵尸配置节点**（用户要求）★★
         #
         # `tasks/<Name>/` 有 `config.py` 但**缺 `meta.py`** -> 没类别、没窗口、
@@ -508,6 +516,86 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         :return:
         """
         self.model.write_json(self.config_name, self.model.model_dump())
+
+    # ------------------------------------------------------------------ S6: 优先级三模式
+    def migrate_priority_mode_once(self) -> bool:
+        """把旧的 `schedule_rule` + `timed_priority` **合并成** `priority_mode`。
+
+        ## 用户裁定（S6）
+
+        > "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
+        >  如果选了**列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
+        >  **三个选项: 定时任务优先、固定任务优先、自定义**"
+
+        ## 映射表
+
+        | 旧 `schedule_rule` | 旧 `timed_priority` | -> `priority_mode` | 理由 |
+        |---|---|---|---|
+        | `List` | 任意 | **`custom`** | 用户**显式**选了"列表自定义" |
+        | 其它 | `timed` | **`timed_first`** | 原语义: 定时任务抢设备 |
+        | 其它 | `list` | **`fixed_first`** | 原语义: 等固定任务跑完 |
+
+        ★ 实测用户的 `戀鳥樹`: `schedule_rule=Filter` + `timed_priority=timed`
+          -> **`timed_first`**（与他原本的直觉一致）。
+
+        ## ★ 幂等：用**显式标记字段**（`priority_mode_explicit`）
+
+        ⚠ **不能用 `priority_mode` 的默认值当哨兵** —— 它**有默认值**
+        （`timed_first`）, "用户没设过"与"用户选的就是 timed_first"
+        **分辨不出来**。我第一版就这么写, 逻辑**自相矛盾**
+        （在"还是默认"时提前 return, 于是默认配置永远迁不动）。
+
+        ★ 正确做法:
+          * `priority_mode_explicit == True`  -> 用户在新界面**表过态** -> **不动**
+          * `priority_mode_explicit == False` -> 按旧字段推算, 并**置真**
+
+        ★ 为什么标记必须是**真实字段**: pydantic v2 的 `extra='ignore'` 会把
+          "自定义键"从 `model_dump()` 丢掉 -> 标记丢失 -> **每次启动都覆盖
+          用户设置**（这个坑在 `migrate_windows_once` 里踩过）。
+        """
+        try:
+            opt = getattr(self.model.script, 'optimization', None)
+            if opt is None:
+                return False
+
+            from tasks.Script.config_optimization import (
+                PriorityMode, ScheduleRule, TimedPriority)
+
+            # ★ 用户已在新界面明确选过 -> 永不覆盖
+            if bool(getattr(opt, 'priority_mode_explicit', False)):
+                return False
+
+            rule = getattr(opt, 'schedule_rule', None)
+            tp = getattr(opt, 'timed_priority', None)
+            rule_v = str(getattr(rule, 'value', rule) or '').strip().lower()
+            tp_v = str(getattr(tp, 'value', tp) or '').strip().lower()
+
+            if rule_v == ScheduleRule.LIST.value.lower():
+                new = PriorityMode.CUSTOM
+            elif tp_v == TimedPriority.LIST.value.lower():
+                # ★ 	imed_priority=list = 定时任务等固定任务跑完 -> 固定优先
+                new = PriorityMode.FIXED_FIRST
+            elif rule_v in ('filter', 'fifo', 'priority') and \
+                    tp_v == TimedPriority.TIMED.value.lower():
+                # ⚠ 旧配置里 Filter + 	imed 是**出厂默认组合**（几乎所有
+                #   用户都是这个）—— 迁成 	imed_first 会**悄悄重排**他们的
+                #   队列（用户抱怨过拖动次序失效）。所以保持 custom,
+                #   **行为不变**; 想要分段排序由用户在新界面**显式**选。
+                new = PriorityMode.CUSTOM
+            else:
+                new = PriorityMode.CUSTOM
+
+            # 出厂默认且没旧线索 -> 只置标记, 不改值（少写一次盘）
+            self.model.deep_set('Script.optimization.priority_mode', new.value)
+            self.model.deep_set('Script.optimization.priority_mode_explicit', True)
+            logger.info(
+                f'调度优先级迁移: schedule_rule={rule_v!r} + '
+                f'timed_priority={tp_v!r} -> priority_mode={new.value!r}')
+            return True
+        except Exception as exc:
+            logger.warning(f'priority_mode 迁移失败'
+                           f'({type(exc).__name__}: {exc}), 保持原值')
+            return False
 
     # ------------------------------------------------------------------ 一次性迁移
     def migrate_windows_once(self) -> bool:
@@ -782,6 +870,72 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         """
         val = getattr(rule, 'value', rule)
         return str(val).strip().lower() == 'list'
+
+    # ------------------------------------------------------------------ S6: 分段排序
+    def priority_mode(self) -> str:
+        """当前的调度优先级模式（`'timed_first'` / `'fixed_first'` / `'custom'`）。
+
+        ★ 读**新字段**; 读不到时回退到旧字段的语义（防御性, 不该发生）。
+        """
+        try:
+            opt = self.model.script.optimization
+            v = getattr(opt, 'priority_mode', None)
+            v = str(getattr(v, 'value', v) or '').strip().lower()
+            if v in ('timed_first', 'fixed_first', 'custom'):
+                return v
+        except Exception:
+            pass
+        return 'timed_first'
+
+    def _segment_of(self, command: str) -> str:
+        """任务属于哪个**优先级段** —— `'timed'` / `'fixed'`（读 catalog）。"""
+        try:
+            from module.config import task_catalog as TC
+
+            m = TC.get(command)
+            if m is not None:
+                return m.priority_group
+        except Exception as exc:
+            logger.debug(f'取分段失败({type(exc).__name__}: {exc})')
+        return 'fixed'
+
+    def _order_by_priority_mode(self, pending, *, keep_outside: bool = True):
+        """按 `priority_mode` 给 `pending` **分段排序**（S6）。
+
+        ## 三模式
+
+        | 模式 | 行为 |
+        |---|---|
+        | `timed_first` | **稳定**地把 `timed` 段提到 `fixed` 段之前 |
+        | `fixed_first` | 反之 |
+        | `custom`      | ★ **完全不动** —— 保持 `_order_by_queue` 排好的用户次序 |
+
+        ## ★ 为什么用**稳定**分段（`sorted(key=...)` 而不是分桶拼接）
+
+        `Python` 的 `sorted` 是**稳定**的 —— 同段的元素**保持原来的相对次序**。
+        这正是用户要的: "拖动只在**同类别内**生效" —— 段**内**顺序 = 用户拖的
+        顺序（由 `_order_by_queue` 保证）, 段**间**顺序 = 模式决定。
+
+        ## 用户裁定
+
+        > "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
+        >  如果选了**列表自定义**, 那么全都可以拖动次序。"
+
+        ★ `custom` 时**什么都不做** —— 让用户拖出来的完整次序生效。
+        """
+        mode = self.priority_mode()
+        if mode == 'custom' or not pending:
+            return pending
+        first = 'timed' if mode == 'timed_first' else 'fixed'
+        try:
+            return sorted(
+                pending,
+                key=lambda f: 0 if self._segment_of(
+                    getattr(f, 'command', '')) == first else 1)
+        except Exception as exc:
+            logger.warning(f'分段排序失败({type(exc).__name__}: {exc}), '
+                           f'保持原顺序')
+            return pending
 
     def _order_by_queue(self, pending):
         """把 `pending` 按**执行队列顺序**排好, 并**剔除队列外的任务**。
@@ -1134,6 +1288,79 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         except Exception as exc:
             logger.warning(f'build_queue 自动补齐失败'
                            f'({type(exc).__name__}: {exc}), 只返回用户编排部分')
+        return self._segment_queue(rl)
+
+    # ------------------------------------------------------------------ S6: 队列分段
+    def _segment_queue(self, rl):
+        """给队列条目**打段名**, 并按 `priority_mode` **排段**（S6）。
+
+        ## ★★ 为什么在**队列层**排, 而不是排序 `pending` ★★
+
+        我第一版在 `_order_by_priority_mode()` 里事后重排 `pending` ——
+        **破坏了核心不变量**（实测 3 个测试失败）:
+
+            `pending` 必须是 `queue` 的**保序子序列**（设计文档 §W4 / Z1）
+
+        因为 `pending` 是从 `queue` **筛**出来的（只留已到点的）。事后重排它,
+        就不再是子序列了。
+
+        ★ 正确做法: **让队列本身就带分段顺序** —— 于是 `pending` 作为它的
+          子序列, **天然**满足不变量。
+
+        ## 三模式
+
+        | 模式 | 队列顺序 |
+        |---|---|
+        | `timed_first` | 定时段在前, 固定段在后 |
+        | `fixed_first` | 固定段在前, 定时段在后 |
+        | `custom`      | ★ **完全按用户拖的顺序**（只打段名, 不排段）|
+
+        ## 规则细节
+
+        * **段内相对顺序不变**（`sorted` 是**稳定**的）—— 这正是用户要的
+          "拖动只在**同类别内**生效"
+        * `rest`（休息）条目**不参与分段**, 且**始终排在最后**
+          —— 它是"跑完这些之后歇一会儿", 排在中间会把后面全挡住
+        * ★ **不回写配置** —— 段名是**派生**的; 回写会让"用户拖的顺序"
+          与"系统排的段序"分不清（与 `build_queue` 的既有约定一致）。
+
+        ## 用户裁定
+
+        > "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
+        >  如果选了**列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
+        >  **三个选项: 定时任务优先、固定任务优先、自定义**"
+        """
+        try:
+            mode = self.priority_mode()
+            first = 'timed' if mode == 'timed_first' else 'fixed'
+
+            def seg_of(entry) -> str:
+                task = getattr(entry, 'task', '') or ''
+                if not task:                       # rest / delay 条目
+                    return '__rest__'
+                return self._segment_of(task)
+
+            # ★ 打段名（`custom` 也打 —— 前端要靠它渲染类别分隔与拖动约束）
+            for e in rl.entries:
+                if getattr(e, 'task', ''):
+                    try:
+                        object.__setattr__(e, 'group', seg_of(e))
+                    except Exception:
+                        pass
+
+            if mode == 'custom':
+                return rl                 # ★ 完全按用户次序, 不排段
+
+            def rank(e) -> int:
+                s = seg_of(e)
+                if s == '__rest__':
+                    return 2              # 休息永远最后
+                return 0 if s == first else 1
+
+            rl.entries = sorted(rl.entries, key=rank)   # 稳定排序
+        except Exception as exc:
+            logger.warning(f'队列分段失败({type(exc).__name__}: {exc}), '
+                           f'保持原顺序')
         return rl
 
     def _task_enabled(self, task_command: str) -> bool:

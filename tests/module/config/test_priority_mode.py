@@ -1,0 +1,151 @@
+# -*- coding: utf-8 -*-
+"""S6 守卫: `priority_mode` **三模式** + **队列层分段**（用户裁定）。
+
+用户原话:
+> "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时, 如果选了
+>  **列表自定义**, 那么全都可以拖动次序。你理解下, 也就是**三个选项:
+>  定时任务优先、固定任务优先、自定义**"
+> "**给 run_list 加类别分段**"
+"""
+import logging
+import sys
+from pathlib import Path
+
+import pytest
+
+REPO = Path(__file__).resolve().parents[3]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+
+logging.disable(logging.CRITICAL)
+
+
+class _F:
+    """最小 `Function` 替身（只需要 `command`）。"""
+
+    def __init__(self, command):
+        self.command = command
+
+
+@pytest.fixture()
+def cfg():
+    import server  # noqa: F401
+    from module.server.main_manager import mm
+    c = mm.config_cache('恋鸟树')
+    before = c.priority_mode()
+    yield c
+    # ★ 还原（我在实时配置上做过测试 —— 必须还原）
+    try:
+        c.model.script.optimization.priority_mode = before
+        c.model.script.optimization.priority_mode_explicit = True
+    except Exception:
+        pass
+
+
+class TestPriorityModeEnum:
+    def test_three_modes(self):
+        from tasks.Script.config_optimization import PriorityMode
+        assert {m.value for m in PriorityMode} == {
+            'timed_first', 'fixed_first', 'custom'}
+
+    def test_labels_match_user_words(self):
+        """★ 界面名要能对上用户说的"定时任务优先 / 固定任务优先 / 自定义"。"""
+        src = (REPO / 'module/config/i18n/zh-CN.json').read_text(
+            encoding='utf-8')
+        for kw in ('定时任务优先', '固定任务优先', '自定义'):
+            assert kw in src, f'i18n 里缺「{kw}」'
+
+    def test_default_is_custom_behavior_preserving(self):
+        """★ 默认必须是 `custom`（**行为保持**）。
+
+        若默认 `timed_first`, 会**悄悄重排**既有用户的队列 ——
+        实测会打破 `build_queue()` 的"用户编排在前 + 自动追加在后"两条契约。
+        """
+        from tasks.Script.config_optimization import Optimization, PriorityMode
+        assert Optimization().priority_mode == PriorityMode.CUSTOM
+
+    def test_old_fields_deprecated_but_present(self):
+        """★ 旧字段**保留**（旧配置里有, 直接删会崩）, 且标为内部字段。"""
+        from tasks.Script.config_optimization import Optimization
+        o = Optimization()
+        assert hasattr(o, 'schedule_rule')
+        assert hasattr(o, 'timed_priority')
+        assert hasattr(o, 'priority_mode_explicit'), \
+            '迁移标记字段缺失 —— 幂等会失效'
+
+
+class TestSegmentation:
+    def test_segment_of_known_tasks(self, cfg):
+        assert cfg._segment_of('MetaDemon') == 'timed', '限时活动算 timed'
+        assert cfg._segment_of('Orochi') == 'fixed'
+        assert cfg._segment_of('RealmRaid') == 'fixed', '结界突破算 fixed'
+
+    def test_timed_first_puts_timed_first(self, cfg):
+        cfg.model.script.optimization.priority_mode = 'timed_first'
+        CMDS = ['Orochi', 'MetaDemon', 'Exploration', 'SixRealms',
+                'GoldYoukai', 'RealmRaid']
+        out = cfg._order_by_priority_mode([_F(c) for c in CMDS])
+        tags = [cfg._segment_of(f.command) for f in out]
+        # 所有 timed 必须在所有 fixed 之前
+        assert tags == sorted(tags, key=lambda s: 0 if s == 'timed' else 1), tags
+
+    def test_fixed_first_puts_fixed_first(self, cfg):
+        cfg.model.script.optimization.priority_mode = 'fixed_first'
+        CMDS = ['Orochi', 'MetaDemon', 'Exploration', 'SixRealms',
+                'GoldYoukai', 'RealmRaid']
+        out = cfg._order_by_priority_mode([_F(c) for c in CMDS])
+        tags = [cfg._segment_of(f.command) for f in out]
+        assert tags == sorted(tags, key=lambda s: 0 if s == 'fixed' else 1), tags
+
+    def test_custom_does_not_reorder(self, cfg):
+        """★★ `custom` 必须**完全不动** —— 用户拖的完整次序生效。"""
+        cfg.model.script.optimization.priority_mode = 'custom'
+        CMDS = ['Orochi', 'MetaDemon', 'Exploration', 'SixRealms',
+                'GoldYoukai', 'RealmRaid']
+        out = cfg._order_by_priority_mode([_F(c) for c in CMDS])
+        assert [f.command for f in out] == CMDS, 'custom 模式下被重排了！'
+
+    def test_stable_within_segment(self, cfg):
+        """★ 段**内**相对顺序必须**不变**（"拖动只在同类别内生效"）。"""
+        cfg.model.script.optimization.priority_mode = 'timed_first'
+        fixed = ['Orochi', 'Exploration', 'SixRealms']
+        out = cfg._order_by_priority_mode(
+            [_F('MetaDemon')] + [_F(c) for c in fixed])
+        got_fixed = [f.command for f in out if cfg._segment_of(f.command) == 'fixed']
+        assert got_fixed == fixed, f'段内顺序被打乱: {got_fixed} != {fixed}'
+
+    def test_queue_invariant_survives(self, cfg):
+        """★★ 核心不变量: `pending` 仍是 `queue` 的**保序子序列**。
+
+        我第一版在 `pending` 上事后重排 -> **破坏了这个不变量**（3 个测试
+        失败）。正确做法是**在队列层**排段。
+        """
+        q = [getattr(e, 'task', None) for e in cfg.build_queue()]
+        p = [getattr(f, 'command', None) for f in (cfg.pending_task or [])]
+        w = {getattr(f, 'command', None) for f in (cfg.waiting_task or [])}
+        expected = [t for t in q if t not in w]
+        # `pending` 可能还有 filter 收窄, 所以断言的是"子序列"而非相等
+        it = iter(expected)
+        assert all(any(x == t for x in it) for t in p), (
+            f'pending 不是 queue 的保序子序列\n  queue={expected}\n  pending={p}')
+
+
+class TestRunEntryGroup:
+    def test_group_field_round_trips(self):
+        from module.config.run_list import RunEntry
+        e = RunEntry(kind='task', task='Orochi', group='fixed')
+        d = e.to_dict()
+        assert d.get('group') == 'fixed'
+        assert RunEntry.from_dict(d).group == 'fixed'
+
+    def test_empty_group_not_persisted(self):
+        """★ 空段名**不落盘** —— 保持配置干净。"""
+        from module.config.run_list import RunEntry
+        assert 'group' not in RunEntry(kind='task', task='Orochi').to_dict()
+
+    def test_legacy_config_without_group(self):
+        """★ 旧配置没有 `group` -> 空串（**向后兼容**）。"""
+        from module.config.run_list import RunEntry
+        e = RunEntry.from_dict({'kind': 'task', 'task': 'Orochi',
+                                'entry_id': 'x'})
+        assert e.group == ''

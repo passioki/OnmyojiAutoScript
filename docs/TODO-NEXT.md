@@ -1,7 +1,55 @@
 # 待办交接（本轮未完成的部分）
 
-> 用户这批需求共 9 项。**已完成 8 项**（见文末）。本文件只记**剩下 2 项**
+> 用户这批需求共 9 项。**已完成**见文末。本文件只记**剩下 2 项**
 > 的**具体做法**，下一轮直接照着做，不必重新摸索。
+
+---
+
+## ② #9 配置页 —— **前端 UI**（后端已完成并推送）
+
+### 用户已确认的设计（**照这个做，不要再问**）
+
+| 问题 | 用户回答 |
+|---|---|
+| 布局 | **A** —— 吸顶区下面单起一行 `配置页 ▪1▪ ▪2▪ ▪3▪ [＋新建]  [⋯管理]` |
+| 一页存什么 | **甲（全都算）**：队列 + 每任务调度 + **全局开关** |
+| 前端三项 | **A（算）**：排序列/升降序 · 只看筛选 · 分栏宽度，按页隔离 |
+| 初始状态 | **当前执行顺序就是页1**（后端已自动建） |
+| 重命名 | **需要**（后端 `PUT /queue/profiles/rename` 已就绪） |
+
+### 后端已就绪（`575358d6`）
+
+```
+GET    /{script}/queue/profiles                     -> {profiles:[{id,name,count,active}], active_id}
+POST   /{script}/queue/profiles                     -> 新建（不传 name 自动编号 1/2/3/…）
+PUT    /{script}/queue/profiles/activate  {id}      -> 切换（★ 自动先存当前整页）
+PUT    /{script}/queue/profiles/rename    {id,name} -> 改名
+DELETE /{script}/queue/profiles/{id}                -> 删除（至少留一页）
+```
+
+★ 所有响应的 `message` 已是要显示给用户的中文说明 —— **直接用，不要自己再拼**。
+
+### 前端要做
+
+1. `lib/api/api_client.dart` 加 5 个方法（读 `res.data ?? {}`）
+2. `lib/controller/task_list/task_list_controller.dart`:
+   * `List<Map<String,dynamic>> get queueProfiles`
+   * `Future<void> loadQueueProfiles()` / `createQueueProfile()` /
+     `activateQueueProfile(id)` / `renameQueueProfile(id,name)` /
+     `deleteQueueProfile(id)`
+   * ★ **切换/删除后必须 `reload()`**（队列 + 全局开关都变了）
+3. ★ **前端偏好按页隔离（2A）**：
+   * `TaskPrefsStore` 的 key 从 `<账号>` 改成 `<账号>:<页id>`
+   * 切页时：先把当前三项存到 `<账号>:<当前页id>`，再载 `<账号>:<目标页id>`
+   * ⚠ 这一步容易忘 —— 加测试钉住（"切页会换 prefs key"）
+4. `_QueueTab` 的吸顶区加 chips 行：
+   * `▪N▪` 实心 = 当前页；`[＋新建]`；`[⋯ 管理]`（重命名 / 删除）
+   * **双击页码**改名
+5. 测试 `test/queue_profiles_ui_test.dart`（源码守卫）：
+   * api_client 5 个方法 / controller 5 个方法
+   * `_QueueTab` 渲染 chips
+   * ★ `await reload()` 在切换之后
+   * ★ prefs key 含页 id
 
 ---
 

@@ -86,12 +86,35 @@ class TaskScheduler:
         if run_list is None:
             run_list = RunList()
 
-        explicit = run_list.task_order()
+        # ★★ B: 按**条目**位置建映射（不再用 `task_order()` 去重保首）★★
+        #
+        # 用户要求"**可以重复添加相同的任务**"（变相实现多次跑）。
+        # 而 `task_order()` 是"去重保首"的, 重复条目的第二条**拿不到位置**。
+        #
+        # 这里遍历**条目**, 取每个任务的**最早**出现位置（一个 `Function`
+        # 对象只能对应一个排序位置 —— 见台账 §21.3 障碍 3）。
         order_index = {}
-        for i, name in enumerate(explicit):
-            order_index[name] = i
-            # 同时接受下划线形式, 免得界面传 'fallen_sun' 而 command 是 'FallenSun'
-            order_index[convert_to_underscore(name)] = i
+        dup_count = {}
+        entries = getattr(run_list, 'entries', None) or []
+        pos = 0
+        for e in entries:
+            if getattr(e, 'kind', None) is not None and \
+                    str(getattr(e, 'kind', '')) not in ('task', 'EntryKind.TASK'):
+                continue
+            name = getattr(e, 'task', None)
+            if not name:
+                continue
+            dup_count[name] = dup_count.get(name, 0) + 1
+            # 最早出现的位置生效（重复条目不覆盖）
+            for key in (name, convert_to_underscore(name)):
+                if key not in order_index:
+                    order_index[key] = pos
+            pos += 1
+        if any(v > 1 for v in dup_count.values()):
+            repeats = {k: v for k, v in dup_count.items() if v > 1}
+            logger.info(
+                f'执行队列里有**重复条目** {repeats} —— 用户用重复条目表达'
+                f'"这个任务跑多次"（见 docs/SESSION-LEDGER.md §21）')
 
         # 内置默认顺序(取自 meta.py 的 list_pos)
         default_index = {}

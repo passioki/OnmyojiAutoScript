@@ -1098,8 +1098,14 @@ async def get_queue_candidates(script_name: str):
             if meta is None:
                 continue
             command = meta.task
-            if command in queued:
-                continue            # 已在队列 -> 不是候选
+            # ★★ A: **不再排除"已在队列"的任务** ★★
+            #
+            # 用户要求"**可以重复添加相同的任务**"（变相实现多次跑）——
+            # 原来排除 `queued` 会让任务加入后**从候选里消失**,
+            # 于是**无法再加第二次**。
+            #
+            # 仍然排除"自动进队列"的: 它们由 `build_queue()` 补齐,
+            # 不需要用户手动重复（重复了也没用 —— 补齐按任务名去重）。
             if _auto_queue_of(meta):
                 continue            # 自动进队列的 -> 不该出现在这里
 

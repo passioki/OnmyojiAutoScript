@@ -232,8 +232,13 @@ class TestQueueEndpoints:
         #   驼峰（`GoryouRealm`）—— `_meta_of_key()` 就是做这个归一化的
         #   （`TC.get()` 容忍下划线/小写）。用 `TC.get_spec(key)` 直接查
         #   会**全部 miss** -> 算出空集（踩过）。
+        #
+        # ★★ 2026-10-10: 规则**改了** —— 不再排除 `queued` ★★
+        #
+        #   用户要求"**可以重复添加相同的任务**"（变相实现多次跑）,
+        #   所以候选 = `enable && !auto_queue`（**不看 `queued`**）。
+        #   原来这里排除 `queued` 的算法已失效 -> 本测试假失败。
         cfg = mm.config_cache('恋鸟树')
-        queued = cfg.queued_commands()
         expected = set()
         for key, value in cfg.model.model_dump().items():
             if not isinstance(value, dict):
@@ -244,7 +249,7 @@ class TestQueueEndpoints:
             meta = _meta_of_key(key)
             if meta is None:
                 continue
-            if meta.task in queued or _auto_queue_of(meta):
+            if _auto_queue_of(meta):
                 continue
             expected.add(meta.task)
 
@@ -252,7 +257,7 @@ class TestQueueEndpoints:
             f'候选与规则不符\n  端点多出: {sorted(names - expected)}\n'
             f'  端点缺少: {sorted(expected - names)}')
 
-        # 规则的三条不变量, 逐条钉住
+        # 规则的不变量, 逐条钉住
         model = cfg.model.model_dump()
         for c in cands:
             meta = _meta_of_key(c['name'])
@@ -261,8 +266,11 @@ class TestQueueEndpoints:
                 f"候选 {c['command']} 是自动进队列的任务"
             assert model[c['name']]['scheduler']['enable'], \
                 f"候选 {c['command']} 未启用"
-            assert meta.task not in queued, \
-                f"候选 {c['command']} 已在队列里"
+        # ★ 「已在队列」**不再**是排除条件
+        queued = cfg.queued_commands()
+        assert names & queued or not queued, (
+            '候选里一个"已在队列"的任务都没有 —— '
+            '用户要求可以重复添加相同的任务')
 
         # 自动进队列的**永远**不该出现
         for key, value in model.items():

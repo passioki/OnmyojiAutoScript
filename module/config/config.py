@@ -41,12 +41,14 @@ class Function:
             self.enable = False
             self.command = "Unknown"
             self.next_run = DEFAULT_TIME
+            self.windows = ()
             self.window = None
             return
         if data.get("scheduler") is None:
             self.enable = False
             self.command = "Unknown"
             self.next_run = DEFAULT_TIME
+            self.windows = ()
             self.window = None
             return
 
@@ -70,15 +72,20 @@ class Function:
         # "用户轮询节奏"混进了本该表达游戏机制的字段。这里把它显式建模。
         #
         # 解析失败时退化为"不限时段", 不让配置错误把任务卡死。
-        self.window = self._build_window(data.get('scheduler') or {})
+        #
+        # ★★ #7: 现在是**一串**（可能多段, 如 Hunt 的早/晚两段）★★
+        #   `in_window()` 逐段取或; `self.window` 保留为**第一段**（兼容旧调用方）。
+        self.windows = self._build_windows(data.get('scheduler') or {})
+        self.window = self.windows[0] if self.windows else None
 
         # self.enable = deep_get(data, keys="Scheduler.Enable", default=False)
         # self.command = deep_get(data, keys="Scheduler.Command", default="Unknown")
         # self.next_run = deep_get(data, keys="Scheduler.NextRun", default=DEFAULT_TIME)
 
-    def _build_window(self, sch: dict):
+    def _build_windows(self, sch: dict) -> tuple:
         """
-        构造开放时段。**优先读任务 `meta.py` 的 `TaskSpec.window`**。
+        构造开放时段（**可能是多段**）。**优先读任务 `meta.py` 的
+        `TaskSpec.window`**。
 
         ## ★★ 为什么必须优先读 `meta.py`（此前的严重缺陷）★★
 
@@ -115,35 +122,19 @@ class Function:
         if spec is not None:
             ws = list(getattr(spec, 'windows_effective', []) or [])
             real = [w for w in ws if getattr(w, 'enabled', False)]
-            if len(real) == 1:
-                return real[0]
-            if len(real) > 1:
-                # 多段窗口（如 Hunt 的"周一~周四 06:00-23:00" + "周五~周日 17:00-23:00"）
-                # `Function.window` 是**单个**对象 -> 用一个"并集"表达:
-                #   * 天 = 各段的并集
-                #   * 时间 = [最早开始, 最晚结束]（并集的上界; 会略微放宽, 但
-                #     `_align_to_window()` 仍会用**精确的多段**去对齐 next_run）
-                days = set()
-                for w in real:
-                    days |= set(w.days)
-                starts = [w.start for w in real]
-                ends = [w.end for w in real]
-
-                def _mins(x):
-                    return x.hour * 60 + x.minute
-
-                if any(getattr(w, 'crosses_midnight', False) for w in real):
-                    # 跨午夜的多段无法用单段并集安全表达 -> 取第一段（宁严不宽）
-                    return real[0]
-                return AvailabilityWindow(
-                    enabled=True,
-                    start=min(starts, key=_mins),
-                    end=max(ends, key=_mins),
-                    days=tuple(sorted(days)) or ALL_DAYS)
+            if real:
+                # ★★ #7: **精确返回所有段**, 不再做有损并集 ★★
+                #
+                # 此前多段被压成"最早开始~最晚结束 + 天的并集",
+                # 于是 `Hunt`（周一~周四 06:00-23:00 与 周五~周日 17:00-23:00）
+                # 变成"每天 06:00-23:00" —— **周五 10:00 被误判成在窗口内**。
+                #
+                # 现在保留每一段, 由 `in_window()` **逐段取或**判定。
+                return tuple(real)
 
         # ---------- 2. 退回: 配置项（用户覆盖 / 旧配置）----------
         if not sch.get('window_enable'):
-            return AvailabilityWindow()
+            return (AvailabilityWindow(),)
 
         days, bad = [], []
         for part in str(sch.get('window_days') or '').split(','):
@@ -160,34 +151,55 @@ class Function:
                            f'（应为 0-6, 周一=0）')
 
         try:
-            return AvailabilityWindow(
+            return (AvailabilityWindow(
                 enabled=True,
                 start=sch['window_start'],
                 end=sch['window_end'],
                 days=tuple(sorted(set(days))) or ALL_DAYS,
-            )
+            ),)
         except Exception as exc:
             logger.warning(f'{self.command}: 开放时段配置非法'
                            f'({type(exc).__name__}: {exc}), 按不限时段处理')
-            return AvailabilityWindow()
+            return (AvailabilityWindow(),)
 
     def in_window(self, now: datetime = None) -> bool:
-        """当前是否落在开放时段内。未配置时段时恒为 True。"""
-        if self.window is None or not self.window.enabled:
+        """当前是否落在开放时段内。
+
+        ★★ #7: **多段逐段取或** —— 任一段命中即算在窗口内 ★★
+
+        此前只有**一段**（多段被压成有损并集）, 于是 `Hunt` 的
+        "周五~周日 17:00-23:00" 被并成"每天 06:00-23:00",
+        **周五 10:00 被误判成可以跑**。
+
+        没有启用中的时段 -> 恒为 True（不限时段）。
+        """
+        when = now or datetime.now()
+        ws = [w for w in (self.windows or ()) if getattr(w, 'enabled', False)]
+        if not ws:
             return True
-        return self.window.contains(now or datetime.now())
+        return any(w.contains(when) for w in ws)
 
     @property
     def window_reason(self) -> str or None:
         """若因开放时段不可跑, 返回可读原因; 否则 None。"""
-        if self.window is None or not self.window.enabled:
+        ws = [w for w in (self.windows or ()) if getattr(w, 'enabled', False)]
+        if not ws:
             return None
         now = datetime.now()
-        if self.window.contains(now):
+        if any(w.contains(now) for w in ws):
             return None
-        opening = self.window.next_opening(now)
-        return (f'不在开放时段（{self.window.describe()}，'
-                f'{opening:%m-%d %H:%M} 开放）')
+        # 下次开放取**最早**的那一段
+        openings = []
+        for w in ws:
+            try:
+                openings.append(w.next_opening(now))
+            except Exception:
+                continue
+        opening = min(openings) if openings else None
+        desc = ' 与 '.join(w.describe() for w in ws)
+        if opening is None:
+            return f'不在开放时段（{desc}）'
+        return f'不在开放时段（{desc}，{opening:%m-%d %H:%M} 开放）'
 
     def __str__(self):
         enable = "Enable" if self.enable else "Disable"
@@ -1112,7 +1124,8 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                            f'({type(exc).__name__}: {exc}), 回退到 interval')
             return None
 
-    def next_run_after(self, task_key: str, after: datetime = None) -> datetime:
+    def next_run_after(self, task_key: str, after: datetime = None,
+                       strict: bool = False) -> datetime:
         """**下次允许运行的时刻** —— 由任务的**窗口**决定（不再用 interval 近似）。
 
         ## 为什么需要它
@@ -1139,30 +1152,44 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         :param task_key: 任务键（下划线或大驼峰都行, `TC.get` 会归一化）
         :param after: 起算时刻; 默认"现在"
+        :param strict: `True` -> **总是**返回"下一次窗口开放"
+                       （排期用; 语义 = "这轮跑完了, 下次什么时候能再跑"）
+                       `False`（默认）-> 若 `after` 已在窗口内, 返回**本窗口结束**
+                       （周期边界判断用; 语义 = "我这轮做完大概到几点"）
         """
+        from datetime import timedelta
+
         from module.config import task_catalog as TC
-        import logging as _logging
 
         when = (after or datetime.now()).replace(microsecond=0)
         spec = TC.get_spec(task_key)
         if spec is None:
             return when
 
-        opens = []
+        spans = []      # (下次开放, 本窗口结束)
         for w in spec.windows_effective:
             if not getattr(w, 'enabled', False):
                 continue
             try:
-                # `strict=True` -> 严格晚于当前这个窗口 -> "本窗口结束后的下次开放"
-                opens.append(w.next_opening(when, strict=True))
+                nxt = w.next_opening(when, strict=True)
             except Exception:
                 continue
-        if not opens:
+            if strict:
+                spans.append((nxt, None))
+                continue
+            # 非 strict: 在窗口内 -> 本窗口结束（≈ 下次开放 - 1 分钟,
+            # 因为 `contains` 是 [start, end) 半开区间）
+            close = nxt - timedelta(minutes=1) if w.contains(when) else nxt
+            spans.append((nxt, close))
+        if not spans:
             return when
-        got = min(opens)
-        # 窗口跨午夜/跨周期时, next_opening 可能仍落在**同一个**窗口内 ——
-        # 那也算"下次能跑", 直接用。
-        return got
+        if strict:
+            return min(s[0] for s in spans)
+        # 优先"本窗口结束"（更贴近"这轮什么时候结束"）; 没在窗口内就用下次开放
+        closes = [s[1] for s in spans if s[1] is not None]
+        if closes:
+            return min(closes)
+        return min(s[0] for s in spans)
 
     def _align_to_window(self, task_key: str, when: datetime) -> datetime:
         """把 `when` 对齐到任务的开放时段内（不在窗口内则推到下一次开放）。
@@ -1362,10 +1389,24 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
             if planned is not None:
                 run.append(planned)
+            elif success:
+                # ★★ 用户裁定（2026-10-10）: **排期用窗口算** ★★
+                #
+                #   "排期应该是用具体的 **window** 来算, **period 只是 window 的
+                #    一个粗粒度**, 下边还有具体的时间区间如几点到几点呢。
+                #    应该用**整体的任务开放窗口 window** 来计算"
+                #
+                # 所以这里**不再退回 `success_interval`**（那是"用户轮询节奏",
+                # 不是游戏机制）—— 改为取**下次窗口开放**。
+                #
+                # 实测影响（§17.2）: 27 个启用任务里原本 **22 个**走 interval 回退,
+                # 现在全部由窗口决定。
+                run.append(self.next_run_after(task, after=start_time,
+                                               strict=True))
             else:
-                # 回退: 任务还没写 `meta.py` 的 `Resource`, 或算不出来
-                interval = scheduler.success_interval if success \
-                    else scheduler.retry_interval
+                # 失败仍用 `retry_interval`（**退避重试**是独立概念, 台账 7.6;
+                # 与"什么时候允许跑"(窗口) 无关）。
+                interval = scheduler.retry_interval
                 if isinstance(interval, str):
                     interval = timedelta(interval)
                 run.append(start_time + interval)

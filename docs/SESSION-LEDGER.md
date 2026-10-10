@@ -2051,3 +2051,79 @@ else:
 ★ 教训（用户明确要求）: **每个结论都要前后端都确认**, 不能只看一侧。
   我此前 ③ 的判断只看了后端, 差点得出错误结论。
 
+---
+
+# 28. ⑥ 的实测根因 + 我为何**回退**了改动
+
+## 28.1 ★ `OrochiMoans` 的真相（实测）
+
+用户: "**OrochiMoans 设置中, period 设置的是不限, 为什么还是定时任务呢。**"
+
+**实测发现**:
+```
+tasks/OrochiMoans/ 里只有:  assets.py   config.py   __pycache__/
+```
+
+* **没有 `meta.py`** -> `TC.get_spec('OrochiMoans')` 返回 **None**
+* **没有 `script_task.py`** -> 它**根本跑不了**
+* 仓库里**已有测试**写着它是陈旧条目:
+  `tests/module/config/test_task_list.py:27: 清单里的 OrochiMoans / OrochiJudgement —— **任务早已不存在**(陈旧条目)`
+* 配置里确实有 `orochi_moans: enable=False period='none'`
+
+★ 所以它**不是"定时任务"**, 而是**遗留的僵尸配置节点** —— 没有 `meta.py`
+  就没有类别可言, schema 只能退回默认 `timed`（这就是用户看到的现象）。
+
+## 28.2 我实现了 `category_effective`（类别跟随 period）—— 但**影响面过大**
+
+按用户选的 **(a)** 实现:
+`period_effective == NONE` -> `FIXED`。
+
+**实测结果**:
+| 任务 | 声明类别 | `period_effective` | 新类别 |
+|---|---|---|---|
+| `GoldYoukai` | **charge** | none | **fixed** ← |
+| `RealmRaid` | **toppa** | none | **fixed** ← |
+| `DemonEncounter` | timed | none | fixed |
+| `Hunt` | timed | none | fixed |
+| `Orochi` | fixed | daily | fixed（不变）|
+
+**跑全量 -> 53 errors + 8 failed**:
+* `AttributeError: 'TaskMeta' object has no attribute 'category_effective'`
+  （`TaskMeta`/`TaskSpec` 类型混用 —— 已修）
+* 修完后仍 **2 failed**:
+  * `test_category_comes_from_meta`（类别断言）
+  * **`test_charge_tasks_can_find_charges`** —— ★ **总览页找不到充能存量**
+
+## 28.3 ★ 我**回退**了（并说明理由）
+
+「**充能任务**」与「**固定任务**」是**不同的游戏机制**:
+* 充能 = 按**存量**在固定时刻补充（金币妖怪 0/12 点各 1 次）
+* 固定 = "打满 N 次"
+
+把 `period=none` 的**充能任务**也改判为"固定", 会**丢掉"按存量"的语义** ——
+总览页的充能存量就是靠 `category == charge` 找的（实测失败）。
+
+**用户的反馈只提到 `OrochiMoans`（一个僵尸节点）**, 而这条规则会连带改动
+**充能 / 结界突破**两类任务 —— 影响面远超用户描述的场合。
+
+★ 按纪律（§10.5 **不猜语义**）: **我回退了**, 改动存在 `git stash` 里
+  （`stash@{0}: wip: category_effective (影响充能/结界, 待确认)`）, **没有丢**。
+
+**回退后基线**: 后端 **1697 passed, 3 skipped** ✓
+
+## 28.4 需要用户确认的问题
+
+用户选的 (a) 是"类别跟随 period"。但我实测到: 这条规则会把
+**充能任务 / 结界突破**也变成"固定"。
+
+请确认:
+* **(i)** 就是要这样（充能/结界 在 `period=none` 时也算固定）—— 我照做,
+  并修总览页（改成不靠 `category` 找充能）
+* **(ii)** 只对**原本是 `timed`** 的任务生效（`charge`/`toppa`/`fixed` 保持声明）——
+  这是**更窄、更安全**的规则
+* **(iii)** 用户其实只想修 `OrochiMoans` 这个**僵尸节点**（给它补 `meta.py`
+  或从配置里清掉）—— 那和"类别跟随 period"是**两件不同的事**
+
+★ 我倾向 **(ii)**, 它既满足"period=不限 就不是定时任务", 又不破坏
+  充能/结界 的机制语义。但**必须用户确认**。
+

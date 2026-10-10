@@ -177,6 +177,15 @@ class TaskSpec:
     task: str
     name_zh: str
     category: Category = Category.TIMED
+    # ★★ S5: **周期**（原来只能从 `resource.recharge.period` 拿到）★★
+    #
+    # 用户裁定: "去除旧的充能存量说法。现在靠 window 的**多次设置**完全可以
+    #          做到正常运行。" -> `Resource` / `Recharge`（= 存量机制）要**删除**。
+    #
+    # 但 `period` 本身**仍然需要**（"这是每天/每周/每月的任务"）,
+    # 所以先把它提升为**独立字段**, 再删 `Resource`。
+    period: Period = Period.NONE
+    # ⚠ `resource` 是**过渡用**的兼容字段（S5 完成后删除）
     resource: object = None          # Resource; 用 object 避免循环 import
     requires: tuple = ()
     note: str = ''
@@ -250,14 +259,24 @@ class TaskSpec:
 
     @property
     def period_effective(self):
-        """该任务的**周期**（`Period`）—— 来自 `Resource.recharge.period`。
+        """该任务的**周期**（`Period`）。
 
-        没有 `resource` 或 `recharge` 时返回 `None`。
+        ## ★★ S5: 优先读**独立字段** `self.period` ★★
+
+        原来只能从 `resource.recharge.period` 拿 —— 那是"存量机制"的一部分,
+        而用户要求**连 `charge_*` 和存量逻辑一起删**。
+
+        所以先加独立的 `period` 字段, **旧的 `resource` 路径保留为兜底**
+        （过渡期), 等 54 个 `meta.py` 迁移完再删 `resource`。
         """
+        if self.period is not None and self.period != Period.NONE:
+            return self.period
+        # 兜底: 旧路径（`resource.recharge.period`）
         r = self.resource
         if r is None:
-            return None
-        return getattr(getattr(r, 'recharge', None), 'period', None)
+            return self.period
+        legacy = getattr(getattr(r, 'recharge', None), 'period', None)
+        return legacy if legacy is not None else self.period
 
     @property
     def declared_window(self):

@@ -28,5 +28,6 @@ SPEC = TaskSpec(
             AvailabilityWindow(True, time(17, 0), time(23, 0), days=(4, 5, 6)),
         ],
     list_pos=17,
+    period=Period.NONE,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

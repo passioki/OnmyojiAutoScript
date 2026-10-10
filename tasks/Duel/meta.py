@@ -34,5 +34,6 @@ SPEC = TaskSpec(
     #   那属于**行为变更**, 需要按机制核实后再改。
     window=AvailabilityWindow(True, time(0, 0), time(23, 59)),
     list_pos=44,
+    period=Period.NONE,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

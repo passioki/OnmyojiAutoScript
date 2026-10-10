@@ -2756,3 +2756,76 @@ if (model.name == 'windows') {
 | **S5** | **删除充能存量**（71 文件 / 327 行, 含 `charge_*` 字段 + `Category.CHARGE` + 总览页"存量"列）|
 | **S6** | `priority_mode` 三模式（定时优先 / 固定优先 / **自定义**）+ `run_list` **类别分段** + 拖动约束 |
 
+---
+
+# 36. S5 第一步: `period` 提升为独立字段（**为删除 `Resource` 铺路**）
+
+## 36.1 为什么分步（用户要删的"存量"是**大盘子**）
+
+调研（剥注释 + docstring 后**只数会执行的代码**）:
+
+```
+75 个文件 / 319 行 涉及 charge
+  44  module/config/task_state.py     <- 存量状态存储
+  34  module/config/resource.py       <- Recharge / Resource 定义
+  21  tasks/GoldYoukai/script_task.py
+  21  tasks/ExperienceYoukai/script_task.py
+  16  tasks/Tako/script_task.py
+  15  module/config/task_catalog.py
+  ... + 54 个 tasks/*/meta.py（每个 2 行: `resource=Resource(...)`）
+```
+
+★ `Resource` / `Recharge`（**就是"存量/充能"机制**）被**全部 54 个 `meta.py`**
+  引用。一次性删会同时改 54 个文件 + 调度 + 状态 + 界面 —— 风险太大。
+
+## 36.2 ★ 第一步做到的事（本轮的**安全**部分）
+
+**把 `period` 从 `resource.recharge.period` 提升为 `TaskSpec` 的独立字段。**
+
+理由: `period` 是 `Resource` 里**唯一还被调度需要**的信息（"这是每天/每周/
+每月的任务"）; 其余（`charge_slots` / `charge_max` / `charge_consume` /
+`refill_to_full` …）都是**存量机制**, 用户已裁定**一起删**。
+
+做完后:
+* `TaskSpec.period: Period = Period.NONE`（**独立字段**）
+* `period_effective` 优先读它, **旧 `resource` 路径保留为兜底**（过渡期）
+* **54 个 `meta.py`** 各加一行独立的 `period=...`
+
+## 36.3 ★★ 关键验证: **语义零变化** ★★
+
+我批量给 23 个任务写了 `period=Period.NONE`（因为它们的 `Recharge` 没写
+`period=`）。**必须证明旧的路径也是 `NONE`**, 否则我改坏了它们的节奏。
+
+逐任务对比（54 个）:
+```
+任务                       旧(legacy)        新(period)        effective
+AbyssShadows             Period.DAILY      Period.DAILY      daily
+AreaBoss                 Period.NONE       Period.NONE       none
+Delegation               Period.NONE       Period.NONE       none
+GoldYoukai               Period.NONE       Period.NONE       none
+...（54 个全部一致）
+★ 全部一致 —— `period` 提字段**没有改变任何任务的语义**
+```
+
+## 36.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1765 passed, 3 skipped** |
+| 前端 flutter test | **85 passed** |
+| `period` 语义 | ★ **54/54 与旧路径一致** |
+| 独立 `period` 覆盖 | **54/54** 个 `meta.py` |
+
+## 36.5 下一步（S5 剩余）
+
+| 子步 | 内容 |
+|---|---|
+| **S5-2** | 删 `module/config/resource.py` 的 `Recharge` + `charge_*`（**保留 `Period`**）|
+| **S5-3** | 54 个 `meta.py` 去掉 `resource=Resource(...)` 与 `Recharge` 导入 |
+| **S5-4** | 删 `task_state.py` 的**存量存储**（`charges` / `consume_charge` / `get_charges` …）|
+| **S5-5** | 3 个任务脚本（`GoldYoukai` / `ExperienceYoukai` / `Tako`）去掉存量消费 |
+| **S5-6** | `Category.CHARGE` 删除 + 总览页"存量"列删除 + `report.py` 的 `charges` |
+| **S5-7** | `dev_tools` 生成器与 schema 输出同步 |
+
+★ 每步跑全量 + **前后端核对**。
+

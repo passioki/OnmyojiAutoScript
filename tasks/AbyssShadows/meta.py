@@ -34,5 +34,6 @@ SPEC = TaskSpec(
     #   游戏那边关了就进不去, 任务会自己失败返回。
     window=AvailabilityWindow(True, time(19, 0), time(20, 0), days=(4, 5, 6)),
     list_pos=16,
+    period=Period.DAILY,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

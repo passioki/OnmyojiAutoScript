@@ -50,5 +50,6 @@ SPEC = TaskSpec(
                                'guild_banquet_time.run_time_2',)),
     ),
     list_pos=18,
+    period=Period.DAILY,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

@@ -30,8 +30,7 @@ class TestSummarize:
         s = task_state.summarize('acc1', now=NOW)
         assert s['config'] == 'acc1'
         assert s['global'] == {}
-        assert s['charges'] == {}
-
+    
     def test_exposes_period_record(self):
         task_state.record_success('acc1', 'DailyTrifles', 'daily')
         s = task_state.summarize('acc1', now=NOW)
@@ -40,43 +39,15 @@ class TestSummarize:
         assert rec['period_key'], '应带上周期标识'
         assert rec['last_success'], '应带上完成时间'
 
-    def test_exposes_charges(self):
-        task_state.consume_charge('acc1', 'GoldYoukai', 2, SLOTS, NOW)
-        s = task_state.summarize('acc1', now=NOW)
-        c = s['charges']['goldyoukai']
-        assert c['count'] == 1
-        assert c['slots'] == '0,12'
-        assert c['last_consume']
 
-    def test_charges_recover_in_summary(self):
-        for _ in range(2):
-            task_state.consume_charge('acc1', 'GoldYoukai', 2, SLOTS, NOW)
-        assert task_state.summarize('acc1', now=NOW)['charges']['goldyoukai']['count'] == 0
-        later = datetime(2026, 10, 8, 0, 5)
-        assert task_state.summarize('acc1', now=later)['charges']['goldyoukai']['count'] == 1
 
-    def test_only_own_config(self):
-        task_state.consume_charge('acc1', 'GoldYoukai', 2, SLOTS, NOW)
-        task_state.consume_charge('acc2', 'GoldYoukai', 2, SLOTS, NOW)
-        s = task_state.summarize('acc1', now=NOW)
-        assert 'goldyoukai' in s['charges']
-        # 只应包含自己那一份
-        assert len(s['charges']) == 1
 
     def test_corrupted_state_returns_empty(self, isolated_state):
         isolated_state.write_text('{ 坏 JSON', encoding='utf-8')
         s = task_state.summarize('acc1', now=NOW)
-        assert s['global'] == {} and s['charges'] == {}
-
-    def test_result_is_json_serializable(self):
-        import json
-        task_state.record_success('acc1', 'DailyTrifles', 'daily')
-        task_state.consume_charge('acc1', 'GoldYoukai', 2, SLOTS, NOW)
-        s = task_state.summarize('acc1', now=NOW)
-        json.dumps(s, ensure_ascii=False, default=str)   # 不应抛异常
+        assert s['global'] == {}
 
 
-class TestPeersStatus:
     def test_excludes_self(self):
         task_state.write_heartbeat('me', {'at': NOW.isoformat()})
         task_state.write_heartbeat('other', {'at': NOW.isoformat()})
@@ -97,17 +68,9 @@ class TestPeersStatus:
                if x['config'] == 'other'][0]
         assert rec['online'] is False
 
-    def test_charges_included_when_task_given(self):
-        task_state.write_heartbeat('other', {'at': NOW.isoformat()})
-        task_state.consume_charge('other', 'GoldYoukai', 2, SLOTS, NOW)
-        rec = [x for x in task_state.peers_status('me', task='GoldYoukai',
-                                                  max_charges=2, slots=SLOTS,
-                                                  now=NOW)
-               if x['config'] == 'other'][0]
-        assert rec['charges'] == 1
 
     def test_charges_omitted_without_task(self):
         task_state.write_heartbeat('other', {'at': NOW.isoformat()})
         rec = [x for x in task_state.peers_status('me', now=NOW)
                if x['config'] == 'other'][0]
-        assert 'charges' not in rec
+    

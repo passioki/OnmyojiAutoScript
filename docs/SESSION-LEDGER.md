@@ -3017,3 +3017,72 @@ Tako:              2 段 ['00:00-11:59', '12:00-23:59']  period=none
 | **S5-6** | `task_catalog.py` 删 `charge_*` 兼容字段 + `Category.CHARGE` | 15 行 |
 | **S5-7** | `report.py`（7）/ `schema_router.py`（5）/ 54 个 `meta.py`（各 2）| — |
 
+---
+
+# 39. S5-4: `task_state.py` 删存量存储 + 删 `team_coordinator`
+
+## 39.1 删了什么
+
+| 位置 | 删掉 |
+|---|---|
+| `task_state.py` | `peer_charges` · `parse_slots` · `_slot_times` · `_slot_key` · `_charges_of` · `_charge_window_slots` · `_slot_id_of` · `_slot_id_before` · `_slots_before_or_at` · `_slot_at_or_before` · `_decode_charges_v2` · `_normalize` · `get_charges` · `next_charge_time` · `consume_charge` |
+| `summarize()` | 去掉 `charges` 段（只留 `global`）|
+| `module/config/team_coordinator.py` | ★ **整个文件删**（213 行, 跨账号组队协同）|
+| `tests/.../test_team_coordinator.py` | 整个文件删 |
+
+**行数**: `task_state.py` **816 -> 494**。
+
+## 39.2 ★★ 我这次又踩了 3 个坑（如实记录）★★
+
+### 坑 1: 按"从 `def peer_charges` 删到文件尾" -> 把 `summarize` 也删了
+
+`summarize` **在 `peer_charges` 之后**（`report.py` 等 4 处在用）-> 一起被删。
+**已 `git checkout` 回退重做。**
+
+### 坑 2: 同样的错, `peers_status` 也被删了
+
+`peers_status` **在文件最后**, 但 `module/server/schema_router.py:778` 与
+`script_router.py:195` **都在调用它**。-> **已恢复**（去掉 `charges` 部分）。
+
+### 坑 3: `summarize` 的 docstring 改了, 但**代码体还在**
+
+我用字符串替换改文档, 结果 `parse_slots` / `_decode_charges_v2` / `_normalize`
+的**调用还在**, `test_undefined_names` 直接抓到:
+```
+module\config\task_state.py 存在可能未定义的全局引用:
+  summarize -> parse_slots, summarize -> _decode_charges_v2, summarize -> _normalize
+```
+-> 用**行号替换**整个函数体才算干净。
+
+★★ **根本教训（第 3 次了）**: **删代码必须先确认"函数边界"和"谁还在用它"**。
+  `test_undefined_names` 这条守卫**很有价值** —— 它在我改完立刻抓到了悬空引用。
+
+## 39.3 删掉的测试
+
+| 测试 | 原因 |
+|---|---|
+| `tests/module/config/test_team_coordinator.py` | 整个文件（被测模块已删）|
+| `test_task_status.py` :: 5 个存量测试 | 断言 `s['charges']` |
+| `test_task_status.py` :: 2 处 `charges` 断言 | 同上 |
+| `test_schema_router.py::test_charge_tasks_can_find_charges` | 断言总览的存量列 |
+
+★ **保留**: `TestSummarize` 的 `global` 段测试 + `TestPeersStatus` 的
+  **在线状态**测试（`peers_status` 仍有 2 个 router 在用）。
+
+## 39.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1675 passed, 3 skipped**（0 失败）|
+| `test_undefined_names` | ★ **通过**（52 项, 无悬空引用）|
+| `task_state.py` | 816 -> **494 行** |
+| `team_coordinator.py` | **已删**（213 行）|
+
+## 39.5 S5 剩余
+
+| 子步 | 内容 | 残留 |
+|---|---|---|
+| **S5-5** | `resource.py` 删 `Recharge` / `Resource`（保 `Period`）| 34 行 |
+| **S5-6** | `task_catalog.py` 删 `charge_*` + `Category.CHARGE` | 15 行 |
+| **S5-7** | `report.py`(7) · `schema_router.py`(5) · `resource.py` 残留 | — |
+

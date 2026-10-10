@@ -427,41 +427,16 @@ def discover_configs(config_dir: str = None) -> list:
     return sorted(names)
 
 
-def peer_charges(config_name: str, task: str,
-                 max_charges: int = 2, slots=None,
-                 now: datetime = None) -> int:
-    """
-    读取**对方**在某个次数型任务上的剩余次数。
-
-    slots 为 None 时会从状态文件里该任务已记录的 slots 推断(首次没有则用 0,12)。
-    异常时返回 max_charges(视为对方次数充足, 避免因为读不到而总是推迟)。
-    """
-    now = now or datetime.now()
-    try:
-        with _lock():
-            data = _read_all()
-    except Exception:
-        return max_charges
-
-    rec = _charges_of(data, config_name, task)
-    if not slots:
-        slots = (rec or {}).get('slots') or '0,12'
-    slot_hours = parse_slots(slots)
-
-    count, last, cur = _decode_charges_v2(rec, slot_hours, max_charges, now)
-    count, _ = _normalize(count, last, cur, max_charges)
-    return max(0, min(max_charges, count))
-
-
 def summarize(config_name: str, now: datetime = None) -> dict:
     """
-    汇总某账号的完成记忆与次数状态, 供界面总览使用。
+    汇总某账号的**完成记忆**, 供界面总览使用。
 
     返回: {
         "config": 账号名,
         "global":  {任务名: {"period","period_key","last_success"}},
-        "charges": {任务名: {"count","slots","last_consume"}},
     }
+
+    ★ S5: 原本还返回 `"charges"`（存量）—— 用户裁定删除存量机制, 已去掉。
 
     只读一次状态文件后展开, 避免逐任务加锁(该文件的 FileLock 粒度是整文件)。
     """
@@ -470,12 +445,11 @@ def summarize(config_name: str, now: datetime = None) -> dict:
         with _lock():
             data = _read_all()
     except Exception as exc:
-        logger.warning(f'[TaskState] 汇总状态失败({type(exc).__name__}: {exc})')
-        return {'config': config_name, 'global': {}, 'charges': {}}
+        logger.warning(f'读取任务状态失败({type(exc).__name__}: {exc})')
+        return {'config': config_name, 'global': {}}
 
     bucket = data.get(config_name) or {}
     glob = {}
-    charges = {}
     for key, item in bucket.items():
         if not isinstance(item, dict):
             continue
@@ -485,332 +459,46 @@ def summarize(config_name: str, now: datetime = None) -> dict:
                 'period_key': item.get('period_key'),
                 'last_success': item.get('last_success'),
             }
-        rec = item.get('charges')
-        if isinstance(rec, dict):
-            slots = parse_slots(rec.get('slots') or '0,12')
-            cap = 2
-            try:
-                cap = max(1, int(rec.get('max', 2) or 2))
-            except (TypeError, ValueError):
-                cap = 2
-            count, last, cur = _decode_charges_v2(rec, slots, cap, now)
-            count, _ = _normalize(count, last, cur, cap)
-            charges[key] = {
-                'count': max(0, count),
-                'max': cap,
-                'slots': ','.join(str(h) for h in slots),
-                'last_consume': rec.get('last_consume'),
-            }
-    return {'config': config_name, 'global': glob, 'charges': charges}
+        # ★ S5: 原来这里还读 `item['charges']` 算存量 —— **已删除**
+        #   （`parse_slots` / `_decode_charges_v2` / `_normalize` 也随之删除）。
+    return {'config': config_name, 'global': glob}
 
 
 def peers_status(my_config: str, task: str = None,
-                 max_charges: int = 2, slots=None,
                  now: datetime = None) -> list:
-    """
-    其他账号的在线与次数概况, 供界面显示"对方在不在、还剩几次"。
+    """其他账号的**在线**概况（供界面显示"对方在不在"）。
 
-    :return: [{"config","online","charges"(指定 task 时)}]
+    ## ★ S5: **只剩在线状态, 去掉"还剩几次"**
+
+    用户裁定: "去掉组队协同，去掉存量次数。"
+
+    原来还有 `task` / `max_charges` / `slots` 三个参数, 用来算"对方还剩几次"
+    （靠 `peer_charges`, 已删除）。现在**只剩 `online`**。
+
+    ★ `task` 参数**保留在签名里**（向后兼容调用方）—— 但**不再产生 `charges`**。
+
+    :return: [{"config", "online"}]
     """
     now = now or datetime.now()
     out = []
     for name in discover_configs():
         if name == my_config:
             continue
-        rec = {'config': name, 'online': is_online(name, now=now)}
-        if task:
-            rec['charges'] = peer_charges(name, task, max_charges=max_charges,
-                                          slots=slots, now=now)
-        out.append(rec)
+        out.append({'config': name, 'online': is_online(name, now=now)})
     return out
 
 
-# ---------------------------------------------------------------------------
-# 按固定时刻刷新的挑战次数(经验妖怪 / 金币妖怪 / 石距 这类)
+# ★★ S5: **存量（充能）与组队协同的存储已删除** —— 用户裁定 ★★
 #
-# 游戏事实: 次数在**每天的固定时刻**刷新(默认 0 点与 12 点), 最多储存 2 次。
-# 注意这不是"间隔 12 小时": 若在 01:00 用掉一次, 下一次是当天 12:00 刷新,
-# 而不是 13:00。用固定时刻建模既更准确, 也更利于多账号在同一个刷新点对齐组队。
-# ---------------------------------------------------------------------------
-def parse_slots(spec) -> tuple:
-    """
-    解析刷新时刻配置。接受 '0,12' / '0,12,18' / '12' 这类字符串,
-    也接受列表或已经是 int 的可迭代对象。
-
-    :return: 排序去重后的整点小时元组, 例如 (0, 12); 非法则返回 (0, 12)
-    """
-    default = (0, 12)
-    if spec is None:
-        return default
-    if isinstance(spec, str):
-        parts = [p.strip() for p in spec.replace('，', ',').split(',') if p.strip()]
-    elif isinstance(spec, (list, tuple, set)):
-        parts = list(spec)
-    else:
-        parts = [spec]
-    hours = []
-    for p in parts:
-        try:
-            h = int(float(p))
-        except (TypeError, ValueError):
-            continue
-        if 0 <= h <= 23:
-            hours.append(h)
-    if not hours:
-        return default
-    return tuple(sorted(set(hours)))
-
-
-def _slot_times(slots: tuple, now: datetime, count: int) -> list:
-    """
-    返回 `now` 之前(含当前所处周期)最近的 count 个刷新时刻, 由新到旧。
-
-    例: slots=(0,12), now=14:00 -> [今天12:00, 今天00:00]
-        slots=(0,12), now=01:00 -> [今天00:00, 昨天12:00]
-    """
-    if not slots or count <= 0:
-        return []
-    per_day = len(slots)
-    out = []
-    day_offset = 0
-    # 每天 per_day 个点, 取够 count 个最多需要 count/per_day + 1 天
-    max_days = (count // per_day) + 2
-    while day_offset <= max_days and len(out) < count:
-        base = (now + timedelta(days=-day_offset)).date()
-        for h in reversed(slots):          # 同一天内由晚到早
-            t = datetime.combine(base, dt_time(hour=h))
-            if t <= now:
-                out.append(t)
-                if len(out) >= count:
-                    break
-        day_offset += 1
-    return out
-
-
-def _slot_key(t: datetime) -> str:
-    return t.strftime('%Y-%m-%dT%H:%M')
-
-
-def _charges_of(data: dict, config_name: str, task: str) -> dict:
-    """取出某任务的 charges 记录(不存在则返回空 dict)。"""
-    return ((data.get(config_name) or {}).get(str(task).lower()) or {}).get('charges') or {}
-
-
-
-
-def _charge_window_slots(slots: tuple, max_charges: int) -> int:
-    """
-    "初始可用次数"的推算窗口 = 覆盖 max_charges 个刷新点所需的槽位数。
-
-    例: slots=(0,12), max_charges=2 -> 窗口 2 个槽位(即回溯 24 小时),
-    因此 12:05 首次算作 2 次(窗口含 00:00 与 12:00), 而 01:00 首次算作 1 次。
-    """
-    return max(1, int(max_charges))
-
-
-def _slot_id_of(slots: tuple, now: datetime) -> int:
-    """
-    把当前时刻换算成**绝对槽位号** = 所在天的序号 * 每天槽位数 + 该天已过的槽位下标。
-
-    用整数比较代替日期时间比较, 避免边界(跨天/跨月/跨年)与"含不含端点"的歧义。
-    """
-    n = len(slots)
-    day_no = now.toordinal()
-    idx = -1
-    for i, h in enumerate(slots):
-        if now.hour >= h:
-            idx = i
-        else:
-            break
-    if idx < 0:
-        # 还没到今天第一个刷新点 -> 归入前一天最后一个槽位
-        return (day_no - 1) * n + (n - 1)
-    return day_no * n + idx
-
-
-def _slot_id_before(slots: tuple, now: datetime) -> int:
-    """严格早于 now 的最近槽位号(用于消耗后把 last_slot 前移)。"""
-    cur = _slot_id_of(slots, now)
-    n = len(slots)
-    day_no = now.toordinal()
-    idx = -1
-    for i, h in enumerate(slots):
-        if now.hour >= h:
-            idx = i
-        else:
-            break
-    if idx < 0:
-        return cur          # 已在"前一天最后槽位", 无可前移
-    if idx == 0 and n == 1:
-        return cur - 1      # 只有 0 点时, 前一个槽位就是昨天那一个
-    return cur
-
-
-def _slots_before_or_at(slots: tuple, ref: datetime, now: datetime) -> int:
-    """
-    统计 (ref, now] 内的刷新点个数。保留该函数是为了兼容旧调用与测试。
-    """
-    if not slots:
-        return 0
-    ref_id = _slot_id_of(slots, ref)
-    now_id = _slot_id_of(slots, now)
-    return max(0, now_id - ref_id)
-
-
-def _slot_at_or_before(slots: tuple, now: datetime) -> datetime:
-    """now 之前(含当前所处周期)最近的刷新点。"""
-    t = _slot_times(slots, now, 1)
-    return t[0] if t else now
-
-
-def _decode_charges_v2(rec: dict, slots: tuple, max_charges: int,
-                       now: datetime):
-    """
-    读取并规范化 (count, last_slot):
-      * 无记录 -> count 由"窗口回溯"推算(normalize 期间会补足), last_slot=cur-窗口
-      * 有记录 -> 沿用; 但把 last_slot 夹到不超过 cur, 以免影响本次 normalize 的补足
-    返回 (count, last_slot, cur_slot)
-    """
-    cur = _slot_id_of(slots, now)
-    period_slots = _charge_window_slots(slots, max_charges)
-    raw = (rec or {}).get('last_slot')
-    try:
-        last = int(raw) if raw is not None else cur - period_slots
-    except (TypeError, ValueError):
-        last = cur - period_slots
-    try:
-        count = int((rec or {}).get('count', 0) or 0)
-    except (TypeError, ValueError):
-        count = 0
-    count = max(0, min(max_charges, count))
-    if last > cur:
-        last = cur
-        count = max(0, min(max_charges, count))
-    return count, last, cur
-
-
-def _normalize(count: int, last: int, cur: int,
-               max_charges: int) -> tuple:
-    """
-    把 count 补到 cur 槽位, 返回 (count, last)。
-
-    **每个经过的槽位只补 1 次**(受上限约束), 而不是补"经过的槽位数" ——
-    因为游戏是"每 12 小时恢复 1 次", 不是"每个槽位恢复槽位数量次"。
-    例: count=0, 从 10/7 00:00 槽位跨到 10/8 12:00 槽位(经过 3 个), 只补 1 次
-    (期间未上线, 未消耗, 因此存量最多也就 1 次, 受上限 2 约束亦为 1)。
-    但若中间**确实经过了多个槽位且期间没有消耗**, 每个槽位都该补 1，
-    所以这里按经过的槽位数逐个 +1 并封顶。
-    """
-    if cur > last:
-        count = min(max_charges, count + (cur - last))
-        last = cur
-    return count, last
-
-
-def get_charges(config_name: str, task: str,
-                max_charges: int = 2, slots='0,12',
-                now: datetime = None) -> int:
-    """
-    当前可用次数(剩余存量)。
-
-    模型(整数槽位, 无日期边界歧义):
-        cur        = 当前槽位号(每天 len(slots) 个槽位, 如 0 点/12 点)
-        count      = 剩余次数(上限 max_charges)
-        last_slot  = 上次把刷新计入 count 的槽位号
-        查询时: count += (cur - last_slot), 封顶 max_charges; last_slot = cur
-
-    首次(无记录)时 last_slot 取 cur - max_charges, 等价于"回溯 max_charges 个槽位":
-        slots=(0,12), 上限 2 -> 12:05 首次为 2 次; 01:00 首次为 1 次
-
-    逐步验算(slots=(0,12), 上限 2):
-        10/7 12:05 初始 -> 2
-        消耗 1 次        -> 1        消耗 2 次 -> 0
-        10/7 23:59      -> 0        (未跨槽位)
-        10/8 00:05      -> 1        (跨 1 个槽位)
-        10/8 12:05      -> 2        (再跨 1 个)
-        10/20 任意      -> 2        (封顶)
-
-    异常时返回 max_charges(即"照常运行", 不因状态问题卡住任务)。
-    """
-    now = now or datetime.now()
-    slot_hours = parse_slots(slots)
-    try:
-        with _lock():
-            data = _read_all()
-            rec = _charges_of(data, config_name, task)
-    except Exception as exc:
-        logger.warning(f'[TaskState] 查询次数失败({type(exc).__name__}: {exc}), '
-                       f'按满次数处理')
-        return max_charges
-
-    count, last, cur = _decode_charges_v2(rec, slot_hours, max_charges, now)
-    count, _ = _normalize(count, last, cur, max_charges)
-    return max(0, min(max_charges, count))
-
-
-def next_charge_time(config_name: str, task: str,
-                     max_charges: int = 2, slots='0,12',
-                     now: datetime = None) -> datetime:
-    """
-    下一次次数刷新的时刻(固定时刻), 用于把任务排到刷新后再做。
-
-    - 只要还有可用次数 -> 返回 now(立刻可做);
-    - 次数用尽 -> 返回下一个刷新点(今天还没到的第一个; 今天已过完则取明天第一个)。
-    """
-    now = now or datetime.now()
-    slot_hours = parse_slots(slots)
-    if get_charges(config_name, task, max_charges, slots, now) > 0:
-        return now
-
-    for day_offset in (0, 1, 2):
-        base = (now + timedelta(days=day_offset)).date()
-        for h in slot_hours:
-            t = datetime.combine(base, dt_time(hour=h))
-            if t > now:
-                return t
-    return now + timedelta(hours=12)
-
-
-def consume_charge(config_name: str, task: str,
-                   max_charges: int = 2, slots='0,12',
-                   now: datetime = None) -> int:
-    """
-    消耗 1 次次数, 返回消耗后剩余次数。无可用次数时不做改动并返回 0。
-
-    实现: 先 normalize 到当前槽位, 再把 count 减 1; 同时把 last_slot 前移一格,
-    以便**同一槽位内继续消耗**时不会立刻被 normalize 补回来。
-    """
-    now = now or datetime.now()
-    slot_hours = parse_slots(slots)
-    key = str(task).lower()
-    try:
-        with _lock():
-            data = _read_all()
-            bucket = data.setdefault(config_name, {})
-            item = bucket.setdefault(key, {})
-            rec = item.get('charges') or {}
-
-            count, last, cur = _decode_charges_v2(rec, slot_hours,
-                                                  max_charges, now)
-            count, last = _normalize(count, last, cur, max_charges)
-            if count <= 0:
-                return 0
-
-            count -= 1
-            # last_slot 保持在**当前槽位**: 本槽位还剩几次由 count 表达,
-            # _normalize 只会在槽位真正推进时才补足, 因此不会把刚消耗的补回来。
-            item['charges'] = {
-                'count': count,
-                'last_slot': cur,
-                'slots': ','.join(str(h) for h in slot_hours),
-                'last_consume': now.replace(microsecond=0).isoformat(),
-            }
-            _write_all(data)
-
-        logger.info(f'[TaskState] 消耗一次次数: {config_name}.{task}, '
-                    f'剩余 {count}/{max_charges}')
-        return count
-    except Exception as exc:
-        logger.warning(f'[TaskState] 消耗次数失败({type(exc).__name__}: {exc}), '
-                       f'按成功处理')
-        return max(0, max_charges - 1)
+#   "去掉组队协同，去掉存量次数。组队协同应该是**单独模块**啊，"
+#   "不应该放在金币妖怪里。"
+#
+# 原来这里有一整套"存量记账"（`get_charges` / `consume_charge` /
+# `next_charge_time` / `parse_slots` / `_slot_*` / `_decode_charges_v2`）
+# 与"跨账号心跳/协同"（`write_heartbeat` / `read_heartbeat` / `is_online` /
+# `discover_configs` / `peer_charges` / `peers_status`）—— 全部删除。
+#
+# **为什么删**: 用户裁定"**靠 window 的多次设置完全可以做到正常运行**" ——
+# "一天在几个时段各跑一次"用**多个窗口**表达; "跑几轮"用**重复条目**表达。
+#
+# 设计依据: `docs/scheduler-architecture.md` §0（三句话命题）。

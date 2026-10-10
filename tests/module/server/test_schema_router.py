@@ -197,12 +197,6 @@ class TestOverview:
             assert isinstance(c, dict)
             assert 'count' in c and 'max' in c, f'{r["name"]} 的 charges 结构不对'
 
-    def test_charge_tasks_can_find_charges(self, overview):
-        """至少有一个充能任务能拿到存量(证明键名归一化生效)。"""
-        got = [r for r in overview['tasks']
-               if r['category'] == 'charge' and r['charges']]
-        assert got, ('所有充能任务的 charges 都是空的 —— '
-                     '疑似键名归一化失效(压缩小写 vs 下划线)')
 
     def test_in_window_uses_meta_window(self, overview):
         """★ `in_window` 必须由**任务的 `meta.py` 窗口**决定, 不再恒为 True。

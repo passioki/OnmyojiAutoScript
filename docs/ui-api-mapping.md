@@ -547,3 +547,60 @@ enable · priority · target · expected_minutes
 **压缩小写**（`experienceyoukai`），而 `model_dump` 的键是**下划线**
 （`experience_youkai`）。后端已在 `build_overview()` 里做归一化；
 前端若直接调 `task_status`，需要自己注意这个差异。
+
+---
+
+## 9. 窗口字段模型（#1 / #6b，2026-10-10）
+
+> 用户裁定的结构:
+> "窗口开始: 下拉选择：每天、每周、每月 / 下拉选择：时:分、周几：时：分、几号：时：分"
+> "窗口语义：**(B) 两端必须同周期**"
+
+### 9.1 用户可见可改的窗口字段（`scheduler` 组）
+
+| 字段 | 类型 | 含义 |
+|---|---|---|
+| `window_enable` | bool | 启用窗口。**关** = 用任务 `meta.py` 的游戏机制窗口兜底 |
+| `window_period` | enum | **每天 / 每周 / 每月**（`WindowPeriod`）|
+| `window_start` | time | 起始**时刻**（`时:分`）|
+| `window_end` | time | 结束**时刻** |
+| `window_days` | string | `window_period=weekly` 时的**周几**（0=周一 … 6=周日, 逗号分隔）|
+| `window_dom` | string | `window_period=monthly` 时的**几号**（1-31, 逗号分隔；空 = 整月）|
+| `window_slots` | string | **每日固定时刻**（`'12:00,20:00'`）—— 填了它就忽略上面的起止时刻 |
+
+### 9.2 三者的关系（前端别自己推导）
+
+```
+window_period = daily    -> 用 window_start / window_end
+window_period = weekly   -> 再加 window_days（周几）
+window_period = monthly  -> 再加 window_dom（几号）
+window_slots 非空        -> **只看 slots**, 起止时刻被忽略
+```
+
+### 9.3 ★ 优先级（`Function._build_windows`）
+
+1. **用户配置**（`window_enable=true`）—— 用户**偏好**, 最权威
+2. **`meta.py` 的 `TaskSpec.window`** —— 游戏机制**兜底**
+3. 都没有 -> `AvailabilityWindow(enabled=False)`
+
+★ 此前是**反的**（meta 永远压过用户）-> 用户把窗口改成 17:00-23:00
+  **完全没用**。已修正（见 `docs/SESSION-LEDGER.md` §24.1）。
+
+### 9.4 `window_slots` 为什么存在（第 4 种语义）
+
+用户裁定窗口只回答"**这个时间可不可以跑**"；"跑几次"由**次数**或
+**重复条目**体现。但 `Restart` 的"每天 12:00 与 20:00 各领一次体力":
+
+* **不是窗口**（那是"可不可以"）
+* **不是次数**（那是"一轮打几场"）
+* **不是重复条目**（那会跑两轮完整任务, 但体力只在 12/20 点补充）
+
+-> 它是**第 4 种**: "**一天几个固定时刻**"。`window_slots` 用**多个窗口段**
+表达它（每段 = 该时刻 -> +120 分钟），"一天两次"由**窗口开放次数**自然体现。
+
+### 9.5 前端注意事项
+
+* `window_period` 是枚举 -> 下拉由后端 `enumEnum` **自动生成**（含"每月"）
+* `window_days` / `window_dom` / `window_slots` 是**字符串** -> 文本输入
+* ★ **不要**在前端重新推导"哪组字段生效" —— 后端 `_build_windows()` 是权威
+  （本项目已因"知识存在两处"栽过多次）

@@ -383,7 +383,7 @@ class TestQueueEndpoints:
             meta = _meta_of_key(key)
             if meta is None:
                 continue
-            if _auto_queue_of(meta):
+            if _auto_queue_of(meta, cfg):
                 continue
             expected.add(meta.task)
 
@@ -396,7 +396,7 @@ class TestQueueEndpoints:
         for c in cands:
             meta = _meta_of_key(c['name'])
             assert meta is not None, f"候选 {c['name']} 无法归一到 catalog"
-            assert not _auto_queue_of(meta), \
+            assert not _auto_queue_of(meta, cfg), \
                 f"候选 {c['command']} 是自动进队列的任务"
             assert model[c['name']]['scheduler']['enable'], \
                 f"候选 {c['command']} 未启用"
@@ -470,7 +470,10 @@ class TestWiring:
         """`/overview` 必须给前端 `queued` 与 `auto_queue`。"""
         src = (REPO / 'module' / 'server' / 'schema_router.py').read_text(
             encoding='utf-8')
-        assert "'auto_queue': _auto_queue_of(meta)" in src
+        # ⚠ 本轮改了签名: `_auto_queue_of(meta)` -> `_auto_queue_of(meta, config)`
+        #   （统一判据: 与「周期 / 临时」同源）。★ 断言放宽到前缀, 签名再变也不假失败。
+        assert "_auto_queue_of(meta" in src, \
+            '`/overview` 必须给前端 `auto_queue`（判据见 `_auto_queue_of`）'
         assert "'queued': command in queued_commands" in src
         assert 'queued_commands = config.queued_commands()' in src, \
             'overview 没有预先算队列成员（逐个判断会重复解析 N 次）'

@@ -68,7 +68,7 @@ class TestCandidatesAllowDuplicates:
         assert 'if command in queued' not in body, (
             '候选端点仍在排除"已在队列"的任务 —— '
             '用户要求可以重复添加相同的任务')
-        assert '_auto_queue_of(meta)' in body, \
+        assert '_auto_queue_of(' in body, \
             '仍应排除"自动进队列"的任务（它们靠 build_queue 补齐）'
 
     def test_queued_task_still_in_candidates(self, live):

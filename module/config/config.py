@@ -1358,18 +1358,60 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         return rl
 
     # ------------------------------------------------------------------ 执行队列
-    def auto_queue_tasks(self) -> list:
-        """所有 `auto_queue=True` 的任务命令名（按 catalog 顺序）。
+    def auto_queue_of(self, task_command: str) -> bool:
+        """★★★ 该任务是否**自动进队列** —— **与「周期 / 临时」同源** ★★★
 
-        这些任务**启用后自动进队列**, 不需要用户【添加任务】。
-        与 `countable` 的关系见 `module/config/task_catalog.py` 的
-        `TaskSpec.auto_queue`。
+        ## 用户裁定（本轮）
+
+        > "**显示周期的不应该移除队列后回退到添加任务的池子里而是直接停用**,
+        >  这说明目前的**[联动]还不完善**。"
+
+        ## 为什么必须同源（实测到的**真漂移**）
+
+        `TaskSpec.auto_queue` 在 **54 个 `meta.py` 里都显式声明**，而它的
+        **推导依据是 `category`**（`auto_queue_effective`：显式值优先,
+        否则 `category not in COUNTABLE_CATEGORIES`）。
+
+        ★ 但 `category` 正是**被废弃的那个判据**（分类已改为按 `period`）。
+        ★ 于是两者**必然漂移** —— 实测 **4 个不一致**:
+
+        | 任务 | `period` | 界面分类 | `auto_queue` | 后果 |
+        |---|---|---|---|---|
+        | `OtherWorldTwilight` | daily | **周期** | `False` | 界面说周期, 却不自动入队 |
+        | `RyouToppa` | daily | **周期** | `False` | 同上 |
+        | `SixRealms` | daily | **周期** | `False` | 同上 |
+        | `TalismanPass` | none | **临时** | `True` | 界面说临时, 却自动入队 |
+
+        ★ 这就是用户看到的"**添加任务里还显示着固定任务标签**"与
+          "**联动不完善**"的根因。
+
+        ## 判据（一条, 与 `priority_group_of` 同源）
+
+        * `period != 'none'`（**周期任务**）-> **自动进队列**（用户不用手动加）
+        * `period == 'none'`（**临时任务**）-> 只有用户【添加任务】后才进队列
+
+        ★ 注意: `meta.py` 里那个显式 `auto_queue` **不再参与判定** ——
+          它只作为历史记录保留（避免大批量改 54 个文件的风险）。
+        """
+        try:
+            return self.priority_group_of(task_command) == 'timed'
+        except Exception as exc:
+            logger.debug(f'判 auto_queue 失败({task_command}: '
+                         f'{type(exc).__name__}: {exc})')
+            return False
+
+    def auto_queue_tasks(self) -> list:
+        """所有**自动进队列**的任务命令名（按 catalog 顺序）。
+
+        ★ 判据已改为 **`auto_queue_of()`（= 周期任务）** —— 见它的 docstring:
+          原来读 `TaskSpec.auto_queue_effective`（依据**已废弃的 `category`**）,
+          与界面显示的"周期 / 临时"**漂移**（实测 4 个不一致）。
         """
         try:
             from module.config import task_catalog as TC
             specs = TC._load_specs()
-            return [t for t, s in sorted(specs.items())
-                    if s.auto_queue_effective]
+            return [t for t, _s in sorted(specs.items())
+                    if self.auto_queue_of(t)]
         except Exception as exc:
             logger.warning(f'auto_queue_tasks 失败({type(exc).__name__}: {exc})')
             return []

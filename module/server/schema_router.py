@@ -667,7 +667,7 @@ def build_overview(config_name: str) -> dict:
             #   待运行    <- `queued == True`（可拖）
             #   启用但不运行 <- `enable && !queued`（**只在【添加任务】里出现**）
             #   未启用    <- `enable == False`
-            'auto_queue': _auto_queue_of(meta),
+            'auto_queue': _auto_queue_of(meta, config),
             'queued': command in queued_commands,
             # 该任务的效果说明(供界面展示"这个任务是干什么的")
             # ---- 连续失败冷却（见 `module/config/failure_state.py`）----
@@ -855,15 +855,51 @@ def _spec_list_pos(meta):
     return getattr(spec, 'list_pos', None) if spec else None
 
 
-def _auto_queue_of(meta):
-    """该任务是否**自动进队列**（任务类别属性, 见 `TaskSpec.auto_queue`）。
+def _auto_queue_of(meta, config=None):
+    """该任务是否**自动进队列**。
 
-    ⚠ 与 `_spec_list_pos` 同理: 字段在 **`TaskSpec`** 上, 不在 `TaskMeta` 上。
-      但这里**退回 `countable`**（在 `TaskMeta` 上）作为兜底 ——
-      没写 `meta.py` 的任务也要有合理行为, 而不是静默 `None`。
+    ★★★ 已改为与「周期 / 临时」**同源**（用户裁定: "联动还不完善"）★★★
 
-    规则（用户确认）: 可计数 = 次数任务 = **不**自动进队列。
+    ## 为什么改（实测到的真漂移）
+
+    原来读 `TaskSpec.auto_queue_effective` —— 那个属性的推导依据是
+    **`category`**（`category not in COUNTABLE_CATEGORIES`），
+    而 `category` 正是**被废弃的判据**（分类已改为按 `scheduler.period`）。
+
+    ★ 于是两者**必然漂移**，实测 **4 个任务不一致**:
+
+    | 任务 | `period` | 界面分类 | 旧 `auto_queue` |
+    |---|---|---|---|
+    | `OtherWorldTwilight` | daily | **周期** | `False` |
+    | `RyouToppa` | daily | **周期** | `False` |
+    | `SixRealms` | daily | **周期** | `False` |
+    | `TalismanPass` | none | **临时** | `True` |
+
+    -> 界面上"周期任务"躺在【添加任务】池子里、"临时任务"却自动进了队列。
+
+    ## 现在
+
+    ★ 走 `config.auto_queue_of()`（= `period != 'none'` = 周期任务），
+      与 `priority_group_of()` **同一处判据** —— 界面显示什么, 行为就是什么。
+
+    :param config: 可选 `Config`; 传了就用它（同源）；不传则退回旧的 meta 判据
+                   （仅为向后兼容那些没传 config 的调用点）。
     """
+    if config is not None:
+        try:
+            # ⚠ `TaskMeta` 上**没有 `command` 也没有 `name`**（实测字段是
+            #   `task`）—— 第一版我写成 `getattr(meta, 'command', '')` ->
+            #   拿到空串 -> `auto_queue_of('')` 返回 False
+            #   -> **41 个任务全被误判**（实测）。
+            # ★ 修法: `command`（`/overview` 行里有）优先, 否则用 `meta.task`。
+            name = str(getattr(meta, 'command', '')
+                       or getattr(meta, 'task', '') or '')
+            if name:
+                return bool(config.auto_queue_of(name))
+        except Exception as exc:
+            logger.debug(f'auto_queue 同源判定失败({type(exc).__name__}: {exc}), '
+                         f'退回 meta 判据')
+    # ---- 以下为**兼容回退**（新代码都应传 `config`）----
     spec = _spec_of(meta)
     if spec is not None:
         try:
@@ -1260,27 +1296,42 @@ async def delete_run_list_entry(script_name: str, index: int):
 async def post_queue_remove(script_name: str, data: dict = Body(...)):
     """**把任务移出执行队列**。
 
-    ## ★★ 行为**分两类**（用户 2026-10-10 明确修正）★★
+    ## ★★★ 判据已改为「周期 / 临时」（用户 2026-10-10 本轮裁定）★★★
 
-    | 任务类型 | `auto_queue` | 移除后 |
+    用户原话:
+    > "**显示周期的不应该移除队列后回退到添加任务的池子里而是直接停用**,
+    >  这说明目前的**[联动]还不完善**。"
+
+    | 任务类型 | 判据 | 移除后 |
     |---|---|---|
-    | **定时任务** | `True` | 出队列 **且 `enable=false`** |
-    | **固定/次数任务** | `False` | **只出队列**, `enable` **保持** -> 回到【添加任务】池子 |
+    | ★ **周期任务** | `scheduler.period != 'none'` | 出队列 **且 `enable=false`**（**直接停用**）|
+    | ★ **临时任务** | `scheduler.period == 'none'` | **只出队列**, `enable` **保持** -> 回到【添加任务】池子 |
 
-    **为什么定时任务必须同时停用**:
-    自动进队列的任务只要 `enable=true` 就会被
-    `Config.build_queue()` **重新补进队列**。只从 `run_list` 删掉是**无效的**
-    —— 下次刷新它又回来了。所以"移出"必须落地为 `enable=false`。
+    ## ★ 为什么这次要改判据（原来按 `auto_queue`）
 
-    **为什么次数任务不能停用**:
+    原来按 **`auto_queue`**（"会不会自动进队列"）分:
+
+    | 任务类型 | `auto_queue` | 移除后（旧）|
+    |---|---|---|
+    | 定时任务 | `True` | 出队列 + `enable=false` |
+    | 固定/次数任务 | `False` | **只出队列** -> 回池子 |
+
+    ★ 但用户看到的分类是 **`priority_group`**（周期/临时），而它与
+      `auto_queue` **不是同一个东西** —— 于是一批**周期任务**（`period != none`
+      但 `auto_queue == False`）被当成"次数任务"丢回了池子
+      -> ★ **界面分类与实际行为不一致**，正是用户说的"联动不完善"。
+
+    ★ 现在两处**同源**: 界面显示什么（周期/临时），移除行为就按什么。
+
+    ## 为什么周期任务必须同时停用
+
+    自动进队列的任务只要 `enable=true` 就会被 `Config.build_queue()`
+    **重新补进队列**。只从 `run_list` 删掉是**无效的** —— 下次刷新它又回来了。
+
+    ## 为什么临时任务不能停用
+
     它们**不在自动补齐范围内**, 出队列后不会被补回来。若也停用, 用户想再跑
-    就得先去任务列表启用 —— 那是**多余的步骤**, 而且用户明确要求它
-    "**返回添加任务的池子里**"。
-
-    ★ 我此前把它写成"**无条件停用**" —— 那是**错的**, 已修正。
-      用户原话:
-        "执行队列中移除后自动停用只针对定时任务, 固定任务移除后应该返回
-         添加任务的池子里。"
+    就得先去任务列表启用 —— 那是**多余的步骤**。
 
     ## ★★ `entry_id`: 精确移除**某一条**（⑨ 的修复）★★
 
@@ -1294,7 +1345,7 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
     :param data: {"task": "RealmRaid", "entry_id": "20261010T...-RealmRaid"}
                  —— `task` 必填; `entry_id` 可选（精确移除用）
     :return: {"ok": True, "task": ..., "removed_entries": n,
-              "enable": bool, "auto_queue": bool, "message": 中文提示}
+              "enable": bool, "priority_group": str, "message": 中文提示}
     """
     try:
         from module.server.main_manager import mm
@@ -1307,13 +1358,15 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
         config = mm.config_cache(script_name)
 
         # ① 判定类别（决定要不要停用）
-        auto = False
-        try:
-            from module.config import task_catalog as TC
-            spec = TC.get_spec(task)
-            auto = bool(spec.auto_queue_effective) if spec else False
-        except Exception:
-            pass
+        #
+        # ★★ 判据 = `period`（= 界面的「周期 / 临时」），**不再是 `auto_queue`** ★★
+        #
+        # 用户裁定: "**显示周期的不应该移除队列后回退到添加任务的池子里
+        #            而是直接停用**"
+        # ★ 让"界面显示的分类"与"移除行为"**同源**。
+        group = config.priority_group_of(task)
+        is_cycle = (group == 'timed')     # 周期任务 = period != none
+        auto = is_cycle                   # 兼容字段名, 供老前端读
 
         entry_id = str((data or {}).get('entry_id') or '').strip()
 
@@ -1347,7 +1400,7 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
             if not config.save_run_list(new_rl):
                 return {'error': '保存运行列表失败(见日志)'}
 
-        # ③ 只有**定时任务**才停用（否则会被自动补齐）
+        # ③ 判据见 docstring: **周期任务**才停用（否则会被自动补齐）
         key = convert_to_underscore(task)
         node = getattr(config.model, key, None)
         if node is None:
@@ -1356,15 +1409,15 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
         if sch is None:
             return {'error': f'{key} 没有 scheduler'}
 
-        if auto:
+        if is_cycle:
             sch.enable = False
             config.save()
 
-        if auto:
-            msg = (f'已把「{task}」移出队列并停用。'
-                   f'它启用后会自动回到队列。')
+        if is_cycle:
+            msg = (f'已把周期任务「{task}」移出队列并**停用**。'
+                   f'（周期任务启用后会自动回到队列, 所以必须停用才真的移除）')
         else:
-            msg = (f'已把「{task}」移出队列。'
+            msg = (f'已把临时任务「{task}」移出队列。'
                    f'它仍在【添加任务】里, 可随时加回。')
 
         return {
@@ -1373,12 +1426,80 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
             'entry_id': entry_id,
             'removed_entries': removed_n,
             'enable': bool(sch.enable),
+            # ★ 新字段（前端应读这个）; `auto_queue` 保留供老前端兼容
+            'priority_group': group,
             'auto_queue': auto,
             'message': msg,
         }
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}
+
+
+@schema_app.post('/{script_name}/running/cancel')
+async def post_cancel_running(script_name: str):
+    """★★★ **取消正在运行的任务** —— 现在只是 `put_pause` 的**兼容别名** ★★★
+
+    ## ★★ 用户最终裁定: 这个功能已**聚合到「暂停调度」按钮**上 ★★
+
+    > "**就把这个功能聚合到暂停调度按钮上好了**, 点击暂停调度,
+    >  正在运行的任务**自动回退到队列首位, 视作等待执行**,
+    >  这样是不是更优雅。"
+
+    ★ 是更优雅。所以:
+      * 界面上**不再有**单独的「取消任务」按钮
+      * 「暂停调度」按钮**自己做**"退回队首"（见 `put_pause` 的 docstring）
+      * 本端点**保留**（不删）—— 供脚本/旧客户端调用, 行为与 `put_pause`
+        **逐字一致**（它就直接转调 `put_pause`, 保证**只有一处实现**）
+
+    ## 语义（与 `put_pause` 相同）
+
+    1. **请求暂停调度**（`mode='battle'`）—— 让正在跑的在**跑完当前这场战斗**
+       后于安全点停下（`TaskPaused`, 见 `module/exception.py`）
+    2. **把它挪到 `run_list` 首位**（不在列表里就新建一条）
+    3. ★ **`enable` 保持不动** —— **不停用**（它不是移出队列）
+
+    ## ⚠ 一个必须让用户知道的后果（前端文案要写清）
+
+    因为 `enable` 保持为真、且条目仍在队列里, 所以用户点「**继续**」之后
+    这个任务会在**第一时间重新开始**（它就是队首）。
+    ★ 也就是说: "取消" = **先停下来**（回到队首待命）, **不是**"以后都不跑了"。
+    想让它以后不跑, 用队列里的「移除」（周期任务会被停用）。
+
+    :return: 与 `put_pause` 同构（另加 `was_running` / `task` / `moved_to_front`
+              三个兼容字段）
+    """
+    # ★★ 只转调 `put_pause` —— **不重复实现** ★★
+    #
+    # 为什么: 用户已把语义改为"暂停时自动退回队首"（见 `put_pause`）。
+    # 若这里再写一份, 两处规则**必然分叉**（本轮刚修过同类问题:
+    # `auto_queue` 与 `period` 漂移）。★ 所以这里是**薄封装**。
+    res = await put_pause(script_name, mode='battle',
+                          reason='取消正在运行的任务（等价于暂停）')
+    if not isinstance(res, dict):
+        return {'error': 'put_pause 返回异常'}
+    if res.get('error'):
+        return res
+
+    task = str(res.get('requeued') or '')
+    out = dict(res)
+    out.update({
+        'ok': True,
+        'was_running': bool(task),
+        'task': task,
+        'moved_to_front': bool(task),
+        'created_entry': bool(res.get('requeued_created_entry')),
+    })
+    if task:
+        out['message'] = (
+            f'已取消「{task}」: **暂停调度**, 并把它放回**队列首位**。\n'
+            f'★ 它会**跑完当前这场战斗后**停下（不是立即打断, '
+            f'否则会卡在战斗中/组队房间里）。\n'
+            f'★ **未停用** —— 点「继续」后它会**第一个**重新开始。\n'
+            f'（想让它以后都不跑, 请用队列里的「移除」）')
+    else:
+        out['message'] = '已暂停调度（当前没有正在运行的任务）'
+    return out
 
 
 # ============================================================ 窗口 CRUD（S4）
@@ -1652,7 +1773,7 @@ async def post_queue_clear(script_name: str):
                 if not isinstance(sch, dict) or not sch.get('enable'):
                     continue
                 meta = _meta_of_key(key)
-                if meta is None or not _auto_queue_of(meta):
+                if meta is None or not _auto_queue_of(meta, config):
                     continue
                 node = getattr(config.model, key, None)
                 if node is None:
@@ -1727,7 +1848,7 @@ async def get_queue_candidates(script_name: str):
             #
             # 仍然排除"自动进队列"的: 它们由 `build_queue()` 补齐,
             # 不需要用户手动重复（重复了也没用 —— 补齐按任务名去重）。
-            if _auto_queue_of(meta):
+            if _auto_queue_of(meta, config):
                 continue            # 自动进队列的 -> 不该出现在这里
 
             out.append({
@@ -2054,19 +2175,88 @@ async def get_run_control(script_name: str):
 @schema_app.put('/{script_name}/run_control/pause')
 async def put_pause(script_name: str, mode: str = 'battle', reason: str = ''):
     """
-    **暂停**调度。
+    **暂停调度**。
 
     :param mode: `battle`(默认, ⏸ 跑完当前这场战斗) 或 `round`(⏭ 本轮跑完再停)
     :param reason: 可选备注(便于排障: 谁在什么时候暂停的)
 
     ⚠ 语义: 立即置位, 但脚本会在**安全点**(战斗 + 结算 + 领奖完成)才停 ——
     这样不会卡在半途(战斗中 / 组队房间中)。**不提供"立即停"**: 不安全。
+
+    ## ★★★ 暂停时会把**正在运行的任务退回队列首位**（用户裁定）★★★
+
+    用户原话:
+    > "**就把这个功能聚合到暂停调度按钮上好了**, 点击暂停调度,
+    >  正在运行的任务**自动回退到队列首位, 视作等待执行**, 这样是不是更优雅。"
+
+    ★ 是更优雅 —— 它让"暂停"成为一个**完整的动作**:
+      停手（不派发新任务）+ 手头这个**退回队首待命**。
+    于是界面上**不再需要**单独的「取消任务」按钮（那个语义与暂停重复）。
+
+    ## 为什么"退回队首"是安全的（不会又跑起来）
+
+    ★ 顺序: **先置暂停** -> `is_paused()` 立刻为真。
+    正在跑的任务在安全点停下（`TaskPaused`）后, 调度循环回到
+    `_handle_run_control()`, 那里 `while is_paused(): sleep` **阻塞等待**
+    -> **不会**把队首刚退回的这个任务又派发一遍。
+    ★ 用户点「继续」后, 它在**队首**第一个跑（"视作等待执行"）。
+
+    ## 不停用
+
+    ★ **不动 `enable`** —— 它不是移出队列, 只是"退回去等着"。
+      想让它以后都不跑, 用队列里的「移除」（周期任务会被停用）。
+
+    :return: 暂停状态 + `requeued`（退回了哪个任务, 没在跑则空）
     """
     try:
         from module.config import run_control
+        from module.config.config_model import convert_to_underscore
+        from module.config.run_list import RunEntry, RunList
+        from module.server.main_manager import mm
         if mode not in (run_control.PAUSE_BATTLE, run_control.PAUSE_ROUND):
             return {'error': f'非法 mode: {mode!r}; 应为 battle / round'}
-        return run_control.request_pause(mode=mode, reason=reason)
+
+        # ① 先置暂停（顺序关键 —— 见 docstring）
+        st = run_control.request_pause(mode=mode, reason=reason)
+
+        # ② 把正在运行的任务退回 `run_list` 首位
+        requeued = ''
+        created = False
+        requeue_err = ''
+        try:
+            config = mm.config_cache(script_name)
+            task = str(getattr(config.model, 'running_task', '') or '').strip()
+            if task:
+                rl = config.build_run_list()
+                entries = list(rl)
+                idx = next((i for i, e in enumerate(entries)
+                            if getattr(e, 'task', None) == task), None)
+                if idx is None:
+                    entries.insert(0, RunEntry(task=task))
+                    created = True
+                elif idx != 0:
+                    entries.insert(0, entries.pop(idx))
+                if idx != 0:
+                    if not config.save_run_list(RunList(entries)):
+                        requeue_err = 'save_run_list 返回 False（见日志）'
+                requeued = task
+        except Exception as exc:
+            requeue_err = f'{type(exc).__name__}: {exc}'
+            logger.exception(exc)
+
+        out = dict(st) if isinstance(st, dict) else {'paused': True}
+        out.update({
+            'requeued': requeued,
+            'requeued_created_entry': created,
+            'requeue_error': requeue_err,
+        })
+        if requeued and not requeue_err:
+            out['message'] = (
+                f'已暂停调度。「{requeued}」已**退回队列首位**, 视作等待执行 —— '
+                f'它会**跑完当前这场战斗后**停下。\n'
+                f'★ **未停用**: 点「继续」后它第一个跑。\n'
+                f'（想让它以后都不跑, 请用队列里的「移除」）')
+        return out
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}

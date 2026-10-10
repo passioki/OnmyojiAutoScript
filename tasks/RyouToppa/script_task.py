@@ -197,7 +197,25 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RyouToppaAssets):
         raise TaskEnd
 
     def plan_tomorrow_ryoutoppa(self):
-        # 安排下次寮突破，便于复用
+        # ★★ ⑥(b): 有窗口就用**窗口**, 否则保留旧行为 ★★
+        #
+        # 本方法把"下次跑"定在**用户配置的** `next_ryoutoppa_time`（默认 7:00）,
+        # 5:00 之前算今天、之后算明天。
+        #
+        # 那是**任务内自排期**, 与"队列顺序 + 窗口"是两套机制（用户裁定 §20.2）。
+        # 现在可以用 `window_slots` 表达"每天 7:00 跑一次":
+        #
+        #     scheduler.window_enable = true
+        #     scheduler.window_slots  = '07:00'
+        #
+        # ★ 用户**没配**窗口时保留旧行为（不静默改变既有用户的调度）。
+        sch = self.config.ryou_toppa.scheduler
+        if getattr(sch, 'window_enable', False) and \
+                str(getattr(sch, 'window_slots', '') or '').strip():
+            logger.info('RyouToppa: 用 window_slots 排期（不再自排期）')
+            self.set_next_run(task='RyouToppa', finish=True,
+                              server=True, success=True)
+            return
         now = datetime.now()
         # 如果时间在00:00-5:00之间则设定时间为当天的自定义时间
         if now.time() < dt_time(5, 0):  # 不确定 time 的使用范围，重命名 datetime 中的 time

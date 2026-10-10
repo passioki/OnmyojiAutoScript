@@ -44,16 +44,41 @@ class ScriptTask(LoginHandler):
         self.set_next_run(task='Restart', success=True, finish=True, server=True)
         # 如果启用了定时领体力（每天 12-14、20-22 时内各有 20 体力）
         if self.config.restart.harvest_config.enable_ap:
-            now = datetime.now()
-            # 如果时间在00:00-12:00之间则设定时间为当日 12 时
-            if now.time() < time(12, 0):
-                self.custom_next_run(task='Restart', custom_time=Time(12, 0), time_delta=0)
-            # 如果时间在12:00-20:00之间则设定时间为当日 20 时
-            elif now.time() >= time(12, 0) and now.time() < time(20, 0):
-                self.custom_next_run(task='Restart', custom_time=Time(20, 0), time_delta=0)
-            # 如果时间在20:00-23:59之间则设定时间为次日 12 时
+            # ★★ ⑥(b): 有窗口就用**窗口**, 否则保留旧行为 ★★
+            #
+            # `harvest_config.enable_ap` 的语义 = "**每天 12:00 与 20:00 各领一次**"。
+            # 用户的三条裁定（台账 §21.1 / §20.2）:
+            #   * 窗口只回答"这个时间可不可以跑"
+            #   * "跑几次"由次数或重复条目体现
+            #   * 排期只用窗口
+            #
+            # 但"一天领两次"**既不是窗口、也不是次数、也不是重复条目** ——
+            # 它是**第 4 种**语义。已为它加了 `window_slots`（每日固定时刻）:
+            #
+            #     scheduler.window_enable = true
+            #     scheduler.window_slots  = '12:00,20:00'
+            #
+            # 那样窗口就是 12:00-14:00 与 20:00-22:00 两段, "一天两次"由
+            # **窗口开放次数**自然表达, 不再需要任务自排期。
+            #
+            # ★ 用户**没配**窗口时保留旧行为 —— 否则会改变既有用户的调度
+            #   （#10.5 不猜语义 / 不做会静默改变行为的改动）。
+            sch = self.config.restart.scheduler
+            if getattr(sch, 'window_enable', False) and \
+                    str(getattr(sch, 'window_slots', '') or '').strip():
+                logger.info('Restart: 用 window_slots 排期（不再自排期）')
+                # 已经 `set_next_run(success=True)` -> 由窗口对齐到下次开放
             else:
-                self.custom_next_run(task='Restart', custom_time=Time(12, 0), time_delta=1)
+                now = datetime.now()
+                # 如果时间在00:00-12:00之间则设定时间为当日 12 时
+                if now.time() < time(12, 0):
+                    self.custom_next_run(task='Restart', custom_time=Time(12, 0), time_delta=0)
+                # 如果时间在12:00-20:00之间则设定时间为当日 20 时
+                elif now.time() >= time(12, 0) and now.time() < time(20, 0):
+                    self.custom_next_run(task='Restart', custom_time=Time(20, 0), time_delta=0)
+                # 如果时间在20:00-23:59之间则设定时间为次日 12 时
+                else:
+                    self.custom_next_run(task='Restart', custom_time=Time(12, 0), time_delta=1)
 
     def delay_pending_tasks(self) -> bool:
         """

@@ -210,6 +210,20 @@ class Scheduler(ConfigBase):
         default='',
         description='window_dom_help',
         title='开放几号')
+    # ★★ ⑥(b): **一天几个固定时刻**（用户裁定推导出的第 4 种语义）★★
+    #
+    # 例: `'12:00,20:00'` -> 每天 12:00 与 20:00 各跑一次
+    #     （由**窗口开放次数**表达, 不引入新的"次数"概念）
+    #
+    # ★ 与 `window_start` / `window_end` **互斥**:
+    #   填了 slots 就用 slots, 否则用 start/end。
+    #
+    # ⚠ 为什么不能用"重复条目"表达: 重复条目会跑**完整的任务**,
+    #   而 `Restart` 只在体力补充时刻（12/20 点）才有意义。
+    window_slots: str = Field(
+        default='',
+        description='window_slots_help',
+        title='每日固定时刻')
 
     # ------------------------------------------------------------ 任务列表
     #

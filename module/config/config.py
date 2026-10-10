@@ -31,6 +31,11 @@ from module.logger import logger
 _FAR_FUTURE = datetime(2099, 1, 1)
 
 
+# ★ ⑥(b): `window_slots` 里每个时刻的窗口跨度（分钟）。
+#   "12:00" -> 窗口 12:00-13:59。够跑一次任务, 又不至于整天开放。
+_SLOT_SPAN_MINUTES = 120
+
+
 class Function:
     def __init__(self, key: str, data: dict):
         """
@@ -166,6 +171,43 @@ class Function:
         #   * `monthly` -> 用 `window_dom`（几号）, 时刻同上
         if not sch.get('window_enable'):
             return (AvailabilityWindow(),)
+
+        # ★★ ⑥(b): **每日固定时刻**（`window_slots`）★★
+        #
+        # 例: `'12:00,20:00'` -> 每天 12:00 与 20:00 各开一个窗口段
+        #     （每段默认 2 小时, 由 `_SLOT_SPAN_MINUTES` 控制）。
+        #
+        # ★ 与 `window_start` / `window_end` **互斥** —— 填了 slots 就用它。
+        #   这样"一天跑两次"由**窗口开放次数**表达, 不引入新的"次数"概念
+        #   （用户裁定: 窗口只回答"这个时间可不可以跑"）。
+        slots_raw = str(sch.get('window_slots') or '')
+        slots = []
+        bad_slots = []
+        for part in slots_raw.split(','):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                hh, mm = part.split(':')
+                hh, mm = int(hh), int(mm)
+                if not (0 <= hh <= 23 and 0 <= mm <= 59):
+                    raise ValueError(part)
+                slots.append(time(hour=hh, minute=mm))
+            except Exception:
+                bad_slots.append(part)
+        if bad_slots:
+            logger.warning(f'{self.command}: window_slots 无效项已忽略 '
+                           f'{bad_slots}（应为 `时:分`, 逗号分隔）')
+        if slots:
+            segs = []
+            for st in sorted(set(slots)):
+                end_min = st.hour * 60 + st.minute + _SLOT_SPAN_MINUTES
+                end_min = min(end_min, 23 * 60 + 59)
+                segs.append(AvailabilityWindow(
+                    enabled=True, start=st,
+                    end=time(hour=end_min // 60, minute=end_min % 60),
+                    days=ALL_DAYS))
+            return tuple(segs)
 
         wperiod = sch.get('window_period')
         wperiod = getattr(wperiod, 'value', wperiod) or 'daily'

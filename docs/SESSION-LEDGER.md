@@ -1192,3 +1192,93 @@ DemonEncounter   after=2026-10-10 18:00 -> 2026-10-11 17:00   ← 已过窗口
 
 ★ **现在不能删**: 22/27 个任务仍依赖那条回退。按纪律标 ⬜, 附确切数字。
 
+---
+
+# 18. #6 · 任务完成汇报 —— 🔄 后端已完成, 前端 UI **未做**
+
+## 18.1 用户需求
+
+> "这顺便发现了一个可以添加的显式汇报屏幕功能 —— 添加一个**任务完成汇报 tab**,
+>  现在的日志属于原始日志, 应该**转移到单独界面**, 用来 debug,
+>  当前日志位置替换为**任务完成汇报**的 tab, 只会报完成了哪些、
+>  **出错任务标注**等等其它可以作为简报的内容"
+
+## 18.2 ✅ 已完成: 后端汇报
+
+**新增 `module/config/report.py`** —— 纯数据聚合（无 FastAPI 依赖, 可单独单测）。
+
+★ **不新增任何状态存储** —— 复用现有三份文件:
+
+| 来源 | 回答什么 |
+|---|---|
+| `run_record`（`log/.run_record.json`）| 跑了**几次**、花了**多久** |
+| `task_state`（`log/.task_state.json`）| **本周期完成**了哪些、充能还剩几次 |
+| `failure_state`（`log/.failure_state.json`）| **失败**计数 + 冷却到什么时候 |
+
+**新增端点** `GET /{script}/report`（`schema_router.py`）。
+
+### 实测输出（真实数据）
+
+```
+summary: {"total": 18, "completed": 0, "failed": 1, "in_cooldown": 0,
+          "total_runs": 30, "total_minutes": 47.9}
+tasks:   18 个
+    地域鬼王      runs=3   546s  marks=[]
+    每日琐事      runs=0    40s  marks=[]
+    式神委派      runs=0    28s  marks=[]
+    逢魔之时      runs=2   405s  marks=['failed']      ← 出错标注
+    斗技         runs=0    57s  marks=[]
+    经验妖怪      runs=1    93s  marks=[]
+    金币妖怪      runs=1   124s  marks=[]
+errors:  1 条
+    [failed] 逢魔之时：失败 1 次
+```
+
+### 「出错标注」的四种级别
+
+| mark | 含义 |
+|---|---|
+| `cooldown` | 冷却中（还要等 N 分钟）—— **最严重, 排最前** |
+| `failed` | 有失败计数 |
+| `short` | 运行 < 20 秒就结束（可能没做成事）|
+| `completed` | 本周期已完成 |
+
+## 18.3 ✅ 已完成: 前端 API 客户端
+
+`lib/api/api_client.dart` 加 `getTaskReport(scriptName)`（`flutter analyze` 无问题）。
+
+## 18.4 ⬜ **未做**: 前端汇报 tab 的界面
+
+用户要求的是:
+1. **把现有日志位置替换成「任务完成汇报」tab**
+2. **日志本身转移到单独界面**（供 debug）
+
+**这两条都还没做** —— 需要:
+* 新增一个汇报视图（渲染 `getTaskReport` 的 summary/tasks/errors）
+* 把现有日志视图移到单独的 debug 入口
+* 在 `task_list_view.dart` 里换 tab
+
+★ 按纪律标 **⬜**, 不标 ✅。
+
+## 18.5 守卫测试（16 个）
+
+`tests/module/config/test_task_report.py`:
+* 顶层结构 / `at` 是时间戳 / `summary` 键齐 / 任务行键齐
+* **出错任务必须带 mark 且进 `errors`**
+* `marks` 只能是已知四种（防拼错）
+* 中文名（简报给人看, 不能是 `demonencounter`）
+* `summary` 的计数与 `tasks` **逐项自洽**
+* **数据源坏掉不崩**（monkeypatch 让 `run_record` 抛异常）
+* 端点可用
+
+## 18.6 OASX 推送（本轮又推成功一次）
+
+因为完整历史仍带坏对象（§14.1）, 每次推送都要走
+`git archive` + 新建仓库 + `push -f`:
+
+```
++ 052b281...d47d6c4 main -> main (forced update)
+```
+
+★ 代价同 §14.3: 远端是**单个提交**, 本地保留完整历史。
+

@@ -61,17 +61,33 @@ class TestCounting:
         assert r3['cooldown_until'] is not None
         assert failure_state.in_cooldown('acc', 'Orochi') is True
 
-    def test_threshold_cooldown_halves_the_count(self, store):
+    def test_threshold_cooldown_zeroes_the_count(self, store):
         """
-        ★ 计数**减半**而不是清零。
+        ★★ 实机验收修复: 到阈值冷却时计数**归零**, **不再"减半"** ★★
 
-        清零 = 又给满 3 次机会 -> 持续故障变成"每 1 小时重启 3 次"的慢速循环。
-        减半 = 逐步升级, 同时不会一次失败就永久放弃。
+        ## 为什么改（用户原话）
+
+        > "契灵之境运行失败后的冷却状态**应该只在连续运行时生效**"
+
+        **原来的"减半"与"连续"语义不符** —— 它把**上一轮的失败**计入下一轮:
+          * `threshold=3`, 第 3 次失败 -> 冷却, `count = 3 // 2 = **1**`
+          * 冷却结束 -> 用户重新跑 -> **再失败 2 次**就又冷却
+          * ★ 实测用户状态文件里正是 **`count: 1` + 冷却中** ——
+            用户看到的是"我**才失败一次**怎么就冷却了"
+
+        ★ 冷却 = "这串连续失败已经处理过了"。冷却**结束后重新开始数**,
+          才是"连续"该有的语义。
         """
         from module.config import failure_state
         for _ in range(3):
             failure_state.record_failure('acc', 'Orochi')
-        # 3 -> 冷却时存 3//2 = 1
+        # 3 -> 冷却时存 **0**（上一轮的失败不带到下一轮）
+        assert failure_state.failure_count('acc', 'Orochi') == 0
+        # ★ 冷却**仍然在**（清计数 ≠ 解除冷却）
+        assert failure_state.in_cooldown('acc', 'Orochi') is True
+        # ★ 再失败 1 次不该立刻又冷却（要重新攒够 3 次）
+        r = failure_state.record_failure('acc', 'Orochi')
+        assert r['just_cooled'] is False
         assert failure_state.failure_count('acc', 'Orochi') == 1
 
     def test_notify_only_when_just_cooled(self, store):
@@ -231,7 +247,8 @@ class TestSummarize:
         for _ in range(3):
             failure_state.record_failure('acc', 'Orochi')
         s = failure_state.summarize('acc')['orochi']
-        assert s['count'] >= 1
+        # ★ 实机验收修复: 冷却时计数**归零**（原来断言 `>= 1`, 那是"减半"时代的）
+        assert s['count'] == 0
         assert s['cooldown_until'] is not None
         assert s['cooldown_minutes'] >= 1
 

@@ -3,7 +3,7 @@
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-11 19:00:00",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
@@ -15,12 +15,12 @@
       "expected_minutes": 0
     },
     "abyss_shadows_time": {
-      "custom_run_time_friday": "19:00:00",
-      "custom_run_time_saturday": "19:00:00",
-      "custom_run_time_sunday": "19:00:00"
+      "custom_run_time_friday": "19:30:00",
+      "custom_run_time_saturday": "19:30:00",
+      "custom_run_time_sunday": "19:30:00"
     },
     "abyss_shadows_combat_time": {
-      "CombatTime_enable": false,
+      "CombatTime_enable": true,
       "boss_combat_time": 60,
       "general_combat_time": 60,
       "elite_combat_time": 60
@@ -29,7 +29,7 @@
       "lock_team_enable": false,
       "preset_enable": false,
       "preset_group": 1,
-      "preset_team": 1,
+      "preset_team": 5,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
@@ -38,21 +38,21 @@
     },
     "switch_soul_config": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "阴阳寮",
+      "team_name": "狭间暗域"
     }
   },
   "activity_shikigami": {
     "scheduler": {
       "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "priority": 6,
+      "next_run": "2026-09-21 20:20:50",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -65,19 +65,19 @@
       "ap_limit": 300,
       "boss_limit": 20,
       "ap100_limit": 20,
-      "run_sequence": "pass,boss,ap",
-      "active_souls_clean": false,
-      "random_sleep": false
+      "run_sequence": "ap",
+      "active_souls_clean": true,
+      "random_sleep": true
     },
     "switch_soul_config": {
       "enable_switch_pass": false,
-      "pass_group_team": "-1,-1",
+      "pass_group_team": "10,1",
       "enable_switch_pass_by_name": false,
       "pass_group_team_name": "",
       "enable_switch_ap": false,
       "ap_group_team": "-1,-1",
-      "enable_switch_ap_by_name": false,
-      "ap_group_team_name": "",
+      "enable_switch_ap_by_name": true,
+      "ap_group_team_name": "爬塔活动,队伍1",
       "enable_switch_boss": false,
       "boss_group_team": "-1,-1",
       "enable_switch_boss_by_name": false,
@@ -91,15 +91,15 @@
       "enable_pass_preset": false,
       "enable_pass_green": false,
       "pass_green_mark": "green_left1",
-      "enable_pass_anti_detect": false,
+      "enable_pass_anti_detect": true,
       "enable_ap_preset": false,
       "enable_ap_green": false,
       "ap_green_mark": "green_left1",
-      "enable_ap_anti_detect": false,
+      "enable_ap_anti_detect": true,
       "enable_boss_preset": false,
       "enable_boss_green": false,
       "boss_green_mark": "green_left1",
-      "enable_boss_anti_detect": false,
+      "enable_boss_anti_detect": true,
       "enable_ap100_preset": false,
       "enable_ap100_green": false,
       "ap100_green_mark": "green_left1",
@@ -108,13 +108,13 @@
   },
   "area_boss": {
     "scheduler": {
-      "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "enable": true,
+      "priority": 3,
+      "next_run": "2026-10-09 20:56:33",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -122,12 +122,12 @@
       "expected_minutes": 0
     },
     "boss": {
-      "boss_reward": false,
-      "reward_floor": "不更改",
+      "boss_reward": true,
+      "reward_floor": "一星",
       "use_collect": false
     },
     "general_battle": {
-      "lock_team_enable": false,
+      "lock_team_enable": true,
       "preset_enable": false,
       "preset_group": 1,
       "preset_team": 1,
@@ -135,14 +135,14 @@
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "switch_soul": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "每日必做",
+      "team_name": "地域鬼王"
     }
   },
   "auto_checkin_big_god": {
@@ -153,7 +153,7 @@
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -166,9 +166,9 @@
   },
   "bondling_fairyland": {
     "scheduler": {
-      "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "enable": true,
+      "priority": 3,
+      "next_run": "2026-10-08 18:53:34",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
@@ -183,12 +183,12 @@
       "user_status": "alone",
       "bondling_mode": "只刷探查(仅限单刷)",
       "limit_time": "00:30:00",
-      "limit_count": 30,
+      "limit_count": 20,
       "bondling_stone_class": "镇墓兽",
-      "bondling_stone_enable": false,
+      "bondling_stone_enable": true,
       "bondling_search_enable": false,
       "check_enable": true,
-      "limit_num": 2000
+      "limit_num": 4000
     },
     "invite_config": {
       "invite_number": "one",
@@ -199,8 +199,8 @@
       "default_invite": true
     },
     "bondling_switch_soul": {
-      "enable": false,
-      "search_switch": "",
+      "enable": true,
+      "search_switch": "5,4",
       "tomb_guard_switch": "-1,-1",
       "snowball_switch": "-1,-1",
       "little_kuro_switch": "-1,-1",
@@ -219,7 +219,7 @@
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     }
   },
   "budokai_tournament": {
@@ -272,7 +272,7 @@
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -287,9 +287,9 @@
   },
   "daily_trifles": {
     "scheduler": {
-      "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "enable": true,
+      "priority": 4,
+      "next_run": "2026-10-09 17:48:11",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
@@ -304,22 +304,22 @@
       "one_summon": false,
       "summon_type": "普通召唤",
       "draw_mystery_pattern": false,
-      "guild_wish": false,
-      "friend_love": false,
-      "luck_msg": false,
-      "store_sign": false,
+      "guild_wish": true,
+      "friend_love": true,
+      "luck_msg": true,
+      "store_sign": true,
       "buy_sushi_count": -1
     }
   },
   "delegation": {
     "scheduler": {
-      "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "enable": true,
+      "priority": 2,
+      "next_run": "2026-10-09 17:34:55",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -327,7 +327,7 @@
       "expected_minutes": 0
     },
     "delegation_config": {
-      "miyoshino_painting": false,
+      "miyoshino_painting": true,
       "bird_feather": false,
       "find_earring": false,
       "cat_boss": false,
@@ -337,13 +337,13 @@
   },
   "demon_encounter": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 2,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-10 17:00:00",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -355,56 +355,56 @@
     },
     "best_demon_boss_config": {
       "best_demon_kiryou_utahime_select": false,
-      "best_demon_shinkirou_select": false,
-      "best_demon_tsuchigumo_select": false,
-      "best_demon_gashadokuro_select": false,
-      "best_demon_namazu_select": false,
+      "best_demon_shinkirou_select": true,
+      "best_demon_tsuchigumo_select": true,
+      "best_demon_gashadokuro_select": true,
+      "best_demon_namazu_select": true,
       "best_demon_oboroguruma_select": false,
       "best_demon_nightly_aramitama_select": false
     },
     "demon_soul_config": {
-      "enable": false,
-      "demon_kiryou_utahime": "group,team",
-      "demon_shinkirou": "group,team",
-      "demon_tsuchigumo": "group,team",
-      "demon_gashadokuro": "group,team",
-      "demon_namazu": "group,team",
-      "demon_oboroguruma": "group,team",
-      "demon_nightly_aramitama": "group,team"
+      "enable": true,
+      "demon_kiryou_utahime": "每日必做,逢魔",
+      "demon_shinkirou": "每日必做,逢魔",
+      "demon_tsuchigumo": "每日必做,逢魔",
+      "demon_gashadokuro": "每日必做,逢魔",
+      "demon_namazu": "每日必做,逢魔",
+      "demon_oboroguruma": "每日必做,逢魔",
+      "demon_nightly_aramitama": "每日必做,逢魔"
     },
     "best_demon_soul_config": {
-      "enable": false,
+      "enable": true,
       "best_demon_kiryou_utahime": "group,team",
-      "best_demon_shinkirou": "group,team",
-      "best_demon_tsuchigumo": "group,team",
-      "best_demon_gashadokuro": "group,team",
-      "best_demon_namazu": "group,team",
+      "best_demon_shinkirou": "每日必做,逢魔",
+      "best_demon_tsuchigumo": "每日必做,逢魔",
+      "best_demon_gashadokuro": "每日必做,逢魔",
+      "best_demon_namazu": "每日必做,逢魔",
       "best_demon_oboroguruma": "group,team",
       "best_demon_nightly_aramitamau": "group,team"
     },
     "demon_battle_config": {
-      "demon_shinkirou_enable": false,
-      "demon_shinkirou": "-1,-1",
-      "demon_tsuchigumo_enable": false,
-      "demon_tsuchigumo": "-1,-1",
-      "demon_gashadokuro_enable": false,
-      "demon_gashadokuro": "-1,-1",
-      "demon_namazu_enable": false,
-      "demon_namazu": "-1,-1",
-      "demon_oboroguruma_enable": false,
-      "demon_oboroguruma": "-1,-1",
-      "demon_nightly_aramitama_enable": false,
-      "demon_nightly_aramitama": "-1,-1"
+      "demon_shinkirou_enable": true,
+      "demon_shinkirou": "1,2",
+      "demon_tsuchigumo_enable": true,
+      "demon_tsuchigumo": "1,2",
+      "demon_gashadokuro_enable": true,
+      "demon_gashadokuro": "1,2",
+      "demon_namazu_enable": true,
+      "demon_namazu": "1,2",
+      "demon_oboroguruma_enable": true,
+      "demon_oboroguruma": "1,2",
+      "demon_nightly_aramitama_enable": true,
+      "demon_nightly_aramitama": "1,2"
     },
     "best_demon_battle_config": {
-      "best_demon_shinkirou_enable": false,
-      "best_demon_shinkirou": "-1,-1",
-      "best_demon_tsuchigumo_enable": false,
-      "best_demon_tsuchigumo": "-1,-1",
-      "best_demon_gashadokuro_enable": false,
-      "best_demon_gashadokuro": "-1,-1",
-      "best_demon_namazu_enable": false,
-      "best_demon_namazu": "-1,-1",
+      "best_demon_shinkirou_enable": true,
+      "best_demon_shinkirou": "1,2",
+      "best_demon_tsuchigumo_enable": true,
+      "best_demon_tsuchigumo": "1,2",
+      "best_demon_gashadokuro_enable": true,
+      "best_demon_gashadokuro": "1,2",
+      "best_demon_namazu_enable": true,
+      "best_demon_namazu": "1,2",
       "best_demon_oboroguruma_enable": false,
       "best_demon_oboroguruma": "-1,-1",
       "best_demon_nightly_aramitama_enable": false,
@@ -415,11 +415,11 @@
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-03 19:30:03",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:00:30",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -427,36 +427,36 @@
       "expected_minutes": 0
     },
     "demon_retreat_time": {
-      "custom_run_time": "10:00:00"
+      "custom_run_time": "19:30:00"
     },
     "general_battle": {
       "lock_team_enable": false,
-      "preset_enable": false,
-      "preset_group": 1,
-      "preset_team": 1,
+      "preset_enable": true,
+      "preset_group": 3,
+      "preset_team": 4,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "switch_soul_config": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "阴阳寮",
+      "team_name": "首领退治"
     }
   },
   "dokan": {
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-02 20:12:07",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:02:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -465,9 +465,9 @@
     },
     "dokan_config": {
       "dokan_attack_priority": 0,
-      "dokan_auto_cheering_while_cd": false,
-      "random_delay": false,
-      "anti_detect_click_fixed_random_area": false,
+      "dokan_auto_cheering_while_cd": true,
+      "random_delay": true,
+      "anti_detect_click_fixed_random_area": true,
       "monday_to_thursday": true,
       "try_start_dokan": false,
       "find_dokan_score": 4.6,
@@ -481,26 +481,26 @@
     },
     "general_battle_config": {
       "lock_team_enable": false,
-      "preset_enable": false,
-      "preset_group": 1,
-      "preset_team": 1,
+      "preset_enable": true,
+      "preset_group": 3,
+      "preset_team": 4,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "switch_soul_config": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "阴阳寮",
+      "team_name": "道馆"
     },
     "attack_count_config": {
       "remain_attack_count": 2,
-      "attack_date": "2023-01-01",
-      "daily_attack_count": 2,
+      "attack_date": "2026-10-01",
+      "daily_attack_count": 1,
       "attack_dokan_master": "ATTACK_TWO_TWO"
     }
   },
@@ -508,11 +508,11 @@
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-09 17:58:50",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -521,11 +521,11 @@
     },
     "duel_config": {
       "switch_enabled": true,
-      "switch_onmyoji": "源赖光",
-      "switch_all_soul": false,
-      "limit_time": "00:30:00",
+      "switch_onmyoji": "神乐",
+      "switch_all_soul": true,
+      "limit_time": "00:10:00",
       "target_score": 2000,
-      "honor_full_exit": false,
+      "honor_full_exit": true,
       "green_enable": false,
       "green_mark": "green_left1"
     },
@@ -536,10 +536,10 @@
     },
     "switch_soul": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "斗技",
+      "team_name": "食鸦切"
     }
   },
   "dye_trials": {
@@ -567,7 +567,7 @@
   },
   "eternity_sea": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
       "next_run": "2023-01-01 00:00:00",
       "retry_interval": "01 00:00:00",
@@ -628,7 +628,7 @@
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -636,35 +636,35 @@
       "expected_minutes": 0
     },
     "evo_zone_config": {
-      "user_status": "leader",
+      "user_status": "member",
       "kirin_type": "雷麒麟",
       "layer": "拾层",
       "limit_time": "00:30:00",
       "limit_count": 30,
-      "soul_buff_enable": false
+      "soul_buff_enable": true
     },
     "invite_config": {
       "invite_number": "one",
-      "friend_1": "",
+      "friend_1": "伴生树",
       "friend_2": "",
-      "find_mode": "auto_find",
+      "find_mode": "recent_friend",
       "wait_time": "00:02:00",
       "default_invite": true
     },
     "general_battle_config": {
       "lock_team_enable": false,
-      "preset_enable": false,
-      "preset_group": 1,
+      "preset_enable": true,
+      "preset_group": 4,
       "preset_team": 1,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "switch_soul_config": {
-      "enable": false,
-      "switch_group_team": "-1,-1",
+      "enable": true,
+      "switch_group_team": "4,1",
       "enable_switch_by_name": false,
       "group_name": "",
       "team_name": ""
@@ -672,7 +672,7 @@
   },
   "experience_youkai": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
       "next_run": "2023-01-01 00:00:00",
       "retry_interval": "01 00:00:00",
@@ -710,13 +710,13 @@
   },
   "exploration": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-08 15:17:39",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -732,9 +732,9 @@
       "limit_time": "00:30:00",
       "minions_cnt": 30,
       "exploration_level": "第二十八章",
-      "auto_rotate": "不",
+      "auto_rotate": "是",
       "choose_rarity": "N卡",
-      "up_type": "up_all"
+      "up_type": "up_daruma"
     },
     "scrolls": {
       "scrolls_enable": false,
@@ -748,28 +748,28 @@
     },
     "general_battle_config": {
       "lock_team_enable": false,
-      "preset_enable": false,
-      "preset_group": 1,
+      "preset_enable": true,
+      "preset_group": 4,
       "preset_team": 1,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "switch_soul_config": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "打材料",
+      "team_name": "探索"
     }
   },
   "fallen_sun": {
     "scheduler": {
-      "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "enable": true,
+      "priority": 2,
+      "next_run": "2026-10-04 11:53:28",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
@@ -781,10 +781,10 @@
       "expected_minutes": 0
     },
     "fallen_sun_config": {
-      "user_status": "leader",
-      "layer": "叁层",
-      "limit_time": "00:30:00",
-      "limit_count": 50
+      "user_status": "member",
+      "layer": "日蚀",
+      "limit_time": "02:30:00",
+      "limit_count": 9
     },
     "invite_config": {
       "invite_number": "one",
@@ -795,7 +795,7 @@
       "default_invite": true
     },
     "general_battle_config": {
-      "lock_team_enable": false,
+      "lock_team_enable": true,
       "preset_enable": false,
       "preset_group": 1,
       "preset_team": 1,
@@ -808,9 +808,9 @@
     "switch_soul": {
       "enable": false,
       "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "enable_switch_by_name": true,
+      "group_name": "御魂",
+      "team_name": "日轮"
     }
   },
   "find_jade": {
@@ -872,8 +872,8 @@
   "frog_boss": {
     "scheduler": {
       "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "priority": 2,
+      "next_run": "2026-10-06 23:45:00",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
@@ -886,7 +886,7 @@
     },
     "frog_boss_config": {
       "before_end_frog": "00:15:00",
-      "strategy_frog": "frog_majority"
+      "strategy_frog": "frog_oas"
     }
   },
   "global_game": {
@@ -918,7 +918,7 @@
   },
   "gold_youkai": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
       "next_run": "2023-01-01 00:00:00",
       "retry_interval": "01 00:00:00",
@@ -956,7 +956,7 @@
   },
   "goryou_realm": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
       "next_run": "2023-01-01 00:00:00",
       "retry_interval": "01 00:00:00",
@@ -996,8 +996,8 @@
   "guild_activity_monitor": {
     "scheduler": {
       "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "priority": 1,
+      "next_run": "2026-09-20 19:30:00",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
@@ -1011,7 +1011,7 @@
     "guild_activity_monitor_combat_time": {
       "detection_interval": 30,
       "monitor_duration": 15,
-      "recheck_interval": 5,
+      "recheck_interval": 2,
       "run_days": "1,2,3,4,5,6,7",
       "use_ocr": false
     },
@@ -1026,11 +1026,11 @@
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-09-27 17:01:04",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:02:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1047,12 +1047,12 @@
   "hero_test": {
     "scheduler": {
       "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "priority": 4,
+      "next_run": "2026-09-30 21:31:45",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1060,15 +1060,15 @@
       "expected_minutes": 0
     },
     "herotest": {
-      "layer": "鬼兵演武",
+      "layer": "传承试炼",
       "skill_mode": "PVE",
-      "limit_time": "00:30:00",
+      "limit_time": "00:40:00",
       "limit_count": 100,
-      "exp_50_buff_enable_help": false,
-      "exp_100_buff_enable_help": false
+      "exp_50_buff_enable_help": true,
+      "exp_100_buff_enable_help": true
     },
     "general_battle": {
-      "lock_team_enable": false,
+      "lock_team_enable": true,
       "preset_enable": false,
       "preset_group": 1,
       "preset_team": 1,
@@ -1076,25 +1076,25 @@
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "switch_soul_config": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "阴阳师",
+      "team_name": "传承试炼"
     }
   },
   "hunt": {
     "scheduler": {
       "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "priority": 2,
+      "next_run": "2026-10-10 00:00:45",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1102,45 +1102,45 @@
       "expected_minutes": 0
     },
     "hunt_time": {
-      "kirin_time": "19:00:00",
-      "netherworld_time": "19:00:00"
+      "kirin_time": "19:30:00",
+      "netherworld_time": "23:59:59"
     },
     "hunt_config": {
-      "kirin_group_team": "-1,-1",
-      "netherworld_group_team": "-1,-1"
+      "kirin_group_team": "3,1",
+      "netherworld_group_team": ""
     },
     "kirin_battle_config": {
       "lock_team_enable": false,
-      "preset_enable": false,
-      "preset_group": 1,
+      "preset_enable": true,
+      "preset_group": 3,
       "preset_team": 1,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "netherworld_battle_config": {
       "lock_team_enable": false,
       "preset_enable": false,
-      "preset_group": 1,
-      "preset_team": 1,
+      "preset_group": 2,
+      "preset_team": 4,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     }
   },
   "hyakkiyakou": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-10 05:24:23",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1148,16 +1148,16 @@
       "expected_minutes": 0
     },
     "hyakkiyakou_config": {
-      "hya_limit_time": "00:20:00",
-      "hya_limit_count": 10,
-      "hya_invite_friend": false,
+      "hya_limit_time": "00:05:00",
+      "hya_limit_count": 1,
+      "hya_invite_friend": true,
       "hya_onmyoji": "神乐",
-      "hya_auto_bean": false,
+      "hya_auto_bean": true,
       "hya_priorities": "",
       "hya_sp": 1.0,
       "hya_ssr": 1.0,
-      "hya_sr": 0.7,
-      "hya_r": 0.3,
+      "hya_sr": 1.0,
+      "hya_r": 0.0,
       "hya_n": 0.0,
       "hya_g": 0.0
     },
@@ -1168,24 +1168,24 @@
       "inference_engine": "Onnxruntime"
     },
     "debug_config": {
-      "hya_show": false,
-      "hya_info": false,
+      "hya_show": true,
+      "hya_info": true,
       "continuous_learning": false,
-      "hya_save_result": false,
-      "hya_interval": 300.0,
+      "hya_save_result": true,
+      "hya_interval": 200.0,
       "hya_screenshot_method": "window_background",
       "hya_control_method": "window_message"
     }
   },
   "kekkai_activation": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 2,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-09-20 20:36:25",
       "retry_interval": "00 10:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1194,8 +1194,8 @@
     },
     "activation_config": {
       "card_type": "太鼓",
-      "min_taiko_num": 8,
-      "min_fish_num": 16,
+      "min_taiko_num": 7,
+      "min_fish_num": 15,
       "exchange_before": true,
       "exchange_max": true,
       "shikigami_class": "N",
@@ -1204,13 +1204,13 @@
   },
   "kekkai_utilize": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 2,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-09 20:48:20",
       "retry_interval": "00 06:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1221,8 +1221,8 @@
       "utilize_rule": "default",
       "select_friend_list": "same_server",
       "shikigami_class": "N",
-      "shikigami_order": 4,
-      "min_run_interval": "00 00:00:00",
+      "shikigami_order": 1,
+      "min_run_interval": "00 01:05:00",
       "harvest_guild_max_times": 3,
       "utilize_enable": true,
       "guild_ap_enable": true,
@@ -1316,11 +1316,11 @@
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-10 00:00:18",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1329,14 +1329,14 @@
     },
     "shop_config": {
       "time_of_mystery": "00:00:00",
-      "mystery_amulet": false,
-      "black_daruma_scrap": false,
-      "shop_kaiko_3": false,
-      "shop_kaiko_4": false
+      "mystery_amulet": true,
+      "black_daruma_scrap": true,
+      "shop_kaiko_3": true,
+      "shop_kaiko_4": true
     },
     "share_config": {
-      "enable": false,
-      "share_friend_1": "",
+      "enable": true,
+      "share_friend_1": "伴生树",
       "share_friend_2": "",
       "share_friend_3": "",
       "share_friend_4": "",
@@ -1347,7 +1347,7 @@
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-09-20 17:15:05",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
@@ -1359,19 +1359,19 @@
       "expected_minutes": 0
     },
     "nian_config": {
-      "buff_gold_50_click": false,
-      "buff_gold_100_click": false
+      "buff_gold_50_click": true,
+      "buff_gold_100_click": true
     }
   },
   "orochi": {
     "scheduler": {
-      "enable": false,
-      "priority": 5,
+      "enable": true,
+      "priority": 1,
       "next_run": "2023-01-01 00:00:00",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1380,37 +1380,37 @@
     },
     "orochi_config": {
       "user_status": "leader",
-      "layer": "悲鸣",
+      "layer": "拾层",
       "limit_time": "00:30:00",
       "limit_count": 30,
-      "soul_buff_enable": false,
-      "check_true_orochi_enable": false
+      "soul_buff_enable": true,
+      "check_true_orochi_enable": true
     },
     "invite_config": {
       "invite_number": "one",
-      "friend_1": "",
+      "friend_1": "伴生树",
       "friend_2": "",
-      "find_mode": "auto_find",
+      "find_mode": "recent_friend",
       "wait_time": "00:02:00",
       "default_invite": true
     },
     "general_battle_config": {
       "lock_team_enable": false,
-      "preset_enable": false,
+      "preset_enable": true,
       "preset_group": 1,
       "preset_team": 1,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "switch_soul": {
-      "enable": false,
-      "switch_group_team": "-1,-1",
+      "enable": true,
+      "switch_group_team": "1,1",
       "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": "",
+      "group_name": "默认分组",
+      "team_name": "魂土",
       "auto_switch_soul": false,
       "ten_switch": "-1,-1",
       "eleven_switch": "-1,-1",
@@ -1469,11 +1469,11 @@
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-03 18:55:38",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1506,13 +1506,13 @@
   },
   "realm_raid": {
     "scheduler": {
-      "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "enable": true,
+      "priority": 4,
+      "next_run": "2026-10-11 00:00:00",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1525,41 +1525,41 @@
       "exit_four": true,
       "order_attack": "5 > 4 > 3 > 2 > 1 > 0",
       "three_refresh": false,
-      "when_attack_fail": "Refresh"
+      "when_attack_fail": "Continue"
     },
     "general_battle_config": {
-      "lock_team_enable": false,
+      "lock_team_enable": true,
       "preset_enable": false,
-      "preset_group": 1,
-      "preset_team": 1,
+      "preset_group": 4,
+      "preset_team": 4,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "switch_soul_config": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "每日必做",
+      "team_name": "结界突破"
     }
   },
   "restart": {
     "scheduler": {
-      "enable": true,
+      "enable": false,
       "priority": 0,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-09 19:30:01",
       "retry_interval": "01 00:00:00",
       "server_update": "09:05:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:03",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [
         {
-          "id": "e5f41383",
+          "id": "74f166b6",
           "enabled": true,
           "period": "daily",
           "start": "12:00:00",
@@ -1568,7 +1568,7 @@
           "days_of_month": ""
         },
         {
-          "id": "09e890cb",
+          "id": "dc7a65be",
           "enabled": true,
           "period": "daily",
           "start": "20:00:00",
@@ -1589,7 +1589,7 @@
       "enable_courtyard_affairs": true,
       "enable_jade": true,
       "enable_sign": true,
-      "enable_sign_999": true,
+      "enable_sign_999": false,
       "enable_mail": true,
       "enable_soul": true,
       "enable_ap": true
@@ -1600,13 +1600,13 @@
   },
   "rich_man": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-09 17:56:02",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1614,29 +1614,29 @@
       "expected_minutes": 0
     },
     "special_room": {
-      "enable": false,
-      "totem_pass": false,
+      "enable": true,
+      "totem_pass": true,
       "medium_bondling_discs": 0,
       "low_bondling_discs": 0
     },
     "honor_room": {
-      "enable": false,
-      "mystery_amulet": false,
-      "black_daruma_scrap": false
+      "enable": true,
+      "mystery_amulet": true,
+      "black_daruma_scrap": true
     },
     "friendship_points": {
-      "enable": false,
-      "white_daruma": false,
+      "enable": true,
+      "white_daruma": true,
       "red_daruma": 0,
       "broken_amulet": 0
     },
     "medal_room": {
-      "enable": false,
-      "black_daruma": false,
-      "mystery_amulet": false,
-      "ap_100": false,
+      "enable": true,
+      "black_daruma": true,
+      "mystery_amulet": true,
+      "ap_100": true,
       "random_soul": false,
-      "white_daruma": false,
+      "white_daruma": true,
       "challenge_pass": 0,
       "red_daruma": 0,
       "broken_amulet": 0
@@ -1648,22 +1648,22 @@
     },
     "thousand_things": {
       "enable": false,
-      "earn_money": false,
-      "mystery_amulet": false,
-      "black_daruma_fragment": false,
-      "ap": false
+      "earn_money": true,
+      "mystery_amulet": true,
+      "black_daruma_fragment": true,
+      "ap": true
     },
     "consignment": {
       "enable": false,
       "buy_sale_ticket": false
     },
     "scales": {
-      "enable": false,
-      "orochi_scales": 40,
-      "demon_souls": 50,
+      "enable": true,
+      "orochi_scales": 50,
+      "demon_souls": 0,
       "demon_class": "土蜘蛛",
       "demon_position": 1,
-      "picture_book_scrap": 30,
+      "picture_book_scrap": 0,
       "enable_book_auto": false,
       "picture_book_rule": "auto"
     },
@@ -1675,32 +1675,32 @@
       "medium_bondling_discs": 0
     },
     "shrine": {
-      "enable": false,
-      "black_daruma": false,
+      "enable": true,
+      "black_daruma": true,
       "white_daruma_five": false,
       "white_daruma_four": false
     },
     "guild_store": {
-      "enable": false,
-      "mystery_amulet": false,
-      "black_daruma_scrap": false,
+      "enable": true,
+      "mystery_amulet": true,
+      "black_daruma_scrap": true,
       "skin_ticket": 0
     }
   },
   "ryou_toppa": {
     "scheduler": {
-      "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "enable": true,
+      "priority": 3,
+      "next_run": "2026-10-10 07:04:46",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [
         {
-          "id": "d8a72942",
+          "id": "6e8949cc",
           "enabled": true,
           "period": "daily",
           "start": "07:00:00",
@@ -1718,25 +1718,25 @@
       "next_ryoutoppa_time": "07:00:00",
       "skip_difficult": true,
       "ryou_access": false,
-      "random_delay": false
+      "random_delay": true
     },
     "general_battle_config": {
-      "lock_team_enable": false,
+      "lock_team_enable": true,
       "preset_enable": false,
-      "preset_group": 1,
-      "preset_team": 1,
+      "preset_group": 4,
+      "preset_team": 4,
       "green_enable": false,
       "green_mark": "green_left1",
       "green_mark_type": "choose",
       "green_mark_name": "",
-      "random_click_swipt_enable": false
+      "random_click_swipt_enable": true
     },
     "switch_soul_config": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "每日必做",
+      "team_name": "结界突破"
     }
   },
   "script": {
@@ -1770,7 +1770,28 @@
       "close_emulator_wait_duration": "00:00:00",
       "emulator_startup_lead_time": "00:02:00",
       "schedule_rule": "Filter",
-      "run_list": [],
+      "run_list": [
+        {
+          "kind": "task",
+          "task": "BondlingFairyland",
+          "entry_id": "20261010T171308-BondlingFairyland"
+        },
+        {
+          "kind": "task",
+          "task": "GoryouRealm",
+          "entry_id": "20261010T171321-GoryouRealm"
+        },
+        {
+          "kind": "task",
+          "task": "Sougenbi",
+          "entry_id": "20261010T171258-Sougenbi"
+        },
+        {
+          "kind": "task",
+          "task": "Exploration",
+          "entry_id": "20261010T171325-Exploration"
+        }
+      ],
       "enable_fixed": true,
       "enable_timed": true,
       "priority_mode": "custom",
@@ -1790,7 +1811,7 @@
   },
   "secret": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
       "next_run": "2023-01-01 00:00:00",
       "retry_interval": "07 00:00:00",
@@ -1857,7 +1878,7 @@
   },
   "sougenbi": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
       "next_run": "2023-01-01 00:00:00",
       "retry_interval": "01 00:00:00",
@@ -1901,13 +1922,13 @@
   },
   "souls_tidy": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-09 17:56:01",
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1963,11 +1984,11 @@
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-09 19:34:57",
       "retry_interval": "00 06:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1987,7 +2008,7 @@
       "retry_interval": "01 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -1995,12 +2016,12 @@
       "expected_minutes": 0
     },
     "true_orochi_config": {
-      "find_true_orochi": true,
+      "find_true_orochi": false,
       "current_success": 0
     },
     "switch_soul": {
-      "enable": false,
-      "switch_group_team": "-1,-1",
+      "enable": true,
+      "switch_group_team": "1,6",
       "enable_switch_by_name": false,
       "group_name": "",
       "team_name": ""
@@ -2010,11 +2031,11 @@
     "scheduler": {
       "enable": false,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
-      "retry_interval": "01 00:00:00",
+      "next_run": "2026-10-09 20:30:15",
+      "retry_interval": "00 00:30:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -2023,30 +2044,30 @@
     },
     "wanted_quests_config": {
       "before_end": "00:00:00",
-      "invite_friend_name": "",
+      "invite_friend_name": "伴生树",
       "cooperation_type": "Any",
-      "battle_priority": "挑战 > 秘闻 > 探索",
+      "battle_priority": "挑战 > 秘闻> 探索 ",
       "cooperation_only": false,
-      "unwanted_boss_names": "酒吞童子,阎魔",
+      "unwanted_boss_names": "",
       "layer_limit": "柒"
     },
     "switch_soul_config": {
       "enable": false,
-      "switch_group_team": "-1,-1",
-      "enable_switch_by_name": false,
-      "group_name": "",
-      "team_name": ""
+      "switch_group_team": "",
+      "enable_switch_by_name": true,
+      "group_name": "打材料",
+      "team_name": "探索"
     }
   },
   "weekly_trifles": {
     "scheduler": {
-      "enable": false,
+      "enable": true,
       "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
+      "next_run": "2026-10-01 21:29:49",
       "retry_interval": "07 00:00:00",
       "server_update": "09:00:00",
       "delay_date": 1,
-      "float_time": "00:00:00",
+      "float_time": "00:05:00",
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
@@ -2054,13 +2075,13 @@
       "expected_minutes": 0
     },
     "trifles": {
-      "share_collect": true,
-      "share_area_boss": true,
-      "share_secret": true,
-      "save_touch_fish": false,
-      "broken_amulet": 100
+      "share_collect": false,
+      "share_area_boss": false,
+      "share_secret": false,
+      "save_touch_fish": true,
+      "broken_amulet": 50
     }
   },
-  "config_name": "template",
+  "config_name": "恋鸟树",
   "running_task": ""
 }

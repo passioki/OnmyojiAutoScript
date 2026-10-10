@@ -1211,6 +1211,26 @@ async def post_run_list_entry(script_name: str,
 
         if not config.save_run_list(rl):
             return {'error': '保存失败(见日志)'}
+
+        # ★★ 实机验收修复: **"重新添加"也清掉该任务的失败冷却** ★★
+        #
+        # ★ 用户原话: "契灵之境运行失败后的冷却状态**应该只在连续运行时
+        #   生效**, 我都**打断过了重新添加了**, 还显示在冷却中。"
+        #
+        # ★ 语义: 「连续失败」的"连续"以**一次不间断的运行**为单位。
+        #   用户主动把任务**重新加进队列** = 明确表示"我要再试一次"
+        #   -> 继续拿旧冷却拦他, 只会让他以为"加了也没用"。
+        #
+        # ⚠ 只清**这个条目对应的任务**（`rest`/`delay` 没有 task, 跳过）。
+        # ⚠ 清失败**不影响**插入结果（不该因为清冷却出错而回滚插入）。
+        task_of_entry = getattr(e, 'task', None)
+        if task_of_entry:
+            try:
+                from module.config import failure_state
+                failure_state.clear(script_name, task_of_entry)
+            except Exception as exc:
+                logger.warning(f'清失败冷却失败({task_of_entry}): {exc}')
+
         return {'entries': rl.to_list(), 'count': len(rl)}
     except Exception as exc:
         logger.exception(exc)
@@ -1743,12 +1763,35 @@ async def put_run_record_reset(script_name: str, tasks: list = Body(...)):
       新的记录**。这样后续可以分析运行记录和展示运行结果"。
 
     ★ 单个任务出错**不中断**其余的（批量操作里一个坏名字不该让整批失败）。
+
+    ## ★★ 实机验收修复: 重置**必须同时清掉失败冷却** ★★
+
+    ★ 用户原话: "契灵之境运行失败后的冷却状态**应该只在连续运行时生效**,
+      我都打断过了重新添加了, 还显示在冷却中, **即使我重置了契灵之境**!"
+
+    **根因**: 「重置」只调 `run_record.reset_many()` —— 那是**运行记录**
+    （`log/.run_record.json`）; 而**失败冷却**在**另一个文件**
+    （`log/.failure_state.json`, `failure_state`）里, **没人清**。
+    -> 用户重置了, 冷却**照旧倒计时**。
+
+    ★ 语义上也**应该**清: 「连续失败」的"连续"以**一次不间断的运行**
+      为单位; 用户主动**重置**就是明确表示"我修好了, 重新开始数"
+      —— 这正是 `failure_state.clear()` 的用途（它的 docstring 写着
+      "供界面'我修好了, 让我立刻重试'用"）。
+
+    ★ 失败**不影响** `archived_rounds` 的返回（清冷却失败也不该让整批失败）。
     """
     try:
-        from module.config import run_record
+        from module.config import failure_state, run_record
 
         names = [str(t) for t in (tasks or []) if t]
         archived = run_record.reset_many(script_name, names)
+        # ★ 同时解除这些任务的失败冷却
+        for n in names:
+            try:
+                failure_state.clear(script_name, n)
+            except Exception as exc:
+                logger.warning(f'清失败冷却失败({n}): {exc}')
         return {
             'script': script_name,
             'archived_rounds': archived,

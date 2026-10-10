@@ -119,11 +119,25 @@ class TestFrontendCarriesEntryId:
             'appendToQueue 仍在拒绝重复添加（⑧ 的根因）')
 
     def test_reorder_preserves_entry_id(self):
-        """★★ 拖动必须**保留 `entry_id`**（否则条目身份被抹掉）。"""
-        src = self._src('lib/controller/task_list/task_list_controller.dart')
-        i = src.find('void reorderQueue')
-        assert i > 0
-        body = src[i:i + 2000]
+        """★★ 拖动必须**保留 `entry_id`**（否则条目身份被抹掉）。
+
+        ## ★★ 实机验收修复: 原来用**固定字符窗口**, 太脆 ★★
+
+        原文:
+            i = src.find('void reorderQueue')
+            body = src[i:i + 2000]        # ★ 魔法数字
+            assert 'entry_id' in body
+
+        ★ 我在 `reorderQueue` 里**加了一段注释**（说明"先深拷贝再改"），
+          于是 `entry_id` 被推到 2000 字符**之外** -> **假失败**。
+        ★ 这不是代码错了, 是**断言错了** —— 它把"函数有多长"变成了契约。
+
+        ★ 改用 `tests/_srcutil.py` 的 `code_of()`: 按**缩进**取整个函数体
+          （并剥注释）, 与函数长度无关。
+        """
+        from _srcutil import code_of
+        body = code_of(OASX / 'lib' / 'controller' / 'task_list'
+                       / 'task_list_controller.dart', 'void reorderQueue')
         assert 'entry_id' in body, (
             'reorderQueue 重建 entries 时丢了 entry_id —— '
             '一次拖动就会让按条目追踪失效')

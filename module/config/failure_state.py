@@ -258,10 +258,27 @@ def record_failure(config_name: str, task: str,
         just_cooled = False
         until = None
         if count >= max(1, int(threshold)):
-            # 到阈值 -> 冷却 + **计数减半**（不是清零, 见模块文档）
+            # 到阈值 -> 进入冷却
             until = now + timedelta(minutes=max(0, int(cooldown_minutes)))
             node['cooldown_until'] = until.replace(microsecond=0).isoformat()
-            node['count'] = count // 2
+            # ★★ 实机验收修复: 计数**归零**, 不再"减半" ★★
+            #
+            # ## 原来的写法（`count = count // 2`）与"连续"语义不符
+            #
+            # 用户原话: "冷却状态**应该只在连续运行时生效**"。
+            #
+            # 而"减半"会让**上一轮的失败计入下一轮**:
+            #   * threshold=3, 第 3 次失败 -> 冷却, `count = 3 // 2 = 1`
+            #   * 冷却结束 -> 用户重新跑 -> 再失败 **2 次**就又冷却
+            #   * ★ 实测到用户状态文件里正是 **`count: 1` + 冷却中**,
+            #     用户看到的是"我才失败一次怎么就冷却了"
+            #
+            # ★ 冷却 = "这一串连续失败已经处理过了"。冷却**结束后重新
+            #   开始数**, 才是"连续"该有的语义。
+            #
+            # ⚠ 保留 `count` 字段（置 0）而不是删掉 —— 界面靠它的存在
+            #   显示"曾失败过", 删了会让那一行突然变干净。
+            node['count'] = 0
             just_cooled = True
         else:
             node['count'] = count

@@ -1937,6 +1937,59 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             logger.error(f'保存运行列表失败({type(exc).__name__}: {exc})')
             return False
 
+    # 休息的默认分钟数 —— 任务节点的 `target` 为 0 时用它
+    REST_DEFAULT_MINUTES = 30
+
+    def _rest_minutes(self, blocker) -> int:
+        """休息**多少分钟** —— ★ 优先取**任务节点**，条目值兜底。
+
+        ## ★★★ 依据（用户裁定 乙-A）★★★
+
+        > "休息就是临时任务（回庭院待着），只不过可以选择被定时任务插队。"
+        > "有 period 和 window 属性, 是为了**统一管理**。"
+        > "需要**分钟**, 不是次数。"
+        > "在 period != none 的情况下 …… 咱们只需要写好逻辑, 确保逻辑不混乱就行。"
+
+        ## 解析顺序
+
+        | # | 来源 | 说明 |
+        |---|---|---|
+        | 1 | ★ `rest.scheduler.target > 0` | **权威** —— 休息任务的"目标次数"即**分钟** |
+        | 2 | 条目自带的 `minutes > 0` | **向后兼容** —— 旧配置只有条目、没有任务节点 |
+        | 3 | `REST_DEFAULT_MINUTES` | 两边都没给 -> 给一个**可见**的默认 |
+
+        ## 为什么不是"不休息"
+
+        `target=0` 在其它任务是"用任务配置里的次数上限"，但休息**没有**那种上限。
+        ★ 静默变成"休息 0 分钟"= **不休息** —— 用户会以为"设了休息却没生效"，
+          那是**静默失败**。所以给一个**可见的默认**并打日志。
+
+        :return: 分钟数（>= 1）
+        """
+        # ① 任务节点（权威）
+        try:
+            node = getattr(self.model, 'rest', None)
+            sch = getattr(node, 'scheduler', None) if node is not None else None
+            target = int(getattr(sch, 'target', 0) or 0)
+            if target > 0:
+                return target
+        except Exception as exc:
+            logger.debug(f'读 rest.scheduler.target 失败'
+                         f'({type(exc).__name__}: {exc}), 回退条目值')
+
+        # ② 条目值（向后兼容）
+        try:
+            m = int(getattr(blocker, 'minutes', 0) or 0)
+            if m > 0:
+                return m
+        except Exception:
+            pass
+
+        # ③ 默认（可见，不静默）
+        logger.info(f'休息未设分钟数（rest.scheduler.target=0 且条目 minutes=0）'
+                    f' -> 用默认 {self.REST_DEFAULT_MINUTES} 分钟')
+        return self.REST_DEFAULT_MINUTES
+
     def apply_run_list_blocker(self, now=None) -> bool:
         """
         处理运行列表里的**阻塞条目**(`rest` / `delay`)。
@@ -1980,10 +2033,23 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         until = run_control.rest_until()
         if until is None:
             # 该条目还没生效 -> 起算并写状态
-            run_control.rest(minutes=blocker.minutes)
+            #
+            # ★★★ 休息时长优先取【任务节点】(乙-A), 条目值兜底 ★★★
+            #
+            # 用户裁定:
+            # > "休息就是临时任务（回庭院待着），只不过可以选择被定时任务插队。"
+            # > "有 period 和 window 属性, 是为了**统一管理**。"
+            # > "需要**分钟**, 不是次数。"
+            #
+            # ★ 所以分钟数的**权威来源**是 `rest.scheduler.target`
+            #   （那个"目标次数"框，对休息它的语义就是**分钟**）。
+            # ⚠ 条目自带的 `minutes` 只作**向后兼容兜底**
+            #   （旧配置里只有条目、没有任务节点）。
+            minutes = self._rest_minutes(blocker)
+            run_control.rest(minutes=minutes)
             until = run_control.rest_until()
             logger.info(f'运行列表: 「{blocker.describe()}」生效'
-                        f'（休息 = 去庭院待着）')
+                        f'（休息 {minutes} 分钟 = 去庭院待着）')
         if until is not None and now < until:
             # ★ 「休息时可穿插定时任务」: 若有能在休息剩余时间内**跑完**的
             #   到点定时任务, 就**不阻塞** —— 让那个任务先跑。

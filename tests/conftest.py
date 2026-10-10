@@ -80,16 +80,74 @@ def _check_entry_ids(path: Path) -> list:
     return bad
 
 
+def _snapshot(files) -> dict:
+    out = {}
+    for p in files:
+        try:
+            out[p] = p.read_bytes()
+        except OSError:
+            pass
+    return out
+
+
+def _restore(snapshot: dict) -> list:
+    """把 `snapshot` 里的内容写回磁盘; 返回**被还原**的文件列表。"""
+    changed = []
+    for p, before in snapshot.items():
+        try:
+            if p.read_bytes() != before:
+                p.write_bytes(before)
+                changed.append(p)
+        except OSError:
+            pass
+    return changed
+
+
+#: 每测试级记录"本会话已被污染（且已还原）的文件" -> 会话末汇总报告
+_POLLUTED = set()
+
+
+@pytest.fixture(autouse=True)
+def _guard_live_config_per_test():
+    """★★ 第二轮复审（待办 #1）: **每测试级**快照 -> 还原。
+
+    ## 为什么在 session 级之外**还要**加这一层
+
+    session 级只在**会话结束**比对/还原。如果测试在**中途**改了配置:
+      * 会话内**后续测试**看到的就是**被污染**的配置 ->
+        **顺序相关的偶发失败**（实测踩过好几次）
+      * 脚本被 **Ctrl-C / 硬杀 / `os._exit`** -> session 的 finalizer
+        **跑不到** -> 污染**留在磁盘上**
+
+    ★ 每测试级把窗口收窄到"**单个测试**": 它跑完立刻还原, 于是
+      下一个测试总是从**干净**的配置开始。
+
+    ★ **不做**"把 `config/` 整个重定向到 `tmp_path`"那种彻底隔离 ——
+      因为 `write_json` 用 `Path.cwd()`, 那需要 `os.chdir(tmp)` +
+      在 tmp 里造一份 `config/`（还牵扯 `tasks/` 的导入路径）,
+      而**很多测试有意读真实配置的现值**（`live` fixture）。收益不抵风险。
+      本层 + session 层各管一段, 已经覆盖实测到的**全部**事故形态。
+    """
+    files = _config_files()
+    before = _snapshot(files)
+    yield
+    changed = _restore(before)
+    if changed:
+        names = ', '.join(p.name for p in changed)
+        _POLLUTED.update(p.name for p in changed)
+        import warnings as _w
+        _w.warn(
+            f'★★★ 某个测试污染了用户实时配置 —— **已在测试结束时还原**: '
+            f'{names} ★★★ 请修那个测试（应在 finally 里自己备份 + 还原; '
+            f'正确范例: tests/module/config/test_queue_clear_and_settings.py）',
+            UserWarning, stacklevel=1)
+
+
 @pytest.fixture(scope='session', autouse=True)
 def _guard_live_config():
     """会话级: 快照 -> 跑测试 -> 比对/还原/报警。"""
     files = _config_files()
-    snapshot = {}
-    for p in files:
-        try:
-            snapshot[p] = p.read_bytes()
-        except OSError:
-            pass
+    snapshot = _snapshot(files)
 
     # 进会话前先体检一次（也可能是上次跑测试留下的）
     pre_bad = []
@@ -99,18 +157,7 @@ def _guard_live_config():
     yield
 
     # ---------- 会话结束: 比对 ----------
-    changed = []
-    for p, before in snapshot.items():
-        try:
-            after = p.read_bytes()
-        except OSError:
-            continue
-        if after != before:
-            changed.append(p)
-            try:
-                p.write_bytes(before)      # ★ 还原
-            except OSError:
-                pass
+    changed = _restore(snapshot)
 
     post_bad = []
     for p in files:

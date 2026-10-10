@@ -43,5 +43,5 @@ SPEC = TaskSpec(
     #   与 `check_time()` 的 17:30 目标一致, **不冲突**。
     window=AvailabilityWindow(True, time(17, 0), time(23, 0)),
     list_pos=4,
-    period=Period.NONE,
+    period=Period.DAILY,
 )

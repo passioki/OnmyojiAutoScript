@@ -28,5 +28,5 @@ SPEC = TaskSpec(
             AvailabilityWindow(True, time(17, 0), time(23, 0), days=(4, 5, 6)),
         ],
     list_pos=17,
-    period=Period.NONE,
+    period=Period.DAILY,
 )

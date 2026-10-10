@@ -508,12 +508,26 @@ def build_overview(config_name: str) -> dict:
             'category_effective_label': TC.CATEGORY_LABEL.get(
                 meta.category_effective if meta else None, ''),
             # 优先级段: `'timed'` / `'fixed'` —— 与 `Config._segment_of()`
-            # 以及 `build_queue()` 的 `_tag_and_place_rest()` 用**同一处**判据
-            #（`TaskSpec.priority_group`）。
+            # 以及 `build_queue()` 的 `_tag_and_place_rest()` 用**同一处**判据。
             #
-            # ★ S7: 它现在**只用于显示**（类别色条/标签）与
-            #   `sort_run_list(by=...)` 的排序依据 —— **不再限制拖动**。
-            'priority_group': (meta.priority_group if meta else 'fixed'),
+            # ★★★ 判据已改为读**配置**里的 `scheduler.period`（用户裁定）★★★
+            #
+            # 用户原话:
+            # > "**窗口必须在选了周期后才能设置。这样子判断依据就可以按有没有
+            # >  周期来判断**"
+            # > "周期是 period 啊！… 是**每天、每周每月、不限**那个"
+            #
+            # ★ 原来这里读 `meta.priority_group`（`meta.py` 的 `TaskSpec.period`,
+            #   **写死源码、前端改不了**）-> 用户"在前端改了 period, 队列标签不动"。
+            # ★ 现在走 `config.priority_group_of()`（= 读配置的 `scheduler.period`,
+            #   拿不到才回退出厂默认值）-> **改一处, 全联动**。
+            #
+            # ★ S7: 它**只用于显示**（类别色条/标签）与 `sort_run_list(by=...)`
+            #   的排序依据 —— **不再限制拖动**（拖动永远自由）。
+            'priority_group': config.priority_group_of(command),
+            # ★ `scheduler.period` 本身也暴露出去（前端要显示/编辑"周期"下拉,
+            #   也需要它来提示"选了周期才能配窗口"）。
+            'period': config.task_period(command),
             # ★★★ 优先级段的**中文名** —— 界面显示"定时/固定"**只用这一个** ★★★
             #
             # ## 为什么必须由后端给（实机验收发现的**口径不一致**）
@@ -531,8 +545,12 @@ def build_overview(config_name: str) -> dict:
             #
             # ★ 修法: 后端给出**这一个**标签, 前端三处都用它 ——
             #   "同一知识三处定义" 收敛成**一处**。
+            #
+            # ⚠ 必须用 `config.priority_group_of(command)`（同上, 读配置）,
+            #   **不能**再用 `meta.priority_group` —— 否则标签与
+            #   `priority_group` 又不同源（那正是上面那个矛盾的成因）。
             'priority_group_label': TC.PRIORITY_GROUP_LABEL.get(
-                (meta.priority_group if meta else 'fixed'), ''),
+                config.priority_group_of(command), ''),
             # ★ 当前是否**在开放时段内** —— 供界面区分"能跑/还没到点",
             #   也是 `sort_run_list()` 把"跑不了的任务"排到后面的依据。
             'in_window_now': bool(in_window),
@@ -1425,6 +1443,47 @@ async def get_task_windows(script_name: str, task: str):
         return {'error': str(exc)}
 
 
+def _require_period_for_windows(config, task: str):
+    """★★★ 窗口的**前置条件**: 任务的周期不能是「不限」（用户裁定）★★★
+
+    ## 用户原话
+
+    > "**窗口必须在选了周期后才能设置。这样子判断依据就可以按有没有周期来
+    >  判断**"
+
+    ★ 也就是: `scheduler.period == 'none'`（不限 = **临时任务**）**不允许新增窗口**。
+      这样"分类判据（有没有周期）"与"窗口能不能配"**说的是同一件事** ——
+      不会再出现"有窗口却算临时"的矛盾。
+
+    ## 为什么**只在新增时**拦（已存在的窗口不拦）
+
+    ★ 用户的配置里**已经有**一批"有窗口但 period=none"的任务
+      （逢魔/道馆/狩猎战/阴界之门/神秘商店/经验妖怪/金币妖怪/章鱼 ——
+       本轮已按窗口规律给它们补上了周期）。
+    ★ 但**别的账号/别的任务**可能还有历史窗口。若在"编辑/保存"时无条件拦,
+      用户会被**锁死**（连删都改不了）—— 那不是约束, 是砖。
+
+    ★ 所以规则是:
+      * **新增**窗口（`POST`, 或 `PUT` 里出现了**新 id**）-> 必须 `period != none`
+      * **编辑已有**窗口（id 集合不变）-> 放行
+      * **删除**窗口 -> 放行（否则用户删不掉）
+
+    :return `None` 表示允许; 否则返回**错误文案**
+    """
+    try:
+        period = config.task_period(task)
+    except Exception as exc:
+        logger.warning(f'判 {task} 的周期失败({type(exc).__name__}: {exc}), '
+                       f'放行窗口操作')
+        return None
+    if period != 'none':
+        return None
+    return (f'「{task}」的周期是「不限」（= 临时任务）—— '
+            f'**请先在调度器的「周期」里选每天/每周/每月**, 之后才能设置窗口。\n'
+            f'★ 理由: 窗口是"这个周期里的哪几段时刻能跑"; 没有周期就没有'
+            f'可依附的周期边界。')
+
+
 @schema_app.put('/{script_name}/tasks/{task}/windows')
 async def put_task_windows(script_name: str, task: str,
                            windows: list = Body(...)):
@@ -1433,15 +1492,26 @@ async def put_task_windows(script_name: str, task: str,
     ★ 为什么也提供整单替换: 前端编辑多条后一次保存最简单可靠,
       也避免"改到一半只写了一半"的中间态（与 `PUT run_list` 同理）。
     ★ `id` 缺失的项会自动补 —— 前端新增行可以不生成 id。
+
+    ★ 约束: **只在新出现 id（= 新增窗口）时**要求 `period != 'none'`;
+      纯粹编辑已有窗口放行（见 `_require_period_for_windows`）。
     """
     try:
         from module.server.main_manager import mm
         config = mm.config_cache(script_name)
-        sch, _ = _windows_of(config, task)
+        sch, before = _windows_of(config, task)
         if sch is None:
             return {'error': f'找不到任务 {task!r}'}
         # ★ 先转 `TaskWindow`（显式校验 + 类型正确）
         cleaned = [_to_task_window(w) for w in (windows or [])]
+        # ★ 判"是不是新增": 提交里出现了原先没有的 id
+        old_ids = {str(w.get('id')) for w in before if w.get('id')}
+        new_ids = {str(w.id) for w in cleaned if w.id}
+        adding = bool(new_ids - old_ids)
+        if adding:
+            err = _require_period_for_windows(config, task)
+            if err:
+                return {'error': err, 'needs_period': True}
         sch.windows = cleaned
         config.save()
         _, ws = _windows_of(config, task)
@@ -1455,13 +1525,20 @@ async def put_task_windows(script_name: str, task: str,
 @schema_app.post('/{script_name}/tasks/{task}/windows')
 async def post_task_window(script_name: str, task: str,
                            window: dict = Body(...)):
-    """**新增**一条窗口（后端生成 `id`）。"""
+    """**新增**一条窗口（后端生成 `id`）。
+
+    ★ 约束: `period != 'none'` 才允许（用户裁定: "窗口必须在选了周期后才能设置"）。
+    """
     try:
         from module.server.main_manager import mm
         config = mm.config_cache(script_name)
         sch, _ = _windows_of(config, task)
         if sch is None:
             return {'error': f'找不到任务 {task!r}'}
+        # ★★ 新增窗口的前置条件: 必须已经选了周期
+        err = _require_period_for_windows(config, task)
+        if err:
+            return {'error': err, 'needs_period': True}
         item = _to_task_window(window, new_id=True)
         sch.windows = list(getattr(sch, 'windows', None) or []) + [item]
         config.save()
@@ -1475,7 +1552,11 @@ async def post_task_window(script_name: str, task: str,
 @schema_app.put('/{script_name}/tasks/{task}/windows/{window_id}')
 async def put_task_window(script_name: str, task: str, window_id: str,
                           window: dict = Body(...)):
-    """**改**一条窗口（**按 `id`**）。"""
+    """**改**一条窗口（**按 `id`**）。
+
+    ★ **不**要求周期 —— 这是**编辑已有窗口**, 拦了用户就改不动了
+      （连把历史窗口改对都不行）。见 `_require_period_for_windows`。
+    """
     try:
         from module.server.main_manager import mm
         config = mm.config_cache(script_name)
@@ -1501,7 +1582,10 @@ async def put_task_window(script_name: str, task: str, window_id: str,
 
 @schema_app.delete('/{script_name}/tasks/{task}/windows/{window_id}')
 async def delete_task_window(script_name: str, task: str, window_id: str):
-    """**删**一条窗口（**按 `id`**）。"""
+    """**删**一条窗口（**按 `id`**）。
+
+    ★ **不**要求周期 —— 否则"周期是不限"的任务连窗口都删不掉。
+    """
     try:
         from module.server.main_manager import mm
         config = mm.config_cache(script_name)

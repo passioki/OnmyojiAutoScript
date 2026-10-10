@@ -25,5 +25,5 @@ SPEC = TaskSpec(
     auto_queue=True,
     window=AvailabilityWindow(True, time(0, 0), time(23, 59), days=(2, 5)),
     list_pos=43,
-    period=Period.NONE,
+    period=Period.WEEKLY,
 )

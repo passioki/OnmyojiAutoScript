@@ -385,6 +385,90 @@ class Function:
 #   它们都从**真实配置**构造 `Function`。
 
 
+def _spec_of(task_command: str):
+    """按任务名取 `TaskSpec`（容错）。
+
+    ## ★ 为什么需要它（实测踩到的坑）
+
+    `TC.get_spec(name)` 的键**不是** `TC.all_specs()` 返回的每一个名字 ——
+    实测 `GotoMain` 在 `all_specs()` 里**有**, 但 `get_spec('GotoMain')`
+    **返回 None**（两者对"名字"的归一化口径不同）。
+
+    ★ 所以拿 spec 要**先按精确名、再按归一化名**试两次, 否则会静默拿到
+      `None` -> 出厂默认值退化成 `'none'` -> 任务被误判成"临时"。
+      （本项目一贯纪律: **让静默失败变成看得见** —— 所以这里保守回退, 但
+       调用方 `task_period_default` 会把"取不到"如实返回 `'none'`。）
+    """
+    try:
+        from module.config import task_catalog as TC
+
+        spec = TC.get_spec(task_command)
+        if spec is not None:
+            return spec
+        # 归一化后重试（下划线 <-> 大驼峰）
+        from module.config.config_model import convert_to_underscore
+
+        key = convert_to_underscore(task_command)
+        for cand in (key, key.replace('_', ''), task_command.lower()):
+            for n in TC.all_specs():
+                if convert_to_underscore(n).replace('_', '') == \
+                        str(cand).replace('_', ''):
+                    spec = TC.get_spec(n)
+                    if spec is not None:
+                        return spec
+        return None
+    except Exception as exc:
+        logger.debug(f'取 TaskSpec 失败({task_command}: '
+                     f'{type(exc).__name__}: {exc})')
+        return None
+
+
+def task_period_default(task_command: str) -> str:
+    """该任务的**出厂默认周期** —— 读 `tasks/<Name>/meta.py` 的 `TaskSpec.period`。
+
+    ## ★ 它现在的定位（用户裁定）
+
+    > "`meta.py` 降级为**出厂默认值**"
+
+    ★ 也就是说: **它不再是"分类依据"** —— 分类由配置里的
+      `scheduler.period` 决定（见 `Config.task_period()`）。
+      它只在"配置里还没有这个键"时用来**回填**。
+
+    :return `'none'` / `'daily'` / `'weekly'` / `'monthly'`（取不到时 `'none'`）
+    """
+    spec = _spec_of(task_command)
+    if spec is None:
+        return 'none'
+    try:
+        v = spec.period_effective
+        s = str(getattr(v, 'value', v) or '').strip().lower()
+        return s if s in ('none', 'daily', 'weekly', 'monthly') else 'none'
+    except Exception as exc:
+        logger.debug(f'取出厂默认周期失败({task_command}, '
+                     f'{type(exc).__name__}: {exc})')
+        return 'none'
+
+
+def _all_task_names() -> list:
+    """可遍历的**任务键**清单（供迁移遍历 `scheduler` 节点用）。
+
+    ⚠ **不要用 `TC.all_specs().keys()`**: 实测那里面有 `GotoMain` 之类的
+      "有名字但 `get_spec` 取不到 spec" 的项, 而**配置里也没它的节点** ——
+      遍历它只会白跑。这里用 `_load_specs()`（真正建好 spec 的那张表）。
+
+    ★ 配置里**存在但这里没有**的任务（如 `Restart` / `GotoMain`）由
+      `migrate_task_period_once()` 的"取不到 spec -> 用出厂默认 `none`"兜底,
+      不会漏。
+    """
+    try:
+        from module.config import task_catalog as TC
+
+        return list(TC._load_specs().keys())
+    except Exception as exc:
+        logger.warning(f'取任务键清单失败({type(exc).__name__}: {exc})')
+        return []
+
+
 class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
     def __init__(self, config_name: str, task=None) -> None:
@@ -405,6 +489,19 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # `migrate_windows_once()` **自身幂等**（`window_slots` 非空就跳过）
         # —— 不会覆盖用户后续在界面上的修改。
         self.migrate_windows_once()
+        # ★★★ 一次性回填 `scheduler.period`（用户确认要做）★★★
+        #
+        # 用户原话:
+        # > "首次自动把 `scheduler.period` 按 meta 的出厂值补上
+        # >  （避免 52 个任务突然全变临时）" —— **对**
+        #
+        # ★ 为什么必须: 分类判据已改成读**配置**里的 `scheduler.period`
+        #   （这样前端一改就联动）。但老配置里**没有这个键** ->
+        #   若不回填, 绝大多数任务会突然变成「临时任务」, 分类被打乱。
+        #
+        # ★ 幂等: 每个任务只要已有**合法值**就跳过 ——
+        #   **包括 `none`**（那是用户选的"不限", 不能被默认值覆盖）。
+        self.migrate_task_period_once()
         # ★★★ S7: **调度优先级三模式已整簇删除**（用户裁定）★★★
         #
         # 用户原话:
@@ -545,6 +642,178 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
     #   -> 下次 `save()` 时从磁盘上**自然消失**。不需要专门写清理迁移。
 
     # ------------------------------------------------------------------ 一次性迁移
+    # ------------------------------------------------------------------ 任务周期（唯一权威）
+    def task_period(self, task_command: str) -> str:
+        """★ 该任务**当前生效的周期** —— `'none'` / `'daily'` / `'weekly'` / `'monthly'`。
+
+        ## ★★★ 为什么需要它（用户裁定, 本轮核心）★★★
+
+        用户原话:
+        > "**周期是 period 啊！**你联系下上下文行不, 是**每天、每周每月、不限**那个"
+
+        ★ 那个下拉在 **`/args` 的 `scheduler` 组**：
+        ```
+        GET /{script}/{task}/args  ->  组 'scheduler'  ->  字段 'period'
+          type='enum'   enumEnum=['none','daily','weekly','monthly']
+        ```
+        前端 `args_view.dart` 的通用枚举渲染 -> `DropdownButton`（选项正是这 4 个）。
+
+        ## 取值顺序（★ 用户确认）
+
+        1. ★ **配置里的 `scheduler.period`**（用户在前端选的）—— **优先**
+        2. `tasks/<Name>/meta.py` 的 `TaskSpec.period` —— ★ **降级为「出厂默认值」**
+
+        > 用户裁定: "判据改成读 `scheduler.period`（配置）, `meta.py` 降级为出厂默认值"
+
+        ## 为什么必须这样（原来不联动的根因）
+
+        | | 用户改的 | 标签原来读的 |
+        |---|---|---|
+        | 字段 | **`scheduler.period`**（配置, **有前端入口**）| **`TaskSpec.period`**（`meta.py`, **写死源码**）|
+
+        ★ **同名、不同字段、不同来源** -> 用户"在前端改了 period, 队列标签不动"。
+        ★ 实测两边 **31/53 不一致**（配置里 52 个 `none`, `meta.py` 里 29 个 `daily`）。
+
+        ## 它驱动什么
+
+        * `_segment_of()` -> `priority_group` -> 界面「**周期 / 临时**」标签与分段条
+        * ★ 与**窗口约束**配套: `period == 'none'` 时**不允许新增窗口**
+          （见 `schema_router` 的窗口端点 + `window_editor.dart` 的提示）
+        """
+        # ① 配置优先
+        try:
+            from module.config.config_model import convert_to_underscore
+            key = convert_to_underscore(task_command)
+            sch = getattr(getattr(self.model, key, None), 'scheduler', None)
+            v = getattr(sch, 'period', None) if sch is not None else None
+            s = str(getattr(v, 'value', v) or '').strip().lower()
+            if s in ('none', 'daily', 'weekly', 'monthly'):
+                # ⚠ `none` 也要**认**（它就是"不限"）—— 不能当成"没设过"。
+                return s
+        except Exception as exc:
+            logger.debug(f'取 {task_command} 的配置 period 失败'
+                         f'({type(exc).__name__}: {exc})')
+        # ② 回退出厂默认值
+        return task_period_default(task_command)
+
+    def priority_group_of(self, task_command: str) -> str:
+        """★★ 段名 —— `'timed'`（**周期任务**）/ `'fixed'`（**临时任务**）。
+
+        用户裁定:
+        > "窗口必须在选了周期后才能设置。**这样子判断依据就可以按有没有周期来判断**"
+
+        ★ 判据**一条**: `task_period() != 'none'` -> 周期任务。
+        ★ 这就是"改一个属性, 全联动"的**唯一那处判断** —— 不再有
+          `category` -> `category_effective` -> `priority_group` 三层推导。
+        """
+        return 'fixed' if self.task_period(task_command) == 'none' else 'timed'
+
+    def migrate_task_period_once(self) -> bool:
+        """★ 一次性把 `scheduler.period` **按出厂默认值回填**（用户确认要做）。
+
+        ## 用户裁定
+
+        > "首次自动把 `scheduler.period` 按 meta 的出厂值补上
+        >  （避免 52 个任务突然全变临时）" —— **对**
+        > 剩下 45 个 `none`: "把剩下的 `none` 也按 meta 内置值**全部回填**"
+
+        ## 为什么必须回填
+
+        分类判据已改成读**配置**里的 `scheduler.period`（这样前端一改就联动）。
+        而老配置里那 52 个任务写的都是 `none` —— 若不回填,
+        **绝大多数任务会突然变成「临时任务」**, 与改造前的分类不一致。
+
+        ## ★ 回填规则（用户确认）
+
+        * `scheduler.period` **是 `none` 或缺失** -> ★ 写成出厂默认值
+        * `scheduler.period` **是 `daily`/`weekly`/`monthly`** -> ★ **不动**
+          （那是用户在前端明确选的, 必须尊重）
+
+        ⚠ 为什么 `none` 也要回填（而不是当成"用户选了不限"）:
+          `none` 恰好就是 `template.json` 里的**默认值** —— 老配置里那 52 个
+          `none` **无法区分**"用户选的"与"从没设过"。★ 用户已明确选择
+          "**按 meta 全部回填**", 所以这里按 `none` -> 出厂默认值处理。
+
+        ## ★★★ 但它**必须只跑一次**（否则用户改不动"不限"）★★★
+
+        实测踩到的坑: `Config()` **每个 HTTP 请求都会新建**, 而本方法在
+        `__init__` 里调用 —— 若只看"当前是 `none` 就回填", 那么用户把某任务
+        改成「不限」后, **下一次请求就被改回出厂值**:
+        ```
+        写入 period='none'  ->  Config(cfg)  ->  task_period() 返回 'daily'
+                                            ->  ★ 磁盘也被改回 'daily'
+        ```
+        ★ **用户完全改不动「不限」** —— 这正是"分类永远不联动"的另一种形态。
+
+        ★ 修法: `Optimization.period_backfilled` **一次性标记** ——
+          回填只做第一次, 之后永不再碰（用户想设 `none` 就设得动）。
+        """
+        try:
+            from module.config.config_model import convert_to_underscore
+
+            opt = getattr(getattr(self.model, 'script', None),
+                          'optimization', None)
+            if opt is None:
+                return False
+            # ★ 已经回填过 -> 彻底不管（用户后续的任何选择都必须尊重）
+            if bool(getattr(opt, 'period_backfilled', False)):
+                return False
+
+            changed = []
+            for name in _all_task_names():
+                key = convert_to_underscore(name)
+                sch = getattr(getattr(self.model, key, None), 'scheduler', None)
+                if sch is None:
+                    continue
+                cur = getattr(sch, 'period', None)
+                s = str(getattr(cur, 'value', cur) or '').strip().lower()
+                # ★ 用户明确选过的周期 -> 不动
+                if s in ('daily', 'weekly', 'monthly'):
+                    continue
+                want = task_period_default(name)
+                if s == want:
+                    continue        # 值没变（如出厂值本来就是 none）-> 不写
+                # ★★ 必须写**枚举对象**, 不能写裸字符串 ★★
+                #
+                # `Scheduler.period` 是 `TaskPeriod` 枚举。写字符串会触发
+                # pydantic 警告（实测 30 条）:
+                #   `Expected 'enum' but got 'str' with value 'daily' -
+                #    serialized value may not be as expected`
+                # ⚠ 本项目**已踩过同一个坑**（`put_priority_mode` 那里也写着
+                #   "传枚举对象而不是裸字符串"）。这里照同一做法。
+                from tasks.Component.config_scheduler import TaskPeriod
+
+                try:
+                    self.model.deep_set(
+                        self.model, keys=f'{key}.scheduler.period',
+                        value=TaskPeriod(want))
+                except ValueError:
+                    # 出厂默认值不在枚举里（不该发生）-> 跳过并告警
+                    logger.warning(f'{name}: 出厂周期 {want!r} 不是合法 '
+                                   f'TaskPeriod, 跳过')
+                    continue
+                changed.append((name, s or '<缺失>', want))
+
+            # ★ 无论有没有改动, 都要**置上标记** —— 否则"出厂值本来就是 none"
+            #   的那 14 个任务会让本方法每次启动都白跑一遍。
+            self.model.deep_set(
+                self.model, keys='script.optimization.period_backfilled',
+                value=True)
+            self.save()
+            if changed:
+                logger.info(
+                    f'已按出厂默认值回填 {len(changed)} 个任务的 '
+                    f'scheduler.period（用户明确选过 daily/weekly/monthly 的'
+                    f'不动; 之后不再回填）')
+            else:
+                logger.info('任务周期回填: 无需改动, 已置一次性标记')
+            return bool(changed)
+        except Exception as exc:
+            logger.warning(f'回填 scheduler.period 失败'
+                           f'({type(exc).__name__}: {exc}) —— '
+                           f'下次启动会重试')
+            return False
+
     def migrate_windows_once(self) -> bool:
         """把**窗口**迁移/配好（**只做一次**, 用户要求）。
 
@@ -847,19 +1116,31 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
     #   它排在中间会挡住后面所有任务。见 `_tag_and_place_rest()`。
 
     def _segment_of(self, command: str) -> str:
-        """任务属于哪个**优先级段** —— `'timed'` / `'fixed'`（读 catalog）。
+        """任务属于哪个**段** —— `'timed'`（周期任务）/ `'fixed'`（临时任务）。
 
-        ★ 用途（删掉三模式之后**只剩两个**）:
-          * `/overview` 的 `priority_group`（界面**显示**类别色条/标签）
-          * `sort_run_list(by=...)` 的**一次性排序**依据
+        ## ★★★ 判据（用户裁定, 本轮核心）★★★
+
+        用户原话:
+        > "**窗口必须在选了周期后才能设置。这样子判断依据就可以按有没有周期
+        >  来判断**"
+        > "周期是 period 啊！… 是**每天、每周每月、不限**那个"
+
+        ★ 所以**只看 `Config.task_period()`**（= 配置里的 `scheduler.period`,
+          用户能在前端改的那个; 拿不到才回退出厂默认值）。
+
+        ★★ **为什么这是"能联动"的关键**: 原来这里读 `TC.get(command)`
+          （`meta.py` 的 `TaskSpec.priority_group`, **写死源码、前端改不了**）
+          -> 用户"在前端改了 period, 队列标签不动"。
+          现在读配置 -> **改一处, 全联动**。
+
+        ## 用途（只剩两个）
+
+        * `/overview` 的 `priority_group` / `priority_group_label`（界面显示）
+        * `sort_run_list(by=...)` 的**一次性排序**依据
         ⚠ **不再**用于"限制拖动范围" —— 拖动永远自由。
         """
         try:
-            from module.config import task_catalog as TC
-
-            m = TC.get(command)
-            if m is not None:
-                return m.priority_group
+            return self.priority_group_of(command)
         except Exception as exc:
             logger.debug(f'取分段失败({type(exc).__name__}: {exc})')
         return 'fixed'

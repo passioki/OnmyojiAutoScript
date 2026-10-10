@@ -192,3 +192,26 @@ class Optimization(BaseModel):
     # 释放执行权的空闲阈值（分钟），仅 queue_mode=True 时生效
     queue_idle_threshold: int = Field(default=10, description='queue_idle_threshold_help')
 
+    # ★★★ 一次性标记: `scheduler.period` 是否已按出厂默认值**回填过** ★★★
+    #
+    # ## 为什么必须有它（不只是一个布尔值那么简单）
+    #
+    # 分类判据读的是**配置里的** `scheduler.period`（用户在前端改的那个）,
+    # 而老配置里那 52 个任务写的都是 `none` —— 若不回填, 它们会突然全变成
+    # 「临时任务」。所以启动时要**按出厂默认值回填一次**。
+    #
+    # ⚠ **但如果只按"当前值是 `none` 就回填", 就会把用户的"不限"永久锁死:**
+    #   用户把某任务设成「不限」-> 下次 `Config()` 构造（**每个 HTTP 请求
+    #   都会新建一个**）-> 迁移又把它改回出厂值 -> ★ **用户改不动**。
+    #
+    #   实测复现: 写入 `period='none'` -> `Config(cfg)` 之后
+    #   `task_period()` 直接返回 `'daily'`, **磁盘也被改回 `'daily'`**。
+    #
+    # ★ 修法: 用这个**一次性标记** —— 回填只做**第一次**, 之后永不再碰。
+    #   与已删的 `priority_mode_explicit` 同一思路（"不能用默认值当哨兵"）。
+    period_backfilled: bool = Field(
+        default=False,
+        description='period_backfilled_help',
+        title='任务周期是否已按出厂默认值回填',
+        json_schema_extra={'internal': True})
+

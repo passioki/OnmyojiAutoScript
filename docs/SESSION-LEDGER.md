@@ -4211,3 +4211,97 @@ pytest tests -q
 | T12 | `rest` 条目分段位置无测试 |
 | ★ 新 | `test_battle_wait.py` **按当前状态机语义重写**（21 个测试的行为现在**无保护**）|
 
+---
+
+# 50. T7/T8: 修**假通过的守卫** + 补**迁移测试**（S6 唯一改用户配置的路径）
+
+## 50.1 T7: 两条"永远不会失败"的守卫
+
+### (A) `test_priority_mode.py::test_queue_invariant_survives` —— `all()` 对空集恒真
+
+它自称"★★ **核心不变量**守卫"（`pending` 是 `queue` 的保序子序列）,
+但审计实测它**无条件通过**:
+
+* `cfg` fixture **从不调 `update_scheduler()`**
+* `pending_task` **不是** `Config.__init__` 的字段 —— 它只在
+  `update_scheduler()` 里被赋值
+* `Config.__getattr__` 对**未知属性返回 `None`**
+* -> `p == []` -> `all(... for t in [])` **恒为 True**
+
+**修**:
+1. 先 `cfg.update_scheduler()` —— 真正跑一遍调度
+2. `assert p, ...` **防空转** → 没有待跑任务时标 **`pytest.skip`** 并说明
+   "**这不是通过, 是没测到**"
+
+### (B) `test_execution_queue.py::test_candidates_endpoint_filters_correctly` —— **永真 + 语义已反**
+
+原断言最后一句是 `assert 'queued' in body` —— 而实现里有一行
+`queued = config.queued_commands()`, **这个子串必然存在**, 无论是否真的用它
+过滤 -> **不可失败**。
+
+★ **更糟**: 它的**语义已经反了**。S6 之后候选**故意不再排除** `queued`
+（⑧ 用户要求"可以重复添加同一个任务"）—— 于是"候选没排除已在队列的任务"
+从**缺陷**变成了**需求**。
+
+**修**:
+* **剥注释**后断言真实规则（`enable` + `!auto_queue`）
+* "不排除 queued" 用**反向断言**表达（`'if command in queued' not in body`）
+  —— 这才是 ⑧ 的守卫
+* 真正的端到端验证仍在 `test_candidates_live`（相对断言）
+
+## 50.2 T8: 补 `migrate_priority_mode_once()` 的测试（原来**零测试**）
+
+### 为什么它最该被测
+
+它是 **S6 唯一会改写用户配置**的路径。而且审计发现:
+`config/恋鸟树.json` 的 `priority_mode_explicit` **已被置真** ->
+**该账号的迁移路径被永久关闭** -> 以后**再也无法用真实配置发现迁移 bug**。
+
+### ★ 怎么做到"不碰真实配置"
+
+用**临时配置名** `__t8_priority_mode__`, 在 `config/` 下建文件 ->
+测完**删干净**（`finally`）。
+★ 注意: `tests/conftest.py` 的快照**只覆盖"会话开始时已存在的文件"**,
+  新文件不在快照里 -> **必须自己删**（实测: 已清 OK）。
+
+### 覆盖（8 条）
+
+| 类 | 覆盖 |
+|---|---|
+| `TestMigrationMapping` | ① `List` -> `custom` ② `timed_priority=list` -> **`fixed_first`** ③ **出厂默认组合**（`Filter`+`timed`）-> `custom`（**行为保持**）|
+| `TestExplicitBlocks` | ★ `explicit=True` 时**永不覆盖** —— 用户选了 `timed_first`, 旧字段按映射表会改成 `fixed_first`, **必须不动** |
+| `TestIdempotency` | ★ 连加载两次结果一样; 迁移后 `explicit` 必须为 True（这是"只跑一次"的**唯一**保证）|
+
+### ★ 我写的一条**必然失败**的测试（如实记录）
+
+我写了 `test_unknown_rule_falls_back_to_custom`（`schedule_rule='Whatever'`）。
+**必然失败** —— `schedule_rule` / `timed_priority` 都是 pydantic **枚举字段**,
+写非法值在**加载配置时**就 `ValidationError`:
+```
+Input should be 'Filter', 'FIFO', 'Priority' or 'List'
+```
+-> 迁移代码根本跑不到。**已删**, 并留注释说明"那个 `else` 分支只能被出厂默认
+组合走到"（已由 ③ 覆盖）。
+
+★ **教训**: 写测试前要先想"这个输入**能不能到达**被测代码" —— 否则会写出
+  一条**永远不可能通过**的测试（和"永远通过"一样糟）。
+
+## 50.3 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest（**不 ignore, `-s`**）| **1613 passed, 24 skipped**（0 失败, +8）|
+| 配置污染告警 | ★ **无**（conftest 未报警）|
+| 临时配置残留 | ★ **已清 OK** |
+
+## 50.4 剩余待办
+
+| # | 问题 |
+|---|---|
+| **T3** | **文档整改**（3 份文档自称"唯一权威"; `ui-api-mapping.md` §9 仍教 `window_slots`; `architecture.md` §3 整节已删内容）|
+| T9 | 抽屉与分栏超宽 61px |
+| T10 | 前端死代码（含**危险**的 `resetToDefault`）|
+| T11 | `RunControlBar` 状态不刷新 + 失败无提示 |
+| T12 | `rest` 条目分段位置无测试 |
+| ★ 新 | `test_battle_wait.py` 21 个测试**按当前状态机语义重写** |
+

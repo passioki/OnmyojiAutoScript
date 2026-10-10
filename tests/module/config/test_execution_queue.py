@@ -210,16 +210,36 @@ class TestQueueEndpoints:
         assert 'save_run_list' in body, '移除时没从 run_list 删掉条目'
 
     def test_candidates_endpoint_filters_correctly(self):
-        """候选 = `enable && !auto_queue && !queued`。"""
+        """候选 = `enable && !auto_queue`（★ **不**排除已在队列的, 见 ⑧）。
+
+        ## ★★ T7: 原来这条有**不可失败的断言 + 反向语义** ★★
+
+        原来的最后一句是 `assert 'queued' in body` ——
+        而实现里有一行 `queued = config.queued_commands()`, **于是这个子串
+        必然存在**, **无论是否真的用它过滤** -> **永真, 不可失败**。
+
+        ★ 更糟: 它的**语义已经反了**。S6 之后候选**故意不再排除 `queued`**
+          （⑧ 用户要求"可以重复添加同一个任务"）, 所以"候选没排除已在队列的
+          任务"从**缺陷**变成了**需求**。
+
+        ★ 修法: 剥注释后断言**真实规则**（`enable` + `!auto_queue`）;
+          "不排除 queued"用**反向断言**表达（这才是 ⑧ 的守卫）。
+
+        真正的端到端验证在下面的 `test_candidates_live`（相对断言）。
+        """
         src = (REPO / 'module' / 'server' / 'schema_router.py').read_text(
             encoding='utf-8')
         i = src.find('async def get_queue_candidates')
         assert i > 0, '缺少 /queue/candidates 端点'
         j = src.find('async def', i + 10)
-        body = src[i:j]
+        # ★ 剥注释 —— 否则会匹配到注释里的说明文字（本项目反复踩过）
+        body = '\n'.join(l.split('#', 1)[0] for l in src[i:j].split('\n'))
+
         assert "sch.get('enable')" in body, '候选没过滤"未启用"'
         assert '_auto_queue_of' in body, '候选没排除"自动进队列"的任务'
-        assert 'queued' in body, '候选没排除"已在队列"的任务'
+        # ★ ⑧ 的反向守卫: 候选**不得**用 `queued` 做排除
+        assert 'if command in queued' not in body, (
+            '候选又排除了"已在队列"的任务 —— 用户 ⑧ 要求可以重复添加同一任务')
 
     def test_candidates_live(self):
         """实测候选列表 —— 用**相对断言**, 不钉具体任务名。

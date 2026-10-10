@@ -119,12 +119,32 @@ class TestSegmentation:
 
         我第一版在 `pending` 上事后重排 -> **破坏了这个不变量**（3 个测试
         失败）。正确做法是**在队列层**排段。
+
+        ## ★★ T7: 这条守卫原来**是空转的（假通过）** ★★
+
+        审计实测: `cfg` fixture **从不调 `update_scheduler()`**, 而
+        `pending_task` 不是 `Config.__init__` 的字段 —— 它只在
+        `update_scheduler()` 里被赋值。于是 `cfg.pending_task` 经
+        `Config.__getattr__`（对未知属性**返回 `None`**）得到 `None`
+        -> `p == []` -> `all()` 对**空集恒真** -> **测试无条件通过**。
+
+        ★ 修法: ① 先 `update_scheduler()`（真正跑一遍调度）
+          ② `assert p, ...` **防空转**（没有待跑任务时, 这条守卫没意义 ->
+             标成 **skip** 而不是假装通过）
         """
+        cfg.update_scheduler()
         q = [getattr(e, 'task', None) for e in cfg.build_queue()]
         p = [getattr(f, 'command', None) for f in (cfg.pending_task or [])]
         w = {getattr(f, 'command', None) for f in (cfg.waiting_task or [])}
+
+        # ★ 防空转: `all()` 对空集恒真, 必须显式拒绝"什么都没测到"
+        if not p:
+            pytest.skip(
+                f'当前没有待跑任务（pending 为空）-> 保序子序列无从验证。'
+                f'queue={len(q)} waiting={len(w)}。'
+                f'★ 这不是"通过", 是"没测到"。')
+
         expected = [t for t in q if t not in w]
-        # `pending` 可能还有 filter 收窄, 所以断言的是"子序列"而非相等
         it = iter(expected)
         assert all(any(x == t for x in it) for t in p), (
             f'pending 不是 queue 的保序子序列\n  queue={expected}\n  pending={p}')

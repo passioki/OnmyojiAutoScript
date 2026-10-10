@@ -45,54 +45,19 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
             if con.buff_exp_100_click:
                 self.exp_100()
             self.close_buff()
-        # 挑战次数: 经验妖怪的次数在每天的固定时刻刷新(charge_slots, 游戏内为 0 点与 12 点),
-        # 与改造前去别: 原来是"一次运行连打 2 场"(while count < 2), 现在改为
-        # 最多存 charge_max 次。每次运行只做 charge_consume 次, 并把下次排到刷新时再做,
-        # 这样"存量 2 次"会分摊到一天里, 而不是背靠背连打(组队场景尤其重要)。
-        from module.config import task_state
-        from module.config import team_coordinator
+        # ★★ S5: **存量次数 + 组队协同已删除**（用户裁定）★★
+        #
+        #   "去掉组队协同，去掉存量次数。组队协同应该是**单独模块**啊，
+        #    不应该放在金币妖怪里。"
+        #
+        # 删掉: `task_state.get_charges` / `consume_charge` / `next_charge_time`
+        #       （存量记账）+ `team_coordinator.decide` / `write_heartbeat`
+        #       （跨账号组队协同 —— 应属**独立模块**）。
+        #
+        # 何时能跑现在**只由窗口决定**；一次运行打几场: 沿用关闭存量时的旧行为（2 场）。
         TASK_NAME = 'ExperienceYoukai'
-        cfg_name = self.config.config_name
-
-        # 让另一个账号知道我在线(跨账号协同需要判断"对方在不在")
-        task_state.write_heartbeat(cfg_name)
-
         count = 0
-        if con.charge_enable:
-            available = task_state.get_charges(cfg_name, TASK_NAME,
-                                               max_charges=con.charge_max,
-                                               slots=con.charge_slots)
-            if available <= 0:
-                logger.info(f'经验妖怪次数已用尽(0/{con.charge_max}), '
-                            f'排到下次刷新后再做')
-                self.set_next_run(task=TASK_NAME, finish=True, success=False,
-                                  server=False,
-                                  target=task_state.next_charge_time(
-                                      cfg_name, TASK_NAME,
-                                      max_charges=con.charge_max,
-                                      slots=con.charge_slots))
-                self.experience_exit(con)
-            # 最多做到本次允许消耗的次数, 且不超过可用次数
-            count_max = min(con.charge_consume, available)
-            logger.info(f'经验妖怪可用次数 {available}/{con.charge_max}, '
-                        f'本次挑战 {count_max} 场')
-
-            # 跨账号协同: 组队任务需要两边都有次数才有意义。
-            # 若对方还没恢复, 就等一个刷新点再一起做(等太久会自动放弃, 见防死锁)。
-            if conf_team != TeamUserStatus.MEMBER:
-                decision = team_coordinator.decide(
-                    TASK_NAME, cfg_name,
-                    max_charges=con.charge_max, slots=con.charge_slots)
-                logger.info(f'[TeamCoord] 经验妖怪协同决策: {decision}')
-                if not decision.should_start:
-                    self.set_next_run(task=TASK_NAME, finish=True, success=False,
-                                      server=False,
-                                      target=datetime.now()
-                                      + timedelta(seconds=decision.wait_seconds + 5))
-                    self.experience_exit(con)
-        else:
-            # 关闭充能控制 -> 保持改造前行为(连打 2 场)
-            count_max = 2
+        count_max = 2
 
         while count < count_max:
             # 队员身份: 不需要开房, 直接等待队长邀请并应战(内含战斗流程)
@@ -132,24 +97,9 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
             count += 1
             self.run_general_battle()
 
-        # 消耗次数并安排下次运行
-        if con.charge_enable and count > 0:
-            for _ in range(count):
-                task_state.consume_charge(cfg_name, TASK_NAME,
-                                          max_charges=con.charge_max,
-                                          slots=con.charge_slots)
-            remain = task_state.get_charges(cfg_name, TASK_NAME,
-                                            max_charges=con.charge_max,
-                                            slots=con.charge_slots)
-            if remain <= 0:
-                logger.info('经验妖怪次数已用完, 排到下次刷新后再做')
-                self.set_next_run(task=TASK_NAME, finish=True, success=True,
-                                  server=False,
-                                  target=task_state.next_charge_time(
-                                      cfg_name, TASK_NAME,
-                                      max_charges=con.charge_max,
-                                      slots=con.charge_slots))
-                self.experience_exit(con)
+        # ★ S5: 存量记账已删除 —— `set_next_run(success=True)` 按**窗口**对齐下次。
+        self.set_next_run(task=TASK_NAME, finish=True, success=True,
+                          server=False)
         # 退出 (要么是在组队界面要么是在庭院)
         self.experience_exit(con)
 

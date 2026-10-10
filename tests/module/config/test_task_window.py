@@ -320,23 +320,6 @@ class TestResourceWiring:
             want = base + _dt.timedelta(hours=hours)
             assert got == want, (
                 f'{task}: Resource 算出 {got}, 旧 interval 是 {want}')
-
-    def test_slots_resource_uses_fixed_times(self, config):
-        """★ `slots` 类任务按**固定时刻**算, 不是"加 3 小时"。
-
-        金币妖怪的真实机制是 **0 点 / 12 点各补 1 次**（`slots='0,12'`）。
-        旧实现把它压成 `success_interval=3h`, 于是会在 18:00 这种
-        **根本不补充**的时刻去跑 —— 白跑一趟。
-        """
-        import datetime as _dt
-        base = _dt.datetime(2026, 10, 5, 12, 0, 0)      # 周一 12:00
-        got = config._next_run_from_resource(self._key('GoldYoukai'), base)
-        assert got is not None, 'GoldYoukai 应有 Resource 排期'
-        # 12:00 之后的下一个 slot 是次日 00:00
-        assert (got.hour, got.minute) == (0, 0), (
-            f'应按 slot 补到 00:00, 实际 {got}')
-        assert got > base
-
     def test_periodic_resource_not_used(self, config):
         """★ `refill='none' + period` 类**不**走 `next_available`。
 

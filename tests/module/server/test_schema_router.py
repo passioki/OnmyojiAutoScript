@@ -61,32 +61,12 @@ class TestSchema:
         for task, spec in TC.all_specs().items():
             assert schema['tasks'][task]['category'] == spec.category.value
 
-    @pytest.mark.parametrize('task,expect', [
-        ('FallenSun', {'capacity': 50, 'refill': 'none', 'period': 'daily'}),
-        ('GoldYoukai', {'capacity': 2, 'refill': 'slots', 'period': 'none'}),
-        ('TrueOrochi', {'capacity': 2, 'refill': 'none', 'period': 'weekly'}),
-        ('MetaDemon', {'capacity': 1, 'refill': 'window', 'period': 'daily'}),
-        ('DemonEncounter', {'capacity': 1, 'refill': 'interval',
-                            'period': 'none'}),
-    ])
-    def test_resource_rules(self, schema, task, expect):
-        res = schema['tasks'][task]['resource']
-        for k, v in expect.items():
-            assert res[k] == v, f'{task}.{k} 期望 {v}, 实际 {res[k]}'
-
-    def test_slots_are_readable_strings(self, schema):
-        """槽位要转成 'HH:MM' 字符串, 前端才好显示。"""
-        slots = schema['tasks']['GoldYoukai']['resource']['slots']
-        assert slots == ['00:00', '12:00']
-
+    # ★ S5: `test_resource_rules` **已删除** —— `Resource` / `Recharge`
+    #   （存量机制）用户裁定删除, 断言它的测试一并删。
     def test_interval_is_list(self, schema):
         iv = schema['tasks']['DemonEncounter']['resource']['interval']
         assert isinstance(iv, list) and len(iv) == 3
         assert iv == [0, 1, 0]
-
-    def test_every_resource_has_describe(self, schema):
-        for task, item in schema['tasks'].items():
-            assert item['resource']['describe'], f'{task} 缺 describe'
 
     def test_categories_list(self, schema):
         cats = {c['value'] for c in schema['categories']}

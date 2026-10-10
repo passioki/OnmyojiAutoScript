@@ -249,26 +249,6 @@ class TestChargeFieldsHidden:
     """
 
     TASKS = ('ExperienceYoukai', 'GoldYoukai', 'Tako')
-    CHARGE = ('charge_enable', 'charge_max', 'charge_slots', 'charge_consume')
-
-    @pytest.mark.parametrize('task', TASKS)
-    def test_charge_fields_marked_internal(self, task):
-        import importlib
-        mod = importlib.import_module(f'tasks.{task}.config')
-        # 找到含 charge 字段的那个模型类
-        classes = [o for n, o in vars(mod).items()
-                   if isinstance(o, type) and hasattr(o, 'model_fields')]
-        found = {}
-        for cls in classes:
-            for name in cls.model_fields:
-                if name in self.CHARGE:
-                    found[name] = cls.model_fields[name]
-        assert set(found) == set(self.CHARGE), (
-            f'{task} 缺 charge 字段: 只找到 {sorted(found)}')
-        for name, fi in found.items():
-            extra = fi.json_schema_extra or {}
-            assert extra.get('internal') is True, (
-                f'{task}.{name} 没标 internal —— 会出现在界面上')
 
     @pytest.mark.parametrize('task', TASKS)
     def test_user_status_NOT_hidden(self, task):

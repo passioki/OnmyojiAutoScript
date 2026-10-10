@@ -14,7 +14,7 @@
 """
 from datetime import time
 from module.config.availability import AvailabilityWindow
-from module.config.resource import Period, Recharge, Resource  # noqa: F401
+from module.config.resource import Period  # noqa: F401
 from module.config.task_catalog import Category, TaskSpec  # noqa: F401
 
 SPEC = TaskSpec(
@@ -32,8 +32,16 @@ SPEC = TaskSpec(
     #   （`dev_tools/check_windows.py` 会核对）。
     #   若该玩法有**真实游戏时段**, 应把它收窄成实际的起止时刻 ——
     #   那属于**行为变更**, 需要按机制核实后再改。
-    window=AvailabilityWindow(True, time(0, 0), time(23, 59)),
+    # ★★ S5: **两个窗口** —— 用户裁定 ★★
+    #   "金币妖怪 (a) 多个 window —— 配 2 个窗口
+    #    （0:00-11:59、12:00-23:59）"
+    #
+    # 原来靠**存量记账**（`charge_slots=0,12` + `charge_max=2`）表达
+    # "每天 0 点 / 12 点各刷 1 次"; 存量已删, 改用**窗口**表达。
+    window=(
+        AvailabilityWindow(True, time(0, 0), time(11, 59)),
+        AvailabilityWindow(True, time(12, 0), time(23, 59)),
+    ),
     list_pos=9,
     period=Period.NONE,
-    resource=Resource(capacity=2, recharge=Recharge(kind='slots', slots=((0, 0), (12, 0),), refill_to_full=True)),
 )

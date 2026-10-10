@@ -2940,3 +2940,80 @@ while count < count_max:
 | S5-1（`period` 提字段）| ✅ **已提交并验证**（54/54 语义一致）|
 | S5-2..S5-7（删存量）| ⛔ **未做**，等用户裁决 §37.4 |
 
+---
+
+# 38. S5-2/S5-3: 3 个任务去掉**存量次数 + 组队协同**（用户裁定）
+
+## 38.1 用户裁定（原话）
+
+> "**去掉组队协同，去掉存量次数。组队协同应该是单独模块啊，不应该放在金币妖怪里。**"
+> 以及之前: "**金币妖怪 (a) 多个 window —— 配 2 个窗口（0:00-11:59、12:00-23:59）**"
+> "去除旧的充能存量说法。现在靠 window 的**多次设置**完全可以做到正常运行。"
+> "连 `charge_*` 字段和**存量逻辑一起删**"
+
+## 38.2 本批改了什么（**逐文件人工 + 精确 `edit`**）
+
+★ 我**放弃了脚本批量删**（见 §37 的教训）—— 改成"读一段、`edit` 一处、`py_compile` 一次"。
+
+| 文件 | 改动 |
+|---|---|
+| `tasks/GoldYoukai/script_task.py` | 删 `if con.charge_enable:` 整块（含 `get_charges` / `next_charge_time` / **`team_coordinator.decide`** / `write_heartbeat`）；`count_max = 2`；尾部改 `set_next_run(success=True)` |
+| `tasks/ExperienceYoukai/script_task.py` | 同上 |
+| `tasks/Tako/script_task.py` | 同上（两处: 记账检查块 + "打完一场消耗次数"）+ 删 import |
+| 3 个 `config.py` | 删 `charge_enable` / `charge_max` / `charge_slots` / `charge_consume` |
+| 3 个 `meta.py` | 删 `resource=Resource(...)` + `Recharge` 导入；★ **换成两个窗口** |
+
+**每个脚本改完后核对**: `task_state` / `team_coordinator` / `charge_` / `cfg_name`
+**全部为 0**（剥注释后统计）。
+
+## 38.3 ★★ 窗口实测（用户给的格式）★★
+
+```
+GoldYoukai:        2 段 ['00:00-11:59', '12:00-23:59']  period=none
+ExperienceYoukai:  2 段 ['00:00-11:59', '12:00-23:59']  period=none
+Tako:              2 段 ['00:00-11:59', '12:00-23:59']  period=none
+
+01:00 -> True | 11:00 -> True | 12:00 -> True | 23:00 -> True
+```
+
+★ **我如实标注的语义变化**: 两个窗口**合起来覆盖 0:00-24:00** ——
+  所以**不再有"每天最多 2 次"的上限**, 变成"任何时间都可以跑"。
+  这是用户选 (a) 的**预期结果**, 已记录（不是静默改变）。
+
+## 38.4 删掉的测试（它们测的是**已不存在的机制**）
+
+| 文件 / 测试 | 说明 |
+|---|---|
+| `tests/module/config/test_task_charges.py` | ★ **整个文件删**（348 行, 全在测存量记账）|
+| `test_task_spec.py::test_charge_slots` | 断言 `Resource(capacity/slots/...)` |
+| `test_task_spec.py::test_every_spec_has_resource` | 断言每个 SPEC 都有 `resource` |
+| `test_task_window.py::test_slots_resource_uses_fixed_times` | 断言 `_next_run_from_resource` |
+| `test_user_config_surface.py::test_charge_fields_marked_internal` | 断言 `charge_*` 是内部字段 |
+| `test_schema_router.py::test_resource_rules` | 断言 schema 的 `resource` |
+| `test_schema_router.py::test_slots_are_readable_strings` | 同上 |
+| `test_schema_router.py::test_every_resource_has_describe` | 同上 |
+
+**保留**: `test_user_status_NOT_hidden`（回归守卫 —— `user_status` 是**用户配置**,
+不能被隐藏; 我此前"自动标记 charge"时误伤过它 3 次）。
+
+★ 删测试时我又**踩了一次坑**: 我的删除函数把相邻的
+`def test_interval_is_list` **行首吃掉** -> `IndentationError`。
+**已修**（并把 `@pytest.mark.parametrize` 悬空块一起清掉）。
+
+## 38.5 进度
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1710 passed, 3 skipped**（-55 = 删掉的存量测试）|
+| `charge` 残留 | **75 文件 / 319 行 -> 63 文件 / 216 行** |
+| 3 个任务的窗口 | ★ **双窗口, 实测生效** |
+
+## 38.6 S5 剩余
+
+| 子步 | 内容 | charge 残留 |
+|---|---|---|
+| **S5-4** | `task_state.py` 删存量存储 | 44 行 |
+| **S5-5** | `resource.py` 删 `Recharge` / `Resource`（保留 `Period`）| 34 行 |
+| **S5-6** | `task_catalog.py` 删 `charge_*` 兼容字段 + `Category.CHARGE` | 15 行 |
+| **S5-7** | `report.py`（7）/ `schema_router.py`（5）/ 54 个 `meta.py`（各 2）| — |
+

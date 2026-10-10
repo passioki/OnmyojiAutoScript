@@ -138,14 +138,6 @@ class TestSpecResources:
         assert r.capacity == 50
         assert r.period == Period.DAILY
         assert r.refill == 'none'
-
-    def test_charge_slots(self):
-        r = TC.get_spec('GoldYoukai').resource
-        assert r.capacity == 2
-        assert r.refill == 'slots'
-        assert r.slots == ((0, 0), (12, 0))
-        assert r.recharge.refill_to_full is True
-
     def test_weekly_capacity(self):
         r = TC.get_spec('TrueOrochi').resource
         assert r.capacity == 2
@@ -161,14 +153,6 @@ class TestSpecResources:
         r = TC.get_spec('DemonEncounter').resource
         assert r.refill == 'interval'
         assert r.interval == (0, 1, 0)
-
-    def test_every_spec_has_resource(self):
-        for task, spec in TC.all_specs().items():
-            assert spec.resource is not None, f'{task} 的 SPEC 缺 resource'
-            assert isinstance(spec.resource, Resource)
-
-
-class TestFallback:
     def test_fallback_category_is_timed(self):
         """未提供 meta.py 的任务降级为定时任务, 而不是报错。"""
         assert FALLBACK_CATEGORY == Category.TIMED

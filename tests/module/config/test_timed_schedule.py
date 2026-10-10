@@ -190,173 +190,21 @@ class TestTwoMasterSwitches:
         assert not self.should_consider('nonsense', True, True)
 
 
-class TestYieldToTimed:
-    """
-    固定任务在跑时, 要不要**让位**给已到点的定时任务。
-
-    ★ 用户确认的语义:
-      * `timed`（定时优先）—— 打完当前这场战斗就让位
-      * `list`（列表优先）—— 等固定任务跑完
-
-    ★ 调用时机是**战斗边界**（安全点）。本测试只管"该不该让",
-      "什么时候让"由 `script.py` 在战斗结束时判断。
-    """
-
-    @staticmethod
-    def yield_(priority, current_fixed=True, due=True, enable_timed=True):
-        from module.config.timed_schedule import should_yield_to_timed
-        return should_yield_to_timed(priority, current_fixed, due, enable_timed)
-
-    def test_timed_priority_yields(self):
-        assert self.yield_('timed') is True
-
-    def test_list_priority_does_not_yield(self):
-        assert self.yield_('list') is False
-
-    def test_no_due_task_does_not_yield(self):
-        """没有到点的定时任务 -> 没什么可让的。"""
-        assert self.yield_('timed', due=False) is False
-
-    def test_not_fixed_does_not_yield(self):
-        """当前本来就在跑定时任务 -> 没什么可让的。"""
-        assert self.yield_('timed', current_fixed=False) is False
-
-    def test_timed_disabled_never_yields(self):
-        """定时任务总开关关了 -> 永远不让位。"""
-        assert self.yield_('timed', enable_timed=False) is False
-
-    def test_garbage_priority_does_not_yield(self):
-        """非法值 -> 保守（不让位）, 不崩。"""
-        assert self.yield_('nonsense') is False
-        assert self.yield_(None) is False
-
-    def test_case_insensitive(self):
-        assert self.yield_('TIMED') is True
-
-
-class TestPartitionPending:
-    """把 pending 分成"定时"与"其余", 便于定时任务优先。"""
-
-    class F:
-        def __init__(self, cmd):
-            self.command = cmd
-
-        def __repr__(self):
-            return self.command
-
-    def test_partition(self):
-        from module.config import task_catalog as TC
-        from module.config.timed_schedule import partition_pending
-
-        def cat_of(cmd):
-            m = TC.get(cmd)
-            return m.category.value if m else ''
-
-        pend = [self.F('Orochi'), self.F('DemonEncounter'),
-                self.F('FallenSun'), self.F('GoldYoukai')]
-        timed, others = partition_pending(pend, cat_of)
-        assert [x.command for x in timed] == ['DemonEncounter', 'GoldYoukai']
-        assert [x.command for x in others] == ['Orochi', 'FallenSun']
-
-    def test_unknown_task_goes_to_others(self):
-        """未知任务（没有 meta）-> 归到"其余", 不会被当成定时任务。"""
-        from module.config.timed_schedule import partition_pending
-        timed, others = partition_pending([self.F('NotARealTask')],
-                                          lambda c: '')
-        assert timed == []
-        assert [x.command for x in others] == ['NotARealTask']
-
-    def test_empty(self):
-        from module.config.timed_schedule import partition_pending
-        assert partition_pending([], lambda c: '') == ([], [])
-
-
-class TestSortTimed:
-    def test_sorts_by_key(self):
-        from module.config.timed_schedule import sort_timed
-        items = [{'n': 'b', 'k': 2}, {'n': 'a', 'k': 1}]
-        got = sort_timed(items, lambda x: x['k'])
-        assert [x['n'] for x in got] == ['a', 'b']
-
-    def test_stable_for_equal_keys(self):
-        from module.config.timed_schedule import sort_timed
-        items = [{'n': 'a', 'k': 1}, {'n': 'b', 'k': 1}]
-        got = sort_timed(items, lambda x: x['k'])
-        assert [x['n'] for x in got] == ['a', 'b']
-
-    def test_incomparable_key_does_not_crash(self):
-        """键里有不可比较的东西 -> 宁可不排序, 也不要让调度崩掉。"""
-        from module.config.timed_schedule import sort_timed
-        items = [{'n': 'a'}, {'n': 'b'}]
-
-        def bad_key(x):
-            raise TypeError('unorderable')
-
-        got = sort_timed(items, bad_key)
-        assert [x['n'] for x in got] == ['a', 'b']
-
-    def test_empty_and_none(self):
-        from module.config.timed_schedule import sort_timed
-        assert sort_timed([], lambda x: x) == []
-        assert sort_timed(None, lambda x: x) == []
-
-
-class TestTimedSortKey:
-    """定时任务内部排序: 能否跑 > 到点程度 > 窗口快关 > 耗时短 > 用户优先级。"""
-
-    def key(self, **kw):
-        from module.config.timed_schedule import timed_sort_key
-        return timed_sort_key(**kw)
-
-    def test_out_of_window_sorts_last(self):
-        early = self.key(next_run=1, in_window=False)
-        late = self.key(next_run=9, in_window=True)
-        assert late < early, '在窗口内的必须排前面（比 next_run 更重要）'
-
-    def test_earlier_next_run_first(self):
-        assert self.key(next_run=1) < self.key(next_run=5)
-
-    def test_window_ending_sooner_first(self):
-        """窗口快关的优先 —— 错过就彻底做不了。"""
-        soon = self.key(next_run=1, window_end=10)
-        later = self.key(next_run=1, window_end=100)
-        assert soon < later
-
-    def test_no_window_end_sorts_after(self):
-        has_end = self.key(next_run=1, window_end=50)
-        no_end = self.key(next_run=1, window_end=None)
-        assert has_end < no_end
-
-    def test_shorter_expected_first(self):
-        short = self.key(next_run=1, expected_minutes=5)
-        long_ = self.key(next_run=1, expected_minutes=60)
-        assert short < long_
-
-    def test_unknown_expected_sorts_after_known(self):
-        known = self.key(next_run=1, expected_minutes=10)
-        unknown = self.key(next_run=1, expected_minutes=0)
-        assert known < unknown, '未知耗时排已知之后（不前不后也行, 但要有定论）'
-
-    def test_priority_is_final_tiebreaker(self):
-        hi = self.key(next_run=1, priority=1)
-        lo = self.key(next_run=1, priority=9)
-        assert hi < lo
-
-    def test_time_beats_duration(self):
-        """
-        ★ 时间约束比"预计耗时"重要。
-
-        窗口快关但耗时长的, 仍应排在窗口宽松但耗时短的前面 ——
-        因为窗口关了就是彻底做不了。
-        """
-        urgent = self.key(next_run=1, window_end=10, expected_minutes=60)
-        relaxed = self.key(next_run=1, window_end=1000, expected_minutes=5)
-        assert urgent < relaxed
-
-    def test_garbage_values_do_not_crash(self):
-        self.key(next_run=1, expected_minutes='abc', priority=None)
-        self.key(next_run=None, window_end=None)
-
+# ★★ 第二轮复审（待办 #4）: **删掉 4 个测试类** —— 被测函数已删除 ★★
+#
+# | 被删的类 | 测的函数 | 为什么删 |
+# |---|---|---|
+# | `TestYieldToTimed` | `should_yield_to_timed` | ★ 生产**只有定义**, 0 调用 |
+# | `TestPartitionPending` | `partition_pending` | 同上 |
+# | `TestSortTimed` | `sort_timed` | 同上 |
+# | `TestTimedSortKey` | `timed_sort_key` | 同上 |
+#
+# ★ 保留 `TestInterleaveDecision`（测 `can_interleave`, **仍活**）与
+#   `TestTwoMasterSwitches`（测 `should_consider`, **仍活**）。
+#
+# ★ 教训: 这些测试**忠实覆盖了死代码** —— 于是"覆盖率高"给人一种
+#   "这块有人管"的错觉, 而实际上**没有任何生产路径**会走到它们。
+#   这就是为什么"删死代码"必须**连带删它的测试**。
 
 class TestRunListAndTaskCategories:
     """

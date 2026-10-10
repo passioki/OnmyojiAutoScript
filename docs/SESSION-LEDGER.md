@@ -5161,3 +5161,80 @@ tests/test_zz_probe.py::test_pollute
 | 4 | 后端死代码: `TaskScheduler` / `_is_list_rule` / `timed_schedule` 4 函数 / **`TaskSpec.list_pos`（40 个 `meta.py` 维护一个没人读的字段）** | 中 |
 | 5 | 前端死代码: `scheduleRule` 簇 / `flow` 簇 / 11 个未调用 `api_client` 方法 / 0 字节 `group_controller.dart` | 中 |
 
+---
+
+# 57. 清后端死代码: **生产只有定义、0 调用**的 5 个函数
+
+## 57.1 依据（剥注释后的全仓引用计数）
+
+| 符号 | 生产（`module/` + `tasks/`）| 测试 | 判定 |
+|---|---|---|---|
+| `Config._is_list_rule()` | **1（只有定义自己）** | 18 | ★ **死** |
+| `should_yield_to_timed()` | **1（只有定义）** | 2 | ★ **死** |
+| `sort_timed()` | **1（只有定义）** | 9 | ★ **死** |
+| `partition_pending()` | **1（只有定义）** | 6 | ★ **死** |
+| `timed_sort_key()` | **1（只有 docstring 提到）** | 4 | ★ **死** |
+| `can_interleave()` / `should_consider()` / `is_fixed()` / `is_timed()` | ✅ 在 `config.py` 活路径 | — | **保留** |
+
+## 57.2 删掉的东西
+
+| 文件 | 删除 |
+|---|---|
+| `module/config/config.py` | `_is_list_rule()`（13 行, 含文档注释）|
+| `module/config/timed_schedule.py` | `should_yield_to_timed` / `partition_pending` / `sort_timed` / `timed_sort_key`（共 125 行）-> **401 -> 121 行**（-70%）|
+| `tests/module/config/test_timed_schedule.py` | 4 个测试类（**168 行**）|
+| `tests/module/config/test_queue_is_authority.py` | `TestListRuleDetection`（4 条）|
+
+★ 删法: **AST 拿精确范围**（含装饰器, 并往前吃掉紧邻的 `#` 注释行）,
+  **从后往前**删, 每步 `py_compile`。
+
+## 57.3 ★★ 教训: **删死代码必须连带删它的测试**
+
+那 4 个测试类**忠实覆盖了死代码**（`should_yield_to_timed` 有 7 条测试、
+`timed_sort_key` 有 9 条…）—— 于是**覆盖率数字好看**, 给人一种
+"这块有人管"的错觉。
+
+★ 而实际上: **没有任何生产路径**会走到它们。测试全绿 = **纯自娱**。
+
+★ 反过来, 这也解释了本项目为什么"测试很多但仍有 bug":
+  **覆盖率的分子里混进了死代码的测试。**
+
+## 57.4 ★ 保留在注释里的一个真实坑
+
+删 `TestListRuleDetection` 时, 里面有一条
+`test_str_of_enum_is_not_the_value`, 记的是一个**真实踩过的坑**:
+
+```python
+str(ScheduleRule.LIST) == 'ScheduleRule.LIST'   # ★ 不是 'List'!
+```
+
+-> 所以**不能**用 `str(rule).lower() == 'list'` 判断 —— 那**永远为 False**
+且**静默失效**。
+
+★ 坑本身仍有价值, 所以**留在注释里**（连带"为什么删这组测试"一起）;
+  但断言 `_is_list_rule` **实现细节**的测试已无意义 —— 方法都没了。
+
+## 57.5 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1654 passed, 3 skipped**（0 失败）|
+| ★ 测试数变化 | 1681 -> **1654**（**-27**, 全是死代码的测试）|
+| `timed_schedule.py` | 401 -> **121 行**（-280）|
+| 污染告警 | **0 条**（跑法已修正, 告警**可见**）|
+| 死函数 | **5 个已删**（生产 0 调用已核实）|
+
+★ **-27 条测试**是**好事**: 那些测试**不可能失败地通过**（因为被测代码
+  没有调用方）。删掉它们让"测试数"这个指标**重新有意义**。
+
+## 57.6 剩余待办
+
+| # | 项 | 级别 |
+|---|---|---|
+| 1 | **唯一根治污染** = conftest 把 `config/` 重定向到 `tmp_path`（现在是"事后还原"）| 中 |
+| 2 | 两份废弃清单（`scheduler-architecture.md` §8 vs `deprecated.md`）**已漂移** -> §8 改成一行指针 | 中 |
+| 3 | `TaskSpec.list_pos`（**40 个 `meta.py` 在维护一个没人读的字段**）—— 它的唯一消费者随 `TaskScheduler` 一起死了 | 中 |
+| 4 | `module/config/scheduler.py`（`TaskScheduler`, **只剩测试在用**）| 中 |
+| 5 | 前端死代码: `scheduleRule` 簇 / `flow` 簇 / 11 个未调用 `api_client` 方法 / 0 字节 `group_controller.dart` | 中 |
+| 6 | `tests/module/config/test_battle_wait.py:250-268` 的 `test_owner_switch_resets_per_task` **模拟**了 `__call__` 而没真调（生产改了也不会红）| 中 |
+

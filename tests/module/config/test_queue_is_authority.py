@@ -193,36 +193,21 @@ class TestQueueIsAuthority:
             f'pending 不是队列的保序子序列\n  队列: {q}\n  pending: {p}')
 
 
-class TestListRuleDetection:
-    """★ 规则判断必须**真的**认得 `LIST`。"""
-
-    def test_is_list_rule_true(self):
-        from module.config.config import Config
-        from tasks.Script.config_optimization import ScheduleRule
-        assert Config._is_list_rule(ScheduleRule.LIST) is True
-
-    def test_is_list_rule_false_for_others(self):
-        from module.config.config import Config
-        from tasks.Script.config_optimization import ScheduleRule
-        for r in (ScheduleRule.FIFO, ScheduleRule.FILTER, ScheduleRule.PRIORITY):
-            assert Config._is_list_rule(r) is False, f'{r} 不该被判成 list'
-
-    def test_is_list_rule_handles_plain_strings(self):
-        from module.config.config import Config
-        assert Config._is_list_rule('List') is True
-        assert Config._is_list_rule('list') is True
-        assert Config._is_list_rule('LIST') is True
-        assert Config._is_list_rule('Fifo') is False
-
-    def test_str_of_enum_is_not_the_value(self):
-        """★ 记录坑: `str(ScheduleRule.LIST)` **不是** `'List'`。
-
-        所以**不能**用 `str(rule).lower() == 'list'` 判断 —— 那永远为 False,
-        改动会**静默失效**（实测踩过）。
-        """
-        from tasks.Script.config_optimization import ScheduleRule
-        assert str(ScheduleRule.LIST) == 'ScheduleRule.LIST', (
-            'pydantic/Enum 的 str() 行为变了 —— `_is_list_rule` 的实现要跟着改')
-        assert ScheduleRule.LIST.value == 'List'
-        assert str(ScheduleRule.LIST).lower() != 'list', (
-            '若这一条成立, 说明 str() 已经是纯值了; 此时可以简化 _is_list_rule')
+# ★★ 第二轮复审（待办 #4）: `TestListRuleDetection` **已删除** ★★
+#
+# 它测的是 `Config._is_list_rule()` —— 而那个方法在 **T1** 合并
+# `if self._is_list_rule(_rule): ... else: ...` 分支之后就**没有任何调用方**了
+# （剥注释全仓核实: 生产代码里**只有它自己的定义**）。
+#
+# ★ **删掉了**: `_is_list_rule()` 本体 + 它的 3 条测试 + 1 条 `str()` 行为记录。
+#
+# ★★ 为什么连**测试记录**也删 ★★
+#
+# 那条 `test_str_of_enum_is_not_the_value` 记的是一个**真实踩过的坑**
+# （`str(ScheduleRule.LIST) == 'ScheduleRule.LIST'`, 不是 `'List'` ——
+# 用 `str(rule).lower() == 'list'` 判断会**永远为 False** 且**静默失效**）。
+# 坑本身仍有价值, 所以**留在注释里**（就是上面这句）; 但断言 `_is_list_rule`
+# 的**实现细节**已无意义 —— 方法都没了。
+#
+# ★ 更重要的教训: 这些测试**忠实覆盖了死代码**, 于是"覆盖率高"给人一种
+#   "这块有人管"的错觉。**删死代码必须连带删它的测试。**

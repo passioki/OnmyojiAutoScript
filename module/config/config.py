@@ -902,19 +902,6 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                            f'保持原顺序')
             return pending
 
-    @staticmethod
-    def _is_list_rule(rule) -> bool:
-        """判断是否"列表优先"（`ScheduleRule.LIST`）。
-
-        ★ 为什么需要它: `ScheduleRule` 是 `str` 枚举,
-          但 **`str(ScheduleRule.LIST)` 得到的是 `'ScheduleRule.LIST'`**,
-          **不是** `'List'` —— 直接拿 `str()` 去比会**永远不匹配**,
-          改动**静默失效**（实测踩过: 派发顺序一点没变, 也不报错）。
-
-          所以: 枚举取 `.value`, 字符串直接比, 都转小写。
-        """
-        val = getattr(rule, 'value', rule)
-        return str(val).strip().lower() == 'list'
 
     # ------------------------------------------------------------------ S6: 分段排序
     def priority_mode(self) -> str:

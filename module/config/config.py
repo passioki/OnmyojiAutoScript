@@ -670,7 +670,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 continue
             # ★ 两个总开关（用户确认的设计）:
             #   固定任务（fixed/toppa）看 `enable_fixed`,
-            #   定时任务（timed/charge/limited）看 `enable_timed`。
+            #   定时任务（timed/limited）看 `enable_timed`。
             #   两者**互不影响** —— 关掉固定任务不该影响定时任务。
             #
             #   类别由 `tasks/<Name>/meta.py` 声明（`TaskMeta.category`）,
@@ -1659,69 +1659,15 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             return ()
         return list(spec.windows_effective)
 
-    def _next_run_from_resource(self, task_key: str, start_time: datetime):
-        """用新模型（`Resource` + `RunState` + `next_available()`）算下次运行时刻。
+    # ★★ S5/审计: _next_run_from_resource() **已删除** ★★
+    #
+    # 它内部 import 的 module.config.scheduler_core（连同 Resource /
+    # Recharge）已在 S5 **删除存量机制**时一并删掉 —— 所以它每次调用都
+    # 抛 ImportError、被自己的 except 吞掉、返回 None，**等于没调**。
+    #
+    # 排期的权威实现是 **窗口**（TaskSpec.windows_effective +
 
-        :return: `datetime`, 或 `None`（任务没声明 `Resource` / 算不出来 -> 调用方回退）
-
-        ## 为什么这是"接线"而不是"重写"
-
-        `module/config/resource.py` 与 `module/config/scheduler_core.py` 早就写好了
-        （`Resource` / `Recharge` / `RunState` / `next_available()`，47 个单测),
-        但**从没接进调度** —— 本会话实测: 在 `config.py`/`script.py` 里搜
-        `next_available\\|Resource\\|RunState` 得到 **0 处**。这里就是把它接上。
-
-        ## 状态从哪来（不新建存储）
-
-        `RunState.refill_anchor` = **本轮的起点**（`start_time`）。
-        语义: "池子从这个时刻开始计补充"。这正是"跑完一次后要等多久"的锚点,
-        与旧 `next_run = start_time + interval` 同一锚点, 所以**行为可对齐**。
-
-        ★ 为什么不在这里读 `task_state` 的存量: 那是**另一件事**
-          （"还剩几次"由 `task_state.py` 负责）。这里只算"下次什么时候能跑",
-          保持单一职责; 两者在 `update_scheduler` 里汇合。
-
-        ## 为什么只对 `interval` / `slots` 生效
-
-        * `refill == 'interval'` —— 按间隔补充（逢魔之时 每小时 1 次）
-        * `refill == 'slots'`    —— 固定时刻补充（金币妖怪 0/12 点）
-        * `refill == 'none'` + `period` —— **周期回满**。这类任务的"下次运行"
-          由**完成记忆**（`_skip_by_period`）在周期边界决定, 不是"间隔到了就再跑";
-          若在这里返回 `now + 一点点`, 会变成**热循环**。所以交给旧逻辑 + 窗口对齐。
-        * `refill == 'window'` —— **活动期**开放。何时开始是**外部信息**
-          （探针才知道）, 核心只能返回"稍后再问"; 用它当排期会变成轮询,
-          也不合适。同样交给旧逻辑 + 窗口对齐。
-        """
-        try:
-            from module.config import task_catalog as TC
-            from module.config.scheduler_core import RunState, next_available
-
-            task_command = ''.join(p.capitalize() for p in task_key.split('_'))
-            spec = TC.get_spec(task_command)
-            if spec is None:
-                return None
-            res = getattr(spec, 'resource', None)
-            if res is None:
-                return None
-            if getattr(res, 'refill', 'none') not in ('interval', 'slots'):
-                return None
-
-            state = RunState(refill_anchor=start_time)
-            planned = next_available(res, state, start_time)
-
-            # `next_available` 在"现在就可行"时返回 `now` —— 那是"立刻再跑",
-            # 对"跑完一次后的排期"没有意义（会热循环）。这类情况交给调用方回退。
-            if planned <= start_time:
-                return None
-
-            logger.info(f'{task_command}: Resource({res.refill}) 算出下次运行 '
-                        f'{planned:%m-%d %H:%M:%S}')
-            return planned
-        except Exception as exc:
-            logger.warning(f'{task_key}: Resource 排期失败'
-                           f'({type(exc).__name__}: {exc}), 回退到 interval')
-            return None
-
+    # Config.next_run_after()）—— 见 docs/scheduler-architecture.md。
     def next_run_after(self, task_key: str, after: datetime = None,
                        strict: bool = False) -> datetime:
         """**下次允许运行的时刻** —— 由任务的**窗口**决定（不再用 interval 近似）。
@@ -1982,10 +1928,15 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             #
             # ★ 失败仍用 `failure_interval`（**退避重试**是独立概念, 与
             #   资源补充无关 —— 台账 7.6「次数与冷却解耦」说的就是这个）。
-            if success:
-                planned = self._next_run_from_resource(task, start_time)
-            else:
-                planned = None
+            #
+            # ★★ 审计修复: 这里原本调 `self._next_run_from_resource(task, ...)`,
+            #   而那个方法内部 `from module.config.scheduler_core import ...`
+            #   —— `scheduler_core`（以及 `Resource` / `Recharge`）在 S5 已**删除**。
+            #   于是**每次都抛 ImportError** -> 被 `_next_run_from_resource` 自己的
+            #   `except Exception` 吞掉 -> 打一条 warning -> 返回 None -> 再走下面的
+            #   窗口分支。**功能上等价于"没调", 但白刷日志。**
+            #   -> 直接删掉这个死调用（正确的排期是下面的**窗口**分支）。
+            planned = None
 
             if planned is not None:
                 run.append(planned)

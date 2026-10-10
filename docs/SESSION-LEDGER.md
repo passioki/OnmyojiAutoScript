@@ -3805,3 +3805,215 @@ These invalid constraints were provided to RenderClipRect's layout() ...
 | ⑧ | 无法重复添加任务 | ✅ S2（`appendToQueue` 不再拒绝）|
 | ⑨ | 移除一条重复条目导致两条都没了 | ✅ S2（`entry_id` 身份）|
 
+---
+
+# 47. 全面审计（4 个审计员并行）与修复
+
+## 47.1 审计安排
+
+用户要求"**再次前后端代码看一遍, 所有相关文档也过一遍, 查漏补缺, 举一反三**"。
+我派了 **4 个只读审计员**并行工作, 同时自己做定点验证:
+
+| 审计员 | 范围 |
+|---|---|
+| A | 后端一致性（设计文档承诺 vs 代码 / 死代码 / 契约 / 不变量）|
+| B | 前端一致性（9 条反馈落地 / 死代码 / Flutter 坑）|
+| C | 文档（过时 / 矛盾 / 缺失 / 体系结构）|
+| D | 测试（不变量覆盖 / 假通过 / 污染 / 边界）|
+
+★ 下面按"**我修了什么**"与"**待办**"组织（不逐条复述报告）。
+
+## 47.2 ★★ 我修掉的问题（每条都有验证）★★
+
+### ① 🔴 **`priority_mode` 用户选择会被静默覆盖（P0, 最严重）**
+
+**这是"选了定时优先却没用"的真正原因。**
+
+前端改「调度优先级」**不是**调 `PUT /{script}/priority_mode`, 而是走**通用**路径:
+```
+task_list_controller.dart setPriorityMode -> setGlobalField
+  -> PUT /{script}/script/optimization/priority_mode/value
+```
+而置 `priority_mode_explicit=True` 的地方**只有** `put_priority_mode()` ——
+**前端从不调用它**。于是:
+1. 用户选「定时任务优先」-> 值写进配置, 但 `explicit` 仍是 `False`
+2. 下次加载 -> `migrate_priority_mode_once()` 见 `explicit == False`
+   -> 按旧字段推算 -> 出厂组合(`Filter`+`timed`) -> **`custom`**
+3. **用户的选择被静默改回**
+
+**修**: `script_router.py` 的通用写入口 —— 写的是 `priority_mode` 就一并置
+`explicit=True`（**同一个 config 对象上**、**一次** save）。
+★ 我第一版写成"先 save explicit, 再调 `script_set_arg`" —— **顺序错**:
+`config_cache()` 每次返回新对象, 两次 save 会**互相覆盖**。已改对。
+
+### ② 🔴 **测试把用户实时配置写脏了（第 5 次同类事故）**
+
+审计员 D 抓到**铁证**: `config/恋鸟树.json` 的 `run_list` 被
+`tests/module/config/test_entry_id.py` 覆盖成**两条 entry_id 完全相同**的
+`RealmRaid` —— 既**丢了用户编排**, 又**在实时配置里破坏了 E2 不变量**。
+而 `恋鸟树.json` **从未被 git 跟踪** -> **无法恢复**。
+
+**修**:
+* **新增 `tests/conftest.py`**（session 级 `autouse`）: 快照 `config/*.json`
+  -> 跑完**逐字节比对** -> 有变化就**还原 + 大声报警**（不静默）。
+  另附 **E2 体检**（`run_list` 里 `entry_id` 必须唯一）。
+  ★ 实测: 3 个已知污染源（`test_entry_id` / `test_drag_constraint` /
+  `test_queue_removal_semantics`）**全部被拦住并还原**（hash 前后一致）。
+* 手工清掉我造成的重复条目。
+
+★★ **职责边界说明**: 测试**直接改用户实时配置**是根因 —— `conftest.py` 是
+  **兜底**（防再犯），不替代"测试自己备份还原"。正确范例:
+  `test_queue_clear_and_settings.py`。
+
+### ③ 🔴 **`_next_run_from_resource()` 是"活着的死代码"**
+
+它内部 `from module.config.scheduler_core import ...` —— 该模块 **S5 已删**。
+而被 `task_delay()` 的成功路径**每次都调用** -> 每次抛 `ImportError`
+-> 被自己的 `except` 吞掉 -> 打一条 WARNING -> 返回 `None` -> 再走窗口分支。
+**功能上等价于"没调", 但白刷日志**, 且它的 docstring 还在描述已删的接线。
+
+**修**: 删掉该函数（63 行）与它的调用点, 留一条说明。
+**核对**: 全仓 `scheduler_core` 的 **import 残留 = 0**。
+
+### ④ 🔴 **③ 的拖动判据写反了（前端致命 bug）**
+
+`_sameGroupReorder()` 比较的是"**该条目所在段内**的 id 序列是否变化":
+* **同段内换序** -> 序列**必然**变 -> 判为"跨段" -> **拒绝**（用户拖不动）
+* **跨段移动**（若该段只有它一条）-> 序列没变 -> **放行**
+  （然后被后端拒绝, 用户只看到"保存失败"）
+
+★★ **这正好是反的 —— 也正好是用户 ③ 抱怨的现象。**
+
+**修**: 改成"移动后**段名序列**（rank 向量）是否仍单调"
+—— 与后端 `_check_drag_allowed` **同一判据**:
+* 同段内换序 -> rank 向量不变 -> **放行** ✓
+* 跨段移动 -> 出现 `1,0` 逆序 -> **拒绝** ✓
+* `rest` 用 `'__rest__'` 标（rank=2, 恒最后）—— 与后端 `_segment_queue` 一致
+  （我第一版注释写"rest 不参与", 但 `priorityGroupOf('')` 返回 `'fixed'`
+   -> rest **被当成 fixed 参与**了, 注释与实现不符）。
+
+### ⑤ 🔴 **前后端"段名"判据分叉 —— 17 个任务**
+
+前端 `priorityGroupOf()` 用 `/overview` 的 `category`（**声明**类别）自推;
+后端 `priority_group` 用 `category_effective`（⑥: `timed`+
+`period=none` -> `fixed`）。
+
+**实测: 54 个任务里 17 个不一致**（DemonEncounter / GoldYoukai / Tako /
+Duel / MysteryShop / WeeklyTrifles / …）。
+后果: 分段条计数、类别色条、拖动范围**全错**; 且"拖动预检"与后端**可能相反**
+（用户看到"不能跨类别拖动"却看不出原因）。
+
+**修**:
+* 后端 `/overview` 补 **`category_effective`** / **`priority_group`**
+  （实测 **53/53** 全有）—— 前端不再复算（符合 §7"前端不推导调度规则"）
+* 前端 `priorityGroupOf()` **优先读后端权威值**; 兜底才自推, 且兜底也
+  按**最终类别** + ⑥ 的规则复现。
+
+### ⑥ 🔴 **「运行记录」列恒为空 / 按次数排序恒为 0**
+
+后端 `run_record` 的键是**小写、去下划线**（`_norm()`）——
+实测 `log/.run_record.json` 的键是 `demonencounter` / `realmraid`。
+前端 `recordOf(command)` 用**大驼峰** `DemonEncounter` 直接查 -> **永远查不到**。
+
+**修**: 加 `_normKey()`（`lower()` + 去 `_`, 与后端**逐字一致**）并双查。
+
+### ⑦ 🔴 **「清除失败/解除冷却」点了没用**
+
+后端 `failure_state` 的键是小写 command（实测 `demonencounter`）,
+而前端传 `task['name']`（下划线形式 `demon_encounter`）-> `pop` 不命中
+-> **静默不生效**。
+
+**修**: 调用点改传 `command`; `clearFailure()` 里**再归一化一次**（双保险）。
+
+### ⑧ 其他
+
+| 位置 | 问题 | 修法 |
+|---|---|---|
+| `RunEntry.to_dict()` | `group` 会**落盘**（我第一版让它"非空才写", 但 `_assign_groups()` 会算成非空 -> **照样落盘**）| 改成**永不序列化**（纯内存派生值）|
+| `PUT/POST /run_list` | 前端传的 `group` 被存盘（判据可能不一致, 配置里躺着错的段名）| 新增 `_assign_groups()` —— 后端**权威重算**, 丢掉前端传的 |
+| `POST /run_list/entry` | **绕过**拖动约束（`PUT` 有, 插入没有）| 接入同一套校验 |
+| `tasks/Restart/script_task.py` | **用户可见提示**让用户设 `window_slots`（字段**已删**）—— 用户照做**必然失败** | 改成"设**两个窗口**" |
+| `timed_schedule.py` / `config.py` / `config_optimization.py` | 注释仍写 `timed/charge/limited` | 去掉 `charge` |
+| `dev_tools/gen_task_meta.py` | 提示用户跑 `gen_resource_specs.py`（**已删**）| 改成"直接写 `period=`" |
+
+## 47.3 ★ 我自己也踩的坑（如实记录）
+
+| # | 坑 | 修法 |
+|---|---|---|
+| 1 | `deep_set('Script.optimization...')` —— 字段是**小写 `script`**。它 `except` 吞掉 `AttributeError` 并 **`return False`**, 而我没检查返回值 -> 端点回显 `{'ok': True}` 但**磁盘一个字节没改** | 4 处改小写; 结论: 对"返回值表示成败"的函数**必须检查返回值** |
+| 2 | `deep_set` 写成**两参**（实际三参 `deep_set(obj, keys, value)`）| 改三参 |
+| 3 | 守卫测试里猜构造器名 `build_optional_schema`（不存在）-> 走 `pytest.skip` -> **假通过** | 找到真名 `_global_fields`, 改成**真断言** |
+| 4 | `Row(crossAxisAlignment: stretch)` 在 `SingleChildScrollView` 里（垂直**无界**）-> **布局崩** | 改成不用 `Row`、放在列表**上方** |
+| 5 | `_segmentRail` 里用**无 tag 的 `Get.find<TaskListController>()`** -> 多账号场景**抛异常** -> 2 个测试失败 | 用 `widget.controller` |
+
+## 47.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1605 passed, 3 skipped**（0 失败）|
+| 前端 flutter test | **85 passed** |
+| 前端 analyze（我改的文件）| **No issues found!** |
+| `scheduler_core` import 残留 | ★ **0** |
+| `conftest.py` 防护 | ★ **实测拦住 3 个污染源并还原**（hash 前后一致）|
+| `priority_group` 覆盖 | ★ `/overview` **53/53** |
+| `group` 落盘 | ★ **永不**（实测磁盘无 `group`）|
+
+## 47.5 ★ 审计发现但**本轮未修**的待办（按影响排序）
+
+| # | 问题 | 影响 | 建议 |
+|---|---|---|---|
+| T1 | **`schedule_rule` 未真正合并进 `priority_mode`** —— `update_scheduler()` 仍读它驱动分派（`config.py` 的 `_is_list_rule` 分支）, 前端**也仍渲染那个四选一下拉** | 🔴 高: 与 `priority_mode` 构成**两个互相牵制的控件**; 且 `E3`（按条目记完成）**只在 List 规则下成立** | 删该分支 + 前端下拉; 统一 `_order_by_queue` + **无条件**按条目复查完成记忆 |
+| T2 | **FILTER 白名单吞掉队列内任务** —— 默认 `schedule_rule=Filter` 时 `Filter.apply()` 按 `ConfigManual.SCHEDULER_PRIORITY` 过滤, 实测丢 `FindJade` / `GotoMain`（**两者 `auto_queue=True`** -> 在队列里却**永不执行**）; 白名单还含 2 个**已不存在的任务名** | 🔴 高 | 白名单与 catalog 对齐（或直接去掉 FILTER 那条路径）|
+| T3 | **文档大面积过时** —— `ui-api-mapping.md` §3/§9 仍在教人用 `window_slots` 单值窗口; `architecture.md` §3 整节讲已删的 `Resource`/`RunState`/`next_available()`; 三份文档同时自称"唯一权威" | 🔴 高（会误导后来者）| 见 47.6 |
+| T4 | **`/schema` 的 `window_fields` 是死 schema**（返回 4 个已删字段, 前端不读, **还有测试锁死**）| 🟠 中 | 删字段 + 改掉锁死它的断言 |
+| T5 | **3 个"一调就崩"的死函数**: `Config._order_by_priority_mode()`（生产 0 调用）、`Scheduler.build_window()`（读已删字段 -> `AttributeError`）、`name_to_function()`（`Function({})` 缺参 -> `TypeError`）| 🟠 中 | 删, 或补最小守卫 |
+| T6 | **`test_battle_wait.py` 整文件 21 个测试从不执行**（`ImportError: _DEFAULT_PER_BATTLE`）—— "1605 passed" **掩盖了它** | 🟠 中 | 修 import 或删文件; 别让收集错误被 passed 数字掩盖 |
+| T7 | **假通过的守卫**: `test_priority_mode.py::test_queue_invariant_survives`（`pending_task` 经 `__getattr__` 返回 `None` -> `all()` 恒真）、`test_execution_queue.py` 的 `assert 'queued' in body`（**永真且语义已反**）| 🟠 中 | 加 `update_scheduler()` + `assert p`; 删不可失败的断言 |
+| T8 | **`migrate_priority_mode_once()` 本身零测试**（映射表 4 分支 / 幂等 / `explicit` 阻断）| 🟠 中 | 用**临时 config 名**补测试（别用 `恋鸟树`）|
+| T9 | **抽屉与分栏 clamp 冲突**: 抽屉宽 380 而 `maxLeft = maxWidth - 320` -> 触顶时总宽 = maxWidth **+61px 溢出**; 抽屉关闭时拖动条仍渲染 | 🟡 中 | `maxLeft` 扣除抽屉宽 |
+| T10 | **前端死代码一批**: `timedPriority*` 三件套、`resetToDefault`（**危险**: 会清空 `run_list`）、`reflow`/`flowDisclaimer`（每次 reload 白请求 `/run_list/preview`）、11 个未调用的 `api_client` 方法、`lib/controller/args/group_controller.dart`（**0 字节**）| 🟡 中低 | 分批清; 清前先改掉钉住它们的陈旧测试 |
+| T11 | **`RunControlBar` 状态不刷新 + 失败无提示**（`initState` 只拉一次; `_do` 丢弃返回值）| 🟡 中 | 跟随 refresh; 失败上屏 |
+| T12 | **`rest` 条目在 `_segment_queue` 里恒排最后, 但没有任何测试观察它**（`test_queue_is_authority` 的 `_queue()` 把 rest 过滤掉了）| 🟡 中 | 补一条"rest 夹在中间会被排到最后" |
+
+## 47.6 ★ 建议的文档体系整改（来自审计员 C, 我认同）
+
+**症状**: **三份文档同时自称"唯一权威"**（`architecture.md` / `SESSION-LEDGER.md` /
+`scheduler-architecture.md`）。而同一知识在两处定义 -> **必然漂移**（项目自己
+在 3 处写了这条教训, 却仍在犯）。
+
+**建议分层**:
+
+| 文档 | 角色 |
+|---|---|
+| `scheduler-architecture.md` | **调度域唯一权威**（吸收三模式 / `priority_mode_explicit` / `RunEntry.group` 派生性 / 拖动判据 / 多窗口）|
+| `ui-api-mapping.md` | **只写端点与字段契约**（删掉设计理由）; §3/§9 重写为多窗口 |
+| `architecture.md` | **降级为指针** + 非调度域内容; 顶部加"调度问题一律看 scheduler-architecture.md" |
+| `deprecated.md`（**新建**）| **唯一废弃清单**, 一条一行 + 删除它的台账节号 |
+| `SESSION-LEDGER.md` | 移入 `archive/`, 标题改"**历史台账**（只记当时发生了什么, 不代表现状）" |
+
+**并加"可执行守卫"**（本仓库已有成功先例 `test_charge_system_removed.py`）:
+1. `tests/test_docs_no_dead_refs.py` —— 抽取文档里的 `` `module/…py` `` 路径,
+   **断言文件存在**。★ 一条测试即可消灭文档里大部分死引用。
+2. 反向守卫: 现行文档**不得**出现 `charge` / `window_slots` / `schedule_rule`
+   （白名单: `archive/` / `deprecated.md` / 台账）。
+3. 契约守卫: `/schema` **不得**含 `list.modes` / `window_fields`。
+4. **代码侧**也补一条: "已删模块名不得出现在任何 import 语句里"
+   （照 `tests/test_architecture_guard.py` 的 AST 写法）——
+   ★ 它**立刻能抓到** `config.py` 里那个已删的 `scheduler_core` import
+   （我已修掉, 但守卫还没加）。
+
+## 47.7 ★ S1–S6 完成度的诚实结论
+
+| 阶段 | 审计结论 |
+|---|---|
+| **S1** 僵尸清理 | ✅ 完整（Z1/Z2 守卫健全）|
+| **S2** 9 条反馈的主体 | ✅ 完整 |
+| **S3** 多窗口 | ⚠ **部分** —— 字段/端点/编辑器都做了, 但 `/schema` 仍宣告单值 `window_fields`（死 schema + 测试锁死）|
+| **S4** 窗口编辑器 | ✅ 完整（5 端点**确实按 id**）|
+| **S5** 删存量 | ⚠ **代码 ✓ 数据 ✗** —— 代码清零, 但 `config/template.json` 仍有 `charge_*` 残留; 且有"活着的死代码"（已修）|
+| **S6** 三模式 | ⚠ **部分** —— 三模式 + 分段 + 拖动约束做了, 但 **`schedule_rule` 未真正合并**（T1）, 且**前端段名判据曾分叉**（已修）|
+
+★ **不变量**: W1–W4 ✓ / E1 ✓ / E2 ✓（但测试曾破坏它）/ **E3 ⚠ 仅 List 规则下成立** /
+E4 部分 / S1 ✓ / S2 ✓（有 2 个未记录例外: 手动置顶、运行中置顶）/
+**S3 曾不成立（17 任务, 已修）** / S4 ✓ / Z1/Z2 ✓。
+

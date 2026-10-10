@@ -490,6 +490,31 @@ def build_overview(config_name: str) -> dict:
             'command': command,
             'name_zh': (meta.name_zh if meta else '') or command,
             'category': meta.category.value if meta else 'timed',
+            # ★★ 审计修复（H2/⑥）: 给出**最终类别**与**优先级段** ★★
+            #
+            # ## 为什么必须给（这是个真 bug）
+            #
+            # `category` 是 `meta.py` 里**声明**的类别; 而真正决定"它算定时还是
+            # 固定"的是 `category_effective`（⑥: `timed` + `period=none`
+            # -> `fixed`）。实测: **54 个任务里 17 个**声明 `timed` 却
+            # `category_effective == fixed`（DemonEncounter / GoldYoukai /
+            # Tako / Duel / …）。
+            #
+            # 前端拿不到这两个字段, 只能**自己用 `category` 复算**段名 ->
+            # **17 个任务的分段条、类别色条、拖动范围全错**, 且"拖动预检"与
+            # 后端 `_check_drag_allowed` 的判定**可能相反**（用户看到
+            # "不能跨类别拖动"却看不出原因）。
+            #
+            # ★ 这里把**权威值**直接给前端 —— 前端不再复算（符合 §7
+            #   "前端不重新推导调度规则"）。
+            'category_effective': (meta.category_effective.value
+                                   if meta else 'timed'),
+            'category_effective_label': TC.CATEGORY_LABEL.get(
+                meta.category_effective if meta else None, ''),
+            # 优先级段: `'timed'` / `'fixed'` —— 与 `Config._segment_of()`
+            # 以及 `build_queue()` 的 `_segment_queue()` 用**同一处**判据
+            # （`TaskSpec.priority_group`）。
+            'priority_group': (meta.priority_group if meta else 'fixed'),
             # 类别的中文标签 —— 界面不必自己维护一份映射。
             #
             # ★ 元数据缺失的任务(如尚未写 `meta.py` 的)也要给出标签,

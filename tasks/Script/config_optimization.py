@@ -125,7 +125,7 @@ class Optimization(BaseModel):
     # | 谁来管 | 内容 | 排序依据 |
     # |---|---|---|
     # | **运行列表** | 固定任务 + 休息 | 用户拖拽的顺序 |
-    # | **定时调度器** | timed / charge / limited | window、剩余时间、预计耗时、自定义优先级 |
+    # | **定时调度器** | timed / limited | window、剩余时间、预计耗时、自定义优先级 |
     #
     # 见 `docs/architecture.md` §5.4 与 `module/config/timed_schedule.py`。
 

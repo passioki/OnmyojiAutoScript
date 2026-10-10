@@ -8,7 +8,7 @@
 | 类型 | 特征 | 该怎么排 |
 |---|---|---|
 | **固定任务**（`fixed`/`toppa`）| "打满 N 次", 没有时间窗 | 按**用户拖拽的顺序** |
-| **定时任务**（`timed`/`charge`/`limited`）| 有 window / 存量 / 周期 | 按 window、剩余时间、预计耗时、自定义优先级 |
+| **定时任务**（`timed`/`limited`）| 有 window / 周期 | 按 window、剩余时间、预计耗时、自定义优先级 |
 
 把定时任务塞进"用户顺序"里是错的 —— 它有自己的时间约束,
 "排在第三个" 跟 "17:00 才开放" 会互相打脸。
@@ -42,7 +42,7 @@ def should_consider(category_value: str, enable_fixed: bool = True,
     该类别的任务现在是否参与调度。
 
     * 固定任务（`fixed`/`toppa`）看 `enable_fixed`
-    * 定时任务（`timed`/`charge`/`limited`）看 `enable_timed`
+    * 定时任务（`timed`/`limited`）看 `enable_timed`
     * 两个开关**互不影响** —— 关掉固定任务不该影响定时任务, 反之亦然
     * 不认识的类别 -> False（不崩）
     """

@@ -295,7 +295,44 @@ async def script_task(script_name: str, task: str, group: str, argument: str, ty
     except Exception as e:
         # 类型不正确
         raise HTTPException(status_code=400, detail=f'Argument type error: {e}')
-    return mm.config_cache(script_name).model.script_set_arg(task, group, argument, value)
+
+    # ★★ 审计修复（P0）: 通用写路径也必须置「用户已明确设置」标记 ★★
+    #
+    # ## 为什么（这是"选了定时优先却没用"的**真正原因**）
+    #
+    # 前端改「调度优先级」**不是**调 `PUT /{script}/priority_mode`, 而是走这条
+    # **通用**路径:
+    #     task_list_controller.dart `setPriorityMode` -> `setGlobalField`
+    #       -> `PUT /{script}/script/optimization/priority_mode/value`
+    #
+    # 而置 `priority_mode_explicit=True` 的地方**只有** `put_priority_mode()`
+    # —— 前端**从不调用**它。于是:
+    #   1. 用户选「定时任务优先」-> 值写进配置, 但 `explicit` 仍为 **False**
+    #   2. 下次加载配置 -> `Config.__init__` -> `migrate_priority_mode_once()`
+    #      -> 见 `explicit == False` -> 按**旧字段**推算 -> 出厂组合
+    #      (`Filter` + `timed`) 命中 -> **`custom`**
+    #   3. **用户的选择被静默改回** —— 正是本设计要消灭的现象。
+    #
+    # ★ 修法: 在**同一个 config 对象**上把 `explicit` 也置真, 再交给
+    #   `script_set_arg()` **一次**保存（分两次 save 会因为 `config_cache()`
+    #   每次返回新对象而互相覆盖 —— 我第一版就写错了）。
+    #
+    # ★ 为什么放在这里而不是 `script_set_arg()` 里: 那个方法在 `config_model`
+    #   （数据层）, 不该知道"迁移标记"这件事; 而这里是**对外接口层**, 正是
+    #   "用户在界面上表了态"的语义发生地。
+    cfg = mm.config_cache(script_name)
+    if argument == 'priority_mode':
+        try:
+            cfg.model.deep_set(
+                cfg.model,
+                keys='script.optimization.priority_mode_explicit',
+                value=True)
+        except Exception as exc:
+            logger.warning(f'[{script_name}] 置 priority_mode_explicit 失败'
+                           f'({type(exc).__name__}: {exc}) —— '
+                           f'用户的优先级选择可能被迁移覆盖')
+
+    return cfg.model.script_set_arg(task, group, argument, value)
 
 
 @script_app.put('/{script_name}/{task}/sync_next_run')

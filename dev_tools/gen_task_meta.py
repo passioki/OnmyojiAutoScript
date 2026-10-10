@@ -9,7 +9,9 @@
 
 数据来源(与 `task_catalog` 一致, 不另造一套):
   * 中文名 / 类别 -> `module/config/task_catalog.py`(源自 OASX i18n + 本轮实测)
-  * 资源规则     -> `dev_tools/data/resource_specs.json`(由 gen_resource_specs 生成)
+  * 周期(period) -> ★ S5: `Resource` / `Recharge`（容量 / 补充时刻这套"存量"模型）
+                    **已删除**；`resource_specs.json` 那份模型**已废弃、不再使用**。
+                    请直接在各任务 `meta.py` 里写 `period=Period.XXX`。
 
 ## 生成的 meta.py 长什么样
 
@@ -111,7 +113,9 @@ def main() -> int:
 
     if not SPECS_FILE.exists():
         print(f'缺少 {SPECS_FILE.relative_to(REPO)}')
-        print('请先运行: python dev_tools/gen_resource_specs.py')
+        print('★ S5: `dev_tools/gen_resource_specs.py` **已删除**（存量机制移除）—— '
+              '这个脚本不再需要它。')
+        print('  请直接在各任务 `meta.py` 里写 `period=Period.XXX`。')
         return 1
 
     specs = {r['task']: r for r in json.loads(

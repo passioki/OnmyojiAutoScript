@@ -51,15 +51,16 @@ class ScriptTask(LoginHandler):
         # 所以这里**不再**按 `enable_ap` 手工排 12:00 / 20:00 —— 那是任务内自排期,
         # 与"窗口是唯一排期依据 + 队列顺序"是两套机制。
         #
-        # 领体力的"一天两次"现在由**窗口**表达:
+        # 领体力的"一天两次"现在由**窗口**表达（★ S3: 单值字段已删, 改成列表）:
         #
-        #     scheduler.window_enable = true
-        #     scheduler.window_slots  = '12:00,20:00'    -> 12:00-14:00 与 20:00-22:00
+        #     scheduler.windows = [{"start": "12:00", "end": "14:00"},
+        #                          {"start": "20:00", "end": "22:00"}]
         #
         # **没配窗口** -> 就按队列顺序依次执行（不再自排期）。
         if self.config.restart.harvest_config.enable_ap:
             logger.info('Restart: 领体力时段由**窗口**决定'
-                        '（如需每天 12/20 点各一次, 请设 window_slots）')
+                        '（如需每天 12/20 点各一次, 请设**两个窗口**：'
+                        '12:00-14:00 与 20:00-22:00）')
 
     def delay_pending_tasks(self) -> bool:
         """

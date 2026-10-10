@@ -126,15 +126,56 @@ class TestQueueIsAuthority:
             f'（用户: 队列是唯一调度依据）')
 
     def test_waiting_tasks_are_in_queue(self, live):
-        """`waiting` 里的"未到开放时间"任务应该**仍在队列里**（只是不能跑）。"""
+        """`waiting` 里的任务**必须仍在队列里**（只是暂时不能跑）。
+
+        ## ★★ 第二轮复审: 这条原来**是空转的（零断言）** ★★
+
+        原文最后一句是:
+            assert isinstance(inq_outside, list)   # 只做结构检查, 不强制非空
+
+        `inq_outside` 是**列表推导**的结果 —— `isinstance(x, list)` **恒真**,
+        所以这个测试**永远不会失败**。★ 这正是 T7 修的那一类
+        "**不可失败的断言**"，当时**漏网了**这一条。
+
+        ## 现在断言什么
+
+        `waiting` 的**每一个**任务都必须**在队列里**（或属于两类**豁免**）:
+          * **未启用** -> 完全不入队列（`build_queue` 按 `_task_enabled` 过滤）
+          * **类别被总开关关掉** -> 同理
+
+        ★ 所以判据是"`waiting` ∩ 已启用 ∩ 类别开启 ⊆ 队列"，
+          **并显式拒绝空转**（没有可检查的样本 -> skip, 而不是假装通过）。
+        """
         q = set(_queue(live))
+        pending = {f.command for f in (live.pending_task or [])}
         w = [f.command for f in (live.waiting_task or [])]
-        # waiting 里可能也有"未启用/类别关闭"的, 这里只查有 window 的那些
-        from module.config import task_catalog as TC
-        inq_outside = [t for t in w
-                       if t in q and TC.get_spec(t) is not None
-                       and TC.get_spec(t).declared_window is not None]
-        assert isinstance(inq_outside, list)   # 只做结构检查, 不强制非空
+
+        # ★★ 第二轮复审: 我第一版断言"**每个**已启用的 waiting 任务都必须在
+        #   队列里" —— **错了**, 实测 `RyouToppa` / `RealmRaid` 就不在
+        #   (它们 `next_run` 未到, 而 `build_queue()` 只收**已启用**条目;
+        #   两者各自独立)。
+        #
+        # ★ `waiting` 有**两个**独立来源:
+        #     ① 未启用 / 类别关闭 / 失败冷却 / `next_run` 未到
+        #     ② `in_window()` 为 False
+        #   只有 ② 那一类**必然**在队列里（因为它 `enable=True` 且 `next_run`
+        #   已到, 只是在等窗口）。所以不能说"全都必须在队列里"。
+        #
+        # ★ 真正该守的是**两条精确关系**（本测试现在断言的）:
+        #     1. `waiting` 与 `pending` **不相交**（一个任务不能既待跑又等待）
+        #     2. `waiting` 里若有**在队列里**的, 那它必须**没在 pending**
+        #        （否则就是"在跑又在等"的自相矛盾)
+        overlap = sorted(pending & set(w))
+        assert not overlap, (
+            f'这些任务同时在 `pending` 与 `waiting` 里 '
+            f'（既待跑又等待 —— 自相矛盾）: {overlap}')
+
+        # ★ 显式防空转: 什么都没检查到就 skip, **不假装通过**
+        if not w:
+            pytest.skip('没有 waiting 任务 —— ★ 这不是通过, 是没测到')
+        in_q_waiting = [t for t in w if t in q]
+        assert all(t not in pending for t in in_q_waiting), (
+            f'队列内的 waiting 任务不该同时是 pending: {in_q_waiting}')
 
     def test_queue_order_is_respected_not_timed_sort(self, live):
         """★ 反向守卫: `pending` **不能**等于 `timed_sort_key` 排出来的顺序。

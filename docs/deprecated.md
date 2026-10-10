@@ -74,7 +74,7 @@
 | `window_dom` | `windows[].days_of_month` | §33 |
 | **`window_slots`** | ★ **`windows` 列表本身** —— "一天两次" = **两个窗口** | §33 |
 | `/schema` 的 `window_fields` | `GET/PUT/POST/PUT{id}/DELETE{id} /{s}/tasks/{task}/windows` | §49 |
-| `_SLOT_SPAN_MINUTES`（`config.py` 那份）| —— | §33 |
+| ~~`_SLOT_SPAN_MINUTES`~~ | ★★ **本条是误判, 已撤销**（第二轮复核）: `module/config/config.py:37` **仍定义**它、`:288` **在活路径里使用**（`resolve_windows()`）—— **保留** | §33 |
 
 ★ **前端从来没有过单值窗口的表单**（`lib/views/args/` 原无窗口 UI）——
   多窗口编辑器 `window_editor.dart` 是 S4 新写的。
@@ -114,13 +114,19 @@
 | `success_interval`（模型字段）| 与窗口语义重叠 | **窗口** | §26 |
 | `custom_next_run()` 的**调用点**（9 处）| 任务不该自己排期 | **窗口** | §26 |
 | `Config.name_to_function()` | **一调就崩**（`Function({})` 缺参）| 无（0 调用）| §49 |
-| `tests/.../test_battle_wait.py` 的 21 个测试 | 断言基于**旧 API**（`per_battle` 曾是 `dict`）| ★ **待按当前状态机重写**（现在**无保护**）| §49 |
-| `docs/task-list-prototype.html` | 过时原型（含 `charge` 类别、"存量"列）| 见 `ui-api-mapping.md` | — |
-| `docs/oasx-task-list-ui.patch` | git patch（1.7 万行, 含全部旧模型）| 无（不该在 `docs/`）| — |
-| `docs/team-coordination.md` | 引用了已删的 `team_coordinator.py` | ★ 待重新设计为**独立模块** | §39 |
+| `tests/.../test_battle_wait.py` 的 21 个测试 | 断言基于**旧 API**（`per_battle` 曾是 `dict`）| ★ **已重写为 27 个真测试**（§53.2）| §49 / §53 |
+| `docs/task-list-prototype.html` | ★ **计划删**（文件**仍在**, 34KB）—— 过时原型（含 `charge` 类别、"存量"列）| 见 `ui-api-mapping.md` | — |
+| `docs/oasx-task-list-ui.patch` | ★ **计划删**（文件**仍在**, 724KB）—— git patch（1.7 万行, 含全部旧模型）| 无（不该在 `docs/`）| — |
+| `docs/team-coordination.md` | ★ **计划删/重写**（文件**仍在**, 20KB）—— 引用了已删的 `team_coordinator.py` | ★ 待重新设计为**独立模块** | §39 |
+| `RunState` / `next_available()` | ★（第二轮补录）随 `scheduler_core.py` 一起删 | **窗口** | §40 |
+| `module/config/scheduler_core.py` | ★（第二轮补录）**整个模块** 346 行, 死代码 | 无 | §40 |
+| `module/config/team_coordinator.py` | ★（第二轮补录）**整个模块** 213 行 | ★ 待重新设计为**独立模块** | §39 |
+| 前端 `resetToDefault()` | ★（第二轮补录）**会清空 `run_list`** 的危险死代码 | 无（0 调用）| §53 |
+| 前端 `timedPriority` / `timedPriorityChoices` / `setTimedPriority` | ★（第二轮补录）读**已废弃**的 `global_fields.timed_priority`（后端已不返回）| `priorityMode*` | §53 |
+| 前端 `scriptRunning` / `isTaskEntry` / `overviewRowOf` | ★（第二轮补录）只读、0 调用 | `taskRowOf` / 直读 `ScriptService` | §53 |
 
 ★ **`TaskMeta.success_interval` 与配置 JSON 里的 `success_interval` 是
-  「有意保留」**（读旧值用）, 见 `tests/test_success_interval_removed.py`。
+  「有意保留」**（读旧值用）, 见 `tests/module/config/test_success_interval_removed.py`。
 
 ---
 

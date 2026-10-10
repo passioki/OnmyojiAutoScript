@@ -42,7 +42,15 @@ DOCS = REPO / 'docs'
 _ALLOW_DEAD_PATHS = {
     'deprecated.md',             # 唯一废弃清单 —— 它就得写已删的东西
     'SESSION-LEDGER.md',         # 历史台账 —— 记录当时发生了什么
-    'architecture.md',           # ★ 已在头部声明"降级为指针, 正文已知过时"
+    # ★★ 第二轮复审: rchitecture.md **已移出白名单** ★★
+    #
+    # 原来整份豁免 —— 结果这条守卫**抓不到它自己举的例子**
+    # （docstring 说动机就是 rchitecture.md 列了已删的
+    # scheduler_core.py / gen_resource_specs.py / 	est_availability.py）。
+    # ★ 复审员实测: 全仓 153 条路径引用里 **143 条被白名单豁免**,
+    #   真正被断言的只剩 **2 条** —— 等于空转。
+    # ★ 现在改成**就地标注**（该文档里已删的路径都写了已删）；
+    #   若还有漏的, 守卫会**真的红**。
     'team-coordination.md',      # 引用了已删的 team_coordinator（待重设计）
     'oasx-task-list-ui.patch',   # 历史 patch
 }
@@ -102,7 +110,16 @@ class TestDocsNoDeadPaths:
         #   （它们**本来就**是讲历史/废弃的）, 真正被检查的只有
         #   ui-api-mapping.md / deprecated.md 等少数几份。
         #   ★ 我第一版写 > 20 -> **假失败**。**阈值要按实际**定。
-        assert checked >= 1, '一条路径引用都没抽到 —— 正则失效, 守卫形同虚设'
+        # ★★ 第二轮复审: 阈值从 1 提到 **25** ★★
+        #
+        # 复审员实测: 原来 >= 1, 而**实际只校验 2 条**
+        # （153 条引用里 143 条被白名单豁免）—— 距空转仅 1 行之遥。
+        # 把 rchitecture.md 移出白名单后升到 **31 条**。
+        # ★ 阈值定在 25（略低于实测 31）—— 既防空转, 又不脆到改一行就红。
+        assert checked >= 25, (
+            f'只抽到 {checked} 条路径引用（应 >= 25）—— '
+            f'★ 要么正则失效, 要么有人把文档大量加进了 _ALLOW_DEAD_PATHS。'
+            f'守卫的覆盖面积**不能靠白名单缩小**。')
         assert not bad, (
             '文档提到了**不存在**的代码路径（后面的人会照着写）:\n  '
             + '\n  '.join(bad[:20])

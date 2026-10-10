@@ -249,11 +249,11 @@ Resource(
 
 ### 3.1 Resource —— 四种补充方式覆盖全部 54 个任务
 
-`Resource` 把"补充方式"独立成分层的 `Recharge`，避免出现**自相矛盾的状态**。
+`Resource`【**已删**】把"补充方式"独立成分层的 `Recharge`【**已删**】，避免出现**自相矛盾的状态**。
 
 ```python
 @dataclass(frozen=True)
-class Recharge:
+class Recharge:   # ★【已删】(S5) —— 现由「窗口」取代
     """池子如何补充 —— 三种互斥的方式(一次只用一种)。"""
     kind: Literal['none', 'interval', 'slots', 'window'] = 'none'
     interval: tuple = (0, 0, 0)      # (天, 时, 分), kind=INTERVAL
@@ -267,7 +267,7 @@ class Recharge:
 class Resource:
     capacity: int = 1
     consume: int = 1
-    recharge: Recharge = None
+    recharge: Recharge = None   # ★【已删】
     window: AvailabilityWindow = None
 ```
 
@@ -293,17 +293,17 @@ class Resource:
 | `slots`【**该机制已删**】 | 固定时刻补充 | 金币妖怪：0/12 点各回满，上限 2 | `charge_slots`+`charge_max`+`charge_consume`+`success_interval` → **4 个**（**全已删**）|
 | `window` | 只在活动期 | 超鬼王：活动期内每天 1 次 | **无**（靠推远 `next_run` 假装不存在） |
 
-★ `Resource(capacity=50, recharge=Recharge(period=DAILY))` **一个概念**即表达旧的
+★ `Resource(capacity=50, recharge=Recharge(period=DAILY))`【**均已删**】**一个概念**即表达旧的
 `success_interval=1d` + `limit_count=50`。
 
 **从旧字段推导**（`Resource.from_legacy`，迁移桥梁，已实测正确）：
 
 | 旧 `success_interval` | 推导结果 |
 |---|---|
-| `01 00:00:00`（1 天） | `Recharge(period=DAILY)` |
-| `07 00:00:00`（7 天） | `Recharge(period=WEEKLY)` |
-| `00 03:00:00`（3 小时） | `Recharge(kind='interval', interval=(0,3,0))` ← **不再是 period** |
-| `03 00:00:00`（3 天） | `Recharge(kind='interval', interval=(3,0,0))` ← **不再是 period** |
+| `01 00:00:00`（1 天） | `Recharge(period=DAILY)`【**已删**】|
+| `07 00:00:00`（7 天） | `Recharge(period=WEEKLY)`【**已删**】|
+| `00 03:00:00`（3 小时） | `Recharge(...)`【**已删**】← **不再是 period** |
+| `03 00:00:00`（3 天） | `Recharge(...)`【**已删**】← **不再是 period** |
 
 ★ 最后一行的修正很重要：早期版本把 `days<7` 一律归为 `daily`，于是真蛇的
 "每 3 天"变成"每天"、3 小时的斗技变成"每天 1 次"，**间隔信息全丢**。
@@ -403,7 +403,7 @@ class Scheduler:
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  L3  决策层  team_coordinator.py                      │
+│  L3  决策层  team_coordinator.py【**已删**】           │
 │      读双方状态 -> START / WAIT / YIELD / DEFER        │
 ├──────────────────────────────────────────────────────┤
 │  L2  状态层  log/.team_state.json                     │
@@ -1517,7 +1517,7 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 1 | `task_catalog` 任务元数据目录 | ✅ 已提交 `b004d6ed` |
 | 2 | `Resource` + `RunState` + `next_available()` 纯函数核心 | ✅ 已提交 `90f803de` |
 | 3 | **`AvailabilityWindow` 开放时段 + `ObservedWindow` 自学习** | ✅ 已提交（本步） |
-| 4 | `Resource` 分层（`Recharge`）+ 修正误分类 + `resource_specs.json` | ✅ 已提交 |
+| 4 | `Resource`【已删】分层（`Recharge`【已删】）+ 修正误分类 + `resource_specs.json` | ✅ 已提交（★ 后被 S5 **删除**）|
 | 5 | 开放时段接入用户配置（`Scheduler` 四个 `window_*` 字段 + `build_window()`） | ✅ 已提交 |
 | 6 | 一次性迁移脚本 + `get_next()` 引入开放时段闸门 | ✅ 已提交 |
 | 7 | 任务自描述 `tasks/<Name>/meta.py`（54 个已生成 + 自动发现） | ✅ 已提交 |
@@ -1626,7 +1626,7 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 7.2 | 游戏知识只放 catalog，不在 54 个配置界面暴露 | ✅ | `TaskSpec` 承载 `category` / `auto_queue` / `window` / `resource`, 各任务自己的 `meta.py` |
 | 7.3 | `failure_interval` → `retry_interval` | ✅ **已完成（带向后兼容别名）** | 字段改名, 且加 `validation_alias=AliasChoices(...)` —— 因为 `Scheduler.model_config = {}` 让 pydantic v2 **默认 `extra='ignore'`**, 实测给改名后的模型传**旧键不报错也不生效**, 会让**磁盘上 54 个配置里的该字段静默失效**; 而 **8 个任务覆盖了它**（`KekkaiActivation` 10 小时等）—— 丢失后重试节奏会悄悄变默认 1 天。**不设** `serialization_alias`, 于是写盘用新名, 旧配置首次 `save()` 后**自然迁移**。实测 `kekkai_activation.retry_interval = 10:00:00` 保住 |
 | 7.4 | **删除**曾提的 `scheduler_v2` 开关（技术债） | ✅ | `config.py` / `config_scheduler.py` / `config_model.py` 里搜 `scheduler_v2` → **0 处**（本会话唯一一条原本就属实的）|
-| 7.5 | 核心抽象只有 `Resource` + `RunState` | 🔄 **部分（曾虚报）** | `resource.py`(364 行) / `scheduler_core.py`(291 行) 早已写好, 但**从没被调度器调用**（在 `config.py`/`script.py` 搜 `next_available\|Resource\|RunState` 得 **0 处**）。2026-10-10 已接线: `Config._next_run_from_resource()` 调 `next_available()`; 守卫 `test_task_window.py::TestResourceWiring`。**但 `next_run` 仍是落盘字段** —— 完全"纯函数化"未做 |
+| 7.5 | 核心抽象只有 `Resource`【已删】+ `RunState`【已删】| 🔄 **部分（曾虚报）** | `resource.py`【已删】/ `scheduler_core.py`(291 行) 早已写好, 但**从没被调度器调用**（在 `config.py`/`script.py` 搜 `next_available\|Resource\|RunState` 得 **0 处**）。2026-10-10 已接线: `Config._next_run_from_resource()` 调 `next_available()`; 守卫 `test_task_window.py::TestResourceWiring`。**但 `next_run` 仍是落盘字段** —— 完全"纯函数化"未做 |
 | 7.6 | 「次数」与「冷却」**解耦** | ✅ | 失败走 `failure_interval`（退避重试）, 与资源补充无关; `_next_run_from_resource()` 只处理成功路径 |
 | 7.7 | 用户配置面 10 → 3 个字段 | ✅ **实际是 16 → 4** |
 | **7.8** | `custom_next_run`（用户偏好时刻）| ⛔ **决策: 保留** —— 它与"开放时段"是**两个概念**（允许 vs 希望几点）。4 个调用点全部属于"用户配置的时刻"（`banquet_day_*` / `next_ryoutoppa_time` / 领体力时刻 / 跨任务排期）, 无法用固定 window 声明。详见 §13.1 | | 见 7.1 的证据。原计划"3 个", 实测需要 4 个（`enable`/`priority`/`target`/`expected_minutes`）|
@@ -1681,13 +1681,13 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 |---|---|---|---|
 | **①** | `success_interval` / `failure_interval` / `next_run` / `charge_*` / `window_*` | `tasks/Component/config_scheduler.py` | ✅ **正在执行**（唯一真正生效的）|
 | **②** | 任务代码里的**硬编码星期/时刻判断** | `tasks/*/script_task.py`（**22 处**）| ✅ **正在执行** |
-| **③** | `Resource` / `Recharge` / `RunState` / `next_available()` / `AvailabilityWindow` | `module/config/{resource,scheduler_core,availability}.py` | ❌ **写好了但从没接进调度** |
+| **③** | `Resource`【已删】/ `Recharge`【已删】/ `RunState`【已删】/ `next_available()`【已删】/ `AvailabilityWindow` | `module/config/{resource,scheduler_core,availability}.py` | ❌ **写好了但从没接进调度** |
 
 **证据**（可复现）:
 
 ```bash
 # ③ 完全没被调用 —— 搜遍调度核心得 0 处
-grep -rn 'next_available\|Resource\|RunState\|scheduler_core' \
+grep -rn 'next_available\|Resource\|RunState\|scheduler_core' \   # ★ 这些符号【均已删】
      module/config/config.py script.py module/config/config_model.py
 # -> 0 处
 
@@ -1721,7 +1721,7 @@ grep -rn 'custom_next_run' tasks/*/script_task.py
 | 什么时候**允许**跑 | `tasks/*/meta.py` 的 `TaskSpec.window` |
 | **能跑几次** / 怎么补充 | `tasks/*/meta.py` 的 `TaskSpec.resource`（`Resource`）|
 | **该不该自动进队列** | `tasks/*/meta.py` 的 `TaskSpec.auto_queue` |
-| 现在能不能跑（动态）| `scheduler_core.next_available()` + `Config._align_to_window()` |
+| 现在能不能跑（动态）| `scheduler_core.next_available()`【**已删**】+ `Config._align_to_window()` |
 | 用户配置面 | 只剩 `enable` / `priority` / `target` / `expected_minutes` |
 
 ---

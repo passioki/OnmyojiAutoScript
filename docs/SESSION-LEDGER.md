@@ -4873,3 +4873,166 @@ T1 把"按条目复查完成记忆"（E3）从"**只在 `schedule_rule == List`*
 | 测试: conftest 告警**默认被 pytest 吞掉**（`-q` 下看不见）| 测试复审 |
 | 死代码: `module/config/scheduler.py` / `_is_list_rule` / `timed_schedule` 4 个函数 / `TaskSpec.list_pos`（40 个 meta 在维护）| 后端复审 |
 
+---
+
+# 55. 第二轮复审: 前端与文档守卫的修复
+
+## 55.1 ★ T11 的"跟随刷新"**根本没生效**（前端复审员发现, 我复核成立）
+
+### 症状
+
+我上一轮"修好"的写法是:
+```dart
+if (_loadedFor != _c.script) { _loadedFor = _c.script; ... _load(); }
+```
+★ 这道门**只在首帧与换账号时为真** —— 之后**每次 `update()` 触发的重建都被
+它挡掉** -> `_load()` **再也不会重拉**。
+
+**后果**: T11 注释里声称的"外部暂停 / 队列里 `rest` 造成的休息中都会显示"
+**完全不成立**。只有 `_do()` 自己那两个动作后会刷。
+
+★ **我上一轮的验证为什么没抓到**: 我只验证了"**编译通过**"和"85 个测试
+通过" —— 而**没有任何测试覆盖"控制器 update 后有没有重拉"**。
+**又一次印证**: 编译通过 ≠ 功能正确。
+
+### 修法
+
+去重**只防"同一次在飞"**, 不能防"下次刷新":
+```dart
+bool _inFlight = false;
+Future<void> _load() async {
+  if (_inFlight) return;          // ★ 只防重入
+  _inFlight = true;
+  try { ... } finally { _inFlight = false; }
+}
+```
++ `GetBuilder` 加 **`key: ValueKey('runcontrol:${_c.script}')`** ——
+复审员还指出: `GetBuilder.didUpdateWidget` **只在 `id` 变化时重订阅,
+`tag` 变了不迁移** -> 换账号后会**继续订阅已被删除的旧控制器**
+（今天被每秒时钟 `setState` 掩盖成"≤1 秒延迟", 优化掉时钟就暴露成
+"**换账号后整页点了没反应**"）。
+
+### 顺带删掉的死接线
+
+`Rx<TaskListController> _ctl` —— 复审员实测它**只被写、0 处读**
+（改用 `GetBuilder` 后忘了删）。
+
+## 55.2 ★ 前端 `rest` 的 rank 与后端**不一致**（复审员发现, 我复核成立）
+
+### 症状
+
+`queuedTaskRows` 给每行算 `group` 用的是 `priorityGroupOf('${e['task']}')`;
+而 **`rest` 的 `task` 为空** -> `priorityGroupOf('')` **直接返回 `'fixed'`**
+-> `_sameGroupReorder` 里那个 `g == '__rest__' -> rank 2` 的分支
+**永远不可达**, `rest` **被当成 fixed** 参与排序。
+
+**后果（正是用户 ③ 的现象）**:
+* 把「休息」往上拖 -> 前端算出**单调 rank** -> **放行**
+* 后端 `_check_drag_allowed` 明确要求"rest 必须在所有任务之后" -> **拒绝**
+* 而前端已经**乐观改序**并 `update()` -> 用户看到
+  "**拖了 → 界面动了 → 闪回 + 保存失败**"
+
+### 修法
+
+1. `rest`（`task` 为空）**显式**打 `'__rest__'`（与后端 `_segment_queue()`
+   的 `'__rest__'` **同一个标记**）
+2. `_sameGroupReorder` 加与后端**①**等价的 `rest` 位置检查 + **专门文案**
+   （"休息要拖到最后"比笼统的"不能跨类别拖动"更准）
+3. 顺手: 后端的跨类别文案复用, 并记 `_lastDragReason`
+
+★ **两处判据必须并排写出来才看得出不一致** —— 单看任何一边都"自洽"。
+  这是"同一知识两处定义"的**新形态**: 不是算法分叉, 而是**取值域不同**
+  （前端 `'fixed'` 兜底 vs 后端 `'__rest__'`）。
+
+## 55.3 ★ 文档守卫的**覆盖面积**从 2 条提到 31 条（文档复审员发现）
+
+### 症状（复审员用只读脚本复刻我的扫描逻辑实测）
+
+```
+docs/*.md 总数 = 7 ; 被 `_ALLOW_DEAD_PATHS` 整体豁免 = 5
+真正扫描 = 3 ; 真正被断言的路径引用 = **2**
+```
+★ **93% 被豁免**, 而防空转阈值是 `assert checked >= 1` ——
+**加一行白名单就能让覆盖率归零而不变红**。
+
+### ★★ 最讽刺的一点
+
+那条守卫的 docstring **明写动机**是"`architecture.md` 列了已删的
+`scheduler_core.py` / `gen_resource_specs.py` / `test_availability.py`"
+—— 而 **`architecture.md` 正在白名单里**。
+**这个守卫抓不到它自己举的例子。**
+
+### 修法
+
+1. **把 `architecture.md` 移出白名单** -> 守卫**真的报**了 3 类残留
+   （`Recharge` / `scheduler_core` / `team_coordinator` 仍当现行讲）
+2. 给那些行**就地加标注**（15 处, 如 "`Resource`【**已删**】"）
+3. **阈值 1 -> 25**（实测 31 条）
+
+| | 之前 | 现在 |
+|---|---|---|
+| 真正校验的路径引用 | **2** | **31** |
+| `architecture.md` 贡献 | （豁免, 0）| **29** |
+| 防空转阈值 | `>= 1` | `>= 25` |
+
+★ 结论: **"文档级白名单"方向性错误** —— 它把"整体过时"变成"整体免检",
+  **越是需要校验的文档越免检**。应保留"就地标注"那一半。
+
+## 55.4 ★ 修 `deprecated.md` 的硬错（复审员逐条核对台账后指出）
+
+| 位置 | 错 | 修 |
+|---|---|---|
+| `_SLOT_SPAN_MINUTES` | 标为"已删", **实际仍在 `config.py:37` 定义、`:288` 活路径使用** | ★ 标为**误判已撤销**（两份权威文档曾同时错）|
+| `docs/task-list-prototype.html` | 表头是"删除的东西", 但**文件还在**（34KB）| 改成"**计划删**（文件仍在）" |
+| `docs/oasx-task-list-ui.patch` | 同上（724KB 还在）| 同上 |
+| `docs/team-coordination.md` | 同上（20KB 还在）| 同上 |
+| `tests/test_success_interval_removed.py` | **路径写错**（少 `module/config/`）| 修正 |
+| `test_battle_wait.py` 的 21 个测试 | 写"待重写（现在无保护）", 但 §53.2 **已重写为 27 个真测试** | 改成"**已重写**" |
+| 缺 `RunState` / `next_available` / `scheduler_core.py` / `team_coordinator.py` / 前端 T10 一批 | 漏录 | ★ **补录 6 行** |
+
+## 55.5 ★ 测试: 修一条**恒真断言**（测试复审员发现）
+
+`test_queue_is_authority.py::test_waiting_tasks_are_in_queue` 的结尾是:
+```python
+assert isinstance(inq_outside, list)   # 只做结构检查, 不强制非空
+```
+`inq_outside` 是**列表推导**结果 -> `isinstance(x, list)` **恒真**
+-> 这个测试**永远不会失败**。
+
+★ 这正是 T7 修的那一类"**不可失败的断言**" —— **当时漏网了这一条**。
+
+**修的过程本身就很有价值**:
+* 我第一版改成"**每个**已启用的 `waiting` 任务都必须在队列里" ->
+  **立刻失败**（`RyouToppa` / `RealmRaid` 不在）
+* 追查发现 **`waiting` 有两个独立来源**: ① 未启用/类别关闭/冷却/
+  **`next_run` 未到** ② `in_window()` 为 False
+* ★ 只有 ② 那一类**必然**在队列里 —— 所以"全都必须在队列里"**是错的**
+* 最终断言**两条真正精确的关系**: `waiting ∩ pending == ∅`
+  （不能既待跑又等待）+ 队列内的 waiting 不在 pending + **显式防空转**
+
+★ **又一次**: "写一条更强的断言"暴露了我对 `waiting` 语义的**错误理解**。
+
+## 55.6 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1678 passed, 3 skipped**（0 失败）|
+| 前端 flutter test | **85 passed** |
+| 前端 analyze（改动的 2 文件）| **No issues found!** |
+| 文档守卫真正校验的引用 | **2 -> 31** |
+| `deprecated.md` 硬错 | **7 处已修 + 6 行补录** |
+
+## 55.7 留给后续（已登记, 按严重度）
+
+| # | 项 | 级别 |
+|---|---|---|
+| 1 | `architecture.md` 头部"已过时**节**"的**行号错**（§3 写 `:204-305` 实为 `149-357`, 恰好**排除**了 3 个点名符号）+ 漏列 §2.1/§4.1-4.3/§5.7/§7.6/§10.7 | 高 |
+| 2 | `architecture.md:1731` 正文仍称台账为"**唯一事实来源**", 与台账 `:3` 的降级声明**直接矛盾**（守卫只扫前 18 行, 抓不到）| 高 |
+| 3 | 两份废弃清单（`scheduler-architecture.md` §8 vs `deprecated.md`）**已漂移**；→ 应把 §8 改成一行指针 | 中高 |
+| 4 | `ui-api-mapping.md:149-169` **教人用已废弃的 `schedule_rule`**（`PUT .../schedule_rule/value` + "`modes` 是四模式标签"）—— 与 `deprecated.md` **直接矛盾**, 而守卫的 `REMOVED` 列表**不含 `schedule_rule`** 所以抓不到 | 中高 |
+| 5 | 测试: 多条"**注释驱动**"的源码守卫（`src.find('代码片段')` **也匹配注释**）—— 建议抽公共 `code_of()` 统一剥注释 | 中 |
+| 6 | `conftest.py` 的污染告警**默认被 pytest 吞掉**（`-q` 下看不见）-> 退化成"静默还原"；E2 体检**只 print 不 assert**（不可失败）| 中高 |
+| 7 | 后端死代码: `module/config/scheduler.py`（`TaskScheduler`, 仅测试在用）· `_is_list_rule()` · `timed_schedule` 4 个函数 · **`TaskSpec.list_pos`（40 个 `meta.py` 在维护一个没人读的字段）** | 中 |
+| 8 | `config.py` 的 `queue/candidates` 等前端文本死代码 · 11 个未调用的 `api_client` 方法 · 0 字节 `group_controller.dart` | 中 |
+| 9 | 测试: `test_drag_constraint.py` / `test_entry_id.py` / `test_queue_removal_semantics.py` **仍污染实时配置**（已确认的 3 个）—— 唯一根治是 conftest 把 `config/` 重定向到 `tmp_path` | 中高 |
+

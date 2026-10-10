@@ -1488,3 +1488,76 @@ strict=False（周期判断）:
 —— 但 `TC.get()` 返回 **`TaskMeta`**, 而 `windows_effective` 在 **`TaskSpec`** 上。
 必须用 `TC.get_spec(...)`。（`AttributeError` -> 已修）
 
+---
+
+# 22. A / B 完成: **允许重复添加同一任务**
+
+## 22.1 用户裁定
+
+> "现在的任务执行里**添加任务应该设置为可以重复添加相同的任务**,
+>  这样就**变相实现了多次跑任务**"
+
+## 22.2 ✅ A: 候选端点**不再排除** `queued`
+
+| | 规则 |
+|---|---|
+| 改前 | `enable && !auto_queue && !queued` |
+| **改后** | `enable && !auto_queue` |
+
+任务加入队列后 `queued=true` -> 改前会**从候选消失** -> 无法加第二次。
+
+★ 仍然排除 `auto_queue`（自动补齐的): 它们由 `build_queue()` 补齐,
+  手动重复也没用（补齐按任务名去重）。
+
+**实测**: 候选里出现了已在队列的 `BondlingFairyland` —— 可以再次添加。
+
+## 22.3 ✅ B: `list_order` **按条目**建位置
+
+`TaskScheduler.list_order` 原来用 `run_list.task_order()` ——
+它是"**去重保首**"的, 于是重复条目的第二条**拿不到自己的队列位置**。
+
+改为**遍历 `run_list.entries`**, 取每个任务的**最早**出现位置, 并记录
+出现次数（重复时打日志）。
+
+**实测** —— 编排 `[Delegation, RealmRaid, RealmRaid, AreaBoss]`:
+
+```
+调度结果: ['Delegation', 'RealmRaid', 'AreaBoss']
+★ 一致: True
+```
+
+关键差别: `AreaBoss` 的位置现在是 **3**（旧行为因去重会算成 2）——
+排序结果相同, 但**位置语义**正确了, 后续插入/拖拽才准。
+
+## 22.4 ★ 障碍 3 仍未解决（见 §21.3）
+
+派发状态是**按任务**存的（`Scheduler.next_run` / `task_state`）——
+`TaskScheduler.schedule` 返回的是 `Function` 列表（**按任务**),
+一个任务只有一个 `Function` 对象。
+
+所以"同一任务的两条重复条目"**在排序层面只能映射到同一个位置**。
+要真正让它们**各跑一次**, 需要**按条目追踪状态**
+（给条目一个 id, `task_state` 的键从 `task` 变成 `entry_id`）。
+
+★ **待用户确认** —— 这是中等规模的状态模型改造, 会改变现有
+  "按任务记完成"的语义（影响 `is_completed_in_period`）。
+
+## 22.5 守卫测试（6 个）
+
+`tests/module/config/test_duplicate_queue_entries.py`:
+* 候选源码里**不该**再有 `if command in queued`
+* 端到端: 已在队列的次数任务**仍应**出现在候选里
+* `list_order` 用**条目**位置（`AreaBoss` 位置 = 3）
+* `RunList` 本身必须允许重复条目
+* `task_order()`（旧字段）**仍**去重 —— 那是它的既有契约
+* **反向守卫**: `list_order` 不该再用 `task_order()`
+
+## 22.6 ★ 我又踩了一次"规则变了没同步测试"
+
+`test_candidates_live`（我上一轮写的"按规则自己算一遍"）在规则改动后
+**假失败** —— 因为它的 `expected` 里还排除 `queued`。
+
+已同步更新（并显式注释"规则改了, 原算法已失效"）。
+★ 教训: **同一规则在测试里重算一遍**会随规则漂移 —— 但它的价值
+  （交叉验证）大于维护成本, 所以保留, 只是必须在规则变更时同步。
+

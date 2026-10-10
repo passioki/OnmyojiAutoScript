@@ -204,9 +204,21 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
             logger.info('Add current_success by 1')
             self.config.true_orochi.true_orochi_config.current_success += 1
             self.config.true_orochi.true_orochi_config.current_success = min(2, self.config.true_orochi.true_orochi_config.current_success)
-            next_run = now + self.config.true_orochi.scheduler.success_interval
+            # ★★ #4: 不再用 `now + scheduler.success_interval` ★★
+            #
+            # 用户要求"**间隔完全废弃**"（A 选项）。"下次什么时候跑"应由
+            # **任务的窗口**决定 -> `Config.next_run_after()`。
+            #
+            # ⚠ 已知的**建模问题**（不在本次改造范围, 已登记）:
+            #   本任务的窗口是"每天 00:00-23:59"（整天）, 所以
+            #   `next_run_after` 恒返回"明天 00:00" -> 下面那个"跨周"判断
+            #   **几乎不会触发**。这正是用户要求"所有定时任务都要有符合机制的
+            #   window"的原因 —— 本任务应当由 `period=weekly` 推导出
+            #   "周一 00:00 到周日 24:00"的窗口。
+            next_run = self.config.next_run_after('TrueOrochi', after=now)
         else:
             logger.info('Battle skipped or not found True Orochi')
+            # 失败仍用 `retry_interval`（退避重试是**独立概念**, 台账 7.6）
             next_run = now + self.config.true_orochi.scheduler.retry_interval
         next_run_year, next_run_week_number, next_run_weekday = next_run.isocalendar()
         # 如果下次运行的时间是下一周，那么就重置成功次数

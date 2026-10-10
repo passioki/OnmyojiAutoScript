@@ -1112,6 +1112,58 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                            f'({type(exc).__name__}: {exc}), 回退到 interval')
             return None
 
+    def next_run_after(self, task_key: str, after: datetime = None) -> datetime:
+        """**下次允许运行的时刻** —— 由任务的**窗口**决定（不再用 interval 近似）。
+
+        ## 为什么需要它
+
+        有些任务需要知道"我下次大概什么时候跑", 用来判断**是否跨了周期边界**:
+
+        * `DailyTrifles` —— 跨月就重置"神秘图案"开关
+        * `TrueOrochi`  —— 跨周就重置本周成功次数
+
+        它们此前用 `now + scheduler.success_interval` **近似**这个时刻。
+        用户要求"**间隔完全废弃**"（A 选项），所以改成**从窗口精确算**:
+
+            若 `after` 落在窗口内 -> 取该窗口的**结束**时刻
+              （`strict=True` 的 `next_opening` 就是"下一次开放",
+                对当前窗口而言即"本窗口结束后重新开放的时刻"）
+            若不在窗口内 -> 取 `next_opening`（下次开放）
+
+        ## 为什么不直接用任务的 `next_run`
+
+        `next_run` 是**落盘的状态**, 在任务**刚跑完、还没 `set_next_run`**
+        的那一刻可能是**旧值**（甚至在过去）。而本方法的语义是
+        "从 `after` 开始, 下次什么时候能跑" —— 是**纯函数**视角,
+        不依赖任何落盘状态。
+
+        :param task_key: 任务键（下划线或大驼峰都行, `TC.get` 会归一化）
+        :param after: 起算时刻; 默认"现在"
+        """
+        from module.config import task_catalog as TC
+        import logging as _logging
+
+        when = (after or datetime.now()).replace(microsecond=0)
+        spec = TC.get_spec(task_key)
+        if spec is None:
+            return when
+
+        opens = []
+        for w in spec.windows_effective:
+            if not getattr(w, 'enabled', False):
+                continue
+            try:
+                # `strict=True` -> 严格晚于当前这个窗口 -> "本窗口结束后的下次开放"
+                opens.append(w.next_opening(when, strict=True))
+            except Exception:
+                continue
+        if not opens:
+            return when
+        got = min(opens)
+        # 窗口跨午夜/跨周期时, next_opening 可能仍落在**同一个**窗口内 ——
+        # 那也算"下次能跑", 直接用。
+        return got
+
     def _align_to_window(self, task_key: str, when: datetime) -> datetime:
         """把 `when` 对齐到任务的开放时段内（不在窗口内则推到下一次开放）。
 

@@ -55,7 +55,13 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
     def check_time(self):
         config = self.config.daily_trifles.trifles_config
         now = datetime.now()
-        next_run = now + self.config.daily_trifles.scheduler.success_interval
+        # ★★ #4: 不再用 `now + scheduler.success_interval` ★★
+        #
+        # 用户要求"**间隔完全废弃**"（A 选项）。这里需要的只是
+        # "**下次运行大概什么时候**"来判**是否跨月** —— 那应由**任务的窗口**决定,
+        # 而不是"加一个用户配置的间隔"。
+        # `Config.next_run_after()` 用窗口精确算（见它的 docstring）。
+        next_run = self.config.next_run_after('DailyTrifles', after=now)
         # 检查是否跨月（next_run的月份与当前月份不同）
         if next_run.month != now.month:
             # 跨月重置神秘图案触发状态

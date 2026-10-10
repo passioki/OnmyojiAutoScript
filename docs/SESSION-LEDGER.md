@@ -1127,3 +1127,68 @@ git archive HEAD -o OASX.zip          # 导出当前树的完整内容
 
 所以"完全废弃"还差**这 3 处移植**。已登记为 #4 的后续。
 
+---
+
+# 17. #4 移植 · 步骤 1 完成（任务侧的 2 处已清理）
+
+## 17.1 做了什么
+
+| 位置 | 原来 | 现在 |
+|---|---|---|
+| `DailyTrifles/script_task.py:58` | `next_run = now + self.config.daily_trifles.scheduler.success_interval` | `next_run = self.config.next_run_after('DailyTrifles', after=now)` |
+| `TrueOrochi/script_task.py:207` | `next_run = now + self.config.true_orochi.scheduler.success_interval` | `next_run = self.config.next_run_after('TrueOrochi', after=now)` |
+
+★ 新增 `Config.next_run_after(task_key, after=None)` —— 用**任务的窗口**精确算
+"下次允许运行的时刻", 取代"加一个用户配置的间隔"这种**近似**。
+实测:
+
+```
+DailyTrifles     after=2026-10-10 12:00 -> 2026-10-11 00:00
+TrueOrochi       after=2026-10-10 12:00 -> 2026-10-11 00:00
+DemonEncounter   after=2026-10-10 12:00 -> 2026-10-10 17:00   ← 窗口 17:00-23:00
+DemonEncounter   after=2026-10-10 18:00 -> 2026-10-11 17:00   ← 已过窗口
+```
+
+两者都是"跨月/跨周就重置计数"的用途 —— 现在由**窗口**决定, 不再依赖 interval。
+
+★ `TrueOrochi` 的失败分支**保留** `retry_interval`（退避重试是独立概念, 台账 7.6）。
+
+## 17.2 ★★ 重大发现: **22/27 个启用任务仍在走 interval 回退** ★★
+
+实测（`_next_run_from_resource` 的返回）:
+
+```
+能算出（用 Resource）:  5 个
+**回退到 interval**  : 22 个
+    AbyssShadows(daily) · BondlingFairyland(daily) · EternitySea(daily)
+    FallenSun(daily) · GoryouRealm(daily) · Orochi(daily) · Sougenbi(daily)
+    TrueOrochi(weekly)
+    AreaBoss(none) · DailyTrifles(none) · DemonEncounter(none) ·
+    ExperienceYoukai(none) · GoldYoukai(none) · KekkaiUtilize(none) ·
+    MysteryShop(none) · RealmRaid(none) · RichMan(none) · RyouToppa(none) ·
+    SoulsTidy(none) · TalismanPass(none) · WantedQuests(none)
+```
+
+**根因**: `_next_run_from_resource()` 对 `refill not in ('interval', 'slots')`
+**返回 `None`** —— 于是 `period=daily` / `weekly` 的任务
+（`Orochi` / `FallenSun` / `Sougenbi` / `TrueOrochi` …）**本该用周期算, 却退回 interval**。
+
+**这与用户的设计冲突**:
+
+> "缺 window 用 period 推导 … 后端也要符合这个逻辑"
+
+用户要求 `period`（每天/每周/每月）成为**节奏的唯一表达**。
+而当前 `period` 在**排期路径上完全没被使用**（只用于推导窗口的"描述"）。
+
+## 17.3 下一步（#4 剩余）
+
+1. 让 `_next_run_from_resource()`（或它的替代）**用 `period` 算**:
+   * `period=daily`  -> 下次运行 = **当天的下一个周期边界**（或次日 0 点）
+   * `period=weekly` -> 下周一 0 点
+   * `period=monthly`-> 下月 1 日 0 点
+2. 那之后, `task_delay()` 的 `interval` 回退分支（`config.py:1367`）
+   才真正可以**删掉** —— 因为**没有任务**会走到它
+3. 最后删字段 `Scheduler.success_interval` + 7 个任务的覆盖 + 迁移桥
+
+★ **现在不能删**: 22/27 个任务仍依赖那条回退。按纪律标 ⬜, 附确切数字。
+

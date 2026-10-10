@@ -1092,6 +1092,82 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
         return {'error': str(exc)}
 
 
+@schema_app.post('/{script_name}/queue/clear')
+async def post_queue_clear(script_name: str):
+    """**一键清空执行队列**（用户要求, ⑦）。
+
+    ## 为什么需要**专用**端点（不能只 `PUT run_list = []`）
+
+    `auto_queue=True` 的定时任务只要 `enable=true` 就会被 `build_queue()`
+    **重新补进队列** —— 只清 `run_list` 的话它们下次刷新**又回来了**。
+
+    这与 `post_queue_remove` 的语义**一致**: 定时任务"移出"必须落地为
+    `enable=false`（见那里的说明）。
+
+    ## 做法
+
+    ① `run_list` 置空（清掉用户编排的次数任务 / 休息条目）
+    ② 把所有 `auto_queue` 任务的 `enable` 设为 `false`（否则会被补回）
+
+    ★ 只影响**执行队列**, **不删任何任务配置** —— 用户随时可以重新启用 +
+      【添加任务】加回来。
+
+    :return: {"ok": True, "cleared_entries": n, "disabled": [任务名...],
+              "message": 中文提示}
+    """
+    try:
+        from module.config.run_list import RunList
+        from module.server.main_manager import mm
+
+        config = mm.config_cache(script_name)
+
+        # ① run_list 置空
+        rl = config.build_run_list()
+        n = len(rl)
+        if not config.save_run_list(RunList([])):
+            return {'error': '清空运行列表失败(见日志)'}
+
+        # ② 停用所有 auto_queue 任务（否则 build_queue 会把它们补回来）
+        disabled = []
+        try:
+            from module.config.config_model import convert_to_underscore
+            from module.config import task_catalog as TC
+            for key, value in config.model.model_dump().items():
+                if not isinstance(value, dict):
+                    continue
+                sch = value.get('scheduler')
+                if not isinstance(sch, dict) or not sch.get('enable'):
+                    continue
+                meta = _meta_of_key(key)
+                if meta is None or not _auto_queue_of(meta):
+                    continue
+                node = getattr(config.model, key, None)
+                if node is None:
+                    continue
+                s = getattr(node, 'scheduler', None)
+                if s is None:
+                    continue
+                s.enable = False
+                disabled.append(meta.task)
+            if disabled:
+                config.save()
+        except Exception as exc:
+            logger.warning(f'清空队列时停用自动任务失败'
+                           f'（{type(exc).__name__}: {exc}）')
+
+        return {
+            'ok': True,
+            'cleared_entries': n,
+            'disabled': disabled,
+            'message': (f'已清空队列（{n} 条条目）'
+                        + (f', 并停用 {len(disabled)} 个定时任务'
+                           if disabled else '')),
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
 @schema_app.get('/{script_name}/queue/candidates')
 async def get_queue_candidates(script_name: str):
     """

@@ -2127,3 +2127,104 @@ tasks/OrochiMoans/ 里只有:  assets.py   config.py   __pycache__/
 ★ 我倾向 **(ii)**, 它既满足"period=不限 就不是定时任务", 又不破坏
   充能/结界 的机制语义。但**必须用户确认**。
 
+---
+
+# 29. ④⑤⑦ 完成（第三轮反馈）
+
+## 29.1 ✅ ④ 队列行加**设置入口**
+
+用户: "任务设置入口只在**正在运行的任务行**上有, 别的任务行上也应该有"
+
+**实测根因**: `task_list_view.dart` 的调度 tab 行有
+```dart
+onTap: () => Get.find<NavCtrl>().openTaskSettings(cmd),
+```
+而 `queue_panel.dart` 的 `_settingsRow()` **只有次数/耗时/优先级三个输入框,
+没有"进设置页"的入口**。
+
+**修**: 在 `_settingsRow()` 末尾加「⚙ 设置」按钮（`Icons.tune` + Tooltip）:
+```dart
+Tooltip(message: '打开「${_zhName(cmd)}」的**任务设置**',
+  child: TextButton.icon(
+    icon: const Icon(Icons.tune, size: 15),
+    label: const Text('设置'),
+    onPressed: () => Get.find<NavCtrl>().openTaskSettings(cmd)))
+```
+★ 用 `openTaskSettings` 而不是 `switchContent` —— 后者有 `useablemenus`
+  白名单（只列侧边栏里有的任务）, 点不在侧边栏的任务会被**静默忽略**
+  ->"点了没反应"（`task_list_view.dart` 里已记过这个坑）。
+
+## 29.2 ✅ ⑤ 次数类移除**不弹**确认
+
+用户: "**次数类任务被移除时不需要弹窗确认, 只有定时类任务才需要。**"
+
+**修**: 移除按钮按 `c.isAutoQueue(cmd)` 分两支:
+```dart
+if (!c.isAutoQueue(cmd)) {
+  final msg = await c.removeFromQueue(cmd, entryId: eidOrNull);  // 直接移除
+  Get.snackbar('已移出队列', msg, ...);
+} else {
+  await _confirmAndRemove(context, cmd, entryId: eidOrNull);      // 弹确认
+}
+```
+★ 理由（我理解的）: 次数任务移除只"出队列"、不停用, 加回来一步就够,
+  弹窗是多余摩擦; 定时任务移除会**同时停用**, 影响更大, 值得确认。
+
+## 29.3 ✅ ⑦ 一键清空队列 + 确认弹窗
+
+### 后端: **新端点** `POST /{script}/queue/clear`
+
+**为什么不能只 `PUT run_list = []`**:
+`auto_queue=True` 的定时任务只要 `enable=true` 就会被 `build_queue()`
+**重新补进队列** —— 只清 `run_list` 的话它们下次刷新**又回来了**。
+
+这与 `post_queue_remove` 的语义**一致**（定时任务"移出"必须落地为
+`enable=false`）。所以清空 = ① `run_list` 置空 + ② 停用所有 `auto_queue` 任务。
+
+**实测**:
+```
+cleared_entries: 2
+disabled: 17 个
+message: 已清空队列（2 条条目）, 并停用 17 个定时任务
+清空后 run_list 条数: 0        ★ PASS
+```
+
+### 前端
+
+* `api_client.clearQueue()` / `controller.clearQueue()`
+* 队列面板右上加「🗑 清空队列」按钮 -> `_confirmClearQueue()` 弹窗
+* 弹窗**说清两件事**（否则用户以为任务被删了）:
+  1. 定时任务会被**同时停用**（否则会被自动补回队列）
+  2. **不删任何任务配置**, 随时可重新启用 + 加回来
+
+## 29.4 ⚠️ 我又犯了一个**测试卫生错误**（如实记录）
+
+`test_disables_auto_queue_tasks` 在**用户的实时配置** `恋鸟树` 上调了
+`post_queue_clear`（它会清 `run_list` + 停用所有 `auto_queue`）。
+
+我的 `finally`:
+```python
+backup = cfg.model.script.optimization.run_list   # ← 备份取晚了
+...
+cfg.save_run_list(RunList([]))                    # ← 还原成**空**, 不是原值
+```
+后果: **`run_list` 4 条被清成 0**（我事后按实测输出恢复了）; `enable` 没还原。
+
+★ 这与台账 §26 记的 `task_state.clear('恋鸟树')` **是同一个毛病** ——
+  在实时配置上做有副作用的测试。
+
+**修**: `finally` 里 ① 备份在**改动之前**取 ② `run_list` 与**所有** `enable`
+都还原 ③ 结束时**断言还原成功**（跑两次结果一致即证明）。
+
+★ **用户明确表示**: "**实时配置改了也没事, 我会重新配置的**" ——
+  所以我不再为保护配置而回退/折腾, 但**测试仍要自洽**（跑两次一致）。
+
+## 29.5 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1705 passed, 3 skipped**（+8 守卫）|
+| 前端 flutter test | **85 passed** |
+| `flutter analyze`（我改的文件）| No issues |
+| 配置污染测试 | 跑**两次**均 `8 passed` 且配置一致 |
+

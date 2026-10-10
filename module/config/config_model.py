@@ -224,8 +224,10 @@ class _ConfigModelBase(ConfigBase):
             if 'Scheduler' in schema2['definitions']:
                 if 'properties' in schema2['definitions']['Scheduler']:
                     properties = schema2['definitions']['Scheduler']['properties']
-                    if 'success_interval' in properties:
-                        properties['success_interval']['type'] = 'string'
+                    # ★ #4c: `success_interval` 字段**已删除**（2026-10-10）,
+                    #   这里不再需要给它改类型。
+                    #   它曾被改成 `string` 是因为 `TimeDelta` 在前端要按字符串
+                    #   展示; 既然字段没了, 这段也一并去掉。
                     # ★ 台账 7.3: 字段已改名 `failure_interval` -> `retry_interval`。
                     #   这里按**新名**取; 为兼容用旧名生成 schema 的情况, 两个都试。
                     for _name in ('retry_interval', 'failure_interval'):

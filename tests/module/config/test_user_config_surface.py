@@ -55,7 +55,7 @@ USER_FACING = {
 # 用户**不该**看到的（游戏机制 / 软件内部状态）
 INTERNAL = {
     'next_run',          # 软件内部状态; 用户改它只会把排期弄乱
-    'success_interval',  # 旧模型把"游戏补充规则"压扁成"用户轮询间隔"
+    # ★ #4c: `success_interval` **已删除**（2026-10-10）, 不再列在这里
     'retry_interval',    # 同上（退避重试）; 台账 7.3 已改名
     'server_update',     # 服务器维护顺延
     'delay_date',        # 同上

@@ -65,9 +65,17 @@ class Scheduler(ConfigBase):
         description='next_run_help',
         json_schema_extra={'internal': True})
 
-    success_interval: TimeDelta = Field(
-        default=TimeDelta(days=1), description='success_interval_help',
-        json_schema_extra={'internal': True})
+    # ★★ #4c: `success_interval` **已删除**（2026-10-10）★★
+    #
+    # 它曾表达"成功后再隔多久跑一次"—— 也就是**用户轮询节奏**。
+    # 用户裁定（§20.2）: "排期应该是用具体的 **window** 来算" ——
+    # 于是 `task_delay()` 的成功路径改为**窗口兜底**（§21.5）,
+    # 没有任何执行代码再读它。
+    #
+    # ⚠ 与 `failure_interval` -> `retry_interval` 的改名**不同**:
+    #   那个要保旧配置的值（用户覆盖不能丢）-> 用了 `validation_alias`;
+    #   这个是**彻底不用** -> 旧 JSON 里的键会被 pydantic 静默忽略
+    #   （`extra='ignore'`）, **这是预期的**。
     # ★★ 台账 7.3: `failure_interval` → `retry_interval` ★★
     #
     # 为什么改名: 它的语义是"**失败后隔多久重试**"（退避重试）,
@@ -255,8 +263,7 @@ if __name__ == "__main__":
         "enable": False,
         "next_run": "2026-07-19T14:15:37",
         "priority": 5,
-        "success_interval": "10 00:00:01",
-        "failure_interval": "10 00:00:01",
+        "retry_interval": "10 00:00:01",
         "server_update": "09:03:00",
         "float_time": "02:00:05"
     }

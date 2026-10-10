@@ -9,7 +9,6 @@ from tasks.Component.config_scheduler import Scheduler as BaseScheduler
 from tasks.Component.config_base import ConfigBase, TimeDelta
 
 class Scheduler(BaseScheduler):
-    success_interval: TimeDelta = Field(default=TimeDelta(hours=6), description='success_interval_help')
     retry_interval: TimeDelta = Field(default=TimeDelta(hours=6), description='retry_interval_help')
 
 class LevelReward(str, Enum):

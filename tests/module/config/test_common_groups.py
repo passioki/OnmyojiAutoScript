@@ -46,7 +46,10 @@ class TestDiscoverCommonGroups:
         g = [x for x in model.gui_common_groups(min_tasks=2)
              if x['group'] == 'scheduler'][0]
         names = {f['name'] for f in g['fields']}
-        for expected in ('enable', 'next_run', 'priority', 'success_interval',
+        # ★ #4c: `success_interval` 字段**已删除**（2026-10-10）——
+        #   成功路径改为**窗口兜底**（见 docs/SESSION-LEDGER.md §21.5）,
+        #   没有执行代码再读它。所以期望列表里也去掉。
+        for expected in ('enable', 'next_run', 'priority',
                          'retry_interval', 'server_update', 'delay_date',
                          'float_time', 'period', 'reset_at'):
             assert expected in names, f'scheduler 缺字段 {expected}'

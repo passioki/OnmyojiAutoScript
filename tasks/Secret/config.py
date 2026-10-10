@@ -10,7 +10,6 @@ from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleCon
 from tasks.Component.SwitchSoul.switch_soul_config import SwitchSoulConfig
 
 class Scheduler(BaseScheduler):
-    success_interval: TimeDelta = Field(default=TimeDelta(days=7), description='success_interval_help')
     retry_interval: TimeDelta = Field(default=TimeDelta(days=7), description='retry_interval_help')
 
 class SecretConfig(BaseModel):

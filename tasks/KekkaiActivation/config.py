@@ -15,7 +15,6 @@ class CardType(str, Enum):
 
 class ActivationScheduler(Scheduler):
     priority: int = Field(default=2, description='priority_help')
-    success_interval: TimeDelta = Field(default=TimeDelta(days=1), description='success_interval_help')
     retry_interval: TimeDelta = Field(default=TimeDelta(hours=10), description='retry_interval_help')
 
 

@@ -236,12 +236,19 @@ class RunEntry:
     def to_dict(self) -> dict:
         if self.kind == EntryKind.TASK:
             # ★ C: 带上 `entry_id`（**重复条目的身份**）
-            d = {'kind': self.kind.value, 'task': self.task,
-                 'entry_id': self.entry_id}
-            # ★ S6: 只**非空**时才写 `group` —— 空串不落盘, 保持配置干净
-            if self.group:
-                d['group'] = self.group
-            return d
+            #
+            # ★★ S6 / 审计修复: `group` **不序列化** ★★
+            #
+            # 段名是 `Config._segment_queue()` 的**派生结果**, **每次
+            # `build_queue()` 都会重算** —— 存盘只会:
+            #   ① 破坏"单一数据源"（台账 §10.8）
+            #   ② 前端判据与后端不一致时, 配置里躺着**错的段名**
+            #   ③ 让配置文件多出一堆"用户没写过"的字段
+            #
+            # ★ 我第一版让它"非空才写" —— 但 `_assign_groups()` 会把它算成
+            #   非空, 于是**照样落盘**（实测抓到）。所以改成**永不写**。
+            return {'kind': self.kind.value, 'task': self.task,
+                    'entry_id': self.entry_id}
         return {'kind': self.kind.value, 'minutes': self.minutes}
 
     @classmethod

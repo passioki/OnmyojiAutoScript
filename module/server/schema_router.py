@@ -920,6 +920,14 @@ async def put_run_list(script_name: str, entries: list = Body(...)):
             {'entry': i, 'error': str(e)}))
         config = mm.config_cache(script_name)
 
+        # ★★ 审计修复: `group` 是**派生**字段, 不信任前端传的值 ★★
+        #
+        # 前端为了渲染分段条会在 entries 里带 `group`。但它是
+        # `build_queue()` 的**派生结果**（`_segment_queue()` 刻意**不回写**）。
+        # 若原样存盘: ① 破坏"单一数据源" ② 前端判据与后端不一致时会存下**错的段名**。
+        # -> 这里**丢掉传进来的**, 用后端的权威值。
+        rl = _assign_groups(config, rl)
+
         # ★★ S6: 拖动约束校验 ★★
         blocked, reason = _check_drag_allowed(config, rl)
         if blocked:
@@ -938,6 +946,39 @@ async def put_run_list(script_name: str, entries: list = Body(...)):
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}
+
+
+def _assign_groups(config, rl):
+    """**权威地**给条目重算段名（`'timed'` / `'fixed'`）—— 审计修复。
+
+    ## 为什么必须有这一步
+
+    `group` 是 `build_queue()` 的**派生结果**（`Config._segment_queue()`
+    刻意**不回写**配置）。但前端为了渲染分段条, 会在 `entries` 里**带上**
+    `group`。若原样存盘:
+
+    1. **破坏"单一数据源"**（台账 §10.8）—— 段名就有了两个来源。
+    2. 前端按 `category` 算, 后端按 `TaskSpec.priority_group` 算; 两者判据
+       万一不一致, 配置里会**躺着错的段名**, 而 `_segment_queue()` 又会
+       覆盖它 —— 于是"存了但没用", 白白污染配置。
+
+    ★ 所以: **丢掉前端传的 `group`**, 一律用后端的权威判据重算。
+
+    :return: 同一个 `RunList`（就地改写 `RunEntry.group`; 它是 frozen dataclass,
+             用 `object.__setattr__` 写）。
+    """
+    try:
+        for e in rl.entries:
+            task = getattr(e, 'task', '') or ''
+            if not task:
+                continue          # `rest` / `delay` 不进段
+            try:
+                object.__setattr__(e, 'group', config._segment_of(task))
+            except Exception:
+                pass
+    except Exception as exc:
+        logger.warning(f'重算段名失败({type(exc).__name__}: {exc}), 跳过')
+    return rl
 
 
 def _check_drag_allowed(config, rl):
@@ -1082,6 +1123,17 @@ async def post_run_list_entry(script_name: str,
         config = mm.config_cache(script_name)
         rl = config.build_run_list()
         rl.add(e, index=None if index < 0 else index)
+
+        # ★★ 审计修复: 与 `PUT /run_list` **同一套契约** ★★
+        #
+        # 原来这个端点**绕过**拖动约束 -> 约束可以被插入操作绕过。
+        # 现在: ① 清洗派生字段 `group` ② 校验拖动约束。
+        rl = _assign_groups(config, rl)
+        blocked, reason = _check_drag_allowed(config, rl)
+        if blocked:
+            return {'error': reason, 'drag_blocked': True,
+                    'entries': rl.to_list()}
+
         if not config.save_run_list(rl):
             return {'error': '保存失败(见日志)'}
         return {'entries': rl.to_list(), 'count': len(rl)}

@@ -131,17 +131,38 @@ class TestSegmentation:
 
 
 class TestRunEntryGroup:
-    def test_group_field_round_trips(self):
+    def test_group_is_attribute(self):
+        """★ `group` 是**内存属性**（`build_queue()` 每次重算）。"""
         from module.config.run_list import RunEntry
         e = RunEntry(kind='task', task='Orochi', group='fixed')
-        d = e.to_dict()
-        assert d.get('group') == 'fixed'
-        assert RunEntry.from_dict(d).group == 'fixed'
+        assert e.group == 'fixed'
 
-    def test_empty_group_not_persisted(self):
-        """★ 空段名**不落盘** —— 保持配置干净。"""
+    def test_group_is_never_persisted(self):
+        """★★ 审计修复: `group` **永不落盘** ★★
+
+        ## 为什么
+
+        段名是 `Config._segment_queue()` 的**派生结果**, 每次 `build_queue()`
+        都会重算。存盘只会:
+          ① 破坏"单一数据源"（台账 §10.8）
+          ② 前端判据与后端不一致时, 配置里躺着**错的段名**
+          ③ 让配置文件多出一堆"用户没写过"的字段
+
+        ★ 我第一版让它"非空才写" —— 但 `_assign_groups()` 会把它算成**非空**,
+          于是**照样落盘**（实测抓到）。所以改成**永不写**。
+        """
         from module.config.run_list import RunEntry
-        assert 'group' not in RunEntry(kind='task', task='Orochi').to_dict()
+        for g in ('', 'timed', 'fixed'):
+            d = RunEntry(kind='task', task='Orochi', group=g).to_dict()
+            assert 'group' not in d, f'group={g!r} 被序列化了: {d}'
+
+    def test_from_dict_still_accepts_group(self):
+        """★ 旧配置/前端若带了 `group`, 解析时**接受**（不报错）—— 只是不落盘。"""
+        from module.config.run_list import RunEntry
+        e = RunEntry.from_dict({'kind': 'task', 'task': 'Orochi',
+                                'entry_id': 'x', 'group': 'timed'})
+        assert e.group == 'timed'
+        assert 'group' not in e.to_dict()
 
     def test_legacy_config_without_group(self):
         """★ 旧配置没有 `group` -> 空串（**向后兼容**）。"""

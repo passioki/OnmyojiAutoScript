@@ -31,7 +31,9 @@
 # --------------------------------------------------------------------------- 总开关
 #: 分类 -> 归哪个开关管
 FIXED_CATEGORIES = ('fixed', 'toppa')
-TIMED_CATEGORIES = ('timed', 'charge', 'limited')
+# ★ S5: `'charge'`（充能）已删除 —— 用户裁定去掉存量机制。
+#   原来的 3 个充能任务改判为 `timed`。
+TIMED_CATEGORIES = ('timed', 'limited')
 
 
 def should_consider(category_value: str, enable_fixed: bool = True,

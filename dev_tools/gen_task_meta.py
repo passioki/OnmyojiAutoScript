@@ -55,7 +55,6 @@ from module.config.task_catalog import Category  # noqa: E402
 # 类别 -> 判定依据说明(写进生成文件的注释, 便于维护者理解为什么是这个类别)
 CATEGORY_NOTE = {
     Category.FIXED: '固定任务: 有"打满 N 次"的语义',
-    Category.CHARGE: '充能任务: 按存量, 在固定时刻补充',
     Category.TOPPA: '结界突破: 定点开放 + 次数上限',
     Category.LIMITED: '限时活动: 隔一段时间才推出, 非常驻',
     Category.TIMED: '定时任务: 按周期调度',

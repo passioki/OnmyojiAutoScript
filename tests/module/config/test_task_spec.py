@@ -100,7 +100,8 @@ class TestSpecOverridesJson:
 
     @pytest.mark.parametrize('task,expect_category', [
         ('FallenSun', Category.FIXED),
-        ('GoldYoukai', Category.CHARGE),
+        # ★ S5: `Category.CHARGE` 已删 —— GoldYoukai 改判为 TIMED
+        ('GoldYoukai', Category.TIMED),
         ('RyouToppa', Category.TOPPA),
         ('RealmRaid', Category.TOPPA),
         ('MetaDemon', Category.LIMITED),

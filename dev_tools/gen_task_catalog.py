@@ -79,7 +79,8 @@ CATEGORY = {
     'HeroTest': 'fixed', 'Exploration': 'fixed', 'Hyakkiyakou': 'fixed',
     'WantedQuests': 'fixed',
     # 充能: 按存量(slots 时刻补充)
-    'GoldYoukai': 'charge', 'ExperienceYoukai': 'charge', 'Tako': 'charge',
+    # ★ S5: 这 3 个原为 `charge`（充能）—— 存量机制删除后改判 `timed`
+    'GoldYoukai': 'timed', 'ExperienceYoukai': 'timed', 'Tako': 'timed',
     # 结界突破的两个子分类(用户确认: 寮突破 + 个人突破)
     'RyouToppa': 'toppa', 'RealmRaid': 'toppa',
     # 限时活动: 隔一段时间才推出, 非常驻(用户列出的 8 个)

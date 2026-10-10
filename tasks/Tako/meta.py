@@ -20,7 +20,7 @@ from module.config.task_catalog import Category, TaskSpec  # noqa: F401
 SPEC = TaskSpec(
     task='Tako',
     name_zh='石距',
-    category=Category.CHARGE,
+    category=Category.TIMED,
     # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
     auto_queue=True,
     # ★ F2c: 显式声明开放时段（用户: "所有的定时都有着 window 属性"）。

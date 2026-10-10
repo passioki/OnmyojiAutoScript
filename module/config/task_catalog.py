@@ -58,14 +58,12 @@ class Category(str, Enum):
     划分依据是**游戏机制**, 不是 OAS 的内部实现:
 
     FIXED    固定任务 —— 有"打满 N 次"的语义, 可设目标次数
-    CHARGE   充能任务 —— 按存量, 在固定时刻补充(如金币妖怪 0/12 点各 1 次)
     TOPPA    结界突破 —— 两个子分类(寮突破 / 个人突破), 定点开放 + 次数上限
     LIMITED  限时活动 —— 隔一段时间才推出, 非常驻
     TIMED    定时任务 —— 其余按周期调度的任务
     """
 
     FIXED = 'fixed'
-    CHARGE = 'charge'
     TOPPA = 'toppa'
     LIMITED = 'limited'
     TIMED = 'timed'
@@ -77,7 +75,6 @@ COUNTABLE_CATEGORIES = (Category.FIXED, Category.TOPPA)
 # 类别中文名(界面用)
 CATEGORY_LABEL = {
     Category.FIXED: '固定任务',
-    Category.CHARGE: '充能任务',
     Category.TOPPA: '结界突破',
     Category.LIMITED: '限时活动',
     Category.TIMED: '定时任务',
@@ -94,10 +91,6 @@ class TaskMeta:
     count_field: str or None        # "目标次数"字段名; None 表示该任务没有次数概念
     count_default: int or None      # 该字段的默认值
     needs_unify: bool               # count_field 是否还不是 limit_count
-    has_charge: bool
-    charge_max: int or None
-    charge_slots: str or None       # 如 '0,12'
-    charge_consume: int or None
     has_limit_time: bool
     success_interval: str or None   # 充能周期原文, 如 '00 03:00:00'
 
@@ -603,10 +596,6 @@ def _load() -> tuple:
             count_field=r.get('count_field'),
             count_default=_int(r.get('count_default')),
             needs_unify=bool(r.get('needs_unify')),
-            has_charge=bool(r.get('has_charge')),
-            charge_max=_int(r.get('charge_max')),
-            charge_slots=r.get('charge_slots'),
-            charge_consume=_int(r.get('charge_consume')),
             has_limit_time=bool(r.get('has_limit_time')),
             success_interval=r.get('success_interval'),
         )

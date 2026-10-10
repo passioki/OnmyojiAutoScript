@@ -3166,3 +3166,95 @@ from module.config.resource import Period   # ['none','daily','weekly','monthly'
 | **S5-6** | `task_catalog.py` 删 `charge_*` 兼容字段 + `Category.CHARGE` | 15 行 |
 | **S5-7** | `report.py`(7) · `schema_router.py`(5) · 其余 `charge` 残留 | — |
 
+---
+
+# 41. S5-6: 删 `Category.CHARGE` + `TaskMeta.charge_*`
+
+## 41.1 删了什么
+
+| 位置 | 删掉 |
+|---|---|
+| `task_catalog.py` | `Category.CHARGE = 'charge'` 枚举 + `Category.CHARGE: '充能任务'` 标签 |
+| `task_catalog.py` | `TaskMeta.has_charge` · `charge_max` · `charge_slots` · `charge_consume`（+ 2 处构造）|
+| `timed_schedule.py` | `TIMED_CATEGORIES` 去掉 `'charge'` |
+| `dev_tools/gen_task_meta.py` | `Category.CHARGE` 标签 |
+| `dev_tools/gen_task_catalog.py` | 3 个任务的类别 `charge` -> `timed` |
+
+**`Category` 现在只剩 4 个**: `fixed` · `toppa` · `limited` · `timed`。
+
+## 41.2 ★ 3 个原"充能"任务改判为 `TIMED`
+
+`GoldYoukai` / `ExperienceYoukai` / `Tako` 原来是 `Category.CHARGE`。
+
+★ **为什么改 `TIMED` 而不是 `FIXED`**: 它们**现在靠窗口**表达"一天几个时段各跑
+  一次", 与"定时任务"的语义一致（`auto_queue=True`）。实测:
+
+```
+GoldYoukai:        declared=timed  effective=fixed  auto_queue=True
+ExperienceYoukai:  declared=timed  effective=fixed  auto_queue=True
+Tako:              declared=timed  effective=fixed  auto_queue=True
+```
+
+★★ **注意 `effective=fixed`**: 这是 `category_effective` 的规则
+  （`TIMED` + `Period.NONE` -> `FIXED`）—— ★ **用户此前明确裁定过**
+  "**period=none 时算'固定'**"（§28）。两者一致, 不是巧合。
+
+## 41.3 ★ 清理: 删掉一个**过时的 git stash**
+
+`git stash list` 里挂着:
+```
+stash@{0}: On dev: wip: category_effective (影响充能/结界, 待确认)
+```
+★ 实测 **live 代码里 `category_effective` 就在**（规则正是 `TIMED`+`NONE`->`FIXED`）
+  —— 说明这个 stash 是**旧的、已被取代的**实验。**已 `git stash drop`**。
+
+★ 教训: **实验性 stash 用完要立刻清理** —— 留着会让人（包括我）误判
+  "这个功能到底在不在"。
+
+## 41.4 修掉的测试
+
+| 测试 | 改动 |
+|---|---|
+| `test_task_catalog.py::test_charge_tasks` | 改名 `test_timed_tasks`, 断言这 3 个任务属于 `TIMED` |
+| `test_task_catalog.py::TestChargeParams::test_gold_youkai` | 删（断言已删字段）；**保留** `test_interval_from_user_config`（改放到 `TestUserConfigDerivedParams`）|
+| `test_task_catalog.py::test_categories_filter_accepts_strings` | 断言 `by_category('charge')` -> `'timed'` |
+| `test_task_spec.py` | `Category.CHARGE` -> `Category.TIMED` |
+| `test_timed_schedule.py` | 参数化去掉 `'charge'` |
+
+★ 删测试时**又踩了一次缩进坑**（`@pytest.mark.parametrize` 顶格了, 我替换时
+  漏了缩进）—— 已修。**这是第 4 次同类事故**, 见 §41.5。
+
+## 41.5 ★★ 教训（第 4 次）: 我删测试的脚本不可靠
+
+我在 §38/§39/§41 里**反复**用脚本删测试函数, **每次都留缩进/悬空语句**:
+
+| 次数 | 症状 |
+|---|---|
+| §38 | 吃掉相邻 `def test_interval_is_list` 的行首 -> `IndentationError` |
+| §39 | 5 个函数删了但 docstring 里的代码体还在 -> `test_undefined_names` 抓到 |
+| §41 | `@pytest.mark.parametrize` 顶格 -> `IndentationError` |
+
+**结论**: **删测试也用 `edit` 工具（精确字符串）, 不再写删除脚本。**
+
+## 41.6 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1555 passed, 3 skipped**（0 失败）|
+| `Category` | 只剩 `fixed`/`toppa`/`limited`/`timed` |
+| `charge` 残留 | **75 文件/319 行 -> 11 文件/46 行** |
+| git stash | ★ **已清空**（过时实验）|
+
+## 41.7 S5-7（最后一步）
+
+| 文件 | 残留 |
+|---|---|
+| `dev_tools/gen_task_meta.py` | 8 |
+| `dev_tools/gen_resource_specs.py` | 8 |
+| `module/config/report.py` | 7 |
+| `module/server/schema_router.py` | 5 |
+| `module/config/task_catalog.py` | 5（注释/docstring）|
+| `dev_tools/gen_task_catalog.py` | 4 |
+| `module/server/script_router.py` | 2 |
+| 其余 `dev_tools` | 7 |
+

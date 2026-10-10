@@ -177,7 +177,8 @@ class TestTwoMasterSwitches:
         # 定时开关不该影响固定任务
         assert self.should_consider(cat, True, False)
 
-    @pytest.mark.parametrize('cat', ['timed', 'charge', 'limited'])
+    # ★ S5: `'charge'` 已删（充能机制移除, 用户裁定）
+    @pytest.mark.parametrize('cat', ['timed', 'limited'])
     def test_timed_switch_controls_timed(self, cat):
         assert self.should_consider(cat, True, True)
         assert not self.should_consider(cat, True, False)

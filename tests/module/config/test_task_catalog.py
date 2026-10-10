@@ -60,9 +60,13 @@ class TestCategories:
         assert 'HeroTest' in fixed, '用户明确: 英杰试炼是固定任务'
         assert len(fixed) == 13
 
-    def test_charge_tasks(self):
-        charge = {m.task for m in TC.by_category(Category.CHARGE)}
-        assert charge == {'GoldYoukai', 'ExperienceYoukai', 'Tako'}
+    def test_timed_tasks(self):
+        """★ S5: 原来叫 `test_charge_tasks` 并断言 `Category.CHARGE`。
+        `Category.CHARGE` **已删除**（用户裁定去掉存量机制）, 这 3 个任务
+        （都靠**窗口**表达"一天几个时段各跑一次"）改判为 **`timed`**。
+        """
+        timed = {m.task for m in TC.by_category(Category.TIMED)}
+        assert {'GoldYoukai', 'ExperienceYoukai', 'Tako'} <= timed
 
     def test_toppa_is_breakthrough_subcategory(self):
         """寮突破 + 个人突破 = 结界突破的两个子分类(用户确认)。"""
@@ -81,7 +85,6 @@ class TestCategories:
         s = TC.summary()
         assert s['total'] == 54
         assert s['fixed'] == 13
-        assert s['charge'] == 3
         assert s['toppa'] == 2
         assert s['limited'] == 8
         assert sum(s[c.value] for c in Category) == 54
@@ -135,13 +138,11 @@ class TestCountable:
         assert len(TC.countable_tasks()) == 14
 
 
-class TestChargeParams:
-    def test_gold_youkai(self):
-        m = TC.get('GoldYoukai')
-        assert m.has_charge is True
-        assert m.charge_max == 2
-        assert m.charge_slots == '0,12', '默认值里的逗号不能被正则截断'
-        assert m.charge_consume == 1
+class TestUserConfigDerivedParams:
+    """★ S5: 原 `TestChargeParams.test_gold_youkai` 断言 `has_charge` /
+    `charge_max` / `charge_slots` / `charge_consume` —— 这些字段**已删除**
+    （用户裁定去掉存量机制）, 该测试已删。仅保留**用户配置推导**的这条。
+    """
 
     def test_interval_from_user_config(self):
         """充能周期取自用户真实配置, 而不是代码默认值。"""
@@ -166,5 +167,10 @@ class TestRobustness:
         assert TC.get('FallenSun').name_zh == '日轮之陨'
 
     def test_categories_filter_accepts_strings(self):
-        assert {m.task for m in TC.by_category('charge')} == {
-            'GoldYoukai', 'ExperienceYoukai', 'Tako'}
+        """★ S5: 原来这里断言 `by_category('charge')` —— `Category.CHARGE`
+        已删除（用户裁定去掉存量机制）, 改成断言 **`'timed'` 字符串可用**。
+        """
+        timed = {m.task for m in TC.by_category('timed')}
+        assert 'GoldYoukai' in timed
+        assert 'ExperienceYoukai' in timed
+        assert 'Tako' in timed

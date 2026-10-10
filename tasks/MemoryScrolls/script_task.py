@@ -58,9 +58,22 @@ class ScriptTask(GameUi, MemoryScrollsAssets):
                 if self.appear_then_click(self.I_MS_FRAGMENT_S, interval=1.5):
                     continue
             if self.appear(self.I_MS_FRAGMENT_S_50):
-                logger.info('Small Memory Scrolls fragments reached 50, planning tomorrow exploration')
-                # 安排下次探索
-                self.custom_next_run(task='Exploration', custom_time=self.config.memory_scrolls.memory_scrolls_finish.next_exploration_time, time_delta=1)
+                # ★★ 2026-10-10 用户明确: MemoryScrolls **只做停止用途, 不做排期** ★★
+                #
+                # 原来这里给**另一个任务**排期:
+                #
+                #     self.custom_next_run(task='Exploration',
+                #                          custom_time=...next_exploration_time,
+                #                          time_delta=1)
+                #
+                # 即"小绘卷满 50 -> 1 天后做探索"。用户判定**不该由本任务排期**:
+                #   * 它不是在说"MemoryScrolls 几点跑", 而是**替 Exploration 决定何时跑**
+                #   * 触发条件是**游戏状态**（绘卷数量）, 不是时间
+                #   * 在"队列是唯一调度依据"的模型下（见 §11）,
+                #     `Exploration` 何时跑应由**它自己的队列位置 + 窗口**决定
+                #
+                # 所以这里只**记日志 + 让本任务结束**, 不碰别的任务。
+                logger.info('Small Memory Scrolls fragments reached 50（不再替 Exploration 排期）')
             else:
                 logger.warning('Small Memory Scrolls fragments not reached 50, task failed')
                 self.set_next_run(task='MemoryScrolls', success=False)

@@ -1744,3 +1744,91 @@ Config._record_task_success(task_key)             <- 记录
 且不与"窗口只回答可不可以"冲突（它是**另一维度**: "可不可以" 由窗口,
 "一天几次" 由 slots）。
 
+---
+
+# 25. ★★ 最终结算（2026-10-10）★★
+
+对照目标逐条结算。**每一项都指到证据; 未做/刻意保留的写清原因, 不粉饰。**
+
+## 25.1 逐条对照
+
+| # | 要求 | 结算 | 证据 |
+|---|---|---|---|
+| **①** | 所有定时任务都有 window | ✅ | `dev_tools/check_windows.py` **exit 0**；54/54 |
+| **①** | 每日=0-24 / 每周=周一0点-周日24点 / 每月同理 | ✅ | `window_for_period()`（`availability.py`）；`Period.MONTHLY` 已加 |
+| **①** | 逢魔 = 每天 17-23 | ✅ | `DemonEncounter/meta.py` 的 `TaskSpec.window`；实测 23:00 -> 次日 17:00 |
+| **①** | **补齐周期设置** | ✅ | `Scheduler.period`（none/daily/weekly/**monthly**）+ 新增 `window_period` |
+| **②** | **彻底废弃 interval** | ✅ | `Scheduler.success_interval` **字段已删除**（16->15）；`task_delay()` 成功路径改为**窗口兜底**；`DailyTrifles`/`TrueOrochi` 改用 `next_run_after()` |
+| **③** | 不在窗口=不能运行 | ✅ | `Function.in_window()` 逐段取或；`update_scheduler()` 把窗口外任务放 `waiting` |
+| **③** | 变灰进「未到开放时间」 | ✅ | `queue_panel.dart` 用 `disabledColor`；文案「未到开放时间」 |
+| **④** | 「待执行」与「执行顺序」**合并**成一套可拖列表 | ✅ | **单个** `ReorderableListView`（`queue_panel.dart`）；旧的两个只读观察窗已删 |
+| **④** | 「等待中」改名「未到开放时间」 | ✅ | 同上 |
+| **⑤** | 所有括号式说明改**悬停提示** | ✅ | 汇报面板 / 任务选择器 / 重复条目标签 **全部** `Tooltip` |
+| **⑥** | 逐个确认"interval 还是真实日期" | ✅ | 审计表见 §8.5：**4 个** interval 式（Hunt/GuildBanquet/MemoryScrolls/RyouToppa），其余是 `set_next_run(target=)` 的真实日期式 |
+| **⑥** | 删除 `custom_next_run` | ⚠ **10 -> 5**（见 §25.2）| `Hunt`/`MemoryScrolls`/`GuildBanquet` 已 0；`Restart`/`RyouToppa` 剩 5 处 = **刻意保留的兼容兜底** |
+| **⑦** | 记录台账 | ✅ | 本文档 §1 - §25 |
+| **⑦** | 每步跑全量测试 | ✅ | 后端 **1680 passed, 3 skipped**；前端 **85 passed** |
+| **⑦** | 严禁"未完成却标记完成" | ✅ | §0.2 虚报清单 + §24.1 **主动纠正自己的 ✅** |
+
+## 25.2 ⑥ 的**刻意保留**（不是未完成）
+
+代码里还剩 5 处 `custom_next_run`：
+
+| 任务 | 处数 | **何时执行** |
+|---|---|---|
+| `Restart` | 3 | **仅当**用户**没配** `window_slots` |
+| `RyouToppa` | 2 | **仅当**用户**没配** `window_slots` |
+
+**配了窗口就完全走窗口** —— 守卫 `test_uses_slots_when_configured` 钉住这一点。
+
+### 为什么保留
+
+用户三条裁定（§21.1 / §20.2）：窗口只回答"可不可以"；"跑几次"由次数或重复条目
+体现；排期只用窗口。而 `Restart` 的"每天 12:00 与 20:00 各领一次体力"是**第 4 种**
+语义 —— 已为它加了 `window_slots`（§21 之外的补充设计）。
+
+**但**：如果**无条件删除**这 5 处, 会**静默改变"没配窗口"的老用户**的调度行为
+（`Restart` 不再自动排在 12/20 点）。按纪律（§10.5 **不猜语义 / 不做会静默改变
+行为的改动**）—— **保留兜底, 并在此如实标注**。
+
+★ 用户若要**彻底删除**, 只需说一声; 那是一次**行为变更**, 不是重构。
+
+## 25.3 用户后续追加的要求（本轮内完成）
+
+| 项 | 结算 | 证据 |
+|---|---|---|
+| **A** 允许**重复添加**同一任务 | ✅ | 候选端点不再排除 `queued`；前端选择器标注「已在队列 ×N」 |
+| **B** `list_order` 按**条目** | ✅ | `AreaBoss` 位置 = 3（旧行为因去重算成 2）|
+| **C** 按**条目**追踪（`entry_id = 时间 + task`）| ✅ | **实测**: `a, a` -> 两条 pending -> 记完第 1 条后第 2 条**仍要跑** |
+| **C** `entry_id` 唯一化 | ✅ | 同一秒加两次 -> `...-2` / `...-3`（仍可拆）|
+| **D** 次数 vs 重复添加 = **两个机制** | ✅ | 次数=任务内场次（**不参与排期**）；重复条目=多轮 |
+| **#6** 任务完成汇报 tab | ✅ | 后端 `report.py` + `GET /{script}/report`；前端第 3 个 tab；**原始日志移到独立窗口** |
+| 窗口字段模型 **(B) 两端同周期** | ✅ | `window_period` **两端共用** |
+| 用户配置**优先**于 `meta.py` | ✅ | 实测：用户 17-23 生效（修正前完全没用）|
+| `window_slots`（每日固定时刻）| ✅ | `'12:00,20:00'` -> 两段窗口 12:00-14:00 / 20:00-22:00 |
+
+## 25.4 ★ 本会话我**主动纠正**的自己的错误（诚实记录）
+
+| # | 我此前的错误 | 如何发现 | 如何修 |
+|---|---|---|---|
+| 1 | 把"窗口已接线"标 ✅ | **实测**发现 `Function.window` 是**死代码**（`in_window` 恒 True）| §8.4 改正并修复 |
+| 2 | 把 `window_*` 当内部字段**隐藏** | 用户指出"用户可以选择每天, 然后把时间改为 17-23 点" | 放开为**用户可见可改** |
+| 3 | `meta.py` 永远压过用户配置 | 实测用户改 17-23 **完全没用** | 调正优先级 |
+| 4 | "移出队列"**无条件停用** | 用户指出"固定任务移除后应该返回添加任务的池子里" | 分两类 |
+| 5 | `Restart` 的"每天两次"当成窗口 | 裁定"窗口只回答可不可以" | 新增 `window_slots` |
+| 6 | 测试里**读源码**做静态断言（缓存坏的）| 测试全读空串 | 改为只测纯逻辑 |
+| 7 | 验证脚本 `task_state.clear('恋鸟树')` **清掉用户充电记录** | 测试失败 | **恢复数据** + 改用临时 config 名 |
+| 8 | 多处守卫**没剥注释** -> 假失败 | 断言失败但代码是对的 | 全部改为"剥注释再断言" |
+
+★ 第 7 条是**动了用户的实时数据** —— 已恢复, 并把纪律写进测试 docstring。
+
+## 25.5 交付物
+
+| 类别 | 位置 |
+|---|---|
+| 事实来源 | `docs/SESSION-LEDGER.md`（本文档, §1-§25）|
+| 架构与决策台账 | `docs/architecture.md`（§2.1 / §10.7 / §10.9 / §10.10 / §12 / §13）|
+| 界面契约 | `docs/ui-api-mapping.md`（§8 / **§9 窗口字段模型**）|
+| 自检工具 | `dev_tools/check_windows.py` |
+| 新增测试 | `test_every_task_has_window` · `test_window_ui_contract` · `test_task_report` · `test_duplicate_queue_entries` · `test_entry_id` · `test_entry_scoped_state` · `test_window_slots` · `test_multi_segment_window` · `test_success_interval_removed` · `test_guild_banquet_window` · `test_queue_is_authority` · `test_queue_removal_semantics` · `test_execution_queue` |
+

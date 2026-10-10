@@ -134,10 +134,34 @@ class TestLiveConfig:
         starts = sorted(w.start.hour for w in ws)
         assert starts == [12, 20], starts
 
-    def test_ryou_toppa_has_one_window(self, cfg):
+    def test_ryou_toppa_has_no_config_window(self, cfg):
+        """★★ `ryou_toppa` **不该**在配置里有窗口（用户裁定 A: 全天可跑）★★
+
+        ## 用户原话
+
+        > "寮突破 window **设置混乱、不生效**而且**不再开放时间段**"
+
+        ## 根因（两套窗口定义打架）
+
+        那个**一次性推荐窗口迁移**（`RECOMMENDED_WINDOWS`）曾给
+        `ryou_toppa` 写入 `07:00-09:00`, 而 `meta.py` 声明的是
+        `00:00-23:59`（**全天**）。
+
+        ★ `Function.window` 的优先级是 **配置 > meta** -> 迁移值
+          **永久压住**了 meta -> 寮突破每天只有 2 小时能跑。
+
+        ★ 用户选 **A（全天可跑, 跟 meta）** -> 已从推荐表移除 +
+          清掉配置里的残留, 所以现在**配置里应当是空的**
+          （由 meta 的全天窗口兜底）。
+
+        ⚠ 这条测试**必须**这么写: 断言"有 1 个 07:00 窗口"就是给那个 bug
+          上锁（旧版正是如此 —— 它会让修复**测不过**）。
+        """
         ws = cfg.model.ryou_toppa.scheduler.windows
-        assert len(ws) == 1
-        assert ws[0].start.hour == 7
+        assert len(ws) == 0, (
+            '★ 寮突破配置里不该有窗口 —— 它会压住 meta 的全天窗口 '
+            f'(实际 {len(ws)} 个: '
+            + str([(w.start, w.end) for w in ws]) + ')')
 
     def test_no_old_fields_on_disk_objects(self, cfg):
         s = cfg.model.restart.scheduler

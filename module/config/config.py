@@ -586,8 +586,15 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 new = PriorityMode.CUSTOM
 
             # 出厂默认且没旧线索 -> 只置标记, 不改值（少写一次盘）
-            self.model.deep_set('Script.optimization.priority_mode', new.value)
-            self.model.deep_set('Script.optimization.priority_mode_explicit', True)
+            # ⚠ `deep_set(obj, keys, value)` 是**三参**（不是二参）——
+            #   我第一版写成 `self.model.deep_set('a.b', v)` 直接报
+            #   `missing 1 required positional argument: 'value'`。
+            self.model.deep_set(
+                self.model, keys='script.optimization.priority_mode',
+                value=new)
+            self.model.deep_set(
+                self.model, keys='script.optimization.priority_mode_explicit',
+                value=True)
             logger.info(
                 f'调度优先级迁移: schedule_rule={rule_v!r} + '
                 f'timed_priority={tp_v!r} -> priority_mode={new.value!r}')

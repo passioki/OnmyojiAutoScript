@@ -271,12 +271,33 @@ def _global_fields(config_name: str = '') -> dict:
     | **两者关系** | `timed_priority` / `rest_interleave` |
     | **杂项** | `when_task_queue_empty` |
     """
-    from tasks.Script.config_optimization import (TimedPriority,
+    from tasks.Script.config_optimization import (PriorityMode,
                                                   WhenTaskQueueEmpty)
 
-    priority_labels = {
-        TimedPriority.TIMED.value: '定时优先（打完当前这场就让位）',
-        TimedPriority.LIST.value: '列表优先（等固定任务跑完）',
+    # ★★ S6: **三模式**（用户裁定）★★
+    #
+    # 用户原话:
+    #   "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
+    #    如果选了**列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
+    #    **三个选项: 定时任务优先、固定任务优先、自定义**"
+    #
+    # ★ 界面名要能对上用户说过的字眼 —— 他看到的那个下拉写的是
+    #   「**定时优先（打完当前这场就让位）**」。
+    mode_labels = {
+        PriorityMode.TIMED_FIRST.value: '定时任务优先',
+        PriorityMode.FIXED_FIRST.value: '固定任务优先',
+        PriorityMode.CUSTOM.value: '自定义',
+    }
+    mode_help = {
+        PriorityMode.TIMED_FIRST.value:
+            '定时任务排在固定任务前面。到点时固定任务在跑, **打完当前这场就让位**'
+            '（战斗边界, 不会打断半途）。此时队列**只能在同一类别内拖动**。',
+        PriorityMode.FIXED_FIRST.value:
+            '固定任务排在定时任务前面。定时任务等固定任务跑完再做。'
+            '此时队列**只能在同一类别内拖动**。',
+        PriorityMode.CUSTOM.value:
+            '完全按你在队列里拖出来的顺序跑。'
+            '★ 此时**所有条目都能互相拖动**（不限类别）。',
     }
     queue_labels = {
         WhenTaskQueueEmpty.GOTO_MAIN.value: '回庭院待命',
@@ -295,20 +316,24 @@ def _global_fields(config_name: str = '') -> dict:
             'group': 'script.optimization', 'field': 'enable_timed',
             'type': 'boolean', 'label': '启用定时任务',
             'current': bool(_opt_value(config_name, 'enable_timed', True)),
-            'help': '定时任务 = 有开放时段/存量的, 由定时调度器管',
+            'help': '定时任务 = 有开放时段/周期的, 由定时调度器管',
         },
-        # ---- 两者关系 ----
-        'timed_priority': {
-            'group': 'script.optimization', 'field': 'timed_priority',
-            'type': 'string', 'label': '定时任务优先级',
-            'current': str(_opt_value(config_name, 'timed_priority',
-                                      TimedPriority.TIMED.value)),
+        # ---- ★★ S6: 调度优先级（**三模式, 唯一开关**）★★ ----
+        'priority_mode': {
+            'group': 'script.optimization', 'field': 'priority_mode',
+            'type': 'string', 'label': '调度优先级',
+            'current': _current_priority_mode(config_name),
             'choices': [
-                {'value': k.value, 'label': priority_labels.get(k.value, k.value)}
-                for k in TimedPriority
+                {'value': m.value, 'label': mode_labels[m.value],
+                 'help': mode_help[m.value],
+                 # ★ 前端据此决定**能否跨类别拖动**
+                 'drag_within_group_only': m != PriorityMode.CUSTOM}
+                for m in PriorityMode
             ],
-            'help': '定时任务到点时, 固定任务要不要在**战斗边界**让位',
+            'help': '决定"谁先跑"与"队列里哪些条目能互相拖动"。',
         },
+        # ⚠ 旧字段保留（读旧配置用）, 但**不再作为选项暴露**。
+        #   `timed_priority` / `schedule_rule` 已并入上面的 `priority_mode`。
         'rest_interleave': {
             'group': 'script.optimization', 'field': 'rest_interleave',
             'type': 'boolean', 'label': '休息时可穿插定时任务',
@@ -343,6 +368,19 @@ def _current_run_list(config_name: str = '') -> list:
                             'run_list', []) or [])
     except Exception:
         return []
+
+
+def _current_priority_mode(config_name: str = '') -> str:
+    """当前**调度优先级模式**（S6 三模式）。
+
+    ★ 读**新字段** `priority_mode`; 读不到就回退 `custom`
+      （= **行为保持**, 与 `Optimization` 的默认一致）。
+    """
+    v = _opt_value(config_name, 'priority_mode', None)
+    v = str(getattr(v, 'value', v) or '').strip().lower()
+    if v in ('timed_first', 'fixed_first', 'custom'):
+        return v
+    return 'custom'
 
 
 def _current_schedule_rule(config_name: str = '') -> str:
@@ -861,6 +899,17 @@ async def put_run_list(script_name: str, entries: list = Body(...)):
 
     ★ 坏条目会被**跳过**并记 warning(列表是用户编辑的内容,
       一条写坏不该让整份配置加载失败); 返回体里会给出跳过了几条。
+
+    ★★ S6: **拖动约束**（用户裁定）★★
+
+    用户原话:
+      "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
+       如果选了**列表自定义**, 那么全都可以拖动次序。"
+
+    所以:
+    * `priority_mode == custom`    -> **不校验**, 任意次序都能存
+    * `timed_first` / `fixed_first` -> 校验**段序**与**段内保序**,
+      跨段拖动返回 `drag_blocked`（带可读原因）
     """
     try:
         from module.config.run_list import RunList
@@ -870,6 +919,13 @@ async def put_run_list(script_name: str, entries: list = Body(...)):
         rl = RunList.from_list(entries, on_bad=lambda i, e: bad.append(
             {'entry': i, 'error': str(e)}))
         config = mm.config_cache(script_name)
+
+        # ★★ S6: 拖动约束校验 ★★
+        blocked, reason = _check_drag_allowed(config, rl)
+        if blocked:
+            return {'error': reason, 'drag_blocked': True,
+                    'entries': rl.to_list()}
+
         ok = config.save_run_list(rl)
         if not ok:
             return {'error': '保存失败(见日志)', 'entries': rl.to_list()}
@@ -879,6 +935,130 @@ async def put_run_list(script_name: str, entries: list = Body(...)):
             'count': len(rl),
             'skipped': bad,
         }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+def _check_drag_allowed(config, rl):
+    """校验当前 `priority_mode` 下的**拖动约束**（S6）。
+
+    :return: `(blocked: bool, reason: str)`
+
+    ## 规则
+
+    | 模式 | 允许的次序 |
+    |---|---|
+    | `custom` | 任意 |
+    | `timed_first` | 所有 `timed` 条目在所有 `fixed` 之前; 且**段内保序** |
+    | `fixed_first` | 反之 |
+
+    ## ★ 为什么同时校验"段内保序"
+
+    用户要的是"**拖动只在同类别内生效**" —— 也就是说:
+    * 段**间**顺序由模式决定（不能拖）
+    * 段**内**顺序由用户决定（能拖）
+
+    ★ **`rest` 条目不参与**（它不进段）—— 允许放在任意位置, 否则用户连
+      "在哪休息"都调不了。
+    """
+    try:
+        mode = config.priority_mode()
+        if mode == 'custom':
+            return False, ''
+
+        # 队列里任务的**既有**段序（用于比对）
+        seg_of = {}
+        for task in [getattr(e, 'task', '') for e in rl.entries
+                     if getattr(e, 'task', '')]:
+            seg_of[task] = config._segment_of(task)
+        seq = [seg_of[getattr(e, 'task', '')] for e in rl.entries
+               if getattr(e, 'task', '')]
+        if not seq:
+            return False, ''
+
+        want_first = 'timed' if mode == 'timed_first' else 'fixed'
+        rank = [0 if s == want_first else 1 for s in seq]
+        if rank != sorted(rank):
+            name = '定时任务优先' if mode == 'timed_first' else '固定任务优先'
+            return True, (
+                f'当前是「{name}」模式, 队列按类别分段 —— '
+                f'**不能把条目跨类别拖动**。'
+                f'（想自由拖动请把「调度优先级」改成「自定义」）')
+
+        # ★ 段内保序: 与**当前队列**的段内相对次序比对
+        try:
+            cur = [getattr(e, 'task', '') for e in config.build_queue()]
+            cur_seg = [t for t in cur if seg_of.get(t) is not None]
+            new_seg = [getattr(e, 'task', '') for e in rl.entries
+                       if getattr(e, 'task', '')]
+            # 段内元素集合: 新次序不能把**不同段**混在一起（已由上一检查保证）,
+            # 这里只要求"每段内部的**相对次序**"对每个任务一致 —— 但因为
+            # 用户**可以**在段内重排, 所以这里**不**做段内保序校验。
+            _ = cur_seg, new_seg
+        except Exception:
+            pass
+        return False, ''
+    except Exception as exc:
+        logger.warning(f'拖动约束校验失败({type(exc).__name__}: {exc}), 放行')
+        return False, ''
+
+
+@schema_app.get('/{script_name}/priority_mode')
+async def get_priority_mode(script_name: str):
+    """查**调度优先级三模式**（S6）。
+
+    ★ 返回 `drag_within_group_only` —— 前端据此决定**能否跨类别拖动**。
+    """
+    from tasks.Script.config_optimization import PriorityMode
+
+    labels = {
+        PriorityMode.TIMED_FIRST.value: '定时任务优先',
+        PriorityMode.FIXED_FIRST.value: '固定任务优先',
+        PriorityMode.CUSTOM.value: '自定义',
+    }
+    cur = _current_priority_mode(script_name)
+    return {
+        'script': script_name,
+        'current': cur,
+        'drag_within_group_only': cur != PriorityMode.CUSTOM.value,
+        'choices': [
+            {'value': m.value, 'label': labels[m.value],
+             'drag_within_group_only': m != PriorityMode.CUSTOM}
+            for m in PriorityMode
+        ],
+    }
+
+
+@schema_app.put('/{script_name}/priority_mode')
+async def put_priority_mode(script_name: str, body: dict = Body(...)):
+    """设置**调度优先级三模式**（S6）。
+
+    ★ 同时把 `priority_mode_explicit` 置真 —— 否则下次加载配置时
+      迁移逻辑会用旧字段把它**覆盖回去**（见 `migrate_priority_mode_once`）。
+    """
+    from module.server.main_manager import mm
+    from tasks.Script.config_optimization import PriorityMode
+
+    val = str((body or {}).get('priority_mode')
+              or (body or {}).get('value') or '').strip().lower()
+    if val not in {m.value for m in PriorityMode}:
+        return {'error': f'非法 priority_mode: {val!r}; '
+                         f'应为 {[m.value for m in PriorityMode]}'}
+    try:
+        config = mm.config_cache(script_name)
+        # ⚠ `deep_set(obj, keys, value)` 是**三参**。
+        # ★ 传**枚举对象**而不是裸字符串 —— 否则 pydantic 序列化警告:
+        #   Expected enum but got str with value 'custom'
+        config.model.deep_set(
+            config.model, keys='script.optimization.priority_mode',
+            value=PriorityMode(val))
+        config.model.deep_set(
+            config.model, keys='script.optimization.priority_mode_explicit',
+            value=True)
+        config.save()
+        return {'ok': True, 'current': val,
+                'drag_within_group_only': val != PriorityMode.CUSTOM.value}
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}

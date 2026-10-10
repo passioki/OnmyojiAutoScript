@@ -3563,3 +3563,115 @@ custom      -> FTFFFF  ['Orochi', 'MetaDemon', 'Exploration', ...]  ★ 与输�
 | **S6-6** | **前端**: 下拉三选项 + 拖动约束 + 类别分隔视觉 |
 | **S6-7** | 删死代码 `_order_by_timed_priority()` |
 
+---
+
+# 45. S6-4/S6-5: **拖动约束** + `priority_mode` 端点
+
+## 45.1 新增端点
+
+| 方法 | 路径 | 用途 |
+|---|---|---|
+| `GET` | `/{script}/priority_mode` | 查三模式 + **`drag_within_group_only`** |
+| `PUT` | `/{script}/priority_mode` | 设三模式（**并置 `priority_mode_explicit`**）|
+
+**实测**:
+```
+GET  current=custom  限同段拖=False
+选项 = [('timed_first','定时任务优先',True),
+        ('fixed_first','固定任务优先',True),
+        ('custom','自定义',False)]
+```
+
+★ `drag_within_group_only` 是给**前端**用的 —— 它据此决定"能不能跨类别拖"。
+
+## 45.2 拖动约束（`_check_drag_allowed`）
+
+| 模式 | 允许的次序 |
+|---|---|
+| `custom` | 任意 |
+| `timed_first` | 所有 `timed` 在所有 `fixed` **之前**; 否则拦 |
+| `fixed_first` | 反之 |
+
+★ `rest`（休息）条目**不参与**（否则用户连"在哪休息"都调不了）。
+
+被拦时返回**可读原因**:
+```
+当前是「定时任务优先」模式, 队列按类别分段 —— **不能把条目跨类别拖动**。
+（想自由拖动请把「调度优先级」改成「自定义」）
+```
+
+## 45.3 ★★ 拖动约束**实测**（5 例全过）★★
+
+```
+① custom      + 跨段(T,F) -> 放  OK
+② timed_first + 同段(T,F) -> 放  OK
+③ timed_first + 跨段(F,T) -> **拦** OK
+④ fixed_first + 同段(F,T) -> 放  OK
+⑤ fixed_first + 跨段(T,F) -> **拦** OK
+```
+
+## 45.4 ★★ 我踩的两个坑（都是"看起来成功、其实没生效"）★★
+
+### 坑 1: `deep_set` 参数个数错
+
+我写成 `self.model.deep_set('Script.optimization.priority_mode', val)` ——
+实际签名是 **`deep_set(obj, keys, value)`（三参）**:
+```
+TypeError: deep_set() missing 1 required positional argument: 'value'
+```
+★ 我**没看错误信息就往下测** —— 端点的 try/except 把它吞成
+  `{'error': ...}`, 而我的测试**只打印 error 没断言**, 于是"看起来通过"。
+
+### 坑 2: ★ 路径首字母大小写错（**静默失败**）
+
+我写 `keys='Script.optimization.priority_mode'`（**大写 S**）,
+而配置模型的字段名是 **`script`（小写）**:
+```
+getattr('Script') **失败**: AttributeError:
+  'ConfigModel' object has no attribute 'Script'
+deep_set 返回: False        <- ★ **静默返回 False, 不抛异常**
+```
+★ **这才是最危险的**: `deep_set` 用 `try/except (AttributeError, KeyError)`
+  **吞掉**了错误并 `return False`。而我的 `put_priority_mode` **没检查返回值**,
+  于是: 端点返回 `{'ok': True, 'current': 'timed_first'}`（它回显的是**入参**）,
+  但**磁盘上一个字节都没改**。
+
+★★ **教训**: 对"返回值表示成功/失败"的函数（`deep_set` / `save_run_list` /
+  `write_file`）**必须检查返回值**, 不能只看"没抛异常"。
+
+**修**: 4 处 `Script.` -> `script.`（`config.py` 2 处 + `schema_router.py` 2 处）。
+
+### 坑 3: pydantic 枚举序列化警告
+
+`deep_set` 传了裸字符串 -> `Expected enum but got str`。
+**修**: 传 `PriorityMode(val)` 枚举对象。现在 `-W error::UserWarning` **无警告**。
+
+### 坑 4: ★ 我的守卫测试**假通过**
+
+`TestSchemaExposesMode` 里我猜构造器叫 `build_optional_schema`,
+不存在 -> 走了 `pytest.skip` -> **假通过**。
+**修**: 找到真名 `_global_fields`, 改成**真断言**（且不再有 skip）。
+
+## 45.5 ★ 我的测试脚本还有一个隐患
+
+`write_json` 用的是 **`Path.cwd()`** —— 测试脚本若不 `chdir` 到仓库根,
+配置会写到**别的地方**。我这次**检查过** `D:\MuMuPlayer\OAS\config` 不存在,
+没有误写。★ 新守卫用 `module` 级 `autouse` fixture **强制 `chdir`**。
+
+## 45.6 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1603 passed, 3 skipped**（+12 守卫, 0 失败）|
+| 前端 flutter test | **85 passed** |
+| 拖动约束 | ★ **5 例实测全过** |
+| pydantic 警告 | ★ **零**（`-W error::UserWarning` 通过）|
+| 旧字段暴露 | ★ **不再暴露**（`timed_priority` 已并入）|
+
+## 45.7 S6 剩余
+
+| 子步 | 内容 |
+|---|---|
+| **S6-6** | **前端**: 下拉三选项 + 拖动约束 + 类别分隔视觉 |
+| **S6-7** | 删死代码 `_order_by_timed_priority()` |
+

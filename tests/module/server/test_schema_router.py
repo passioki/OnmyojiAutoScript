@@ -346,12 +346,19 @@ class TestRunListSection:
         assert '庭院' in help_['rest'], help_['rest']
 
     def test_exposes_two_master_switches(self, lst):
-        """暴露"启用固定/启用定时"与相关开关的定义, 前端不必硬编码字段名。"""
+        """暴露"启用固定/启用定时"与相关开关的定义, 前端不必硬编码字段名。
+
+        ★★ S6: 原来的 `timed_priority` **已并入** `priority_mode`
+          （用户裁定: 三个选项 —— 定时任务优先 / 固定任务优先 / 自定义）。
+          这里改为断言新的 `priority_mode`, 并**反向**断言旧字段不再暴露。
+        """
         gf = lst.get('global_fields') or {}
         for key in ('enable_fixed', 'enable_timed',
-                    'timed_priority', 'rest_interleave'):
+                    'priority_mode', 'rest_interleave'):
             assert key in gf, f'list.global_fields 缺 {key}'
             assert gf[key].get('label'), f'{key} 缺 label'
+        assert 'timed_priority' not in gf, \
+            '旧字段 `timed_priority` 不该再出现在全局设置里（已并入 priority_mode）'
 
     def test_duration_choices_positive_sorted(self, lst):
         d = lst['duration_choices']

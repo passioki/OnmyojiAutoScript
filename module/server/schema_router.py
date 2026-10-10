@@ -1526,8 +1526,195 @@ async def post_cancel_running(script_name: str):
 # 一切页就丢了。★ 这是"切换"语义的一部分, 由后端保证（不指望前端记得）。
 
 
-def _profiles_store(config):
-    """取（并在需要时初始化）`script.optimization.profiles` 这个 dict。"""
+#: ★ 页快照里保存的**全局开关**字段（`script.optimization` 上）。
+#:
+#: 用户裁定 **1甲（全都算）**: "每个页面都相当于当前的执行顺序页,
+#: 包含所有的功能, 只需要当做不同的页切换"。
+#:
+#: ⚠ 只放**方案相关**的开关; 下面这些**故意不算**:
+#:   * `screenshot_interval` / `combat_screenshot_interval` —— 设备性能参数
+#:   * `task_hoarding_duration` / `close_game_wait_duration` /
+#:     `close_emulator_wait_duration` —— 设备/模拟器参数
+#:   * `schedule_rule` / `timed_priority` —— **已废弃**（只为读旧配置保留）
+#:   * `period_backfilled` / `profiles` —— 内部标记与容器本身
+SNAPSHOT_GLOBAL_FIELDS = (
+    'enable_fixed',           # 启用临时任务
+    'enable_timed',           # 启用周期任务
+    'rest_interleave',        # 休息时可穿插周期任务
+    'when_task_queue_empty',  # 队列跑空后
+    'queue_mode',             # 多实例排队模式
+    'queue_idle_threshold',   # 空闲阈值（queue_mode 的下游）
+)
+
+#: ★ 页快照里保存的**每任务调度**字段（每个 `scheduler` 上）。
+#: ⚠ **不含** `next_run` / `windows` / `period` / `reset_at` ——
+#:   那些是"这套方案怎么跑出来的**运行时排期**", 换方案时应当由目标页的
+#:   自己的值决定; 而 `next_run` 尤其**不能**跨页搬（它是绝对时刻,
+#:   搬过去会立刻过期或推迟）。★ 与"任务级长期开关"是两回事。
+SNAPSHOT_SCHEDULER_FIELDS = (
+    'enable',             # 启停
+    'target',             # 次数
+    'priority',           # 优先级
+    'expected_minutes',   # 预期耗时
+)
+
+
+def _snapshot_global(config) -> dict:
+    """截取当前的**全局开关**（见 `SNAPSHOT_GLOBAL_FIELDS`）。"""
+    opt = getattr(getattr(config.model, 'script', None), 'optimization', None)
+    out = {}
+    if opt is None:
+        return out
+    for f in SNAPSHOT_GLOBAL_FIELDS:
+        v = getattr(opt, f, None)
+        # 枚举 -> 取值字符串（JSON 友好; 回写时由 pydantic 再转回枚举）
+        out[f] = getattr(v, 'value', v)
+    return out
+
+
+def _snapshot_scheduler(config) -> dict:
+    """截取**每任务**的调度字段（`{任务键: {字段: 值}}`）。"""
+    out = {}
+    for key, value in config.model.model_dump().items():
+        if not isinstance(value, dict):
+            continue
+        sch = value.get('scheduler')
+        if not isinstance(sch, dict):
+            continue
+        out[key] = {f: sch.get(f) for f in SNAPSHOT_SCHEDULER_FIELDS}
+    return out
+
+
+def _make_snapshot(config) -> dict:
+    """★ 当前**整页**的快照（队列 + 每任务调度 + 全局开关）。"""
+    return {
+        'queue': [e.to_dict() if hasattr(e, 'to_dict') else e
+                  for e in config.build_run_list()],
+        'scheduler': _snapshot_scheduler(config),
+        'global': _snapshot_global(config),
+    }
+
+
+def _coerce_for_field(config, keys: str, value):
+    """★ 把 `value` 转成目标字段**注解要求**的类型（主要处理**枚举**）。
+
+    ## 为什么需要它（实测踩到）
+
+    快照里枚举存的是**取值字符串**（`'goto_main'` —— 为了 JSON 友好）。
+    回写时直接 `deep_set(..., value='goto_main')` 会触发 pydantic 警告:
+
+        Expected `enum` but got `str` with value `'goto_main'` -
+        serialized value may not be as expected
+
+    ⚠ 本项目**已多次踩同一个坑**（`TaskPeriod` 那次也是 —— 于是
+      `migrate_task_period_once` 里专门包了一层 `TaskPeriod(want)`）。
+      ★ 这里**统一**处理: 取字段注解, 若是 `Enum` 子类就把字符串转回枚举。
+    """
+    try:
+        import enum
+
+        node = config.model
+        parts = keys.split('.')
+        for p in parts[:-1]:
+            node = getattr(node, p, None)
+            if node is None:
+                return value
+        fields = getattr(type(node), 'model_fields', None)
+        field = fields.get(parts[-1]) if isinstance(fields, dict) else None
+        ann = getattr(field, 'annotation', None)
+        if isinstance(ann, type) and issubclass(ann, enum.Enum):
+            if isinstance(value, ann):
+                return value
+            return ann(str(value))
+    except Exception as exc:
+        logger.debug(f'类型归一化失败({keys}={value!r}: '
+                     f'{type(exc).__name__}: {exc}), 原样写入')
+    return value
+
+
+def _apply_snapshot(config, snap: dict) -> int:
+    """★ 把快照写回配置。返回写入的队列条目数。
+
+    ## 顺序（重要）
+
+    1. **队列** —— 走 `Config.save_run_list`（与别处同一路径）
+    2. **每任务调度** —— 逐字段 `deep_set`
+    3. **全局开关** —— 逐字段 `deep_set`
+
+    ⚠ 只写快照里**存在**的键 —— 旧页（没有 `scheduler`/`global`）不会把
+      现在的值清掉（向后兼容）。
+
+    ⚠ 为什么最后**只 `save()` 一两次**: 每个 `deep_set` 之后不立刻 save,
+      统一在末尾由调用方 save（避免 N 次落盘）。
+    """
+    from module.config.run_list import RunEntry, RunList
+
+    snap = snap or {}
+    # ---- ① 队列 ----
+    raw = snap.get('queue')
+    if raw is None:
+        raw = snap.get('entries') or []      # ★ 旧页形状（只有顺序）
+    entries = []
+    for e in raw:
+        if not isinstance(e, dict):
+            continue
+        try:
+            entries.append(RunEntry.from_dict(e))
+        except Exception as exc:
+            logger.warning(f'配置页里有一条非法条目, 已跳过: {exc}')
+    config.save_run_list(RunList(entries))
+
+    n = len(entries)
+
+    # ---- ② 每任务调度 ----
+    sched = snap.get('scheduler')
+    if isinstance(sched, dict):
+        for key, fields in sched.items():
+            if not isinstance(fields, dict):
+                continue
+            # ⚠ 只写该任务**确实存在**的键（配置里没有的任务名 -> 跳过）
+            if getattr(config.model, str(key), None) is None:
+                logger.info(f'配置页含未知任务 {key!r}, 已跳过')
+                continue
+            for f, v in fields.items():
+                if f not in SNAPSHOT_SCHEDULER_FIELDS or v is None:
+                    continue
+                try:
+                    config.model.deep_set(
+                        config.model, keys=f'{key}.scheduler.{f}',
+                        value=_coerce_for_field(
+                            config, f'{key}.scheduler.{f}', v))
+                except Exception as exc:
+                    logger.warning(f'写 {key}.scheduler.{f} 失败: {exc}')
+
+    # ---- ③ 全局开关 ----
+    g = snap.get('global')
+    if isinstance(g, dict):
+        for f, v in g.items():
+            if f not in SNAPSHOT_GLOBAL_FIELDS or v is None:
+                continue
+            try:
+                config.model.deep_set(
+                    config.model, keys=f'script.optimization.{f}',
+                    value=_coerce_for_field(
+                        config, f'script.optimization.{f}', v))
+            except Exception as exc:
+                logger.warning(f'写全局开关 {f} 失败: {exc}')
+
+    return n
+
+
+def _profiles_store(config, *, auto_create: bool = True):
+    """取（并在需要时初始化）`script.optimization.profiles`。
+
+    ## ★ 首次访问**自动建页1**（用户裁定）
+
+    > "这个问题在问题2的前提下不存在，因为**当前的执行顺序就是页1**"
+
+    ★ 所以没有"无页"状态: `items` 为空时，立刻把当前状态**原样快照**
+      成页1 并置为 active —— 之后切页逻辑统一, 不用特判"第一次"。
+    ★ 幂等: 只要 `items` 非空就跳过（不会覆盖用户后来改的页）。
+    """
     opt = getattr(getattr(config.model, 'script', None), 'optimization', None)
     if opt is None:
         return None
@@ -1538,6 +1725,18 @@ def _profiles_store(config):
             config.model, keys='script.optimization.profiles', value=p)
     p.setdefault('items', [])
     p.setdefault('active_id', '')
+
+    if auto_create and not p['items']:
+        p['items'].append({
+            'id': 'p1',
+            'name': '1',
+            'snapshot': _make_snapshot(config),
+        })
+        p['active_id'] = 'p1'
+        config.model.deep_set(
+            config.model, keys='script.optimization.profiles', value=p)
+        config.save()
+        logger.info('执行顺序配置页: 首次访问, 已把当前状态建为「页1」')
     return p
 
 
@@ -1552,10 +1751,15 @@ def _profiles_view(config) -> list:
         if not isinstance(it, dict):
             continue
         pid = str(it.get('id') or '')
+        snap = it.get('snapshot')
+        if isinstance(snap, dict):
+            cnt = len((snap.get('queue') or snap.get('entries') or []))
+        else:
+            cnt = len(it.get('entries') or [])     # ★ 旧页形状
         out.append({
             'id': pid,
             'name': str(it.get('name') or pid),
-            'count': len(it.get('entries') or []),
+            'count': cnt,
             'active': pid == active,
         })
     return out
@@ -1603,18 +1807,22 @@ async def post_queue_profile(script_name: str, data: dict = Body(default={})):
         pid = f'p{n}' + ('' if all(
             str(it.get('id')) != f'p{n}' for it in items) else f'_{len(items)}')
 
-        # ★ 当前顺序作为这一页的内容（快照）
-        entries = [e.to_dict() if hasattr(e, 'to_dict') else e
-                   for e in config.build_run_list()]
-        items.append({'id': pid, 'name': name, 'entries': entries})
+        # ★★★ 整页快照（用户裁定 1甲: "包含所有的功能"）★★★
+        #
+        # = 队列 + 每任务调度（启停/次数/优先级/预期耗时）+ 全局开关
+        snap = _make_snapshot(config)
+        items.append({'id': pid, 'name': name, 'snapshot': snap})
         store['active_id'] = pid
 
         config.model.deep_set(
             config.model, keys='script.optimization.profiles', value=store)
         config.save()
+        n = len(snap['queue'])
         return {'ok': True, 'created': pid, 'name': name,
+                'count': n,
                 'profiles': _profiles_view(config),
-                'message': f'已新建配置页「{name}」（含 {len(entries)} 条）'}
+                'message': (f'已新建配置页「{name}」'
+                            f'（{n} 条队列 · 含启停/次数/全局开关）')}
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}
@@ -1625,15 +1833,20 @@ async def put_queue_profile_activate(script_name: str,
                                      data: dict = Body(...)):
     """**切换到某一页**。
 
-    ## 两步（顺序重要）
+    ## ★★ 两步（顺序重要, 且必须在**同一个请求**里完成）★★
 
-    1. ★ **先把当前 `run_list` 存回当前页** —— 否则用户刚拖的顺序会丢
-    2. 再把目标页的 `entries` 写回 `run_list`
+    1. ★ **先把当前整页**（队列 + 每任务调度 + 全局开关）**存回当前页**
+       —— 否则用户刚拖的顺序 / 刚改的启停与总开关会**丢**
+    2. 再把目标页的**整页快照**写回配置
+
+    ⚠ 不能拆成两个请求: 中途失败会留下"半新半旧"的状态（原子性）。
+
+    ⚠ 向后兼容: 旧页只有 `entries`（纯顺序）-> 只写队列,
+      调度/全局**不动**（不会把现在的值清掉）。
 
     :param data: {"id": "p2"}
     """
     try:
-        from module.config.run_list import RunEntry, RunList
         from module.server.main_manager import mm
 
         pid = str((data or {}).get('id') or '').strip()
@@ -1651,28 +1864,26 @@ async def put_queue_profile_activate(script_name: str,
         if target is None:
             return {'error': f'找不到配置页 {pid!r}'}
 
-        # ① 存当前
+        # ★★★ ① 先把**当前整页**存回当前页（用户裁定: "切页时自动保存"）★★★
+        #
+        # ⚠ 这一步**必须**在载入目标页**之前** —— 否则用户刚拖的顺序
+        #   / 刚改的启停与总开关会**丢**。
+        # ⚠ 也**必须**在同一个请求里完成（原子）—— 不能拆成两个请求,
+        #   否则中途失败会留下"半新半旧"的状态。
         cur = str(store.get('active_id') or '')
         cur_item = next((it for it in items
                          if isinstance(it, dict)
                          and str(it.get('id')) == cur), None)
         if cur_item is not None and cur != pid:
-            cur_item['entries'] = [
-                e.to_dict() if hasattr(e, 'to_dict') else e
-                for e in config.build_run_list()]
+            cur_item['snapshot'] = _make_snapshot(config)
 
-        # ② 载目标
-        raw = target.get('entries') or []
-        entries = []
-        for e in raw:
-            if not isinstance(e, dict):
-                continue
-            try:
-                entries.append(RunEntry.from_dict(e))
-            except Exception as exc:
-                logger.warning(f'配置页 {pid} 有一条非法条目, 已跳过: {exc}')
-        if not config.save_run_list(RunList(entries)):
-            return {'error': '写入运行列表失败（见日志）'}
+        # ★★ ② 再把目标页的**整页快照**写回配置 ★★
+        snap = target.get('snapshot')
+        if not isinstance(snap, dict):
+            # ★ 向后兼容: 旧页只有 `entries`（纯顺序）-> 包成快照形状,
+            #   队列照写, 调度/全局**不动**（不会把现在的值清掉）
+            snap = {'queue': target.get('entries') or []}
+        n = _apply_snapshot(config, snap)
 
         store['active_id'] = pid
         config.model.deep_set(
@@ -1680,11 +1891,61 @@ async def put_queue_profile_activate(script_name: str,
         config.save()
         return {'ok': True, 'active_id': pid,
                 'name': str(target.get('name') or pid),
-                'count': len(entries),
+                'count': n,
                 'profiles': _profiles_view(config),
                 'message': (f'已切到配置页「{target.get("name") or pid}」'
-                            f'（{len(entries)} 条）'
-                            f'；上一页的顺序已自动保存')}
+                            f'（{n} 条 · 含启停/次数/全局开关）'
+                            f'；上一页已自动保存')}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.put('/{script_name}/queue/profiles/rename')
+async def put_queue_profile_rename(script_name: str, data: dict = Body(...)):
+    """**给配置页改名**（用户要求: "需要重命名"）。
+
+    用户原话:
+    > "添加**执行顺序配置页 1/2/3/……**，可以添加、删除和切换配置页"
+    > "4：**需要重命名**"
+
+    ★ 页名只是**显示用**（默认是自动编号 `1/2/3/…`）—— 改成
+      「日常 / 周末 / 肝活动」这类有意义的名字, 一眼知道那页是干什么的。
+    ★ 改名**不动**页的内容（快照原样保留）。
+
+    :param data: {"id": "p2", "name": "周末"}
+    """
+    try:
+        from module.server.main_manager import mm
+
+        pid = str((data or {}).get('id') or '').strip()
+        name = str((data or {}).get('name') or '').strip()
+        if not pid:
+            return {'error': '缺少 id'}
+        if not name:
+            return {'error': '名字不能为空'}
+        if len(name) > 24:
+            return {'error': f'名字太长（{len(name)} 字，最多 24）'}
+
+        config = mm.config_cache(script_name)
+        store = _profiles_store(config)
+        if store is None:
+            return {'error': '配置里没有 optimization'}
+
+        target = next((it for it in (store.get('items') or [])
+                       if isinstance(it, dict)
+                       and str(it.get('id')) == pid), None)
+        if target is None:
+            return {'error': f'找不到配置页 {pid!r}'}
+
+        old = str(target.get('name') or pid)
+        target['name'] = name
+        config.model.deep_set(
+            config.model, keys='script.optimization.profiles', value=store)
+        config.save()
+        return {'ok': True, 'id': pid, 'name': name,
+                'profiles': _profiles_view(config),
+                'message': f'已把配置页「{old}」改名为「{name}」'}
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}

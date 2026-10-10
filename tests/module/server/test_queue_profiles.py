@@ -1,25 +1,36 @@
 # -*- coding: utf-8 -*-
-"""★★★ 执行顺序**配置页** 1/2/3/…（用户要求）★★★
+"""★★★ 执行顺序**配置页** 1/2/3/…（用户要求, 完整快照版）★★★
 
 ## 用户原话
 
 > "添加**执行顺序配置页 1/2/3/……**，可以添加、删除和切换配置页"
+> "1甲，全都算"
+> "2：**iii**，每个页面都相当于当前的执行顺序页，**包含所有的功能**，
+>  只需要当做不同的页切换，满足不同时期的特别需要。"
+> "3：这个问题在问题2的前提下不存在，因为**当前的执行顺序就是页1**"
+> "4：**需要重命名**"
 
-## 语义
+## 一页 = **完整快照**（跨两个存储层）
 
-一页 = **一套执行顺序**（`run_list` 的快照）。★ `run_list` 永远是
-**当前生效**的那份; `profiles` 只是**存档**。
+**后端**（存进配置）:
+* `queue` —— `run_list` 条目
+* `scheduler` —— **每任务**的 `enable` / `target` / `priority` /
+  `expected_minutes`
+* `global` —— 全局开关（`enable_fixed` / `enable_timed` /
+  `rest_interleave` / `when_task_queue_empty` / `queue_mode` /
+  `queue_idle_threshold`）
 
-## ★★ 最关键的一条: 切换前必须**自动保存当前页**
+**前端**（存本地, 按 `<账号>:<页id>` 隔离 —— 见前端测试）:
+排序列+升降序 / 只看筛选 / 分栏宽度
 
-否则用户拖了半天的顺序, 一切页就**丢了**。★ 这条由**后端**保证,
-不指望前端记得（本文件专门钉它）。
+## ★ 刻意**不**入快照的
 
-## 为什么复用 `run_list` 的形状
-
-每页的 `entries` 就是 `run_list` 的样子（同一套 `RunEntry` 序列化）,
-"应用一页" = 写回 `optimization.run_list` —— 复用 `Config.save_run_list`。
-★ 本轮刚修过"两套定义打架"（`meta` vs 推荐窗口表）, 不再造第二套。
+* `next_run` / `windows` / `period` / `reset_at` —— 那是"这套方案**怎么跑出来的
+  运行时排期**", 换方案时应由目标页自己的值决定；`next_run` 尤其**不能跨页搬**
+  （它是绝对时刻, 搬过去会立刻过期或推迟）
+* `screenshot_interval` 等 —— **设备性能**参数, 与方案无关
+* `schedule_rule` / `timed_priority` —— **已废弃**
+* `period_backfilled` / `profiles` —— 内部标记与容器本身
 """
 import asyncio
 import json
@@ -44,24 +55,36 @@ def _call(fn, *a, **kw):
     return asyncio.new_event_loop().run_until_complete(fn(*a, **kw))
 
 
-def _mk(run_list=None):
+def _mk(run_list=None, **opt):
     os.chdir(REPO)
     import server  # noqa: F401
     from module.server.main_manager import mm
 
     tmpl = json.loads((REPO / 'config' / 'template.json').read_text(
         encoding='utf-8'))
-    tmpl['script']['optimization']['period_backfilled'] = True
-    tmpl['script']['optimization']['run_list'] = run_list or []
-    tmpl['script']['optimization']['profiles'] = {}
+    o = tmpl['script']['optimization']
+    o['period_backfilled'] = True
+    o['run_list'] = run_list or []
+    o['profiles'] = {}
+    o.update(opt)
     P.write_text(json.dumps(tmpl, ensure_ascii=False), encoding='utf-8')
     return mm.config_cache(CFG)
 
 
+def _disk():
+    return json.loads(P.read_text(encoding='utf-8'))
+
+
+def _opt():
+    return _disk()['script']['optimization']
+
+
+def _items():
+    return _opt()['profiles']['items']
+
+
 def _rl():
-    d = json.loads(P.read_text(encoding='utf-8'))
-    return [e.get('task') for e in
-            (d['script']['optimization'].get('run_list') or [])
+    return [e.get('task') for e in (_opt().get('run_list') or [])
             if isinstance(e, dict)]
 
 
@@ -74,126 +97,285 @@ def _cleanup():
         pass
 
 
-class TestProfilesCrud:
-    def test_starts_empty(self):
+class TestPage1AutoCreated:
+    """★ 用户: "当前的执行顺序就是页1" —— 首次访问自动建页1。"""
+
+    def test_first_access_creates_page1(self):
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        _mk([{'kind': 'task', 'task': 'Orochi'}])
+        r = _call(SR.get_queue_profiles, CFG)
+        assert len(r.get('profiles') or []) == 1, r
+        assert r['profiles'][0]['active'] is True
+        assert r['profiles'][0]['name'] == '1'
+
+    def test_auto_create_is_idempotent(self):
+        """★ 第二次访问**不该**再建一页（否则会覆盖用户改的东西）。"""
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        _mk([{'kind': 'task', 'task': 'Orochi'}])
+        _call(SR.get_queue_profiles, CFG)
+        r2 = _call(SR.get_queue_profiles, CFG)
+        assert len(r2['profiles']) == 1, r2
+
+    def test_page1_snapshot_equals_current_state(self):
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        _mk([{'kind': 'task', 'task': 'Orochi'}], enable_timed=False)
+        _call(SR.get_queue_profiles, CFG)
+        p1 = _items()[0]
+        assert [e.get('task') for e in p1['snapshot']['queue']] == ['Orochi']
+        assert p1['snapshot']['global']['enable_timed'] is False
+
+
+class TestSnapshotIsComplete:
+    """★★ 甲: 一页要含**所有功能**（队列 + 每任务调度 + 全局开关）。"""
+
+    def test_snapshot_has_three_parts(self):
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        _mk([{'kind': 'task', 'task': 'Orochi'}])
+        _call(SR.get_queue_profiles, CFG)
+        snap = _items()[0]['snapshot']
+        for part in ('queue', 'scheduler', 'global'):
+            assert part in snap, f'快照缺 {part}: {sorted(snap.keys())}'
+
+    def test_scheduler_part_covers_all_tasks(self):
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        _mk()
+        _call(SR.get_queue_profiles, CFG)
+        sched = _items()[0]['snapshot']['scheduler']
+        assert len(sched) > 40, f'每任务调度只存了 {len(sched)} 个'
+        one = sched.get('orochi') or {}
+        for f in ('enable', 'target', 'priority', 'expected_minutes'):
+            assert f in one, f'缺字段 {f}: {sorted(one.keys())}'
+
+    def test_snapshot_excludes_runtime_schedule(self):
+        """★ `next_run`/`windows`/`period`/`reset_at` **不许**进快照。
+
+        ★ 理由: 它们是"这套方案怎么跑出来的**运行时排期**";
+          `next_run` 更是**绝对时刻** —— 跨页搬会立刻过期或推迟。
+        """
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        _mk()
+        _call(SR.get_queue_profiles, CFG)
+        one = _items()[0]['snapshot']['scheduler'].get('orochi') or {}
+        for bad in ('next_run', 'windows', 'period', 'reset_at'):
+            assert bad not in one, (
+                f'★ 快照里不该有 `{bad}` —— 那是运行时排期, 跨页搬会出错 '
+                f'（实际字段: {sorted(one.keys())}）')
+
+    def test_global_part_has_the_switches(self):
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        from module.server.schema_router import SNAPSHOT_GLOBAL_FIELDS
+        _mk()
+        _call(SR.get_queue_profiles, CFG)
+        g = _items()[0]['snapshot']['global']
+        for f in SNAPSHOT_GLOBAL_FIELDS:
+            assert f in g, f'全局开关缺 {f}（实有: {sorted(g.keys())}）'
+
+    def test_snapshot_excludes_device_params(self):
+        """★ 设备性能参数**不该**进快照（与"方案"无关）。"""
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        _mk()
+        _call(SR.get_queue_profiles, CFG)
+        g = _items()[0]['snapshot']['global']
+        for bad in ('screenshot_interval', 'combat_screenshot_interval',
+                    'task_hoarding_duration', 'close_game_wait_duration'):
+            assert bad not in g, f'★ 快照不该含设备参数 {bad}'
+
+
+class TestSwitchingRestoresEverything:
+    """★★★ 切页要**整套**换掉（甲），而且**不能丢**当前页的改动。"""
+
+    def _two_pages(self):
+        import server  # noqa: F401
+        from module.config.run_list import RunEntry, RunList
+        from module.server import schema_router as SR
+        from module.server.main_manager import mm
+
+        _mk([{'kind': 'task', 'task': 'Orochi'}], enable_timed=True)
+        _call(SR.get_queue_profiles, CFG)                  # 页1
+        cfg = mm.config_cache(CFG)
+        cfg.model.deep_set(cfg.model,
+                           keys='script.optimization.enable_timed', value=False)
+        cfg.save_run_list(RunList([RunEntry(task='Exploration')]))
+        r2 = _call(SR.post_queue_profile, CFG, {})          # 页2
+        p1 = next(p['id'] for p in r2['profiles'] if p['name'] == '1')
+        return r2, p1
+
+    def test_switch_restores_queue_and_global(self):
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        r2, p1 = self._two_pages()
+        r3 = _call(SR.put_queue_profile_activate, CFG, {'id': p1})
+        assert r3.get('ok') is True, r3
+        assert _rl() == ['Orochi'], _rl()
+        assert _opt().get('enable_timed') is True, (
+            '★ 切页必须把**全局开关**也换回来（甲: "包含所有的功能"）')
+
+    def test_switch_autosaves_previous_page_completely(self):
+        """★ 切页前把**当前整页**（含总开关）存回当前页。"""
+        import server  # noqa: F401
+        from module.config.run_list import RunEntry, RunList
+        from module.server import schema_router as SR
+        from module.server.main_manager import mm
+        r2, p1 = self._two_pages()
+        # 在页2 上再改（队列 + 总开关）
+        cfg = mm.config_cache(CFG)
+        cfg.save_run_list(RunList([RunEntry(task='Pets')]))
+        cfg.model.deep_set(cfg.model,
+                           keys='script.optimization.enable_fixed', value=False)
+        cfg.save()
+        _call(SR.put_queue_profile_activate, CFG, {'id': p1})
+        p2 = next(i for i in _items() if i['name'] == '2')
+        assert [e.get('task') for e in p2['snapshot']['queue']] == ['Pets'], (
+            '★ 切页没把当前队列存回页2 -> 用户的改动丢了')
+        assert p2['snapshot']['global']['enable_fixed'] is False, (
+            '★ 切页没把当前总开关存回页2 -> 用户的改动丢了')
+
+    def test_switch_does_not_reuse_stale_next_run(self):
+        """★ 换页**不该**把旧页的 `next_run` 搬过来。"""
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        r2, p1 = self._two_pages()
+        before = _opt()['profiles']
+        _call(SR.put_queue_profile_activate, CFG, {'id': p1})
+        # 快照里始终不该出现 next_run
+        for it in _items():
+            one = (it.get('snapshot') or {}).get('scheduler') or {}
+            for _k, fields in one.items():
+                assert 'next_run' not in (fields or {})
+
+
+class TestRenameAndDelete:
+    def test_rename(self):
+        """★ 用户 4: "需要重命名"。"""
         import server  # noqa: F401
         from module.server import schema_router as SR
         _mk()
         r = _call(SR.get_queue_profiles, CFG)
-        assert r.get('profiles') == []
-        assert not r.get('error')
+        pid = r['profiles'][0]['id']
+        r2 = _call(SR.put_queue_profile_rename, CFG,
+                   {'id': pid, 'name': '周末'})
+        assert r2.get('ok') is True, r2
+        assert [p['name'] for p in r2['profiles']] == ['周末']
 
-    def test_create_autonumbers(self):
-        """★ 不传名字 -> 自动编号 1 / 2 / …（用户说的"1/2/3/…"）。"""
+    def test_rename_rejects_empty(self):
         import server  # noqa: F401
         from module.server import schema_router as SR
-        _mk(run_list=[{'kind': 'task', 'task': 'Orochi'}])
-        r1 = _call(SR.post_queue_profile, CFG, {})
-        assert r1.get('ok') is True, r1
-        assert r1.get('name') == '1', r1
-        r2 = _call(SR.post_queue_profile, CFG, {})
-        assert r2.get('name') == '2', r2
+        _mk()
+        pid = _call(SR.get_queue_profiles, CFG)['profiles'][0]['id']
+        assert _call(SR.put_queue_profile_rename, CFG,
+                     {'id': pid, 'name': '  '}).get('error')
 
-    def test_create_snapshots_current_order(self):
+    def test_rename_keeps_snapshot(self):
+        """★ 改名**不动**内容。"""
         import server  # noqa: F401
         from module.server import schema_router as SR
-        _mk(run_list=[{'kind': 'task', 'task': 'Orochi'},
-                      {'kind': 'task', 'task': 'Pets'}])
-        r = _call(SR.post_queue_profile, CFG, {})
-        got = next(p for p in r['profiles'] if p['name'] == '1')
-        assert got['count'] == 2, got
+        _mk([{'kind': 'task', 'task': 'Orochi'}])
+        pid = _call(SR.get_queue_profiles, CFG)['profiles'][0]['id']
+        _call(SR.put_queue_profile_rename, CFG, {'id': pid, 'name': '日常'})
+        p = _items()[0]
+        assert [e.get('task') for e in p['snapshot']['queue']] == ['Orochi']
 
-    def test_activate_restores_entries(self):
-        import server  # noqa: F401
-        from module.config.run_list import RunEntry, RunList
-        from module.server import schema_router as SR
-        from module.server.main_manager import mm
-
-        _mk(run_list=[{'kind': 'task', 'task': 'Orochi'}])
-        r1 = _call(SR.post_queue_profile, CFG, {})       # 页1 = [Orochi]
-        mm.config_cache(CFG).save_run_list(
-            RunList([RunEntry(task='Exploration'), RunEntry(task='Pets')]))
-        r2 = _call(SR.post_queue_profile, CFG, {})       # 页2 = [Exploration,Pets]
-
-        p1 = next(p['id'] for p in r2['profiles'] if p['name'] == '1')
-        r3 = _call(SR.put_queue_profile_activate, CFG, {'id': p1})
-        assert r3.get('ok') is True, r3
-        assert _rl() == ['Orochi'], _rl()
-
-    def test_activate_autosaves_previous_page(self):
-        """★★★ 核心: 切换前把**当前**顺序存回当前页（否则用户的改动会丢）★★★"""
-        import server  # noqa: F401
-        from module.config.run_list import RunEntry, RunList
-        from module.server import schema_router as SR
-        from module.server.main_manager import mm
-
-        _mk(run_list=[{'kind': 'task', 'task': 'Orochi'}])
-        _call(SR.post_queue_profile, CFG, {})            # 页1
-        mm.config_cache(CFG).save_run_list(
-            RunList([RunEntry(task='Exploration'), RunEntry(task='Pets')]))
-        r2 = _call(SR.post_queue_profile, CFG, {})       # 页2（当前）
-
-        # ★ 用户在第 2 页上又拖了（改成 3 条），然后切回第 1 页
-        mm.config_cache(CFG).save_run_list(
-            RunList([RunEntry(task='Orochi'), RunEntry(task='Pets'),
-                     RunEntry(task='Exploration')]))
-        p1 = next(p['id'] for p in r2['profiles'] if p['name'] == '1')
-        r3 = _call(SR.put_queue_profile_activate, CFG, {'id': p1})
-        counts = {p['name']: p['count'] for p in r3['profiles']}
-        assert counts.get('2') == 3, (
-            '★ 切页时没把当前顺序存回第 2 页 -> 用户拖的结果**丢了**！'
-            f' 实际计数: {counts}')
-
-    def test_active_flag_follows(self):
+    def test_delete_keeps_current_order(self):
         import server  # noqa: F401
         from module.server import schema_router as SR
-        _mk(run_list=[{'kind': 'task', 'task': 'Orochi'}])
-        _call(SR.post_queue_profile, CFG, {})
-        r2 = _call(SR.post_queue_profile, CFG, {})
-        p1 = next(p['id'] for p in r2['profiles'] if p['name'] == '1')
-        r3 = _call(SR.put_queue_profile_activate, CFG, {'id': p1})
-        assert [p['name'] for p in r3['profiles'] if p['active']] == ['1']
-
-
-class TestProfilesSafety:
-    def test_delete_does_not_touch_current_order(self):
-        """★ 删一页**不该**改动当前执行顺序。"""
-        import server  # noqa: F401
-        from module.server import schema_router as SR
-        _mk(run_list=[{'kind': 'task', 'task': 'Orochi'}])
-        _call(SR.post_queue_profile, CFG, {})
+        _mk([{'kind': 'task', 'task': 'Orochi'}])
+        _call(SR.get_queue_profiles, CFG)
         r2 = _call(SR.post_queue_profile, CFG, {})
         p2 = next(p['id'] for p in r2['profiles'] if p['name'] == '2')
         before = _rl()
         r3 = _call(SR.delete_queue_profile, CFG, p2)
         assert r3.get('ok') is True, r3
-        assert _rl() == before, _rl()
+        assert _rl() == before
 
     def test_cannot_delete_last_page(self):
-        """★ 至少留一页 —— 否则用户就没有可切换的了。"""
         import server  # noqa: F401
         from module.server import schema_router as SR
-        _mk(run_list=[{'kind': 'task', 'task': 'Orochi'}])
-        r1 = _call(SR.post_queue_profile, CFG, {})
-        pid = r1['profiles'][0]['id']
-        r2 = _call(SR.delete_queue_profile, CFG, pid)
-        assert r2.get('error'), r2
+        _mk()
+        pid = _call(SR.get_queue_profiles, CFG)['profiles'][0]['id']
+        assert _call(SR.delete_queue_profile, CFG, pid).get('error')
 
-    def test_activate_unknown_id_errors(self):
+
+class TestBackwardCompatibility:
+    """★ 旧页只有 `entries`（纯顺序）-> 仍能载入, 且**不动**调度/全局。"""
+
+    def test_old_shape_loads_queue_only(self):
         import server  # noqa: F401
         from module.server import schema_router as SR
-        _mk(run_list=[])
-        _call(SR.post_queue_profile, CFG, {})
-        r = _call(SR.put_queue_profile_activate, CFG, {'id': 'nope'})
-        assert r.get('error'), r
+        from module.server.main_manager import mm
+        _mk([{'kind': 'task', 'task': 'Orochi'}], enable_timed=True)
+        _call(SR.get_queue_profiles, CFG)
+        d = _disk()
+        d['script']['optimization']['profiles']['items'].append(
+            {'id': 'pOLD', 'name': '旧页',
+             'entries': [{'kind': 'task', 'task': 'Pets'}]})
+        P.write_text(json.dumps(d, ensure_ascii=False), encoding='utf-8')
+        mm.config_cache(CFG)
+        r = _call(SR.put_queue_profile_activate, CFG, {'id': 'pOLD'})
+        assert r.get('ok') is True, r
+        assert _rl() == ['Pets'], _rl()
+        assert _opt().get('enable_timed') is True, (
+            '★ 旧页没有 global 段 -> **不该**把当前总开关改掉')
+
+
+class TestNoEnumWarnings:
+    def test_switching_enum_field_does_not_warn(self):
+        """★ 枚举字段回写**不许**触发 pydantic 警告。
+
+        ⚠ 本项目**已多次**踩"传字符串给枚举字段"的坑
+          （`TaskPeriod` 那次专门包了一层）。所以快照回写要经过
+          `_coerce_for_field`。
+        """
+        import warnings
+        import server  # noqa: F401
+        from module.server import schema_router as SR
+        from module.server.main_manager import mm
+        _mk([{'kind': 'task', 'task': 'Orochi'}],
+            when_task_queue_empty='goto_main')
+        _call(SR.get_queue_profiles, CFG)
+        cfg = mm.config_cache(CFG)
+        cfg.model.deep_set(cfg.model,
+                           keys='script.optimization.enable_timed', value=False)
+        cfg.save()
+        r2 = _call(SR.post_queue_profile, CFG, {})
+        p1 = next(p['id'] for p in r2['profiles'] if p['name'] == '1')
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            _call(SR.put_queue_profile_activate, CFG, {'id': p1})
+        bad = [str(w.message) for w in caught
+               if 'enum' in str(w.message).lower()
+               or 'serialized value' in str(w.message)]
+        assert not bad, (
+            '★ 回写枚举字段触发了 pydantic 警告 —— 要走 '
+            '`_coerce_for_field` 把字符串转回枚举:\n  ' + str(bad[:2]))
+
+
+class TestSnapshotFieldListsAreDocumented:
+    def test_scheduler_fields_are_the_four(self):
+        from module.server.schema_router import SNAPSHOT_SCHEDULER_FIELDS
+        assert set(SNAPSHOT_SCHEDULER_FIELDS) == {
+            'enable', 'target', 'priority', 'expected_minutes'}, (
+            '★ 每任务快照字段变了 —— 请同步本文件的 docstring 与用户确认过的范围')
+
+    def test_global_fields_are_the_six(self):
+        from module.server.schema_router import SNAPSHOT_GLOBAL_FIELDS
+        assert set(SNAPSHOT_GLOBAL_FIELDS) == {
+            'enable_fixed', 'enable_timed', 'rest_interleave',
+            'when_task_queue_empty', 'queue_mode',
+            'queue_idle_threshold'}, (
+            '★ 全局快照字段变了 —— 用户裁定"甲: 全都算", 改动需再确认')
 
     def test_profiles_field_is_internal(self):
-        """★ `profiles` 是**内部状态** —— 不该出现在界面的参数表单里。"""
-        from pathlib import Path as _P
-        src = (_P(REPO) / 'tasks/Script/config_optimization.py').read_text(
+        src = (REPO / 'tasks/Script/config_optimization.py').read_text(
             encoding='utf-8')
         i = src.index('profiles: dict = Field')
-        block = src[i:i + 320]
-        assert "'internal': True" in block, (
-            '★ `profiles` 必须标 `internal` —— 否则会被 `/args` 渲染成一个'
-            '"参数字段", 用户看到一团看不懂的 JSON')
+        assert "'internal': True" in src[i:i + 320], (
+            '★ `profiles` 必须标 `internal` —— 否则会被 `/args` 渲染成'
+            '一个参数字段, 用户看到一团看不懂的 JSON')

@@ -5688,3 +5688,184 @@ tests/test_zz_probe.py .                                    [100%]
 ★ 这三处注释残留**本轮只改 `docs/`, 未动 `module/` / `tasks/`** ——
   已同步登记在 [`deprecated.md`](deprecated.md) §3.2 的"残留"里, 供下一轮清理。
 
+---
+
+# 62. 用户 9 项需求的**收尾轮**: #6 吸顶 + #9 配置页前端
+
+> 上一轮结束时 9 项里**完成了 7 项**, 剩 #6 与 #9 的前端。
+> 本轮把**最后两项做完** —— 9/9 全部完成。
+> ★ 本轮**只动前端**（`OASX-src/`）+ 文档, 后端一行未改。
+
+## 62.1 #6 —— 把"跟随滚动"改成真正的**吸顶**
+
+### 上一轮错在哪（如实记录）
+
+上一轮把「快捷排序 + 全局开关」放进了 `QueuePanel(header: ...)` ——
+那是 `ReorderableListView.header`, 属于**同一个滚动体**, **随内容一起滚**。
+
+用户要的是:
+> "将执行顺序页面拎出来，**滚动时，上边的按钮和展示会一直存在**
+>  而不是被滚动上去。"
+
+★ **"随内容滚" ≠ "一直存在"**。这是本轮最核心的纠正。
+
+### 本轮做法
+
+```
+_QueueTab.build
+└─ CustomScrollView                       ← ★ 唯一的滚动体
+     ├─ SliverPersistentHeader(pinned: true)
+     │    └─ 配置页 chips（#9）+ 快捷排序 + 全局开关
+     └─ ...QueuePanel.slivers(context, c)  ← ★ 队列本体（一组 sliver）
+          ├─ SliverToBoxAdapter(标题行 + 调度状态 + 分段条)
+          ├─ SliverPadding(SliverReorderableList(行))
+          └─ SliverToBoxAdapter(尾部提示)
+```
+
+* `QueuePanel` 从"整个可滚面板"改成**静态 `slivers()`**（`QueuePanel.slivers`）
+  —— 它保留一个 `CustomScrollView` 外壳**只为兼容既有 widget 测试**
+  （那批测试直接 `pumpWidget(wrapBounded(QueuePanel(controller: c)))`）。
+* `ReorderableListView.builder` → `SliverReorderableList`（前者自己就是滚动体,
+  塞不进 `CustomScrollView`）。
+* 行渲染从 `_QueuePanelState._queueRow`（239 行）+ 6 个同级辅助方法里
+  **整段搬到顶层**: `class QueueRow` + `_queueRow(...)` +
+  `_settingsRow` / `_statusBadge` / `_zhName` / `_dupLabel` / `_segmentBar` /
+  `confirmAndRemove` / `confirmClearQueue` / `pickAndAddToQueue` / `_addRest`。
+  ★ 搬之前逐个查过: **没有一个**用 `setState` / `mounted`（都是读 `c` + 弹窗）。
+
+★ **#7 不退化**: `SliverReorderableList` 的 `autoScrollerVelocityScalar` 走
+`Scrollable.of(context)` = 外层 `CustomScrollView` 的 position ——
+所以"自己不是滚动容器"**不再等于**"不能自动滚"。
+
+## 62.2 ★★ 我在 #6 上踩的坑（两个, 都值得记下来）★★
+
+### 坑 1: `SliverReorderableList` 断言 `child.key != null`
+
+我第一版把行 key 挂在行**内部**的 `Container` 上（沿用旧 `_queueRow` 的写法）:
+
+```dart
+// ✗ 错: key 在 itemBuilder 返回的 widget **里面**
+itemBuilder: (_, i) => QueueRow(c: c, index: i),
+// QueueRow.build -> Container(key: ValueKey(...), ...)
+```
+
+→ 整页抛 **`All list items must have a key`**
+（`flutter/src/widgets/reorderable_list.dart:966`）。
+
+★ 修法: key **必须挂在 `itemBuilder` 返回的那个 widget 上**:
+```dart
+itemBuilder: (_, i) => QueueRow(
+  key: QueueRow.keyOf(c.queuedTaskRows[i], i), c: c, index: i),
+```
+
+⚠⚠ **`flutter analyze` 完全查不出这个错** —— 它只在**实际布局**时抛。
+本轮之所以能抓到, 是因为既有的一批 widget 测试**真渲染**了队列面板。
+★ 教训: **结构性改动必须有一条"真渲染"测试**, 光靠源码守卫不够。
+
+### 坑 2: 吸顶区高度**不能写死**
+
+`SliverPersistentHeaderDelegate` 要求 `minExtent` / `maxExtent`
+在 `build` **之前**就给出, 但这一行的真实高度取决于系统字号缩放、
+`Wrap` 折了几行、`DropdownButton` 的固有高度 —— **写死会裁掉按钮**。
+
+★ 做法（`_StickyQueueHeader`）: 在 `build` 里用 `LayoutBuilder` **量一次**
+真实高度, 存进 `_extent`, 下一帧起用实测值; 量之前用**兜底 76**。
+★ 为什么不用 `SliverAppBar` / `SliverToolBar`: 那两个是给"标题栏"用的,
+本区域里是**两行可点控件**, 压扁就没法点了。
+
+## 62.3 #9 —— 配置页前端
+
+| 层 | 加了什么 |
+|---|---|
+| `lib/api/api_client.dart` | 5 个方法: `getQueueProfiles` / `createQueueProfile` / `activateQueueProfile` / `renameQueueProfile` / `deleteQueueProfile` |
+| `lib/controller/task_list/task_list_controller.dart` | `queueProfiles` / `queueProfileId` / `queueProfileName` + 5 个动作; `reload()` 里**先** `loadQueueProfiles()`（见 62.4）|
+| `lib/views/tasks/task_list_view.dart` | 吸顶区第一行 `_profilesRow` = `配置页 ▪1▪ ▪2▪ [＋新建] [⋯管理]`; `_profileChip` / `_activateProfile` / `_createProfile` / `_renameProfile` / `_manageProfiles` / `_deleteProfile` |
+| `lib/service/task_prefs.dart` | ★ 未改 —— 隔离靠 controller 的 **key**（`_prefsKey`），存储层不动 |
+
+* `▪N▪` 实心 = 当前页（靠后端 `active`, **不自己猜**）
+* **单击切页 / 双击改名**（用户确认"需要重命名"）
+* `[⋯管理]` = 重命名 / 删除; 删除有二次确认, 并写明"**不删任何任务配置**"
+* 提示文案一律用后端 `message`（前端**不自己再拼**）
+* 后端旧版本没有这组端点 → 整行**不显示**（不显示空壳）
+
+## 62.4 ★★ 最容易漏的一步: 偏好"按页隔离"（用户裁定 2A）★★
+
+用户裁定: 排序列/升降序 · 只看筛选 · 分栏宽度 **按页隔离**。
+
+做法: `TaskPrefsStore` 的 key 从 `<账号>` 改成 **`<账号>:<页id>`**
+（controller 的 `_prefsKey`）。
+
+⚠⚠ **这里有一个只有实测才发现得了的坑**:
+
+`_loadPrefs()` 有 `_prefsLoaded` 重入闸（"偏好只读一次盘, 之后以内存为准"）。
+**只改 key 不清那道闸** → 切页后 `_loadPrefs()` **直接 return** →
+界面**还是旧页的排序/筛选** → 用户看到"**切页没反应**"。
+
+★ 所以有一个专门的 `_switchPrefsPage(next)`:
+```
+① _savePrefs()        存**旧页**（此刻 key 里的 id 还是旧页）
+② queueProfileId = next   换 key
+③ _prefsLoaded = false    ★ 清闸（否则第 ④ 步什么也不做）
+④ _loadPrefs() + _applyFilter() + update()
+```
+★ 调用点在 `activateQueueProfile()` 里, 且必须在 **`res['ok'] == true` 之后**
+（切页失败就不该改偏好）。
+
+★ 另外两条配套修正:
+* `restoreDefaults()` 原来 `prefsStore.clear(scriptName)` → 现在
+  `prefsStore.clear(_prefsKey)`（**只清当前页**, 不该把别的页一起清掉）
+* `deleteQueueProfile()` 删的是**当前页**时, 后端会把 active 换成剩下第一页
+  —— 那时也要清闸（只换 key, 不必再存回被删的页）
+
+## 62.5 ⚠ 一页 = **整页快照**（用户裁定 1甲）—— 契约铁律
+
+`activate` 换的不只是队列, 还有**每任务调度（启停/次数/优先级/预期耗时）
++ 全局开关**。所以"切页 / 新建 / 删页"成功之后**必须整体 `await reload()`**
+—— 只刷队列会让总开关显示成**别的页**的值, 用户看到的是"改了不生效"。
+
+★ 已加守卫: `test/queue_profiles_ui_test.dart` 对
+`createQueueProfile` / `activateQueueProfile` / `deleteQueueProfile`
+**三个方法逐个**断言函数体里有 `await reload()`。
+
+## 62.6 测试改动（★ 换了实现, 断言必须跟着换）
+
+| 文件 | 改动 |
+|---|---|
+| `test/queue_scroll_sticky_test.dart` | 重写: `ReorderableListView.builder` 存在 → **`SliverReorderableList` 存在 + `ReorderableListView` 不许存在**; 新增"必须有 `SliverPersistentHeader` + `pinned: true`"、"高度必须实测（`LayoutBuilder`）" |
+| `test/task_list_panel_test.dart` | (a) `ReorderableListView.builder` → `SliverReorderableList`; (b) "只有一套可拖列表"改成 0 个 `ReorderableListView` + 1 个 `SliverReorderableList`; (c) `QueuePanel(` → `QueuePanel.slivers(`; (d) `_confirmAndRemove` → `confirmAndRemove`; (e) "偏好按账号隔离" → **按账号 + 按页隔离**; (f) ★ **新增一条真渲染守卫**: 吸顶区 + 队列 sliver 住进同一个 `CustomScrollView`, 滚 4000px 后断言顶部**仍在** |
+| `test/queue_profiles_ui_test.dart` | **新增 18 条**: api 5 方法 / 路径契约 / controller 列表 + 5 动作 / ★ `await reload()` 在切换之后 / 文案用 `message` / ★ `_prefsKey` = `<账号>:<页id>` / ★ `_switchPrefsPage` 三步顺序 + **清 `_prefsLoaded` 闸** / 恢复默认只清当前页 / chips 三件套 / 单击+双击 / 空列表不显示空壳 / 删除二次确认 |
+
+★ 那条**真渲染**守卫是本轮最有价值的测试 —— 它正是抓到"坑 1"的那条
+（`All list items must have a key`）; 源码守卫**永远抓不到**它。
+
+## 62.7 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 前端 `flutter test` | **145 passed, 0 failed**（本轮从 124 → 145: +18 配置页守卫 +1 真渲染守卫 + 若干改写）|
+| 前端 `flutter analyze lib` | **11 issues**（与基线**逐条相同** —— 全是既有告警, **0 新增**）|
+| 前端 `flutter analyze test` | **No issues found!** |
+| 后端 pytest（**全量**）| **1737 passed, 3 skipped, 4 subtests passed, 0 failed**（92s）|
+| 后端文档死引用守卫 | `tests/test_docs_no_dead_refs.py` **20 passed** |
+
+★ **后端测试本轮改了一条源码守卫**（唯一一处后端改动, 且是**守卫本身**）:
+`tests/module/config/test_queue_clear_and_settings.py` 里
+`assert '_confirmClearQueue' in src` —— 那个方法在 #6 重构里从
+`_QueuePanelState` 的私有方法变成了**顶层函数** `confirmClearQueue`,
+于是守卫**假失败**。
+★ 修的是**断言**, 不是功能: 守卫该钉的是"**确认弹窗这个能力还在**",
+而不是"名字没变" —— 钉名字会让**任何一次重命名**都变成红灯。
+
+★ 工具链: `D:\flutter3271\bin\flutter`（**Flutter 3.27.1 / Dart 3.6.0**）。
+⚠ `D:\flutter`（3.47.6）**解析不了本项目的 pubspec**（`flutter_form_builder`
+与 `form_builder_validators` 的 `intl` 约束冲突）—— 别用那个。
+
+## 62.8 已知残留（如实登记, 本轮未清）
+
+| 项 | 说明 |
+|---|---|
+| `_QueuePanelState` 现在只剩 3 行 | 它只为了让既有 widget 测试能 pump `QueuePanel`; ★ 若将来把那批测试改成 pump `QueuePanel.slivers` 的宿主, 可以把它删掉（`QueuePanel` 变成纯静态工具）|
+| `QueuePanel` 的 `header:` 参数 | **已删**（改成 sliver 序列）。没有调用方残留 |
+| 吸顶区**不做折叠**（`minExtent == maxExtent`）| 有意的: 里面是两行可点控件, 压扁会裁按钮。若将来要折叠, 得先把控件换成"可折叠而不失可点性"的形态 |
+| `docs/oasx-task-list-ui.patch` | 是一份**历史快照**, 里面还有 `ReorderableListView.builder` —— ★ **不要**拿它当现行源码参考 |
+

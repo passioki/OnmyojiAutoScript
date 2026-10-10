@@ -1,23 +1,65 @@
-# 待办交接（本轮未完成的部分）
+# 待办交接
 
-> 用户这批需求共 9 项。**已完成**见文末。本文件只记**剩下 2 项**
-> 的**具体做法**，下一轮直接照着做，不必重新摸索。
+> **上一轮的 9 项需求全部完成**（本轮补完 #6 与 #9），本文件不再有待办。
+> 下面保留**本轮两件事的具体做法与踩过的坑** —— 下次动这两块之前先读一遍。
 
 ---
 
-## ② #9 配置页 —— **前端 UI**（后端已完成并推送）
+## 本轮完成（#6 吸顶 + #9 配置页前端）
 
-### 用户已确认的设计（**照这个做，不要再问**）
+| # | 项 | 落点 |
+|---|---|---|
+| 6 | 执行顺序页顶部按钮**吸顶** | `_QueueTab.build` → `CustomScrollView` + `SliverPersistentHeader(pinned: true)` |
+| 9 | 执行顺序**配置页 1/2/3…**（前端 UI） | `_profilesRow` chips + `api_client` 5 方法 + controller 5 动作 + 偏好按页隔离 |
 
-| 问题 | 用户回答 |
-|---|---|
-| 布局 | **A** —— 吸顶区下面单起一行 `配置页 ▪1▪ ▪2▪ ▪3▪ [＋新建]  [⋯管理]` |
-| 一页存什么 | **甲（全都算）**：队列 + 每任务调度 + **全局开关** |
-| 前端三项 | **A（算）**：排序列/升降序 · 只看筛选 · 分栏宽度，按页隔离 |
-| 初始状态 | **当前执行顺序就是页1**（后端已自动建） |
-| 重命名 | **需要**（后端 `PUT /queue/profiles/rename` 已就绪） |
+### #6 吸顶 —— 最终形态
 
-### 后端已就绪（`575358d6`）
+```
+_QueueTab.build
+└─ CustomScrollView
+     ├─ SliverPersistentHeader(pinned: true)   ← ★ 配置页 chips + 快捷排序 + 全局开关
+     │    （delegate = `_StickyQueueHeader`, 高度用 `LayoutBuilder` **实测**）
+     └─ ...QueuePanel.slivers(context, c)      ← 队列本体（一组 sliver）
+          ├─ SliverToBoxAdapter(标题行 + 调度状态 + 分段条)
+          ├─ SliverPadding(SliverReorderableList(行))   ← ★ 行; 可拖
+          └─ SliverToBoxAdapter(尾部提示)
+```
+
+**为什么 `SliverReorderableList` 仍能越界自动滚**（用户报的 #7 不退化）:
+它的 `autoScrollerVelocityScalar` 走 **`Scrollable.of(context)`** ——
+也就是外层那个 `CustomScrollView` 的 position。所以"自己不是滚动容器"
+不再等于"不能自动滚"。
+
+### ★★★ 本轮踩的坑（务必避开）★★★
+
+1. **`SliverReorderableList` 断言 `child.key != null`**
+   —— key **必须挂在 `itemBuilder` 返回的那个 widget 上**。
+   我第一版把 key 挂在行**内部**的 `Container` 上 → 整页抛
+   `All list items must have a key`。
+   `flutter analyze` **完全查不出来**（只有 widget 测试能抓到）。
+   ★ 现在有真渲染守卫: `task_list_panel_test.dart` 的「#6 吸顶真渲染」。
+
+2. **不要再出现 `ReorderableListView`**（在 `queue_panel.dart` 里）
+   —— 它**自己就是一个滚动体**, 塞不进外层 `CustomScrollView`
+   （滚动套滚动 → `constraints: 0<=h<=Infinity`）。
+   守卫已钉死: `queue_scroll_sticky_test.dart` +
+   `task_list_panel_test.dart` 各一条。
+
+3. **吸顶区高度不许写死**
+   —— 系统字号缩放 / 窄屏 `Wrap` 折行都会改高度, 写死会**裁掉按钮**。
+   现在 `_StickyQueueHeader` 用 `LayoutBuilder` 实测一次 + 兜底 `76`。
+
+4. **`QueueRow` 的辅助方法已全部搬到顶层函数**
+   （`_settingsRow` / `_statusBadge` / `_zhName` / `_dupLabel` /
+   `_segmentBar` / `confirmAndRemove` / `confirmClearQueue` /
+   `pickAndAddToQueue`）—— 行渲染不再住在 `_QueuePanelState` 里。
+   ★ 搬之前逐个查过: 没有一个用 `setState` / `mounted`（都是读 `c` + 弹窗）。
+   ★ 现在 `_QueuePanelState` 只剩 3 行（`CustomScrollView(slivers: ...)`）
+   —— 它保留只是为了让既有 widget 测试能直接 pump `QueuePanel`。
+
+### #9 配置页 —— 已完成的部分
+
+后端（`575358d6`）:
 
 ```
 GET    /{script}/queue/profiles                     -> {profiles:[{id,name,count,active}], active_id}
@@ -27,140 +69,39 @@ PUT    /{script}/queue/profiles/rename    {id,name} -> 改名
 DELETE /{script}/queue/profiles/{id}                -> 删除（至少留一页）
 ```
 
-★ 所有响应的 `message` 已是要显示给用户的中文说明 —— **直接用，不要自己再拼**。
+前端（本轮）:
 
-### 前端要做
+1. `lib/api/api_client.dart` —— 5 个方法（`res.data ?? {}`）
+2. `lib/controller/task_list/task_list_controller.dart` ——
+   `queueProfiles` / `queueProfileId` / `queueProfileName` +
+   `loadQueueProfiles` / `createQueueProfile` / `activateQueueProfile` /
+   `renameQueueProfile` / `deleteQueueProfile`
+   ★ 切换 / 新建 / 删除之后**必须** `await reload()`（一页 = 队列 + 每任务
+   调度 + **全局开关**, 见下）
+3. ★ **偏好按页隔离**（用户裁定 2A）: key 从 `<账号>` 改成
+   `<账号>:<页id>`（`_prefsKey`）; `_switchPrefsPage()` 负责
+   **存旧页 → 换 key → 清 `_prefsLoaded` 闸 → 载新页**
+   ⚠ `_prefsLoaded` 那道闸**必须清**（它只读一次盘）—— 不清的话切页后
+   界面还是旧页的排序, 看起来"切页没反应"（这是**实测**踩过的坑）
+4. `_QueueTab` 吸顶区第一行 = `配置页 ▪1▪ ▪2▪ [＋新建] [⋯管理]`
+   * `▪N▪` 实心 = 当前页; **单击切页 / 双击改名**
+   * `[⋯管理]` = 重命名 / 删除（删除有二次确认）
+   * 文案一律用后端 `message`（**不自己再拼**）
+   * 后端没有这组端点（旧版本）时整行不显示（不显示空壳）
+5. 测试:
+   * `test/queue_profiles_ui_test.dart`（18 条源码守卫: 5 方法 / 5 动作 /
+     ★ `await reload()` 在切换之后 / ★ prefs key 含页 id / ★ 双击改名）
+   * `task_list_panel_test.dart` 里 1 条**真渲染**守卫（吸顶滚动后仍在）
 
-1. `lib/api/api_client.dart` 加 5 个方法（读 `res.data ?? {}`）
-2. `lib/controller/task_list/task_list_controller.dart`:
-   * `List<Map<String,dynamic>> get queueProfiles`
-   * `Future<void> loadQueueProfiles()` / `createQueueProfile()` /
-     `activateQueueProfile(id)` / `renameQueueProfile(id,name)` /
-     `deleteQueueProfile(id)`
-   * ★ **切换/删除后必须 `reload()`**（队列 + 全局开关都变了）
-3. ★ **前端偏好按页隔离（2A）**：
-   * `TaskPrefsStore` 的 key 从 `<账号>` 改成 `<账号>:<页id>`
-   * 切页时：先把当前三项存到 `<账号>:<当前页id>`，再载 `<账号>:<目标页id>`
-   * ⚠ 这一步容易忘 —— 加测试钉住（"切页会换 prefs key"）
-4. `_QueueTab` 的吸顶区加 chips 行：
-   * `▪N▪` 实心 = 当前页；`[＋新建]`；`[⋯ 管理]`（重命名 / 删除）
-   * **双击页码**改名
-5. 测试 `test/queue_profiles_ui_test.dart`（源码守卫）：
-   * api_client 5 个方法 / controller 5 个方法
-   * `_QueueTab` 渲染 chips
-   * ★ `await reload()` 在切换之后
-   * ★ prefs key 含页 id
+### ⚠ 一页 = **整页快照**（用户裁定 1甲）—— 最容易漏的一步
 
----
-
-## ① #6 执行顺序页 —— 顶部按钮**吸顶**（未完成）
-
-### 用户原话
-
-> "将执行顺序页面拎出来，**滚动时，上边的按钮和展示会一直存在**
->  而不是被滚动上去。"
-
-### 现状（★ 只做到一半，**不要误以为已完成**）
-
-我把「快捷排序 + 全局开关」放进了 `QueuePanel(header: ...)`
-—— 那是**跟随滚动**，**不是吸顶**。
-
-### 正确做法
-
-`QueuePanel` 现在是**唯一滚动容器**（#7 的改动）：
-`Card > ReorderableListView.builder(header: ..., footer: ...)`。
-
-所以「吸顶 + 可拖同行」在同一个滚动体里 → 必须换成
-**`CustomScrollView` + `SliverPersistentHeader(pinned: true)`**：
-
-```
-_QueueTab.build
-└─ CustomScrollView
-     ├─ SliverPersistentHeader(pinned: true)   ← ★ 快捷排序+全局开关（吸顶）
-     ├─ SliverToBoxAdapter(QueuePanel.titleRow + statusBlock + segmentBar)
-     ├─ SliverReorderableList(                     ← ★ 行; 它自己是可滚的
-     │      itemCount: c.queuedTaskRows.length,
-     │      onReorder: c.reorderQueue,
-     │      itemBuilder: (_, i) => QueuePanel.rowBuilder(context, c, i),
-     │  )
-     └─ SliverToBoxAdapter(尾部提示)
-```
-
-**为什么 `SliverReorderableList` 仍能自动滚动**：它的 `autoScrollerVelocityScalar`
-走的是 **`Scrollable.of(context)`**（= 外层那个 `CustomScrollView` 的
-position），所以只要它在**可滚动的 viewport 内部**就生效
-—— 不再要求"自己就是滚动容器"。
-
-### ★ 唯一的难点（也是我上一轮停在这里的原因）
-
-`QueuePanel._queueRow` 是 **239 行**，另调 **6 个同级私有方法**
-（`_confirmAndRemove` / `_dupLabel` / `_settingsRow` / `_statusBadge` /
-`_zhName`，约 500 行）。要让**外层**渲染每一行，必须把它们从
-`_QueuePanelState` 移出来。
-
-**建议做法（最低风险）**：
-
-1. 新建一个 `QueueRow extends StatelessWidget`
-   （字段: `TaskListController c`, `int index`）
-2. 把 `_queueRow` 的方法体**整段复制**进去，`build(context)` 返回它
-   - `c` 从 `widget.c` 来（把方法体里 `c.` 保持原样即可）
-3. 把这 6 个辅助方法**一起**复制进去（它们是纯读操作 + `context` 用法，
-   不依赖 State 生命周期；★ 逐个检查有没有用 `setState` / `mounted`）
-4. 原 `_queueRow` 改为 `QueueRow(c: c, index: i)`（保持旧路径仍可用）
-5. `QueuePanel.rowBuilder(context, c, i) => QueueRow(c: c, index: i)`
-6. ★ **断言**：`_QueueTab` 用 `CustomScrollView`；`ReorderableListView`
-   从 `queue_panel.dart` 消失；`SliverReorderableList` 存在
-7. ★ 测试改动：`test/queue_scroll_sticky_test.dart` 里"QueuePanel 不许有
-   `shrinkWrap: true`"要改成"不许有 `ReorderableListView`"，
-   并新增"必须有 `SliverPersistentHeader(pinned: true)`"
-
-### ⚠ 我踩过的坑（务必避开）
-
-* **不要**在 `CustomScrollView` 里再套 `ReorderableListView`
-  （滚动套滚动 → `0<=h<=Infinity` 约束错）
-* 改 `queue_panel.dart` 时**不要**用"整体替换 build 开头/结尾"的脚本 ——
-  我连栽两次（括号错位 / 缩进错位 / 方法被删）。**逐段小改 + 每次
-  `flutter analyze <该文件>`**
+`activate` 换的不只是队列, 还有**每任务调度（启停/次数/优先级/预期耗时）
++ 全局开关**。所以"切页 / 新建 / 删页"之后**必须整体 `reload()`** ——
+只刷队列会让总开关显示成**别的页**的值, 用户看到的是"改了不生效"。
 
 ---
 
-## ② #9 执行顺序配置页 —— **前端 UI**（后端已完成）
-
-### 用户原话
-
-> "添加**执行顺序配置页 1/2/3/……**，可以添加、删除和切换配置页"
-
-### 后端**已就绪并已推送**（`276e6d24`）
-
-```
-GET    /{script}/queue/profiles               -> {profiles:[{id,name,count,active}], active_id}
-POST   /{script}/queue/profiles               -> 新建（不传 name 自动编号 1/2/3/…）
-PUT    /{script}/queue/profiles/activate      -> 切换（★ 后端会自动先存当前页）
-DELETE /{script}/queue/profiles/{id}          -> 删除（至少留一页）
-```
-
-`PUT activate` 的 `message` 已是要显示给用户的中文说明。
-
-### 前端要做
-
-1. `lib/api/api_client.dart` 加 4 个方法（读 `res.data ?? {}`）
-2. `lib/controller/task_list/task_list_controller.dart`:
-   * `List<Map<String,dynamic>> get queueProfiles`
-   * `Future<void> loadQueueProfiles()` / `createQueueProfile()` /
-     `activateQueueProfile(id)` / `deleteQueueProfile(id)`
-   * ★ 切换/删除后要 `reload()`（`run_list` 变了）
-3. `_QueueTab` 的 `header` 里（或吸顶那一行下方）加一行 chips：
-   `[1][2][3] [+新建]`，当前页高亮；长按/右键或尾部小按钮出「删除」
-4. 文案用后端 `message`（不要自己再拼一遍）
-5. 测试：`test/queue_profiles_ui_test.dart`（源码守卫）
-   * api_client 有 4 个方法
-   * controller 有 4 个方法
-   * `_QueueTab` 渲染 chips
-   * ★ `await reload()` 在切换之后
-
----
-
-## 已完成（8/9）
+## 全部 9 项（已完成）
 
 | # | 项 | 提交 |
 |---|---|---|
@@ -170,9 +111,15 @@ DELETE /{script}/queue/profiles/{id}          -> 删除（至少留一页）
 | 3b | 寮突破 window（选 A） | `b5a64469` |
 | 4 | 周期任务移除即停用 | `c6185831` |
 | 5 | 判据同源（`auto_queue` ↔ `period`） | `c6185831` |
+| 6 | 执行顺序页顶部**吸顶** | 本轮 |
 | 7 | 拖动越界自动滚动 | `7d1e9a5` |
 | 8 | 首页 = 执行队列 | `7d1e9a5` |
-| 9 | 配置页**后端** | `276e6d24` |
+| 9 | 配置页（后端 `575358d6` + 前端本轮） | `276e6d24` |
 
-**测试基线**：后端 **1726 passed / 3 skipped / 0 failed**；
-前端 **124 passed / 0 failed**；`analyze lib` **11 条既有问题**（0 新增）。
+**测试基线**：后端 **1737 passed / 3 skipped / 4 subtests / 0 failed**；
+前端 **145 passed / 0 failed**；`analyze lib` **11 条既有问题**（0 新增）；
+`analyze test` **0 条**；后端文档死引用守卫 **20 passed**。
+
+★ 工具链: `D:\flutter3271\bin\flutter`（Flutter 3.27.1 / Dart 3.6.0）
++ `OnmyojiAutoScript\toolkit\python.exe`。
+⚠ `D:\flutter`（3.47.6）**解析不了本项目的 pubspec**（`intl` 约束冲突）—— 别用。

@@ -134,7 +134,11 @@ class TestFrontendWiring:
 
     def test_panel_has_clear_button_and_confirm(self):
         src = self._src('lib/views/tasks/queue_panel.dart')
-        assert '_confirmClearQueue' in src, '⑦ 缺确认弹窗'
+        # ★ #6 吸顶重构: 这个确认弹窗从 `_QueuePanelState` 的**私有方法**
+        #   变成了**顶层函数** `confirmClearQueue` —— 因为队列行不再住在
+        #   那个 State 里（它现在只是外层 `CustomScrollView` 的一组 sliver）。
+        #   ★ 守卫断言的是"**能力**还在", 不是"名字没变"。
+        assert ('confirmClearQueue' in src), '⑦ 缺确认弹窗'
         assert '清空队列' in src, '⑦ 缺按钮文案'
 
     def test_panel_has_settings_entry(self):

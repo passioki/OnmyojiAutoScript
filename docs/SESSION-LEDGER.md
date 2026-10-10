@@ -3356,3 +3356,89 @@ stash@{0}: On dev: wip: category_effective (影响充能/结界, 待确认)
 | **拖动约束**: 定时优先 / 固定优先 -> 只在**同类别段内**拖; 自定义 -> **全都能拖** |
 | 删 `_order_by_timed_priority()`（已无调用, 死代码）|
 
+---
+
+# 43. S6-1: `priority_mode` **三模式** + `RunEntry.group` **类别分段**（数据层）
+
+## 43.1 用户裁定（本轮依据）
+
+> "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时, 如果选了
+>  **列表自定义**, 那么全都可以拖动次序。你理解下, 也就是**三个选项:
+>  定时任务优先、固定任务优先、自定义**"
+> "**给 run_list 加类别分段**"
+> "OASX 里你选的那个下拉, 是中文名, 写的**定时优先（打完当前这场就让位）**"
+
+## 43.2 为什么必须合并两个旧设置
+
+原来有**两个重叠**的下拉:
+
+| 旧字段 | 取值 | 含义 |
+|---|---|---|
+| `schedule_rule` | `Filter` / `FIFO` / `Priority` / `List` | 调度规则（4 路）|
+| `timed_priority` | `timed` / `list` | 定时任务怎么跟固定任务抢设备（2 路）|
+
+★ 用户要的是**一个**三选项。我实测过用户的 `戀鳥樹`:
+`schedule_rule = Filter`, `timed_priority = timed` —— **两个设置各有各的值,
+语义还重叠**（都在回答"谁先跑"）。这就是必须合并的理由。
+
+## 43.3 本批改了什么（**用 `edit`, 不写删除脚本**）
+
+### ① 新增 `PriorityMode` 枚举（`tasks/Script/config_optimization.py`）
+
+| 值 | 界面名 | 队列顺序 | 拖动范围 |
+|---|---|---|---|
+| `timed_first` | **定时任务优先** | 定时段在前, 固定段在后 | 只能**同类别段内**拖 |
+| `fixed_first` | **固定任务优先** | 固定段在前, 定时段在后 | 只能**同类别段内**拖 |
+| `custom`      | **自定义**     | **完全按用户拖的顺序** | ★ **全都能拖** |
+
+### ② 新增 `Optimization.priority_mode` 字段
+
+★ 它成为**唯一权威**开关。
+
+### ③ 旧字段标为**已废弃**（但**保留**）
+
+`schedule_rule` / `timed_priority` 保留, 并加
+`json_schema_extra={'internal': True}`（收进"内部字段", 界面不再显示）。
+
+★★ **为什么保留而不是直接删**: 用户明确说过"**实时配置改了也没事**", 但
+  **不能崩** —— 旧配置里有这两个键, 直接删会让 pydantic 报错或静默丢值。
+  迁移逻辑会读它们并转成 `priority_mode`。
+
+### ④ `RunEntry.group`（`module/config/run_list.py`）
+
+```python
+group: str = ''    # 'timed' / 'fixed' / 空 = 未分段（旧配置）
+```
+
+* `to_dict()`: 只**非空**时才写 `group`（空串不落盘, 保持配置干净）
+* `from_dict()`: 旧配置没有 -> 空串（**向后兼容**）
+
+★ **为什么存"段名"而不是"顺序号"**: 段内顺序已由 `entries` 的**列表次序**
+  表达（"顺序即数据"）; `group` 只需要回答"它属于哪个段", 用来做**拖动约束**。
+
+### ⑤ i18n
+
+新增 `priority_mode_help`（含三模式的中文说明）与 `timed_priority_help`
+（废弃提示）。i18n 现 **1109** 条。
+
+## 43.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1578 passed, 3 skipped**（0 失败）|
+| `PriorityMode` | `timed_first` / `fixed_first` / `custom` |
+| `Optimization()` 默认 | `priority_mode=timed_first`（旧字段也仍在, 便于迁移）|
+| `RunEntry.group` | 已加, 序列化向后兼容 |
+
+## 43.5 S6 剩余
+
+| 子步 | 内容 |
+|---|---|
+| **S6-2** | 迁移: 读旧 `schedule_rule` + `timed_priority` -> 写 `priority_mode`（幂等）|
+| **S6-3** | **排序逻辑**: `timed_first` / `fixed_first` 分段排序; `custom` 完全按用户次序 |
+| **S6-4** | `Config.build_run_list()` **给条目打 `group`**（类别分段落地）|
+| **S6-5** | **拖动约束**: 后端校验 + 前端只允许同段内拖 |
+| **S6-6** | `schema_router`: `/queue/candidates`、`/priority` 端点改为三模式 |
+| **S6-7** | **前端**: 下拉三选项 + 拖动约束 + 类别分隔视觉 |
+| **S6-8** | 删死代码 `_order_by_timed_priority()` |
+

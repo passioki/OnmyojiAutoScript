@@ -172,6 +172,21 @@ class RunEntry:
     # 为空时由 `__post_init__` 自动补（**旧配置没有这个字段**, 读进来就是空）。
     entry_id: str = ''
 
+    # ★★ S6: **类别分段**（用户裁定: "给 run_list 加类别分段"）★★
+    #
+    # 用户原话:
+    #   "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
+    #    如果选了**列表自定义**, 那么全都可以拖动次序。"
+    #
+    # 字段含义: 条目所属的**类别段** —— `'timed'`（定时任务类）或
+    # `'fixed'`（固定任务类）。★ 空串 = **未分段**（旧配置）,
+    # 由 `RunList.regroup()` 或 `Config.build_run_list()` 补齐。
+    #
+    # ★ 为什么存**段名**而不是"顺序号": 段内顺序已经由 `entries` 的**列表次序**
+    #   表达（"顺序即数据"）; 这里只需要知道"它属于哪个段", 用来做
+    #   **拖动约束**（同段内可拖, 跨段不可）。
+    group: str = ''
+
     def __post_init__(self):
         if not isinstance(self.kind, EntryKind):
             try:
@@ -221,8 +236,12 @@ class RunEntry:
     def to_dict(self) -> dict:
         if self.kind == EntryKind.TASK:
             # ★ C: 带上 `entry_id`（**重复条目的身份**）
-            return {'kind': self.kind.value, 'task': self.task,
-                    'entry_id': self.entry_id}
+            d = {'kind': self.kind.value, 'task': self.task,
+                 'entry_id': self.entry_id}
+            # ★ S6: 只**非空**时才写 `group` —— 空串不落盘, 保持配置干净
+            if self.group:
+                d['group'] = self.group
+            return d
         return {'kind': self.kind.value, 'minutes': self.minutes}
 
     @classmethod
@@ -239,9 +258,11 @@ class RunEntry:
         if kind == EntryKind.TASK.value or (kind is None and data.get('task')):
             # ★ C: 旧配置**没有** `entry_id` -> 空字符串 -> `__post_init__`
             #   会现生成一个（**向后兼容**）。
+            # ★ S6: `group` 同理 —— 旧配置没有, 读进来是空串（未分段）。
             return cls(kind=EntryKind.TASK,
                        task=str(data.get('task') or ''),
-                       entry_id=str(data.get('entry_id') or ''))
+                       entry_id=str(data.get('entry_id') or ''),
+                       group=str(data.get('group') or ''))
         if kind == EntryKind.REST.value:
             return cls(kind=EntryKind.REST, minutes=data.get('minutes'))
         raise ValueError(f'未知条目类型: {kind!r}')

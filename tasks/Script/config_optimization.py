@@ -28,6 +28,43 @@ class TimedPriority(str, Enum):
     TIMED = 'timed'
     LIST = 'list'
 
+class PriorityMode(str, Enum):
+    """★★ **调度优先级三模式**（用户裁定, S6）★★
+
+    用户原话:
+
+    > "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
+    >  如果选了**列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
+    >  **三个选项**: **定时任务优先、固定任务优先、自定义**"
+
+    ## 为什么合并两个旧设置
+
+    原来有**两个重叠**的下拉:
+
+    | 旧字段 | 取值 | 含义 |
+    |---|---|---|
+    | `schedule_rule` | `Filter` / `FIFO` / `Priority` / `List` | 调度规则(4 路)|
+    | `timed_priority` | `timed` / `list` | 定时任务怎么跟固定任务抢设备(2 路)|
+
+    ★ 用户要的是**一个**三选项, 于是合并成本枚举。
+
+    ## 三模式
+
+    | 值 | 界面名 | 队列顺序 | 拖动范围 |
+    |---|---|---|---|
+    | `timed_first` | **定时任务优先** | 定时段在前, 固定段在后 | 只能**同类别段内**拖 |
+    | `fixed_first` | **固定任务优先** | 固定段在前, 定时段在后 | 只能**同类别段内**拖 |
+    | `custom`      | **自定义**     | **完全按用户拖的顺序** | ★ **全都能拖** |
+
+    ★ `timed_first` 的界面名沿用用户看到过的字眼:
+      「**定时优先（打完当前这场就让位）**」—— 插队时机是**战斗边界**,
+      不是立即打断（与"暂停调度"用同一个安全点）。
+    """
+    TIMED_FIRST = 'timed_first'
+    FIXED_FIRST = 'fixed_first'
+    CUSTOM = 'custom'
+
+
 class ScheduleRule(str, Enum):
     FILTER = 'Filter'  # 默认的基于过滤器，（按照开发者设定的调度规则进行调度）
     FIFO = 'FIFO'  # 先来后到，（按照任务的先后顺序进行调度）
@@ -104,12 +141,46 @@ class Optimization(BaseModel):
         description='enable_timed_help',
         title='启用定时任务')
 
+    # ★★ S6: **调度优先级三模式**（用户裁定的**唯一**开关）★★
+    #
+    # 用户原话:
+    #   "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
+    #    如果选了**列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
+    #    **三个选项: 定时任务优先、固定任务优先、自定义**"
+    #
+    # | 值 | 队列顺序 | 拖动范围 |
+    # |---|---|---|
+    # | `timed_first` | 定时段在前, 固定段在后 | 只能**同类别段内**拖 |
+    # | `fixed_first` | 固定段在前, 定时段在后 | 只能**同类别段内**拖 |
+    # | `custom`      | **完全按用户拖的顺序** | ★ **全都能拖** |
+    #
+    # ★ 它**取代**了下面两个重叠的旧字段（`schedule_rule` / `timed_priority`）,
+    #   那两个保留仅为**读旧配置**; 迁移见 `Config.migrate_priority_mode_once()`。
+    priority_mode: PriorityMode = Field(
+        default=PriorityMode.TIMED_FIRST,
+        description='priority_mode_help',
+        title='调度优先级')
+
+    # ⚠⚠ **已废弃**（S6）: 请用上面的 `priority_mode`。
+    #
+    # 保留原因: 旧配置里有这个键, 直接删会让 pydantic 报 `extra_forbidden`
+    # （或静默丢字段）—— 用户明确要求"**实时配置改了也没事**", 但**不能崩**。
+    # 迁移逻辑会读它并转成 `priority_mode`。
+    schedule_rule: ScheduleRule = Field(
+        default=ScheduleRule.FILTER,
+        description='schedule_rule_help',
+        title='选择任务调度规则（已废弃，请用「调度优先级」）',
+        json_schema_extra={'internal': True})
+
     # 定时任务到点时怎么跟固定任务抢（见 TimedPriority）
+    #
+    # ⚠⚠ **已废弃**（S6）: 已并入 `priority_mode`（`timed` -> `timed_first`,
+    #    `list` -> `custom`）。保留仅为读旧配置。
     timed_priority: TimedPriority = Field(
         default=TimedPriority.TIMED,
         description='timed_priority_help',
-        title='定时任务优先级')
-
+        title='定时任务优先级（已废弃，请用「调度优先级」）',
+        json_schema_extra={'internal': True})
     # 休息期间能否**穿插**定时任务
     #
     # 判据: 定时任务的**预期完成时间** < 休息剩余时间。

@@ -6,10 +6,11 @@
 > **冲突时以**：`docs/scheduler-architecture.md` 为准（调度域）
 >
 > ⚠ **已知未更新处**（见 `docs/deprecated.md`）:
-> §1.3「对方」列 / §2.6 `timed_priority`【已废弃】 / §3 开放时段表单【已重写】 / §5.2 /
+> §1.3「对方」列 / §3 开放时段表单【已重写】 / §5.2 /
 > §8.1 `charges` —— 这些小节仍按**旧模型**描述, **不要照做**。
-> 权威口径: 窗口见 **§9**（已重写）, 优先级见 **§2.5** 的
-> `priority_mode` 三模式。
+> 权威口径: 窗口见 **§9**（已重写）; ★ **执行顺序**见 **§2.1 与 §2.6**
+> —— S7 之后 **顺序 ≡ `run_list`**, 排序是
+> `PUT /{script}/queue/sort` 的**一次性动作**（**没有**"调度优先级"这个状态了）。
 >
 > 用途：把**控件**映射到**具体接口与字段**。做前端前先对一遍，避免两种返工：
 >   1. 做完才发现原型里某控件**后端没支持**
@@ -93,23 +94,27 @@
 
 ## 2. 任务列表页（原型 tab `list`）
 
-### 2.1 执行顺序 = **固定任务 + 休息**
+### 2.1 执行顺序 = **`run_list` 的顺序**（★ S7 重写）
 
-★ **v2 最大变化**：把**固定任务**与**定时任务**分开管理。
-列表里**只有固定任务**（+ 休息）；定时任务由定时调度器管
-（见 `docs/architecture.md` §5.4 与本文件 §2.6）。
+★★ **S7 裁定**：**执行顺序就是 `run_list` 的顺序本身** ——
+**固定任务与定时任务在同一个列表里, 按同一个顺序执行**,
+拖动**完全自由**（跨类别也行）。「定时排前面 / 固定排前面」只是两个
+**快捷排序按钮**（一次性动作, 见下面 `PUT /{script}/queue/sort`）。
 
 | 条目 | 界面名称 | 效果 | 阻塞列表 |
 |---|---|---|---|
-| `task` | 任务 | 跑一个**固定任务** | ❌ 不阻塞（未就绪就跳过）|
+| `task` | 任务 | 跑一个任务（**固定或定时都可以进队列**）| ❌ 不阻塞（未就绪就跳过）|
 | `rest` | **休息** | **去庭院待着** N 分钟 | ✅ |
 
-★ v1 的 `delay`（"只停列表"）**已作废** —— 固定与定时分开管理后，
-"只停列表" 不再有意义（想只停列表就关掉定时任务总开关）。
-旧配置里的 `delay` 条目会被**跳过**，不会让整份配置加载失败。
+★ v1 的 `delay`（"只停列表"）**已作废** —— 旧配置里的 `delay` 条目会被**跳过**，
+不会让整份配置加载失败。
 
-★ **只有固定任务能进列表**：判定用 `run_list.is_list_task(task)`；
-`from_list()` 默认校验，定时任务会被跳过并记录。
+★ **列表接受任意任务名**：`run_list.is_list_task(task)` **不是准入规则**
+（它只回答"这个任务是否可计数", 用于展示/统计）。
+任何"按类别过滤列表条目"的做法都会**静默丢弃用户配置**。
+
+★ **唯一的硬约束**：「休息」条目**恒排最后**（后端 `Config.place_rest_last()`
+**归一化**, 不是拒绝）—— 用户确认："任意拖，但「休息」条目仍强制排最后"。
 
 #### 读
 
@@ -137,6 +142,42 @@ DELETE /{script}/run_list/entry?index=2
 ★ `index=-1`（默认）表示追加到末尾。**能插到任意位置**才是模型 B 的意义 ——
 原型说的"都可插入到任意位置"就是这个。
 
+#### ★★ 快捷排序（两个**按钮** —— S7 新增, 取代旧的三模式下拉）★★
+
+界面上没有下拉框了, 只有两个按钮：**「定时排前面」** / **「固定排前面」**。
+
+```
+PUT /{script}/queue/sort      body: {"by": "timed"}      # 定时段排前面
+PUT /{script}/queue/sort      body: {"by": "fixed"}      # 固定段排前面
+```
+
+**成功返回体**:
+```json
+{"ok": true, "by": "timed", "count": 7,
+ "entries": [{"entry_id": "...", "kind": "task", "task": "Delegation", "minutes": 0}]}
+```
+
+**失败返回体**（`by` 非法 / 后端排序失败）:
+```json
+{"error": "非法 by: 'custom'; 应为 timed / fixed"}
+```
+
+★★ **它不是"模式"** —— 契约上必须按**动作**对待：
+
+| 项 | 契约 |
+|---|---|
+| 是否有 `GET` | ❌ **没有**（没有状态可查; 要读顺序就读 `GET /{script}/run_list`）|
+| 是否留状态 | ❌ **不留** —— 排完就是新的 `run_list`, 用户**可以随意再拖** |
+| `by` 的值域 | **恰好两个**: `timed` / `fixed`（其它值 -> `error`, **不改配置**）|
+| 类内次序 | **稳定**（同类条目相对次序不变）|
+| `rest` 条目 | ★ **恒排最后**（与 `PUT /run_list` 同一条规则）|
+| 前端成功判据 | ★ 必须判 **`error` 键不存在** —— **不能**用"返回里带 `entries`"当成功（那是历史 bug, 见下面铁律）|
+
+⚠ **契约铁律（本轮踩过的坑）**: 后端**拒绝**类返回也会带 `entries`
+（历史上 `{'error':..., 'drag_blocked':True, 'entries':[...]}`）——
+前端若用"返回里有 `entries`"当成功, 就会**把拒绝当成功**,
+表现为"能随便拖但没有任何提示"。★ **判 `error` 是否出现**, 不要判 `entries`。
+
 #### 预期执行流程
 
 ```
@@ -146,7 +187,7 @@ GET /{script}/run_list/preview
 
 ★ 必须向用户显示 `disclaimer` —— 实际还受体力/网络/开放时段影响。
 
-#### ★★ 「同时必须设置调度模式」—— **这一节已作废**（T1/S6）★★
+#### ★★ 「同时必须设置调度模式」—— **这一节已作废**（T1 → S6 → **S7**）★★
 
 > **原内容（**不要照做**）**：
 > ```
@@ -154,28 +195,29 @@ GET /{script}/run_list/preview
 > ```
 > ★ `schema.list.mode_value` 就是 `'List'`。
 >
-> ## 为什么作废
+> ## 为什么作废（三代）
 >
-> **T1** 删掉了 `update_scheduler()` 里对 `TaskScheduler.schedule()` 的调用 ——
-> ★ 于是 **`schedule_rule` 这个字段彻底不再影响排序**：
-> 队列顺序**无条件**生效（这正是 T1 要修的"拖了没用"）。
+> 1. **T1** 删掉了 `update_scheduler()` 里对 `TaskScheduler.schedule()` 的调用 ——
+>    ★ 于是 `schedule_rule`【**已废弃**】彻底不再影响排序：
+>    队列顺序**无条件**生效（这正是 T1 要修的"拖了没用"）。
+> 2. **S6** 把它和 `timed_priority`【**已废弃**】一起并入了
+>    `priority_mode` **三模式**（`timed_first` / `fixed_first` / `custom`）。
+> 3. ★★ **S7** 连 `priority_mode` **一起删了** ★★ ——
+>    用户裁定那是"**单独的调度优先级**", 没有意义。
+>    `PUT /{script}/script/optimization/priority_mode/value?...` **也不再正确**。
 >
-> **S6** 把它和 `timed_priority`【**已废弃**】一起并入了 **`priority_mode` 三模式**
-> （定时任务优先 / 固定任务优先 / 自定义）。
->
-> ★★ **现在正确的做法**：写
+> ★★ **现在正确的做法**：**没有字段要写**, 直接调**两个按钮**对应的端点：
 > ```
-> PUT /{script}/script/optimization/priority_mode/value?types=string&value=timed_first
+> PUT /{script}/queue/sort      body: {"by": "timed"}
+> PUT /{script}/queue/sort      body: {"by": "fixed"}
 > ```
-> （三选一：`timed_first` / `fixed_first` / `custom`）
-> —— 见 §2.5 与 §9.5。
+> ★ 它是**一次性动作**（会重排并写盘 `run_list`）, **不是**一个要保存的模式。
 >
-> ★ 后端**仍会**在 `/schema` 的 `list.modes`【已废弃】 / `list.mode_value` /
-> `list.current_mode` 里发布那四个旧模式，前端也**仍有一整簇死读取**
-> （`scheduleRule` / `scheduleRuleLabel` / `listModeLabel` /
-> **`setScheduleRule`（0 调用方但**会写配置**）**）。
-> ★ 那是**待清理的死链**（见 [`deprecated.md`](deprecated.md)），
-> **不要**再调用它 —— 调了会复活"两个排序权威"。
+> ★ 后端**不再发布** `priority_mode` / `drag_within_group_only`；
+> `/schema` 的 `list.modes`【**已废弃**】 / `list.mode_value` /
+> `list.current_mode`（四个旧模式）与前端 `scheduleRule` 簇是**已登记的死链**
+> （见 [`deprecated.md`](deprecated.md)）—— **不要**再调用 `setScheduleRule`：
+> 调了会复活"两个排序权威"。
 
 #### ★ 前端不该硬编码的东西
 
@@ -187,7 +229,7 @@ GET /{script}/run_list/preview
 | `entry_kinds[].needs_task` / `needs_minutes` / `blocks_list` | 界面据此决定显示任务选择器还是时长选择器 |
 | `duration_choices` | 时长可选项（分钟）|
 | `order_field` / `order_group` | 写入位置（`script.optimization.run_list`）|
-| ~~`modes`~~ | ★ **已废弃**（四个旧调度模式的标签）—— 改用 **`priority_mode` 三模式**（§9.5）|
+| ~~`modes`~~ | ★ **已废弃**（四个旧调度模式的标签）。★ 它当时的替代物 `priority_mode` 三模式**也已在 S7 删除** —— 现行做法是 `PUT /{script}/queue/sort` 这个**动作**（见上面「快捷排序」）|
 
 **前端一行映射都不该自己写。**
 
@@ -250,22 +292,24 @@ POST /{script}/run_list/entry?index=2   body: {"kind":"rest","minutes":30}
 
 | 原型控件 | 实际接口 | 说明 |
 |---|---|---|
-| `#pmode` 优先级依据 | `PUT /{script}/script/optimization/schedule_rule/value` | 四个模式；当前值读 `schema.list.current_mode` |
+| ~~`#pmode` 优先级依据~~【**已删除**】| ❌ **没有这个控件了**（S7）—— 换成队列工具条上**两个排序按钮** | 见上面「快捷排序」: `PUT /{script}/queue/sort` |
 | `#loop` **跑完循环整表** | ❌ **后端没有这个字段** | 见 §5.1 —— 换成了 `when_task_queue_empty` |
 | 预期执行流程（推算） | `GET /{script}/run_list/preview` | ✅ 已实现，带 `disclaimer` |
 
-★ **当前值必须从 `/schema` 读**，不能硬编码 —— 否则界面会误报
-"顺序不生效"（实际用户早设成 `List` 了）。见 §5.2。
+★ **S7 之前**这里有「调度优先级」下拉 + `schedule_rule` 四选一下拉 ——
+  **两个都已删**。现在全局设置面板里**只有** §2.6 的 4 个字段。
 
-### 2.6 ★ 两个总开关与"两者关系"（v2 新增）
+### 2.6 ★ 两个总开关与"两者关系"（v2 新增 · ★ S7 后只剩 **4** 个字段）
 
 **全部从 `schema.list.global_fields` 读**，前端**不要硬编码**字段名与可选值。
+
+★ ★★ **该字典现在恰好 4 个键**（S7 删掉了 `priority_mode` 与
+`drag_within_group_only`）★★：
 
 | 字段 | 类型 | 标签 | 说明 |
 |---|---|---|---|
 | `enable_fixed` | boolean | 启用固定任务 | 固定任务总开关 |
 | `enable_timed` | boolean | 启用定时任务 | 定时任务总开关 |
-| ~~`timed_priority`~~【**已废弃**】 | string | 定时任务优先级【**已并入 `priority_mode`**】 | `timed` 定时优先 / `list` 列表优先 |
 | `rest_interleave` | boolean | 休息时可穿插定时任务 | 判据：预期完成时间 < 休息剩余 |
 | `when_task_queue_empty` | string | 队列跑空后 | `goto_main` / `close_game` |
 
@@ -275,22 +319,24 @@ POST /{script}/run_list/entry?index=2   body: {"kind":"rest","minutes":30}
 写入走**既有通用接口**：
 
 ```
-PUT /{script}/script/optimization/timed_priority/value?types=string&value=timed   # ★【已废弃】
 PUT /{script}/script/optimization/enable_fixed/value?types=boolean&value=false
+PUT /{script}/script/optimization/rest_interleave/value?types=boolean&value=true
+PUT /{script}/script/optimization/when_task_queue_empty/value?types=string&value=goto_main
 ```
 
-> ★★ `timed_priority`【**已废弃**】那一行**不要再调** —— 它已被
-> `priority_mode` 取代（见 §2.5 与 §9.5）。留着只为说明**旧客户端的调用长什么样**。
+★ 排序**不走**这条通用接口 —— 它是 `PUT /{script}/queue/sort`（上面的「快捷排序」）。
+  ⚠ 历史写法 `PUT .../optimization/timed_priority/value?...`【**已废弃**】与
+  `PUT .../optimization/priority_mode/value?...`【**已删除**】**都不要再调** ——
+  前者 S6 废、后者 S7 废, 留着只为说明**旧客户端的调用长什么样**。
 
 #### 语义要点
 
 | 项 | 说明 |
 |---|---|
 | 两个总开关 | **互不影响** —— 关掉固定任务不该影响定时任务 |
-| `timed_priority=timed`【**已废弃**】 | 固定任务在跑、定时任务到点 → **打完当前这场**就让位 |
-| `timed_priority=list`【**已废弃**】 | 定时任务等固定任务跑完 |
 | `rest_interleave` | 判据: 定时任务的 `scheduler.expected_minutes` < 休息剩余分钟数 |
 | `expected_minutes=0` | **未知** → 不穿插（保守）|
+| **执行顺序** | ★ **不在这里设置** —— 拖动, 或用两个排序按钮；见 §2.1 |
 
 ★ 插队时机是**战斗边界**，不是立即打断 —— 与「暂停调度」同一个安全点。
 
@@ -409,12 +455,13 @@ PUT /{script}/script/optimization/enable_fixed/value?types=boolean&value=false
 2. 调度器在列表跑空时（`when_task_queue_empty` 之前）判断：回列表开头还是走原逻辑
 3. `run_list` 的一次性条目会被移除，所以"循环"要能重新入队
 
-### 5.2 ★ 界面**不能硬编码**的两个初值
+### 5.2 ★ 界面**不能硬编码**的初值
 
 | 字段 | 位置 | 坑 |
 |---|---|---|
-| `list.current_mode` | `/schema` | 硬编码成 `'Filter'` 会让界面**误报**"顺序不生效"（实际用户早设成 `List`）|
+| ~~`list.current_mode`~~【**已删除**】| `/schema` | ★ S7 之后**没有这个键**（连同 `list.modes` / `list.mode_value`）—— 前端若有读取残留会拿到 `null`。★ **不要再照本行硬编码 `'Filter'`**；执行顺序一律读 `GET /{script}/run_list` |
 | `list.global_fields.*.current` | `/schema` | 必须取枚举的 `.value` —— `str(枚举)` 会得到 `'WhenTaskQueueEmpty.GOTO_MAIN'` 而非 `'goto_main'` |
+| `list.global_fields` 的**键集合** | `/schema` | ★ **只认后端给的键**（S7 后恰好 4 个）—— 前端**不要**自己列 `priority_mode`【**已删除**】/ `timed_priority`【**已废弃**】 |
 
 ★ 另一个坑：**按脚本名取配置**（`mm.config_cache(name)`），
   不要用 `config_cache_list()[0]` —— 那会读到**另一个账号**的配置。
@@ -475,6 +522,7 @@ pydantic 的 `model_json_schema()` 里，**带 `$ref` 的属性没有 `default` 
 | 单个启停开关 | **只在列表页**；总览页显示状态但不提供开关 |
 | 目标次数 | 列表页改 `scheduler.target` |
 | 开放时段 | ★ **改用 `windows` 列表 + 5 个按 `id` 的端点**（§9）—— `schema.window_fields`【**已删**】 |
+| ★ 执行顺序 | ★ **顺序 ≡ `run_list`** —— 拖动**永远自由**; 「定时排前面 / 固定排前面」= 两个按钮 -> `PUT /{script}/queue/sort`（**动作**, 不留状态, §2.1）|
 | 平台能力 | 按 `/capabilities` 灰掉不可用项 |
 | 三种运行控制 | ⏸ `battle` / ⏭ `round` / ▶ `resume`；**无"立即停"** |
 
@@ -488,8 +536,8 @@ pydantic 的 `model_json_schema()` 里，**带 `$ref` 的属性没有 `default` 
 |---|---|---|
 | 1 | 状态行（进程状态 / 待执行数 / 等待中数 / 冷却数）| **WebSocket** 推送 |
 | 2 | 批量操作（进程开关 + 批量启停/运行一次/重置选中/搜索/筛选）| PUT /{script}/{task}/scheduler/enable/value |
-| 3 | **全局开关** | GET /{script}/schema 的 list.global_fields<br>PUT /{script}/optimization/{field}/value |
-| 4 | **执行队列**（正在运行 + 待执行 + 等待中, 可拖拽, 每行可改次数/耗时/优先级）| GET/PUT /{script}/run_list<br>POST/DELETE /{script}/run_list/entry<br>PUT /{script}/{task}/scheduler/{target,priority,expected_minutes}/value |
+| 3 | **全局开关**（★ S7 后恰好 **4** 个字段: 两个总开关 + `rest_interleave` + `when_task_queue_empty`）| GET /{script}/schema 的 list.global_fields<br>PUT /{script}/optimization/{field}/value |
+| 4 | **执行队列**（正在运行 + 待执行 + 等待中, ★ **可自由拖拽（跨类别也行）**, 每行可改次数/耗时/优先级; ★ 工具条上有**「定时排前面」/「固定排前面」两个按钮**）| GET/PUT /{script}/run_list<br>POST/DELETE /{script}/run_list/entry<br>★ PUT /{script}/queue/sort body `{"by":"timed"\|"fixed"}`<br>PUT /{script}/{task}/scheduler/{target,priority,expected_minutes}/value |
 | 5 | 任务表格（Excel 式批量管理, 不改顺序）| GET /{script}/overview |
 | 侧 | 运行控制条（暂停/继续）| GET /{script}/run_control · PUT /{script}/run_control/{pause,resume} |
 | 侧 | 日志常驻右半栏（宽度可拖, 记忆在偏好）| subscribeLog 订阅（**不要另开 WebSocket**）|
@@ -544,13 +592,14 @@ un_control.paused —— 否则进程停了还显示运行中
 
 ★ **权威在后端**。前端不重新推导调度规则（本项目已因"知识存在两处"栽过多次）。
 
-### 8.2 执行队列的三个端点
+### 8.2 执行队列的端点
 
 | 端点 | 用途 | 关键语义 |
 |---|---|---|
 | `GET /{script}/queue/candidates` | 【添加任务】的候选列表 | = `enable && !auto_queue && !queued`。**未启用的不出现**（用户原话: "需要先在任务列表启用，再添加任务才能进队列"）|
 | `POST /{script}/queue/remove` | 把任务移出队列 | ★ **同时 `enable=false`** —— 否则自动进队列的任务会被 `build_queue()` **重新补回来**，"移除"变成无效操作。返回里带 `message`（中文提示）|
 | `GET/PUT /{script}/run_list` | 用户编排（**不含**自动补齐）| 队列 = `run_list` **+ 自动补齐**（追加在已编排之后）。补齐是**派生结果**, **不回写 `run_list`** |
+| ★ `PUT /{script}/queue/sort` | **快捷排序**（两个按钮）| body `{"by":"timed"\|"fixed"}`；★ **一次性动作**, **没有 `GET`**, **不留状态** —— 详见 §2.1 的「快捷排序」|
 
 ### 8.3 ★ 用户配置面只剩 **4** 个字段（原 16 个）
 

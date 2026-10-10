@@ -277,8 +277,13 @@ timed"; **只有当 timed 的可跑项为空时**它才会是 fixed。**这是�
 `dragRejection` 判据 · 后端 `_check_drag_allowed()` / `drag_blocked` ·
 `/schema` 的 `drag_within_group_only`。
 
-⚠ **残留（如实记录）**: `schema_router.py` 里 `_check_drag_allowed()` 只剩一个
-  **恒定返回 `(False, '')` 的空壳签名**（**0 调用**）。
+★ **反向守卫**: `tests/module/server/test_drag_is_free.py`（11 条）——
+跨类别拖动**必须被接受**、`rest` 是**挪位不是拒绝**、生产代码里
+**不得**出现 `drag_blocked` / `priority_mode`、`_check_drag_allowed` **不得**存在。
+
+⚠ **刻意不留空壳**: `_check_drag_allowed()` 曾被留成"恒返回放行"的空壳,
+后来**整函数删除** —— 因为空壳一旦被接回某个分支就会**静默恒放行**
+（"看起来在校验、其实没有"）。
 
 ### 3.4 ★ 删除"重排函数"
 

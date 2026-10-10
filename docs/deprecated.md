@@ -153,16 +153,27 @@
   用户确认: "**任意拖，但「休息」条目仍强制排最后**"。
 * `/schema` 的 `global_fields` 现在**只有 4 个键**:
   `enable_fixed` / `enable_timed` / `rest_interleave` / `when_task_queue_empty`。
-* 新增测试: `tests/module/config/test_queue_sort.py`（21 条）+
-  `tests/module/config/test_segment_of.py`（3 条）。
+* 新增测试:
+  * `tests/module/config/test_queue_sort.py`（21 条 —— 幂等 / 类内稳定 / 写盘 / 非法输入 / **端点契约**）
+  * `tests/module/config/test_segment_of.py`（3 条）
+  * `tests/module/server/test_drag_is_free.py`（**11 条** —— **反向守卫**: 跨类别拖动必须被接受、
+    `rest` 是**挪位不是拒绝**、生产代码里**不得**再有 `drag_blocked` / `priority_mode`）
+  * `tests/module/config/test_pending_subsequence.py`（**4 条** —— `pending` 是队列的保序子序列,
+    `queue` 顺序 = `run_list` 顺序, **调度期间没有任何东西重排 `pending`**）
 * ★ `RunEntry.group` 的"**永不落盘**"守卫**已从** `test_priority_mode.py`
   **搬到** `tests/module/config/test_run_list.py`（`TestRunEntryGroup`）。
 
 ⚠ **如实记录的残留**:
 
-* `module/server/schema_router.py` 里 `_check_drag_allowed()` 只剩一个
-  **恒定返回 `(False, '')` 的空壳签名**（**0 调用**, 只为兼容可能的旧调用点）——
-  约束**逻辑已删**, 空壳**未删**。
+* ★ `_check_drag_allowed()` **已整函数删除**（不是空壳）——
+  `module/server/schema_router.py` 里只留一段"为什么删"的注释。
+  ★ 刻意**不留**"恒返回放行"的空壳: 那种空壳未来被接回某个分支时
+  会**静默恒放行**, 变成"看起来在校验、其实没有"的假守卫。
+* ⚠ **生产代码里仍有过时的注释/文档串**（不影响行为, 但会误导）:
+  `schema_router.py:167-168` 仍写"模式从 `global_fields` 的 `priority_mode` 读"
+  （那个键已删）; `:490` 仍提 `_check_drag_allowed` 的判定;
+  `tasks/Script/config_optimization.py:159` 仍写"请用上面的 `priority_mode`"。
+  ★ 本轮**只改 `docs/`**, 未动这些注释。
 * 老配置里遗留的 `priority_mode` / `priority_mode_explicit` 键: `Optimization`
   不再声明它们 -> pydantic 加载时**静默忽略多余键** -> 下次 `save()` 时从磁盘上
   **自然消失**。**不需要写清理迁移**。
@@ -206,4 +217,6 @@
 | 调度路径**不得**再调 `TaskScheduler.schedule()` | `tests/module/config/test_execution_queue.py` |
 | ★ `Optimization` **不得**再有 `priority_mode` / `priority_mode_explicit`; `put_priority_mode` / `get_priority_mode` **不存在** | `tests/module/config/test_queue_sort.py`（`TestSortEndpointContract`）|
 | ★ `GET`/`PUT /{script}/priority_mode` **不存在**; 排序只走 `PUT /{script}/queue/sort` | 同上 |
+| ★★ **跨类别拖动必须被接受**（不得被拒）; 生产代码里**不得**出现 `drag_blocked` / `priority_mode`; `_check_drag_allowed` **不得**存在 | `tests/module/server/test_drag_is_free.py` |
+| ★ `pending` 是队列的**保序子序列**, 调度期间**不得**重排它 | `tests/module/config/test_pending_subsequence.py` |
 | 文档里的 `.py` 路径**必须存在** | `tests/test_docs_no_dead_refs.py` |

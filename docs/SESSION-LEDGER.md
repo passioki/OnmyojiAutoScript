@@ -5557,3 +5557,134 @@ tests/test_zz_probe.py .                                    [100%]
 ★ 这些都是"**冗余**"而不是"**错误**": 不删不会出错, 删了的收益是
   **少一处误导**。已在 `docs/deprecated.md` §5 登记。
 
+---
+
+# 61. ★★★ S7: 「调度优先级三模式」**整簇删除** —— 拖动自由 + 排序降级为「动作」★★★
+
+> ★ 本节**只追加**。上面的 §43–§46 / §50 / §55 描述的是**当时**的事实, 不改。
+
+## 61.1 用户裁定（本轮唯一依据, 原话）
+
+> "我觉得……这个**固定任务优先和定时任务优先以及不能跨类别拖动太蠢了**。
+>  我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和定时任务优先
+>  **直接作为一个快捷排序**就好, 而不是定义一些没有意义的**不能跨类别拖动**
+>  以及**单独的调度优先级**。"
+
+追问确认: 「**任意拖，但「休息」条目仍强制排最后**」。
+
+★★ 这条裁定**推翻了我自己在 §43–§46 做的整个 S6** ——
+`priority_mode` 的"取代物"翻了**第二代**: `schedule_rule`/`timed_priority`
+（S6 前）-> `priority_mode` 三模式（S6）-> **什么状态都没有**（S7）。
+
+## 61.2 删了什么（行数取自提交 `adb8afca` 的 `git show --numstat`）
+
+### (A) 生产代码: **−635 / +364 行**
+
+| 文件 | 删除 | 新增 | 删掉的具体东西 |
+|---|---|---|---|
+| `module/config/config.py` | **282** | 164 | `Config.priority_mode()`; `Config._order_by_priority_mode()`; `Config.migrate_priority_mode_once()`; `Config._segment_queue()`（-> 改名）; `Config.resegment_run_list()`（-> 改名）|
+| `module/server/schema_router.py` | **244** | 136 | `GET`/`PUT /{script_name}/priority_mode`; `_current_priority_mode()`; **`_check_drag_allowed()` 整函数**; `/schema` 的 `global_fields.priority_mode` + `drag_within_group_only`; `PUT /run_list` 的拒绝分支 |
+| `tasks/Script/config_optimization.py` | **78** | 46 | `PriorityMode` 枚举; `Optimization.priority_mode` / `priority_mode_explicit` 字段; 两个 `*_help` 键 |
+| `module/server/script_router.py` | **29** | 14 | 通用写入口里"写 `priority_mode` 就一并置 `priority_mode_explicit`"的特例分支 |
+| `module/config/run_list.py` | **2** | 4 | 注释里把 `group` 说明改写为"**派生显示标签, 永不落盘**" |
+
+### (B) 测试: **−868 / +1034 行**
+
+**4 个测试文件整个删除（−604 行）**:
+
+| 删除的测试 | 行数 | 它原来在守什么 |
+|---|---|---|
+| `tests/module/config/test_priority_mode.py` | **205** | 三模式排序 + `group` 派生性 |
+| `tests/module/config/test_priority_mode_migration.py` | **156** | 迁移映射 / 幂等 / `explicit` 阻断 |
+| `tests/module/config/test_drag_constraint.py` | **144** | ★ 跨类别拖动**应当被拒** |
+| `tests/module/config/test_drag_rest_position.py` | **99** | `rest` 位置 + 拒绝理由 |
+
+**4 个新测试文件（+733 行, 共 39 条）**:
+
+| 新增的测试 | 行数 | 条数 | 守什么 |
+|---|---|---|---|
+| `tests/module/server/test_drag_is_free.py` | 252 | **11** | ★ **反向守卫**: 跨类别拖动**必须被接受**; `rest` 是**挪位不是拒绝**; 生产代码里不得再有 `drag_blocked` / `priority_mode` / `_check_drag_allowed` |
+| `tests/module/config/test_queue_sort.py` | 245 | **21** | `sort_run_list()` 的幂等 / **类内稳定** / 写盘 / 非法 `by` / **端点契约** |
+| `tests/module/config/test_pending_subsequence.py` | 148 | **4** | `pending` 是 `queue` 的**保序子序列**; `queue` 顺序 = `run_list` 顺序; **调度期间没有任何东西重排 `pending`** |
+| `tests/module/config/test_segment_of.py` | 88 | **3** | `_segment_of()` 从 `task_catalog` 读**权威分段** |
+
+**改写的**: `test_segment_rest_position.py`（−149/+141, 语义从"拒绝"改成"**归一化**"）、
+`test_queue_membership_and_category.py`（−60/+20）、`test_queue_no_leak_all_rules.py`（−13/+24）、
+`test_execution_queue.py`（−23/+26）、`test_schema_router.py`（−17/+42）、
+`tests/_srcutil.py`（−2/+1）、`test_run_list.py`（+47 —— **接收**搬过来的 `RunEntry.group` 守卫）。
+
+**整次提交**: `22 files changed, 1654 insertions(+), 1606 deletions(-)`
+（其中 `docs/` 那 359 行是**本轮文档维护**的成果, 不是生产代码）。
+
+## 61.3 新增了什么（现行唯一权威）
+
+| 新增 | 位置 | 说明 |
+|---|---|---|
+| `Config.sort_run_list(by)` | `module/config/config.py` | `by ∈ {'timed','fixed'}`; **一次性**重排 + **写盘**; 非法值 -> `False` **且不改配置**（不猜、不静默）|
+| `Config.place_rest_last(rl)` | 同上 | 「休息」**归一化**到最后（**稳定**, 多个 rest 保序）—— **不是拒绝** |
+| `Config._tag_and_place_rest(rl)` | 同上 | `_segment_queue()` **改名**; **只打 `group` 标签 + 挪 rest**, **不排段** |
+| `Config._segment_of(command)` | 同上 | 读 `task_catalog` 的**权威**分段（`timed`/`fixed`）—— 只服务**显示**与**排序动作** |
+| `PUT /{script_name}/queue/sort` | `module/server/schema_router.py` | body `{"by": "timed"\|"fixed"}` -> `{ok, by, count, entries}`; 非法 -> `{error}` |
+| 前端两个按钮「**定时排前面**」/「**固定排前面**」 | `OASX-src`（`task_list_view.dart` + `sortQueueBy` -> `PUT /queue/sort`） | **取代**「调度优先级」下拉 |
+
+★ `/schema` 的 `global_fields` 现在**恰好 4 个键**:
+`enable_fixed` / `enable_timed` / `rest_interleave` / `when_task_queue_empty`。
+
+★ **文档同步**（本轮）: `deprecated.md` 新增 §3.2（S7 全量清单）+ `/schema` 键清单修正;
+`scheduler-architecture.md` §2.2/§2.3/§2.4/§3 整段重写为"顺序 ≡ `run_list`";
+`ui-api-mapping.md` 删掉 `priority_mode` 契约条目、补 `PUT /queue/sort`（含 body / 返回体 /
+"**判 `error` 不判 `entries`**"的契约铁律）; `acceptance-checklist.md` §1 改成"两个按钮 +
+**任意跨类别拖动都应成功且保持**"; `architecture.md`（指针文档）清掉三模式残留。
+
+## 61.4 ★★ 我（前一个 agent）在这一轮犯的 5 个错（诚实记录）★★
+
+| # | 错误 | 后果 | 教训 |
+|---|---|---|---|
+| 1 | 把"**删约束**"和"**删模式**"**分成两轮**做 —— 中间那轮**只删了前端判据** | 前端不再拦 -> **三种模式下都能随便拖** = **用户报的那个 bug** | ★ **契约两端必须同一轮删完**。删一半比不删更糟: 用户看到的是"能拖, 但没有任何反馈" |
+| 2 | 前端 `_saveEntries` 的**成功判据**写成"**含 `entries` 就算成功**" | 后端**拒绝**拖动时返回的正是 `{'error':..., 'drag_blocked':True, 'entries':[...]}` -> **把拒绝当成功** -> 用户看到"能随便拖但**没有提示**" | ★ **判成功要判 `error` 是否存在**, 不能判"有没有 `entries`"。**宽容的判据会把失败洗成成功** |
+| 3 | 更早写过 `if (mounted)`（`GetxController` **没有**这个 getter）| `flutter analyze` **没报**; `flutter test` 的**编译器**报错 | ★ **analyze 干净 ≠ 能编译** —— analyzer 不查那条路径; **必须跑 `flutter test`** |
+| 4 | 我写的测试守卫**匹配到自己的注释文字**（本项目已记录 **≥5 次**）| 守卫"绿"得毫无意义 | ★ 断言前**必须剥注释**: 用 `tests/_srcutil.py` 的 `code_only` / `code_of` |
+| 5 | 我的探针**自己写错了分组**（把 `DemonEncounter` 当 `timed`, 实际是 `fixed`）| 看起来像"代码算错了", 实际是**探针错了** | ★ 探针要从 `task_catalog` **读权威值**, **不要手写**分组表 |
+
+★ 5 条的共同点: **都是我"自己造的第二份判据"出问题** ——
+前端判据 vs 后端判据（1、2）、analyzer vs 编译器（3）、
+注释文字 vs 代码（4）、探针表 vs catalog（5）。
+★ 与 §60 的结论**同一条**: **同一知识两处定义必然漂移**。
+
+## 61.5 ★ 本轮刻意**不留空壳**（一条设计决定）
+
+`_check_drag_allowed()` 我一度留成"**恒返回 `(False, '')`**"的空壳（"以防有旧调用点"）。
+后来**整函数删除**, 理由写进了代码注释:
+
+* 实测**没有任何调用点**;
+* 空壳的真实风险是: **未来有人把它接回某个分支** -> 它恒放行 ->
+  变成"**看起来在校验、其实没有**"的**静默假守卫**。
+
+★ 本项目纪律是"**让静默失败变成看得见**" -> 删干净, 要恢复就得**重新写一遍**
+（那时自然会想清楚"知识为什么要在两处定义"）。
+
+## 61.6 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 后端**全量** pytest | **1628 passed, 4 skipped, 4 subtests passed, 0 failed** |
+| 新增/重写测试 | `test_drag_is_free.py` **11** · `test_queue_sort.py` **21** · `test_pending_subsequence.py` **4** · `test_segment_of.py` **3**（共 **39**）|
+| 前端 `flutter test` | **100 passed**（由改动前端的 agent 报告; ★ 文档维护这一轮**未复跑**）|
+| 文档死引用守卫 | `tests/test_docs_no_dead_refs.py` **20 passed**（改完文档后复跑）|
+
+⚠ **与任务书给的基线 `1613 passed` 有 +15 的差**: 差额 = 那两个**较晚加入**的
+测试文件（`test_drag_is_free.py` 11 条 + `test_pending_subsequence.py` 4 条）。
+★ 基线 `1613` 是在它们存在**之前**测的。
+
+## 61.7 已知残留（如实登记, 本轮未清）
+
+| 项 | 说明 |
+|---|---|
+| `schema_router.py:167-168` 的注释 | 仍写"现行做法: 模式从 **`global_fields` 的 `priority_mode`** 读" —— 那个键**已删** |
+| `schema_router.py:490` 的注释 | 仍提"后端 `_check_drag_allowed` 的判定**可能相反**" —— 该函数**已整函数删除** |
+| `tasks/Script/config_optimization.py:159` 的字段注释 | 仍写"请用上面的 `priority_mode`" —— 而它**已被删** |
+| `config/恋鸟树.json` 里的 `priority_mode` / `priority_mode_explicit` | pydantic `extra='ignore'` -> **下次 save 自然消失**, 无需迁移 |
+
+★ 这三处注释残留**本轮只改 `docs/`, 未动 `module/` / `tasks/`** ——
+  已同步登记在 [`deprecated.md`](deprecated.md) §3.2 的"残留"里, 供下一轮清理。
+

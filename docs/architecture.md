@@ -21,7 +21,8 @@
 > | **§3** | `149-357` | 整节讲**已删除**的 `Recharge` / `Resource` / `RunState` / `next_available()` / `TaskSpec.resource`, 还给了源码。★ 原头部写 `:204-305` —— 那只覆盖 §3.0/§3.1, **恰好漏掉** §3.2-§3.4 那三个点名符号 |
 > | **§2.1**（编号与 `:81` 的 §2 **重复**）| `1674-1728` | 里面的 `TaskSpec.resource`（`:1722`）与 `scheduler_core.next_available()`（`:1724`）**已删除** |
 > | **§4.1 / §4.2 / §4.3** | `372-410` | `spec.resource` / `next_available(spec.resource, …)` / `team_coordinator.py` **均已删除** |
-> | **§5.4.1** | — | 把 `timed_priority` 当**现行**字段（已并入 `priority_mode`）|
+> | **§5.4.1** | — | 把 `timed_priority` 当**现行**字段（已并入 `priority_mode`）; ★ **`priority_mode` 本身也已在 S7 删除**（见 `deprecated.md` §3.2）|
+> | **§5.4.1 / §10.3** | `755-787` / `1598-1608` | 仍讲「优先级三模式 / 调度优先级下拉」—— ★ **S7 已整簇删除**; 现行做法是 `PUT /{script}/queue/sort` 的**一次性动作**（★ 行号已按**改后**核对）|
 > | **§5.7 / §7.6 / §10.7** | `1007` / `1378` / `1626`,`1629` | 仍提 `_order_by_timed_priority()`【**已删除**】 / `charge` 任务【**已删除**】 / `resource`【**已删除**】 |
 > | **§11 / §13** | `1824` / `1764` | 编号错位; ★ **§13.1(`:1805`) 的方向是反的** —— 它把**已删除**的 `Resource`/`next_available` 写成"`✅ 接进调度`"（不是"已完成写成待办", 而是**已删除写成已完成**）|
 > | **附录** | `1850-1884` | 列了**已删除**的 `scheduler_core.py` / `gen_resource_specs.py` / `test_availability.py`（已打删除线）。★ 原头部写 `:1813-1819` —— 那是 §13.2 的表 |
@@ -50,7 +51,9 @@
 
 ## 0. 目录
 
-> ★ **调度器的正式设计在 [docs/scheduler-architecture.md](scheduler-architecture.md)** —— 原子化 / 集合 / 三优先模式 /
+> ★ **调度器的正式设计在 [docs/scheduler-architecture.md](scheduler-architecture.md)** —— 原子化 / 集合 /
+>   ~~三优先模式~~【**已删除**】—— ★ **S7 之后: 执行顺序 ≡ `run_list`, 拖动永远自由,
+>   排序是 `PUT /{script}/queue/sort` 的一次性动作** /
 >   CRUD 契约 / 联动矩阵 / 不变量总表。**与本文冲突时以它为准。**
 
 | 节 | 内容 |
@@ -751,23 +754,34 @@ v1 有 `休息`（连定时任务一起停）与 `延后`（只停列表、定�
 
 ### 5.4.1 两个总开关与"两者关系"
 
+> ★★ **S7 更新（2026-10-10）**: 本节原表里的 `timed_priority`【**已废弃**】、以及后来的
+> `priority_mode` **三模式** —— **均已删除**。
+> 现行做法: **执行顺序 ≡ `run_list`**; 「定时排前面 / 固定排前面」是
+> `PUT /{script}/queue/sort` 的**一次性动作**; ★ **拖动永远自由**
+> （**没有**任何跨类别拖动约束）。权威见
+> [`scheduler-architecture.md`](scheduler-architecture.md) §2.3 / §3.3 与
+> [`deprecated.md`](deprecated.md) §3.2。
+
 | 字段 | 位置 | 作用 |
 |---|---|---|
 | `enable_fixed` | `Script.optimization` | **固定任务**总开关 |
 | `enable_timed` | `Script.optimization` | **定时任务**总开关 |
-| `timed_priority`【**已并入 `priority_mode`**】 | `Script.optimization` | 定时任务到点时怎么跟固定任务抢 |
+| `timed_priority`【**已废弃**】【**已并入 `priority_mode`**; 而后者**也已在 S7 删除**】 | `Script.optimization` | 定时任务到点时怎么跟固定任务抢 |
 | `rest_interleave` | `Script.optimization` | 休息期间能否**穿插**定时任务 |
 
 ★ **两个总开关互不影响** —— 关掉固定任务不该影响定时任务，反之亦然。
 判定用 `timed_schedule.should_consider(category, enable_fixed, enable_timed)`。
 
-#### `timed_priority`【**已并入 `priority_mode`**】
+#### `timed_priority`【**已废弃**】【**S7 后连它的替代物也删了**】
 
-| 取值 | 界面名 | 行为 |
-|---|---|---|
-| `timed` | **定时优先** | 固定任务在跑、定时任务到点 → **打完当前这场战斗**就让位 |
-| `list` | **列表优先** | 定时任务等固定任务跑完 |
+| 取值 | 界面名 | 行为 | ★ S7 现状 |
+|---|---|---|---|
+| `timed` | **定时优先** | 固定任务在跑、定时任务到点 → **打完当前这场战斗**就让位 | ❌ 字段不再影响行为 |
+| `list` | **列表优先** | 定时任务等固定任务跑完 | ❌ 同上 |
 
+★ **现在该怎么做**: 想让"定时全跑完再跑固定"—— 点一次界面上
+  **「定时排前面」**按钮（`PUT /{script}/queue/sort` body `{"by":"timed"}`）,
+  它把 timed 条目**物理挪到 `run_list` 前面**; ★ **不是**设置一个模式。
 ★ 插队时机是**战斗边界**，不是立即打断 ——
 与「暂停调度」用同一个安全点（立即打断会卡在半途）。
 
@@ -1591,7 +1605,7 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 3.4 | 不在列表里的任务排到最后（不丢弃） | ✅ |
 | 3.5 | 每行次数 `0`=用默认，`>0`=本次覆盖 | ✅ |
 | 3.6 | 列表存在 `Script` 全局配置的 `task_list` 分组 | ✅ |
-| 3.7 | `priority_mode` 默认「定时优先」 | ✅ |
+| 3.7 | ~~`priority_mode` 默认「定时优先」~~ ★ **S7 已删除该字段**（排序改为一次性动作 `PUT /{script}/queue/sort`） | ❌ 作废 |
 
 ### 10.4 休息 / 延后
 

@@ -993,3 +993,92 @@ error: remote unpack failed: index-pack failed
 | 7 | `Function` 多段窗口不再用有损并集 | F1b | ⬜ |
 | 8 | 测试重写 | F7 | ⬜ |
 
+---
+
+# 14. ★★ OASX 推送 —— **已解决**（2026-10-10）★★
+
+## 14.1 根因
+
+**原仓库的历史里有坏对象** `92f63f57826c125b7e13103348513fcdcb9809a5`
+（`git cat-file` 报 bad object, 本地不存在）—— 只要推**任何含该历史的 ref**
+都会被服务端拒绝:
+
+```
+remote: fatal: did not receive expected object 92f63f57...
+error: remote unpack failed: index-pack failed
+```
+
+**不是**权限问题（换 `passioki/OASX` 后不再 403）、**不是**仓库大小（仅 2.61 MiB）、
+**不是** `git fsck` 能查出的损坏（fsck 干净）。
+
+## 14.2 解法（用户建议的方法, 稍作调整）
+
+用户建议:
+```
+git remote add origin https://github.com/passioki/OASX.git
+git branch -M main
+git push -u origin main
+```
+
+★ 直接这么做**仍然失败** —— 因为 `oas-tasks-ui` 的历史里就带着那个坏对象。
+
+**真正有效**的做法是**绕开坏历史**:
+
+```bash
+git archive HEAD -o OASX.zip          # 导出当前树的完整内容
+# 解压到新目录 -> git init -> commit -> push
+```
+
+结果:
+```
+* [new branch]      main -> main
+远端: 052b281db43bc110fb3d00d4213b2d2f6f732e0e  refs/heads/main
+```
+
+## 14.3 ★ 代价（必须说清）
+
+推上去的 `main` 是**单个提交**（"OASX: 调度/队列 UI 重构（F1-F6）"）,
+**不是**逐步的 23 个提交 —— 坏对象在历史里, 完整历史推不上去。
+
+* **本地** `D:\OAS-dev\OASX-src` 保留**完整历史**（`oas-tasks-ui` / `main` /
+  `oas-tasks-ui-backup` 都指向同一提交 `2fca0c3`）
+* **远端** `passioki/OASX` 只有最终状态
+
+★ 若需要逐步历史, 得先修原仓库的对象（`git fetch --refetch` 或从
+  `runhey/OASX` 重新 clone 再把改动 rebase 过去）。
+
+## 14.4 顺带修掉的一个**真问题**
+
+`period` 是**下拉**, 界面显示的是**选项值**（`daily`/`weekly`/`monthly`）
+而不是 `_help`。而 i18n 守卫原本只扫带 `_help` 后缀的**字段 key** ——
+**漏了枚举选项值**, 于是下拉里会赤裸裸显示英文。
+
+已补 4 条译文（`none`/`daily`/`weekly`/`monthly` -> 不限/每天/每周/每月）,
+并加守卫。**`period` 下拉现在会正确显示"每月"**。
+
+★ 这也回答了用户 #5 的疑问: **后端已有 `monthly`, 前端下拉由
+  `enumEnum` 动态生成**, 所以只要后端有, 前端就会出现
+  （新增守卫 `test_monthly_is_offered_by_backend` 钉住）。
+
+---
+
+# 15. 本轮（#2 / #5）完成情况
+
+| # | 项 | 状态 | 证据 |
+|---|---|---|---|
+| 2 | `MemoryScrolls` **只做停止用途** —— 删掉替 `Exploration` 排期那行 | ✅ | `custom_next_run` 全库 10 → **9** 处; 编译通过; 守卫 3 个 |
+| 5 | 前端 `period` 下拉**有"每月"** | ✅ | 后端 `enumEnum=['none','daily','weekly','monthly']`; 选项值译文已补; 守卫 2 个 |
+| — | `window_*` 用户可见可改 | ✅ | 见 §12.3; 用户配置面 4 → 9 |
+| — | **OASX 推送** | ✅ **已解决** | 见 §14 |
+
+守卫: `tests/module/config/test_window_ui_contract.py`（**10 个**）
+* `period` 选项值必须有**中文**译文
+* 后端 `period` 的 `enumEnum` 必须含 `monthly`（前端下拉才会出现）
+* `period` / `window_*` 必须**用户可见**（不是 internal）
+* `/schema` 的 `scheduler` 组里必须能看到窗口字段
+* `MemoryScrolls` 不得有 `custom_next_run`、不得替别的任务排期、仍应 `raise TaskEnd`
+
+★ 踩过: 直接查 `model_json_schema()['properties']['period']['enum']` 得到 `[]`
+  —— 因为 `period` 是 **`$ref`**, `enum` 在 **`$defs`** 里。
+  改用端到端的 `/schema` 输出（`enumEnum` 已展开好）。
+

@@ -1916,3 +1916,85 @@ grep -rn 'custom_next_run' tasks/*/script_task.py
 | `dev_tools/diag_android_layout.py` | 安卓布局诊断（求手机↔1280x720 坐标关系） |
 | `dev_tools/gen_i18n.py` | 任务名从 `meta.py` 生成到各 i18n 副本 |
 | `dev_tools/diag_dead_code.py` | 死代码扫描（只读诊断） |
+
+---
+
+## 12. 已修复的 bug：休息条目「松手弹回最后」
+
+### 现象（用户实测）
+
+> "把休息拖到中间 -> **能拖**，但**松手后弹回最后**。"（用户选的 A）
+
+### ★ 根因：**前端**在保存时把休息垫底
+
+位置: `OASX` → `lib/controller/task_list/task_list_controller.dart`
+→ `TaskListController.reorderQueue()`
+
+```dart
+// 错误实现（已删除）
+final tasks = rebuilt.where((e) => '${e['kind']}' == 'task').toList();
+final rests = rebuilt.where((e) => '${e['kind']}' != 'task').toList();
+entries..clear()..addAll(tasks)..addAll(rests);   // ★ 任务在前、休息垫底
+```
+
+★ 于是**无论用户把休息拖到哪，保存时都被挪到末尾**。
+
+配套的**后端**也有同样的归一化（`Config.place_rest_last()`），
+两边一起造成了这个效果。
+
+### ★ 为什么"排错排查"花了很久（教训）
+
+| 我搜过的 | 结果 |
+|---|---|
+| `'__rest__'`（段名标记）| 命中，但那是**另一个**机制 |
+| `sort` + `rest` | ❌ **没命中** |
+| `rest` + `last` | ❌ **没命中** |
+
+★ 因为这段代码用的是 **`where(kind != 'task')` + `addAll`** 这种
+**另一种写法**，不含 `sort`/`__rest__`/`last` 任何一个关键词。
+
+> ★★ **教训：搜"意图"（恒最后 / 垫底 / 归一化）比搜"标识符"可靠得多。**
+> 用户的追问"**是不是改错仓库了**"把我推回了正确方向 ——
+> 当时我已经改了后端两处、前端一处，都**不是**真凶。
+
+### ★ 另一个教训：**先做端到端复现，再改代码**
+
+我在改完后端两处之后**才**做端到端模拟（`PUT /run_list`，休息传在中间）：
+
+```
+★ 落盘:   ['Exploration', 'rest5', 'KekkaiActivation']   ← 后端本来就对
+```
+
+★ 如果**一开始**就做这个复现，能立刻得出"**后端没问题，去查前端**"，
+省掉两轮改动。**"改了却没效果"时，第一件事应该是端到端复现，而不是继续猜。**
+
+### 修复
+
+| 仓库 | 提交 | 改动 |
+|---|---|---|
+| OASX | `2f52975` | 删掉"任务在前、休息垫底"的两趟过滤 → `entries.addAll(rebuilt)` |
+| OAS | `832f467e` | `_tag_and_place_rest()` 去排序；`place_rest_last()` 改直通 |
+| OAS | `30e54978` | `sort_run_list()` 的 `_rank` 去掉 `if not task: return 9` |
+| OASX | `8007f03` | 删 `'__rest__'` 段名标记 + 界面文案对齐 |
+
+### 验证
+
+* 全仓复查"休息垫底"逻辑 → **0 处**
+* 后端端到端: 休息传在中间 → 落盘/reload **都在中间**
+* 用户实测: **可以拖动了** ✓
+
+### ⚠ 一个容易误判的点
+
+删掉 `rank 9` 后，休息**可能仍出现在末尾** —— 但那是
+**稳定排序的巧合，不是被强制**：
+
+```
+排序前: [Exploration(fixed), rest(fixed), KekkaiActivation(timed)]
+sort_run_list('timed') -> ranks: Kekkai=0, Exploration=2, rest=2
+稳定排序 -> [KekkaiActivation, Exploration, rest]
+                           ↑ Exploration/rest 同 rank(2)，
+                             保持原相对顺序，rest 本来就在最后
+```
+
+★ **不能用"休息在不在末尾"判断改动是否生效** ——
+要看它在**同 rank 组内是否保持用户位置**。

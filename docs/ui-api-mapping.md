@@ -1,7 +1,17 @@
 # 界面设计 ↔ 后端接口 对照表
 
-> 用途：把**已确认的设计稿**（`docs/task-list-prototype.html`）里的每个控件，
-> 映射到**具体接口与字段**。做前端前先对一遍，避免两种返工：
+> **状态**：**契约**（只写端点与字段；★ **不写设计理由** —— 理由一律见
+> `docs/scheduler-architecture.md`）
+> **最后按代码核对**：2026-10-10 @ `1da97b9e`
+> **冲突时以**：`docs/scheduler-architecture.md` 为准（调度域）
+>
+> ⚠ **已知未更新处**（见 `docs/deprecated.md`）:
+> §1.3「对方」列 / §2.6 `timed_priority` / §3 开放时段表单 / §5.2 /
+> §8.1 `charges` —— 这些小节仍按**旧模型**描述, **不要照做**。
+> 权威口径: 窗口见 **§9**（已重写）, 优先级见 **§2.5** 的
+> `priority_mode` 三模式。
+>
+> 用途：把**控件**映射到**具体接口与字段**。做前端前先对一遍，避免两种返工：
 >   1. 做完才发现原型里某控件**后端没支持**
 >   2. 前端**自己硬编码**了本该由接口提供的东西
 
@@ -531,7 +541,8 @@ enable · priority · target · expected_minutes
 | `POST /home/missing_translate` | 前端上报**运行时未命中的 key** → 落 `log/missing_translate.txt`，让"还剩哪些没翻"可见 |
 
 ★ 为什么需要"上报未命中": GetX 的 `.tr` 查不到 key 时**原样返回 key**，
-**没有任何报错** —— 于是 `charge_enable_help` 赤裸裸显示在界面上却长期无人发现。
+**没有任何报错** —— 于是 `charge_enable_help`【★ 该字段与其 i18n **均已删除**,
+见 [`deprecated.md`](deprecated.md); 此处只作**历史案例**】赤裸裸显示在界面上却长期无人发现。
 
 
 ## 附：字段命名对照（前端易错点）
@@ -550,57 +561,93 @@ enable · priority · target · expected_minutes
 
 ---
 
-## 9. 窗口字段模型（#1 / #6b，2026-10-10）
+## 9. 窗口字段模型（★ 2026-10-10 **重写为多窗口**）
 
-> 用户裁定的结构:
-> "窗口开始: 下拉选择：每天、每周、每月 / 下拉选择：时:分、周几：时：分、几号：时：分"
-> "窗口语义：**(B) 两端必须同周期**"
+> **状态**：**契约**（只写端点/字段，设计理由见
+> `docs/scheduler-architecture.md`）
+> **最后按代码核对**：2026-10-10 @ `1da97b9e`
+>
+> ★★ **本节已整体重写** ★★
+>
+> 原来的 §9 讲的是**单值窗口**（`window_enable` / `window_period` /
+> `window_start` / `window_end` / `window_days` / `window_dom` /
+> **`window_slots`**）—— **这 7 个字段已全部删除**。
+>
+> 用户裁定: "不是 window slots, 而是**设置多个 window**！
+>            slots 不是已经废弃了吗" · "**一天跑两次 = 两个窗口**"
+>
+> 旧内容见 `docs/deprecated.md`（唯一废弃清单）。
 
-### 9.1 用户可见可改的窗口字段（`scheduler` 组）
+### 9.1 数据模型：`TaskWindow`（**7 个字段**）
+
+`Scheduler.windows: List[TaskWindow]` —— 与 `AvailabilityWindow`（纯逻辑）分开:
+前者是**用户配置的原子实体**, 后者是**运行时判定**。
 
 | 字段 | 类型 | 含义 |
 |---|---|---|
-| `window_enable` | bool | 启用窗口。**关** = 用任务 `meta.py` 的游戏机制窗口兜底 |
-| `window_period` | enum | **每天 / 每周 / 每月**（`WindowPeriod`）|
-| `window_start` | time | 起始**时刻**（`时:分`）|
-| `window_end` | time | 结束**时刻** |
-| `window_days` | string | `window_period=weekly` 时的**周几**（0=周一 … 6=周日, 逗号分隔）|
-| `window_dom` | string | `window_period=monthly` 时的**几号**（1-31, 逗号分隔；空 = 整月）|
-| `window_slots` | string | **每日固定时刻**（`'12:00,20:00'`）—— 填了它就忽略上面的起止时刻 |
+| `id` | string | ★ **稳定身份**（"身份，不是位置"）。后端生成（8 位 hex）|
+| `enabled` | bool | 这一段是否生效。`false` = 保留配置但**不参与判定** |
+| `period` | enum | **每天 / 每周 / 每月**（`WindowPeriod`）—— ★ **两端共用同一个** |
+| `start` | time | 起始时刻（`HH:MM:SS`）|
+| `end` | time | 结束时刻 |
+| `days` | string | `period=weekly` 时的**周几**（0=周一 … 6=周日, 逗号分隔；空 = 每天）|
+| `days_of_month` | string | `period=monthly` 时的**几号**（1-31, 逗号分隔；空 = 整月）|
 
-### 9.2 三者的关系（前端别自己推导）
+★ **可跑集合 = 所有 `enabled` 窗口的并集**（不变量 W1）。
+★ 默认**空列表** = 用户没配 -> 回退 `meta.py` 的**游戏机制窗口**。
 
+### 9.2 CRUD 端点（★ **5 个, 全部按 `id`**）
+
+| 操作 | 端点 |
+|---|---|
+| 查 | `GET /{script}/tasks/{task}/windows` |
+| **整单替换** | `PUT /{script}/tasks/{task}/windows` |
+| 增 | `POST /{script}/tasks/{task}/windows`（后端生成 `id`）|
+| 改 | `PUT /{script}/tasks/{task}/windows/{window_id}`（**`id` 不可改**）|
+| 删 | `DELETE /{script}/tasks/{task}/windows/{window_id}` |
+
+**返回体**（统一形状）:
+```json
+{"script": "恋鸟树", "task": "Restart", "count": 2,
+ "windows": [{"id": "74f166b6", "enabled": true, "period": "daily",
+              "start": "12:00:00", "end": "14:00:00",
+              "days": "", "days_of_month": ""}]}
 ```
-window_period = daily    -> 用 window_start / window_end
-window_period = weekly   -> 再加 window_days（周几）
-window_period = monthly  -> 再加 window_dom（几号）
-window_slots 非空        -> **只看 slots**, 起止时刻被忽略
-```
 
-### 9.3 ★ 优先级（`Function._build_windows`）
+★ **为什么按 `id` 而不是下标**: 窗口是**原子实体**; 按**下标**删在
+  "前端重排后"会**删错** —— 与队列条目 ⑨（按任务名删导致一删全删）
+  是**同一类**错误（§1.5）。
+★ 找不到 `id` -> **报错**, 不静默成功。
 
-1. **用户配置**（`window_enable=true`）—— 用户**偏好**, 最权威
-2. **`meta.py` 的 `TaskSpec.window`** —— 游戏机制**兜底**
-3. 都没有 -> `AvailabilityWindow(enabled=False)`
+### 9.3 前端编辑器（`lib/views/args/window_editor.dart`）
 
-★ 此前是**反的**（meta 永远压过用户）-> 用户把窗口改成 17:00-23:00
-  **完全没用**。已修正（见 `docs/SESSION-LEDGER.md` §24.1）。
+* 一条窗口一行: `启用` · `周期`（每天/每周/每月）· `起` · `止` ·
+  `周几`/`几号` · **删除**
+* 「+ 添加窗口」新增一行（**没 `id`** -> 由后端补）
+* 「保存窗口」走 **`PUT .../windows`**（整单替换）
+* 时刻用 `showTimePicker`（界面显示 `HH:mm`, 提交补成 `HH:mm:ss`）
+* ★ **保存后用后端返回值覆盖本地** —— 否则新增行**仍然没有 `id`**
 
-### 9.4 `window_slots` 为什么存在（第 4 种语义）
+### 9.4 ★ 前端注意事项
 
-用户裁定窗口只回答"**这个时间可不可以跑**"；"跑几次"由**次数**或
-**重复条目**体现。但 `Restart` 的"每天 12:00 与 20:00 各领一次体力":
+* `/args` 里 `windows` 的 `type` 是 **`array`**（不是 `string`）——
+  原生表单渲染不了, **必须用专用编辑器**
+* `period` 的值域在前端**硬编码了一份**（`_periods`）—— 这是**已知例外**
+  （3 个值, 稳定）; 其余一律从后端读
+* ★ **不要**在前端重新推导"这段窗口算定时还是固定" ——
+  用 `/overview` 的 **`priority_group`**（后端权威, 见 §9.5）
 
-* **不是窗口**（那是"可不可以"）
-* **不是次数**（那是"一轮打几场"）
-* **不是重复条目**（那会跑两轮完整任务, 但体力只在 12/20 点补充）
+### 9.5 ★ `/overview` 给的**权威派生字段**（2026-10-10 新增）
 
--> 它是**第 4 种**: "**一天几个固定时刻**"。`window_slots` 用**多个窗口段**
-表达它（每段 = 该时刻 -> +120 分钟），"一天两次"由**窗口开放次数**自然体现。
+| 字段 | 含义 |
+|---|---|
+| `category` | `meta.py` 里**声明**的类别 |
+| **`category_effective`** | ★ **最终类别**（⑥: `timed`+`period=none` -> `fixed`）|
+| `category_effective_label` | 最终类别的中文标签 |
+| **`priority_group`** | ★ `'timed'` / `'fixed'` —— **优先级段**（53/53 个任务都有）|
 
-### 9.5 前端注意事项
+★ **为什么必须给**: 实测 **54 个任务里 17 个**声明 `timed` 却
+  `category_effective == fixed`。前端若用 `category` 自推段名 ->
+  **分段条、类别色条、拖动范围全错**, 且"拖动预检"与后端判定**可能相反**。
+★ 现在前端 `priorityGroupOf()` **优先读 `priority_group`**（兜底才自推）。
 
-* `window_period` 是枚举 -> 下拉由后端 `enumEnum` **自动生成**（含"每月"）
-* `window_days` / `window_dom` / `window_slots` 是**字符串** -> 文本输入
-* ★ **不要**在前端重新推导"哪组字段生效" —— 后端 `_build_windows()` 是权威
-  （本项目已因"知识存在两处"栽过多次）

@@ -1,16 +1,44 @@
 # OAS 架构与调度系统
 
-> 状态：**设计已定稿，实施进行中**（详见 §8 路线图）
-> 更新：2026-10-08
+> **状态**：**已降级为「指针 + 非调度域内容」**（★ 2026-10-10）
+> **最后按代码核对**：2026-10-10 @ `1da97b9e`（**仅头部与 §0**；正文 §3 / §5.4 /
+> §11 / §13 **未逐个校对, 已知过时**）
+> **冲突时以**：`docs/scheduler-architecture.md` 为准（**调度域唯一权威**是它）
+>
+> ## ★★ 读之前先看这三行 ★★
+>
+> * **调度问题**（窗口 / 队列 / 优先级 / 排期 / 类别）-> 一律看
+>   [`scheduler-architecture.md`](scheduler-architecture.md)
+> * **端点与字段**（前后端契约）-> 看 [`ui-api-mapping.md`](ui-api-mapping.md)
+> * **"某个东西还在不在"** -> 看 [`deprecated.md`](deprecated.md)（唯一废弃清单）
+>
+> ### 本文**已过时**的部分（不要照做）
+>
+> | 节 | 问题 |
+> |---|---|
+> | §3（`:204-305`）| 整节讲**已删除**的 `Recharge` / `Resource` / `RunState` / `next_available()`, 还给了源码 |
+> | §5.4.1 | 把 `timed_priority` 当**现行**字段（已并入 `priority_mode`）|
+> | §11 / §13 | 编号错位; §13.1 把**已完成**的工作写成待办（`custom_next_run` 处置）|
+> | 附录（`:1813-1819`）| 列了**已删除**的 `scheduler_core.py` / `gen_resource_specs.py` / `test_availability.py` |
+>
+> ### 本文**仍有效**的部分
+>
+> 平台能力（§7.4）· 调研方法论 · 历史 bug 根因（那些"为什么当初这么做"的记录）
+> —— 这些与本次调度重构**无关**, 仍然可信。
+>
+> 更新：2026-10-08（原文）；2026-10-10（本轮降级）
 > 读者：后续维护者（包括未来的我）
 
-本文档是 OAS 架构与调度系统的**单一入口**。合并自此前分散的多份设计稿：
+本文档**曾是** OAS 架构与调度系统的单一入口。合并自此前分散的多份设计稿：
 `scheduler-redesign.md`（旧版）、`task-list-design.md`、
 `architecture-evolvability.md`、`adding-new-activity.md`、`decision-log.md`。
 
 **为什么要有这份文档**：此前的设计过程暴露出一个真实问题 —— 同一个概念
-（"多久跑一次"）在代码里有四个载体（`success_interval` / `charge_slots` /
-`charge_max` / `next_run`），而设计知识又散在五份文档里。**概念要收敛，文档也要收敛。**
+（"多久跑一次"）在代码里有四个载体（`success_interval`【已删】 / `charge_slots`【已删】 /
+`charge_max`【已删】 / `next_run`），而设计知识又散在五份文档里。**概念要收敛，文档也要收敛。**
+
+★ **2026-10-10 追加**：这次收敛**做过头了** —— 三个文档同时自称"唯一权威",
+  于是**同一知识又有两处定义**, 又漂移。现已分层（见文件头）。
 
 ---
 
@@ -41,9 +69,9 @@
 
 | # | 原则 | 反例（改造前的现状） |
 |---|---|---|
-| 1 | **一个概念只用一个词表达** | "多久跑一次"同时有 `success_interval`、`charge_slots`、`charge_max`、`next_run` |
+| 1 | **一个概念只用一个词表达** | "多久跑一次"同时有 `success_interval`【已删】、`charge_slots`【已删】、`charge_max`【已删】、`next_run` |
 | 2 | **知识只存在一处** | 金币妖怪"0/12 点补 2 次"散在 3 个配置字段 + 代码里 |
-| 3 | **用户只看到他该管的** | 54 个任务暴露 `charge_max`/`charge_slots`/`success_interval`，用户只想改"打几次" |
+| 3 | **用户只看到他该管的** | 54 个任务暴露 `charge_max`/`charge_slots`/`success_interval`【三者**均已删**】, 用户只想改"打几次" |
 
 **推论（重要）**：不为"兼容旧配置"保留双轨、兼容层或 feature flag。
 旧配置用**一次性迁移脚本**转换，**脚本用完即删**。留在仓库里就是永久技术债。
@@ -119,6 +147,24 @@ OASX i18n_cn.dart     FallenSun → 日轮之陨     ← 权威
 ---
 
 ## 3. 核心抽象
+
+> ★★ **本节（§3）整体已过时** —— 讲的是**已删除**的"存量/充能"机制 ★★
+>
+> | 本文提到的 | 现状 |
+> |---|---|
+> | `Resource`（`:232`）| ★ **已删**（S5, 见 [`deprecated.md`](deprecated.md)）|
+> | `Recharge`（`:234`）| ★ **已删** |
+> | `RunState`（`:293`）| ★ **已删**（随 `scheduler_core.py`）|
+> | `next_available()`（`:305`）| ★ **已删** |
+> | `TaskSpec.resource`（`:323`）| ★ **已删** -> 改成**独立字段** `TaskSpec.period` |
+>
+> ★ **取代它们的是**：**窗口**（`Scheduler.windows: List[TaskWindow]`）。
+>   "一天跑几次"由**多个窗口** + 队列里的**重复条目**表达。
+>
+> ★ 本节**保留**只因为它是"**当时为什么这么设计**"的记录（踩过的坑：
+>   "同一个概念有四个载体"）。**不要照它写代码。**
+>
+> 现行设计 -> [`scheduler-architecture.md`](scheduler-architecture.md)
 
 **只有三个概念。**
 
@@ -244,7 +290,7 @@ class Resource:
 |---|---|---|---|
 | `none` + `period` | 固定任务 | 日轮之陨：每天 50 次 | `success_interval=1d` + `limit_count=50` → **2 个** |
 | `interval` | 按间隔补充 | 逢魔之时：每 1 小时 | `success_interval=1h` → 1 |
-| `slots` | 固定时刻补充 | 金币妖怪：0/12 点各回满，上限 2 | `charge_slots`+`charge_max`+`charge_consume`+`success_interval` → **4 个** |
+| `slots`【**该机制已删**】 | 固定时刻补充 | 金币妖怪：0/12 点各回满，上限 2 | `charge_slots`+`charge_max`+`charge_consume`+`success_interval` → **4 个**（**全已删**）|
 | `window` | 只在活动期 | 超鬼王：活动期内每天 1 次 | **无**（靠推远 `next_run` 假装不存在） |
 
 ★ `Resource(capacity=50, recharge=Recharge(period=DAILY))` **一个概念**即表达旧的
@@ -1361,7 +1407,7 @@ demon_encounter.success_interval = "00 01:00:00"
 | 字段 | 实际含义 | 是不是游戏机制 |
 |---|---|---|
 | `success_interval` | 用户希望的轮询/冷却节奏 | ❌ **用户意图** |
-| `charge_slots` / `charge_max` | 游戏内补充时刻与上限 | ✅ 是 |
+| `charge_slots` / `charge_max`【**均已删**】 | 游戏内补充时刻与上限 | ✅ 是（现由**窗口**表达）|
 | `limit_count` | 单次运行打几次 | ⚠️ 半是（用户可调） |
 | `window`（新增） | 游戏开放时段 | ✅ 是 |
 
@@ -1812,11 +1858,13 @@ grep -rn 'custom_next_run' tasks/*/script_task.py
 | `module/config/task_catalog.py` | 任务元数据（运行时） |
 | `module/config/resource.py` | **`Resource` 资源规则**（interval / slots / window / period） |
 | `module/config/availability.py` | **`AvailabilityWindow` 开放时段 + `ObservedWindow` 自学习** |
-| `module/config/scheduler_core.py` | **`RunState` + `next_available()` 纯函数调度核心** |
+| ~~`module/config/scheduler_core.py`~~ | ★ **已删除**（S5: 死代码, 346 行）—— 见 [`deprecated.md`](deprecated.md) |
 | `dev_tools/gen_task_catalog.py` | 元数据生成 / 校验（支持 `--dump-names`） |
-| `dev_tools/gen_resource_specs.py` | 为 54 个任务生成 `Resource` 定义 |
-| `tests/module/config/test_scheduler_core.py` | 调度核心测试（57 项） |
-| `tests/module/config/test_availability.py` | 开放时段与自学习测试（47 项） |
+| ~~`dev_tools/gen_resource_specs.py`~~ | ★ **已删除**（S5）—— 现在直接在各任务 `meta.py` 写 `period=` |
+| ~~`tests/module/config/test_scheduler_core.py`~~ | ★ **已删除**（被测模块没了） |
+| ~~`tests/module/config/test_availability.py`~~ | ★ **已删除**（全测 `scheduler_core.next_available()`） |
+| `docs/scheduler-architecture.md` | ★ **调度域唯一权威**（窗口 / 队列 / 三优先级模式 / 不变量） |
+| `docs/deprecated.md` | ★ **唯一废弃清单**（"某东西还在不在"查这里） |
 | `module/config/run_control.py` | **暂停调度 / 本轮跑完再停 / 继续调度**（运行控制状态） |
 | `module/config/run_list.py` | **运行列表 = 固定任务 + 休息**（`task` / `rest`） |
 | `module/config/timed_schedule.py` | **固定/定时分开管理**：总开关、穿插判定、定时排序（纯函数） |

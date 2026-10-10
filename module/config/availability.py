@@ -34,6 +34,10 @@
 import bisect
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
+# ★ (b) 动态窗口: `parse_time()` 需要"构造 time"的入口, 但字段名 `time`
+#   会遮蔽模块级名字 —— 所以用别名（不改既有 `time(...)` 的用法）。
+from datetime import datetime as datetime_cls
+from datetime import time as time_cls
 
 # 一星期 7 天, 周一 = 0(与 datetime.weekday() 一致)
 ALL_DAYS = (0, 1, 2, 3, 4, 5, 6)
@@ -80,15 +84,55 @@ class AvailabilityWindow:
     days: tuple = ALL_DAYS
     # ★ 空元组 = 不限月内日（**不是**"都不允许"）
     days_of_month: tuple = ()
+    # ★★ 动态 days（用户裁定 (b)）: 运行时从**任务配置**读星期 ★★
+    #
+    # 值是 `Config` 上的点分路径**元组**, 每项指向一个"星期"字段, 如:
+    #     ('guild_banquet.guild_banquet_time.day_1',
+    #      'guild_banquet.guild_banquet_time.day_2')
+    #
+    # `Config.resolve_windows()` 在运行时读成 0-6 的整数, 与静态 `days`
+    # **取并集** —— 于是**窗口仍是唯一排期依据**, 只是 `days` 可能
+    # **运行时求值**（用户原话: "这个 B 并不冲突"）。
+    days_from_config: tuple = ()
+    # ★ 同上的**时刻**版: 指向一个 `datetime.time` 字段, 运行时读成 `start`/`end`
+    #   值形如 `('guild_banquet.guild_banquet_time.run_time_1',)`
+    #   （只放一个路径 -> `start` 用它, `end` = start + 窗口跨度）
+    times_from_config: tuple = ()
 
     def __post_init__(self):
-        if not self.days:
-            raise ValueError('days 不能为空; 如需不限时段请把 enabled 设为 False')
+        # ★ 空 `days` 的两种合法情形（否则真的没法判定）:
+        #   1. `days_from_config` 非空 -> 运行时才有值（用户裁定 (b)）
+        #   2. `days_of_month` 非空 -> 按月内日限（`days` 不参与）
+        if not self.days and not self.days_from_config \
+                and not self.days_of_month:
+            raise ValueError(
+                'days 不能为空（除非 days_from_config / days_of_month 非空）; '
+                '如需不限时段请把 enabled 设为 False')
         for d in self.days:
             if not (0 <= int(d) <= 6):
                 raise ValueError(f'非法星期: {d!r}(应为 0-6, 周一=0)')
         if not any(int(d) != d for d in self.days):     # 全是整数
             object.__setattr__(self, 'days', tuple(sorted({int(d) for d in self.days})))
+        # 动态 days: 每项必须是"非空的配置路径字符串"
+        if self.days_from_config:
+            for pth in self.days_from_config:
+                if not isinstance(pth, str) or not pth.strip():
+                    raise ValueError(
+                        f'days_from_config 的项必须是配置路径字符串, '
+                        f'实际 {pth!r}')
+            object.__setattr__(
+                self, 'days_from_config',
+                tuple(str(pth).strip() for pth in self.days_from_config))
+        # 动态时刻: 同 days_from_config 的校验
+        if self.times_from_config:
+            for pth in self.times_from_config:
+                if not isinstance(pth, str) or not pth.strip():
+                    raise ValueError(
+                        f'times_from_config 的项必须是配置路径字符串, '
+                        f'实际 {pth!r}')
+            object.__setattr__(
+                self, 'times_from_config',
+                tuple(str(pth).strip() for pth in self.times_from_config))
         # 月内日: 1-31; 空 = 不限
         if self.days_of_month:
             for d in self.days_of_month:
@@ -130,6 +174,9 @@ class AvailabilityWindow:
             return True
         if len(self.days) != 7 or self.restricts_month_day:
             return False
+        if self.days_from_config or self.times_from_config:
+            # 动态值运行时才知道 -> 保守地**不**当作"不限"
+            return False
         # 时刻必须覆盖整天才算不限。
         # `end` 用 23:59 表示"当天结束"（`AvailabilityWindow` 的默认值）,
         # 因此把 `end <= start` 且 start 为 00:00 的情况也算作整天
@@ -139,14 +186,16 @@ class AvailabilityWindow:
         return _minutes(self.end) >= 23 * 60 + 59
 
     # ------------------------------------------------------------ 判定
-    def contains(self, at: datetime) -> bool:
-        """
-        `at` 是否落在开放时段内。
+    def contains(self, at) -> bool:
+        """`at` 是否落在本时段内。
 
-        未启用时段 -> 恒为 True(不限时段)。
-        跨午夜窗口: 落在 [start, 24:00) 或 [00:00, end) 都算命中, 但**星期的归属**
-        要按"窗口的起始日"判断 —— 即次日凌晨那一段仍属于前一天的窗口。
+        ★ 动态窗口（`days_from_config` / `times_from_config`）**未解析**时:
+          本对象**不知道**实际星期/时刻 -> 返回 True（**不误拦**）。
+          真正的判定在 `Config.in_window()`（那里能读配置解析动态值）。
+          —— 否则 `TaskSpec.in_window()` 会因为 `days=()` 而**永远 False**（踩过）。
         """
+        if self.days_from_config or self.times_from_config:
+            return True
         if not self.enabled:
             return True
         m = _minutes(at)
@@ -255,9 +304,14 @@ class AvailabilityWindow:
             else:
                 label = ','.join(str(d) for d in self.days_of_month)
             return f'每月 {label} 日 {span}'
-        if len(self.days) == 7:
+        if len(self.days) == 7 and not self.days_from_config:
             return f'每天 {span}'
         names = ''.join(DAY_NAMES[d] for d in self.days)
+        if self.days_from_config:
+            # ★ 实际值**运行时**才知道 -> 标出来, 别显示错的星期
+            names = f'{names}+配置' if names else '来自配置'
+        if self.times_from_config:
+            span = '时刻来自配置'
         return f'{names} {span}'
 
 
@@ -412,3 +466,62 @@ class ObservedWindow:
         return cls(samples=list(data.get('samples') or []),
                    days=set(data.get('days') or []),
                    count=int(data.get('count') or 0))
+
+
+# ★ (b) 动态 days: 把"星期"的常见表示映射到 0-6（周一=0）。
+#
+# 为什么放这里: `GuildBanquet` 用的是 `Weekday` 枚举（值是**中文**"星期三"）,
+# 而 `AvailabilityWindow.days` 用 0-6。集中一张表, 免得每处各写一份
+# （本项目已因"知识存在两处"栽过多次 —— 台账 §10.8 单一数据源）。
+WEEKDAY_ALIASES = {
+    # 中文（`tasks/GuildBanquet/config.py` 的 `Weekday`）
+    '星期一': 0, '星期二': 1, '星期三': 2, '星期四': 3,
+    '星期五': 4, '星期六': 5, '星期日': 6, '星期天': 6,
+    # 中文简称
+    '周一': 0, '周二': 1, '周三': 2, '周四': 3,
+    '周五': 4, '周六': 5, '周日': 6, '周天': 6,
+    # 英文（大小写不敏感）
+    'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
+    'friday': 4, 'saturday': 5, 'sunday': 6,
+    # 纯数字字符串
+    '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
+}
+
+
+def parse_weekday(value) -> int:
+    """把"星期"的任意常见表示解析成 0-6（周一=0）。
+
+    支持: 中文全称/简称 / 英文名（大小写不敏感）/ 0-6 数字 / `Weekday` 枚举。
+    解析不出来抛 `ValueError`（**不猜**）。
+    """
+    # 枚举 -> 取 .value
+    raw = getattr(value, 'value', value)
+    if isinstance(raw, bool):
+        raise ValueError(f'非法星期: {value!r}')
+    if isinstance(raw, int):
+        if 0 <= raw <= 6:
+            return raw
+        raise ValueError(f'非法星期: {value!r}(应为 0-6, 周一=0)')
+    key = str(raw).strip()
+    if key.lower() in WEEKDAY_ALIASES:
+        return WEEKDAY_ALIASES[key.lower()]
+    if key in WEEKDAY_ALIASES:
+        return WEEKDAY_ALIASES[key]
+    raise ValueError(f'无法识别的星期: {value!r}')
+
+
+def parse_time(value):
+    """把一个"时刻"的常见表示解析成 `datetime.time`。
+
+    支持: `datetime.time` / `'19:00'` / `'19:00:00'` / `'19：00'`（全角冒号）。
+    解析不出来抛 `ValueError`（**不猜**）。
+    """
+    if isinstance(value, time_cls):
+        return value
+    key = str(getattr(value, 'value', value)).strip().replace('：', ':')
+    for fmt in ('%H:%M:%S', '%H:%M'):
+        try:
+            return datetime_cls.strptime(key, fmt).time()
+        except ValueError:
+            continue
+    raise ValueError(f'无法识别的时刻: {value!r}')

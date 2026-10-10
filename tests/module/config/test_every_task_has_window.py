@@ -110,7 +110,10 @@ class TestExplicitWindowsAreHonoured:
         ('DemonEncounter', '17:00'),
         ('AbyssShadows', '19:00'),
         ('Hunt', '06:00'),
-        ('GuildBanquet', '18:00'),
+        # ★ `GuildBanquet` 是**动态窗口**（宴会日/时刻引用 `guild_banquet_time`）
+        #   -> `window_describe` 显示"来自配置", 不含具体时刻。
+        #   它的真实判定由 `Config.in_window()` 解析 `days_from_config` 完成
+        #   （见 tests/module/config/test_dynamic_window.py）。
         ('DemonRetreat', '19:00'),
         ('Dokan', '19:00'),
         ('MysteryShop', '00:00'),

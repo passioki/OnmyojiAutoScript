@@ -1832,3 +1832,121 @@ Config._record_task_success(task_key)             <- 记录
 | 自检工具 | `dev_tools/check_windows.py` |
 | 新增测试 | `test_every_task_has_window` · `test_window_ui_contract` · `test_task_report` · `test_duplicate_queue_entries` · `test_entry_id` · `test_entry_scoped_state` · `test_window_slots` · `test_multi_segment_window` · `test_success_interval_removed` · `test_guild_banquet_window` · `test_queue_is_authority` · `test_queue_removal_semantics` · `test_execution_queue` |
 
+---
+
+# 26. ★★ 用户最终裁定的收尾（2026-10-10 第二轮）★★
+
+## 26.1 用户裁定原文（4 条 + OASX 状态）
+
+> "**窗口是唯一排期依据, 这个 B 并不冲突吧, 窗口仍然是唯一排期依据。**
+>  (b) **AvailabilityWindow 支持动态 days（运行时从配置读）** 让窗口能引用配置字段"
+>
+> "对于 restart 和 RyouToppa, **(a) Restart 用两个窗口段（12:00-14:00 + 20:00-22:00）**,
+>  一天两次靠窗口开放次数隐式实现, **RyouToppa 也同理**"
+>
+> "**删 custom_next_run, 用户没配窗口, 代表着这个只能按照排序依次执行**,
+>  而不是通过 custom_next_run 来调度。"
+>
+> "**能重构就重构, 不要做冗余代码适配**, 这会让后期维护变得困难。"
+>
+> "**OASX 已关闭**"
+>
+> 另: "你**直接帮我配好窗口**就好, **改用户配置**。顺带帮我把**现有的配置
+>  适配好现有的软件**。"
+
+## 26.2 ✅ ① `custom_next_run` **彻底清零**（10 -> 0）
+
+| 任务 | 处置 |
+|---|---|
+| `MemoryScrolls` | 早先已清（只做停止用途）|
+| `Hunt` | 早先已清（改成两段窗口）|
+| `GuildBanquet` | 删 `plan_next_run()` -> 用**动态窗口**（宴会日/时刻引用配置）|
+| `Restart` | 删手工排 12:00/20:00 -> `window_slots='12:00,20:00'` |
+| `RyouToppa` | 删 `plan_tomorrow_ryoutoppa()`（**两个**调用点）-> `window_slots='07:00'` |
+
+★ 同时清理了不再引用的 `import` 与死代码（`Time`、`dt_time` 等）。
+
+**核对**: `tests/module/config/test_window_slots.py::TestRemainingCustomNextRun`
+断言 **0 处**（起点 10）。
+
+## 26.3 ✅ ② 动态窗口（(b)）：窗口能**引用配置字段**
+
+新增 `AvailabilityWindow.days_from_config` / `times_from_config`:
+值是指向配置的**相对任务**路径, `Config.resolve_windows()` 运行时读成
+星期 / 时刻, 与静态值**取并集**。
+
+`GuildBanquet/meta.py` 现在声明**两段动态窗口**:
+```python
+window=(
+    AvailabilityWindow(True, time(18,0), time(22,0), days=(),
+        days_from_config=('guild_banquet_time.day_1',),
+        times_from_config=('guild_banquet_time.run_time_1',)),
+    AvailabilityWindow(True, time(18,0), time(22,0), days=(),
+        days_from_config=('guild_banquet_time.day_2',),
+        times_from_config=('guild_banquet_time.run_time_2',)),
+)
+```
+
+**实测**: 配置 `day_1=星期三 day_2=星期六 run_time=19:00` ->
+```
+guild_banquet: ['19:00-21:00 d=(2,)', '19:00-21:00 d=(5,)']
+周三19:00 True | 周六19:00 True | 周四19:00 False | 周三12:00 False
+```
+★ 用户在任务配置里改宴会日 -> 窗口**运行时**跟着变。**窗口仍是唯一排期依据**。
+
+## 26.4 ★ 过程中修掉的 **6 个真 bug**（都是实测抓到的）
+
+| # | bug | 症状 |
+|---|---|---|
+| 1 | `Function.model` 是 `None` | 动态路径**永远解析失败**（静默）|
+| 2 | `self.node` 是 **dict**, 用 `getattr` | `AttributeError` -> 静默跳过 |
+| 3 | `resolve_windows()` 里 `AvailabilityWindow` **未导入** | `NameError` **被宽 except 吞成 WARNING** |
+| 4 | 静态 `days=ALL_DAYS` 与动态**并集** | 动态 days 被抹成全周 |
+| 5 | 迁移写入**字符串** `'12:00:00'` | `Time` 序列化器 `.strftime` **崩在保存时** |
+| 6 | `deep_set` 收到 `model_dump()` 的**字符串** | 字段类型错, 即使不崩也没落盘 |
+
+★ 教训: **宽 `except Exception` 会把编程错误藏成数据问题**（#3 让我多查了两轮）。
+★ 教训: **自定义键做幂等标记无效** —— pydantic v2 `extra='ignore'`
+  会把它从 `model_dump()` 丢掉; 改用**语义本身**（`window_slots` 非空 = 已配）。
+
+## 26.5 ✅ ③ 帮你**配好了窗口**（改的是**你的配置**）
+
+`Scheduler.apply_recommended_windows()` + `Config.migrate_windows_once()`
+（在 `Config.__init__` 末尾调用, **幂等**）。
+
+| 任务 | 配置值 |
+|---|---|
+| `restart` | `window_enable=True`, `window_slots='12:00,20:00'` -> **12:00-14:00 + 20:00-22:00** |
+| `ryou_toppa` | `window_enable=True`, `window_slots='07:00'` -> **07:00-09:00** |
+| `guild_banquet` | **不设**（用 `days_from_config` 引用宴会日）|
+
+**已写入 4 个配置**: `恋鸟树` / `伴生树` / `oas1` / `template`（**磁盘已核对**）。
+
+**实测**:
+```
+restart:     ['12:00-14:00 d=全周', '20:00-22:00 d=全周']
+             11:00 False | 12:00 True | 15:00 False | 20:00 True | 22:00 False
+ryou_toppa:  ['07:00-09:00 d=全周']
+guild_banquet: ['19:00-21:00 d=(2,)', '19:00-21:00 d=(5,)']
+```
+幂等: 第二次 `migrate_windows_once()` -> `False`（不重复改）。
+
+## 26.6 ✅ ④ OASX **release 构建复验通过**（用户已关闭 OASX）
+
+```
+Building Windows application...                    45.7s
+√ Built build\windows\x64\runner\Release\oasx.exe
+[exit code: 0]
+```
+★ 此前失败是因为运行中的 `oasx.exe` 占着文件（`LNK1104`）; 关闭后一次通过。
+
+## 26.7 最终验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1690 passed, 3 skipped** |
+| 前端 flutter test | **85 passed** |
+| `flutter analyze` | 11 issue —— **全部在既有文件**（`dio_http_cache` / `i18n` / `overview_controller` / `platform_utils` / `args_view` / `server_view`）; 我改的文件单独 analyze **干净** |
+| `check_windows.py` | exit 0（54/54）|
+| `custom_next_run` | **0 处**（起点 10）|
+

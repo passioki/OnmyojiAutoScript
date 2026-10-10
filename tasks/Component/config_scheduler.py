@@ -44,6 +44,60 @@ class WindowPeriod(str, Enum):
     MONTHLY = 'monthly'
 
 
+# ★★★ 一次性窗口迁移（用户要求: "帮我配好窗口" + "适配好现有的软件"）★★★
+#
+# 用户裁定的"推荐窗口":
+#
+#   Restart        window_slots = '12:00,20:00'   -> 12:00-14:00 + 20:00-22:00
+#                  （每天两次领体力; 用户原话: "(a) Restart 用两个窗口段"）
+#   RyouToppa      window_slots = '07:00'         -> 07:00-09:00
+#                  （用户原话: "RyouToppa也同理"）
+#   GuildBanquet   **不设** —— 它用 `days_from_config` 引用宴会日
+#                  （周三/周六 19:00 来自 `guild_banquet_time`）
+#
+# ★ 只做**一次**: 用配置顶层的 `_window_migration` 标记。
+#   否则每次启动都会覆盖用户在界面上改的窗口（本会话踩过这个坑）。
+RECOMMENDED_WINDOWS = {
+    'restart': '12:00,20:00',
+    'ryou_toppa': '07:00',
+}
+
+
+def apply_recommended_windows(node_map: dict) -> list:
+    """给 `node_map`（`{任务键: 节点dict}`）里**未迁移过**的任务配好窗口。
+
+    :param node_map: 配置的**原始 dict**（可写回）
+    :return: 实际改动的任务键列表（空 = 无需迁移）
+    """
+    changed = []
+    for key, slots in RECOMMENDED_WINDOWS.items():
+        node = node_map.get(key)
+        if not isinstance(node, dict):
+            continue
+        sch = node.get('scheduler')
+        if not isinstance(sch, dict):
+            continue
+        # ★ 已是"用户自己配过"的 -> 不动（window_period 被显式设过 或
+        #   已经有 slots 且非空）
+        if str(sch.get('window_slots') or '').strip():
+            continue
+        sch['window_enable'] = True
+        sch['window_slots'] = slots
+        # 起止时刻留一个合理的默认（slots 生效时会被忽略, 但界面要显示）。
+        #
+        # ★ 必须是 `datetime.time`, **不是字符串** —— `Settings.Time` 的
+        #   序列化器直接调 `.strftime`, 给字符串会在**保存**时崩:
+        #     AttributeError: 'str' object has no attribute 'strftime'（踩过）
+        from datetime import time as _time
+        if not isinstance(sch.get('window_start'), _time):
+            sch['window_start'] = _time(hour=12, minute=0)
+        if not isinstance(sch.get('window_end'), _time):
+            sch['window_end'] = _time(hour=22, minute=0)
+        sch['window_period'] = 'daily'
+        changed.append(key)
+    return changed
+
+
 class Scheduler(ConfigBase):
     """
     ## ★★ 用户配置面 vs 内部排期字段 ★★

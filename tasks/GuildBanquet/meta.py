@@ -23,7 +23,32 @@ SPEC = TaskSpec(
     category=Category.TIMED,
     # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
     auto_queue=True,
-    window=AvailabilityWindow(True, time(18, 0), time(22, 0)),
+    # ★★ (b) 动态窗口: 宴会日与时刻都**引用用户配置** ★★
+    #
+    # 用户裁定:
+    #   "AvailabilityWindow 支持动态 days（运行时从配置读）, 让窗口能引用配置字段"
+    #   "窗口是唯一排期依据, 这个 B 并不冲突"
+    #
+    # `GuildBanquetTime` 有**两场**宴会, 各自带"星期 + 时刻":
+    #     day_1 = 星期三, run_time_1 = 19:00
+    #     day_2 = 星期六, run_time_2 = 19:00
+    #
+    # ★ 路径是**相对任务**的（`GuildBanquet/meta.py` 只拿到任务级数据）
+    # 所以给**两段**窗口, 每段引用对应字段 —— 用户在任务配置里改宴会日/时刻,
+    # 窗口运行时跟着变; 而不是把"周三/周六 19:00"硬编码进代码。
+    window=(
+        # `days=()` = **没有静态约束** —— 星期完全由配置决定
+        AvailabilityWindow(True, time(18, 0), time(22, 0), days=(),
+                           days_from_config=(
+                               'guild_banquet_time.day_1',),
+                           times_from_config=(
+                               'guild_banquet_time.run_time_1',)),
+        AvailabilityWindow(True, time(18, 0), time(22, 0), days=(),
+                           days_from_config=(
+                               'guild_banquet_time.day_2',),
+                           times_from_config=(
+                               'guild_banquet_time.run_time_2',)),
+    ),
     list_pos=18,
     resource=Resource(capacity=1, recharge=Recharge(kind='none', period=Period.DAILY)),
 )

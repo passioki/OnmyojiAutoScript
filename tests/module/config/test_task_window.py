@@ -137,7 +137,9 @@ class TestMigratedTasks:
         'Hunt': ('周一', (0, 7, 0), (0, 5, 0)),                # 早晚两段
         'MysteryShop': ('周三', (2, 12, 0), (0, 12, 0)),       # 周三 + 周六
         'Secret': ('周一', (0, 9, 0), (1, 9, 0)),              # 仅周一
-        'GuildBanquet': ('每天', (0, 18, 30), (0, 5, 0)),      # 每天 18-22
+        # ★ `GuildBanquet` 已改为**动态窗口**（(b): 宴会日/时刻引用配置）
+    #   -> 不再用固定文案断言; 见 test_dynamic_window.py
+
     }
 
     def test_all_migrated_have_window(self):

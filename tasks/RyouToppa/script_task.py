@@ -2,7 +2,7 @@
 # @author runhey
 # github https://github.com/runhey
 import time
-from datetime import datetime, timedelta, time as dt_time
+from datetime import datetime, timedelta
 import random
 
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
@@ -144,10 +144,22 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RyouToppaAssets):
                 self.set_next_run(task='RyouToppa', finish=True, server=True, success=False)
                 raise TaskEnd
 
-        # 100% 攻破, 第二天再执行
+        # 100% 攻破, 下次由**窗口**决定
         if ryou_toppa_success_penetration:
             logger.info('RyouToppa is 100%')
-            self.plan_tomorrow_ryoutoppa()
+            # ★★ 用户最终裁定（2026-10-10）: **删掉任务内自排期** ★★
+            #
+            # 用户原话: "删 custom_next_run, **用户没配窗口, 代表着这个只能按照
+            # 排序依次执行**, 而不是通过 custom_next_run 来调度。"
+            #
+            # 原来这里是 `self.plan_tomorrow_ryoutoppa()` —— 它把"下次跑"定在
+            # **用户配置的** `next_ryoutoppa_time`（默认 7:00）。那是任务内自排期,
+            # 与"窗口是唯一排期依据 + 队列顺序"是两套机制。
+            #
+            # 现在: `set_next_run(success=True)` -> 由**窗口**对齐到下次开放;
+            #       **没配窗口** -> 就按队列顺序依次执行。
+            self.set_next_run(task='RyouToppa', finish=True,
+                              server=True, success=True)
             raise TaskEnd
         if self.config.ryou_toppa.general_battle_config.lock_team_enable:
             logger.info("Lock team.")
@@ -196,33 +208,18 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RyouToppaAssets):
             self.set_next_run(task='RyouToppa', finish=True, server=True, success=False)
         raise TaskEnd
 
-    def plan_tomorrow_ryoutoppa(self):
-        # ★★ ⑥(b): 有窗口就用**窗口**, 否则保留旧行为 ★★
-        #
-        # 本方法把"下次跑"定在**用户配置的** `next_ryoutoppa_time`（默认 7:00）,
-        # 5:00 之前算今天、之后算明天。
-        #
-        # 那是**任务内自排期**, 与"队列顺序 + 窗口"是两套机制（用户裁定 §20.2）。
-        # 现在可以用 `window_slots` 表达"每天 7:00 跑一次":
-        #
-        #     scheduler.window_enable = true
-        #     scheduler.window_slots  = '07:00'
-        #
-        # ★ 用户**没配**窗口时保留旧行为（不静默改变既有用户的调度）。
-        sch = self.config.ryou_toppa.scheduler
-        if getattr(sch, 'window_enable', False) and \
-                str(getattr(sch, 'window_slots', '') or '').strip():
-            logger.info('RyouToppa: 用 window_slots 排期（不再自排期）')
-            self.set_next_run(task='RyouToppa', finish=True,
-                              server=True, success=True)
-            return
-        now = datetime.now()
-        # 如果时间在00:00-5:00之间则设定时间为当天的自定义时间
-        if now.time() < dt_time(5, 0):  # 不确定 time 的使用范围，重命名 datetime 中的 time
-            self.custom_next_run(task='RyouToppa', custom_time=self.config.ryou_toppa.raid_config.next_ryoutoppa_time, time_delta=0)
-        # 如果时间在05:00-23:59之间则设定时间为明天的自定义时间
-        else:
-            self.custom_next_run(task='RyouToppa', custom_time=self.config.ryou_toppa.raid_config.next_ryoutoppa_time, time_delta=1)
+    # ★★ `plan_tomorrow_ryoutoppa()` **已删除**（2026-10-10, 用户裁定）★★
+    #
+    # 它做的事: 把"下次跑"定在**用户配置的** `next_ryoutoppa_time`（默认 7:00）,
+    # 5:00 之前算今天、之后算明天 —— 那是**任务内自排期**。
+    #
+    # 用户原话:
+    #   "删 custom_next_run, **用户没配窗口, 代表着这个只能按照排序依次执行**,
+    #    而不是通过 custom_next_run 来调度。"
+    #   "能重构就重构, **不要做冗余代码适配**。"
+    #
+    # 现在由**窗口**表达（`scheduler.window_slots = '07:00'` -> 07:00-09:00）,
+    # 或**没配窗口**就按队列顺序依次执行。
 
     def start_ryou_toppa(self):
         """
@@ -278,10 +275,14 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RyouToppaAssets):
         f3, f4 = area_map[index].get("finished_sign")
         self.screenshot()
         # 如果该区域已经被攻破则退出
-        # Ps: 这时候能打过的都打过了，没有能攻打的结界了, 代表任务已经完成，set_next_run time=1d
+        # Ps: 这时候能打过的都打过了，没有能攻打的结界了, 代表任务已经完成
         if self.appear(f3, threshold=0.8) or self.appear(f4, threshold=0.8):
             logger.info('RyouToppa has tried to attack')
-            self.plan_tomorrow_ryoutoppa()
+            # ★★ 用户裁定: 自排期**已删** —— 下次由**窗口**决定 ★★
+            #   （`set_next_run(success=True)` -> 对齐到窗口下次开放;
+            #     没配窗口 -> 按队列顺序依次执行）
+            self.set_next_run(task='RyouToppa', finish=True,
+                              server=True, success=True)
             raise TaskEnd
         # 如果该区域攻略失败返回 False
         if self.appear(f1, threshold=0.8) or self.appear(f2, threshold=0.8):

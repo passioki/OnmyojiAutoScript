@@ -23,6 +23,8 @@ from module.notify.notify import Notifier
 
 from module.exception import RequestHumanTakeover, ScriptError
 from module.logger import logger
+from module.config.availability import (  # ★ (b) 动态窗口解析
+    parse_weekday, parse_time)
 
 #: 排序兜底值 —— `next_run` 缺失时用它把该任务压到最后。
 #:
@@ -49,6 +51,7 @@ class Function:
             self.windows = ()
             self.window = None
             self.entry_id = None
+            self.node = None
             return
         if data.get("scheduler") is None:
             self.enable = False
@@ -57,7 +60,16 @@ class Function:
             self.windows = ()
             self.window = None
             self.entry_id = None
+            self.node = None
             return
+
+        # ★★ (b) 动态窗口: 存**任务节点**, 供 `resolve_windows()` 读配置路径 ★★
+        #
+        # `_build_windows()` 只拿到**任务级**数据（不含根配置）, 所以动态路径
+        # 是**相对任务**的（如 `guild_banquet_time.day_1`）。
+        # 踩过: 原来没有这个字段, `resolve_windows()` 拿到 `None` ->
+        #       路径永远解析失败 -> 动态 days **静默失效**。
+        self.node = data
 
         self.enable: bool = data['scheduler']['enable']
         self.command: str = ConfigModel.type(key)
@@ -257,6 +269,92 @@ class Function:
                            f'({type(exc).__name__}: {exc}), 按不限时段处理')
             return (AvailabilityWindow(),)
 
+    def resolve_windows(self):
+        """把**动态** `days`（`days_from_config`）在**运行时**解析成实际星期。
+
+        ★ 用户裁定 (b):
+          "AvailabilityWindow 支持动态 days（运行时从配置读）, 让窗口能引用配置字段"
+          "窗口是唯一排期依据, 这个 B 并不冲突"
+
+        例: `GuildBanquet` 的宴会日是**用户在任务配置里选的**:
+            guild_banquet.guild_banquet_time.day_1 = 星期三
+            guild_banquet.guild_banquet_time.day_2 = 星期六
+
+        本方法读成 0-6 的整数, 与静态 `days` **取并集**, 返回新的元组。
+        没有动态项时**原样返回**（零开销）。解析失败 -> WARNING + 跳过该项。
+        """
+        # ★ 必须**函数内导入**: `_build_windows()` 的导入是局部名字,
+        #   这里看不到（踩过 -> `NameError` 被下面的 except 吞成 WARNING,
+        #   表现为"动态 days 不生效", 极难查）。
+        from module.config.availability import AvailabilityWindow
+        from datetime import time as _time
+
+        ws = tuple(self.windows or ())
+        if not any(getattr(w, 'days_from_config', ()) or
+                   getattr(w, 'times_from_config', ()) for w in ws):
+            return ws                      # 零开销快路径
+        out = []
+        for w in ws:
+            days_paths = tuple(getattr(w, 'days_from_config', ()) or ())
+            time_paths = tuple(getattr(w, 'times_from_config', ()) or ())
+            if not days_paths and not time_paths:
+                out.append(w)
+                continue
+
+            def _read(path, parser, what):
+                """读一个配置路径并解析; 失败记 WARNING 并跳过（**不猜**）。
+
+                ★ `self.node` 是 `model.dict()` 里的**普通 dict**, 不是对象 ——
+                  所以要先试 `getattr`, 失败再试 `[]`（踩过: 只用 getattr ->
+                  永远 `AttributeError` -> 动态窗口**静默失效**）。
+                """
+                try:
+                    node = self.node
+                    for part in str(path).split('.'):
+                        if isinstance(node, dict):
+                            node = node[part]
+                        else:
+                            node = getattr(node, part)
+                    return parser(node)
+                except Exception as exc:
+                    logger.warning(
+                        f'{self.command}: 动态窗口{what} {path!r} 解析失败'
+                        f'（{type(exc).__name__}: {exc}）, 已跳过')
+                    return None
+
+            extra = {d for d in (_read(p, parse_weekday, '星期')
+                                 for p in days_paths) if d is not None}
+            start, end = w.start, w.end
+            if time_paths:
+                got = _read(time_paths[0], parse_time, '时刻')
+                if got is not None:
+                    start = got
+                    # 只给起点 -> 终点 = 起点 + `_SLOT_SPAN_MINUTES`
+                    if len(time_paths) < 2:
+                        mins = got.hour * 60 + got.minute + _SLOT_SPAN_MINUTES
+                        mins = min(mins, 23 * 60 + 59)
+                        end = _time(hour=mins // 60, minute=mins % 60)
+                if len(time_paths) >= 2:
+                    got2 = _read(time_paths[1], parse_time, '结束时刻')
+                    if got2 is not None:
+                        end = got2
+            try:
+                # ★ 静态 `days` 为空 = "没有静态约束" -> 只用动态值
+                #   （若并上 `ALL_DAYS` 会把动态 days 抹掉 —— 踩过）
+                if not w.days and extra:
+                    merged = tuple(sorted(extra))
+                else:
+                    merged = tuple(sorted(set(w.days) | extra))
+                out.append(AvailabilityWindow(
+                    enabled=w.enabled, start=start, end=end,
+                    days=merged,
+                    days_of_month=w.days_of_month))
+            except Exception as exc:
+                logger.warning(f'{self.command}: 合并动态窗口失败'
+                               f'（{type(exc).__name__}: {exc}）, 用原窗口')
+                out.append(w)
+        return tuple(out)
+
     def in_window(self, now: datetime = None) -> bool:
         """当前是否落在开放时段内。
 
@@ -269,7 +367,9 @@ class Function:
         没有启用中的时段 -> 恒为 True（不限时段）。
         """
         when = now or datetime.now()
-        ws = [w for w in (self.windows or ()) if getattr(w, 'enabled', False)]
+        # ★ (b): 先解析**动态 days**（来自任务配置的星期）
+        ws = [w for w in self.resolve_windows()
+              if getattr(w, 'enabled', False)]
         if not ws:
             return True
         return any(w.contains(when) for w in ws)
@@ -277,7 +377,7 @@ class Function:
     @property
     def window_reason(self) -> str or None:
         """若因开放时段不可跑, 返回可读原因; 否则 None。"""
-        ws = [w for w in (self.windows or ()) if getattr(w, 'enabled', False)]
+        ws = [w for w in (self.resolve_windows() or ()) if getattr(w, 'enabled', False)]
         if not ws:
             return None
         now = datetime.now()
@@ -340,6 +440,12 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         super(ConfigMenu, self).__init__()
         self.model = ConfigModel(config_name=config_name)
         self.scheduler_update_dt = None  # 调度器更新时间
+        # ★★ 一次性窗口迁移（用户要求: "帮我配好窗口" + "适配好现有的软件"）★★
+        #
+        # 放在 `__init__` 末尾: 每次加载配置都会跑, 但
+        # `migrate_windows_once()` **自身幂等**（`window_slots` 非空就跳过）
+        # —— 不会覆盖用户后续在界面上的修改。
+        self.migrate_windows_once()
 
     def __getattr__(self, name):
         """
@@ -409,6 +515,69 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         :return:
         """
         self.model.write_json(self.config_name, self.model.dict())
+
+    # ------------------------------------------------------------------ 一次性迁移
+    def migrate_windows_once(self) -> bool:
+        """把**推荐窗口**写进这份配置（**只做一次**, 用户要求）。
+
+        用户原话: "你直接帮我配好窗口就好, **改用户配置**。
+                  顺带帮我把**现有的配置适配好现有的软件**。"
+
+        推荐值（用户裁定）:
+            restart      `window_slots = '12:00,20:00'` -> 12:00-14:00 + 20:00-22:00
+            ryou_toppa   `window_slots = '07:00'`       -> 07:00-09:00
+            guild_banquet **不设**（用 `days_from_config` 引用宴会日）
+
+        ★ 幂等: **不能**用自定义键做标记 —— pydantic v2 的 `extra='ignore'`
+          会把它从 `model_dump()` 丢掉 -> 每次启动都覆盖（踩过）。
+          改用**语义本身**: `window_slots` 非空 = 已配过。
+
+        ★ 写回必须**按字段类型转换** —— `model_dump()` 里 `Time` 是**字符串**,
+          直接 `deep_set` 会 (a) 类型错 (b) 保存时 `.strftime` 崩（踩过）。
+        """
+        try:
+            from datetime import time as _time
+            from tasks.Component.config_scheduler import (
+                apply_recommended_windows)
+
+            raw = self.model.model_dump()
+            changed = apply_recommended_windows(raw)
+            if not changed:
+                return False
+
+            def _to_time(v, default):
+                if isinstance(v, _time):
+                    return v
+                try:
+                    return _time.fromisoformat(str(v))
+                except Exception:
+                    return default
+
+            for key in changed:
+                sch = raw[key]['scheduler']
+                self.model.deep_set(
+                    self.model, keys=f'{key}.scheduler.window_enable',
+                    value=bool(sch['window_enable']))
+                self.model.deep_set(
+                    self.model, keys=f'{key}.scheduler.window_slots',
+                    value=str(sch['window_slots']))
+                self.model.deep_set(
+                    self.model, keys=f'{key}.scheduler.window_period',
+                    value=str(sch['window_period']))
+                self.model.deep_set(
+                    self.model, keys=f'{key}.scheduler.window_start',
+                    value=_to_time(sch.get('window_start'), _time(12, 0)))
+                self.model.deep_set(
+                    self.model, keys=f'{key}.scheduler.window_end',
+                    value=_to_time(sch.get('window_end'), _time(22, 0)))
+            # ★ 真正落盘（否则只在内存里, 下次启动又"没配"）
+            self.save()
+            logger.info(f'{self.config_name}: 已配好推荐窗口 -> {changed}（已保存）')
+            return True
+        except Exception as exc:
+            logger.warning(f'{self.config_name}: 窗口迁移失败'
+                           f'（{type(exc).__name__}: {exc}）, 跳过')
+            return False
 
     def update_scheduler(self) -> None:
         """

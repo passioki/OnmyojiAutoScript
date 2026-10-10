@@ -110,39 +110,34 @@ class TestSlotsProduceSegments:
 
 
 class TestRestartMigrated:
-    def test_uses_slots_when_configured(self):
-        """★ `Restart` 在**配了 slots** 时不再自排期。"""
-        import re
-        src = (REPO / 'tasks' / 'Restart' / 'script_task.py').read_text(
-            encoding='utf-8')
-        assert "window_slots" in src, \
-            'Restart 应检查 window_slots'
-        # 有 window_slots 的分支里不该有 custom_next_run
-        i = src.find("window_slots")
-        assert 'custom_next_run' not in src[i:i + 260], \
-            '配了 slots 的分支里仍在自排期'
+    def test_no_custom_next_run_at_all(self):
+        """★ 用户最终裁定: **彻底删除**自排期, 不留兼容兜底。
 
-    def test_keeps_fallback_when_unconfigured(self):
-        """★ 用户**没配**窗口时保留旧行为（不静默改变既有调度）。"""
+        用户原话:
+          "删 custom_next_run, **用户没配窗口, 代表着这个只能按照排序依次执行**"
+          "能重构就重构, **不要做冗余代码适配**"
+        """
         import re
         src = (REPO / 'tasks' / 'Restart' / 'script_task.py').read_text(
             encoding='utf-8')
         code = re.sub(r'"""[\s\S]*?"""', '', src)
         code = '\n'.join(l.split('#', 1)[0] for l in code.split('\n'))
-        assert 'custom_next_run' in code, \
-            'Restart 的**兜底**分支应保留 custom_next_run'
+        assert 'custom_next_run' not in code, \
+            'Restart 仍有自排期 —— 用户要求彻底删除'
+
+    def test_settles_with_set_next_run(self):
+        import re
+        src = (REPO / 'tasks' / 'Restart' / 'script_task.py').read_text(
+            encoding='utf-8')
+        assert "set_next_run(task='Restart'" in src, \
+            'Restart 应通过 set_next_run 结算（由窗口决定下次）'
 
 
 class TestRemainingCustomNextRun:
-    """★ 如实记录还剩哪些自排期, 以及**为什么保留**。"""
+    """★ **`custom_next_run` 已全库清零**（用户最终裁定）。"""
 
-    def test_remaining_are_the_expected_ones(self):
-        """当前剩 `Restart`(3) 与 `RyouToppa`(2)。
-
-        ★ 代码里的调用**都还在** —— 但它们只在**用户没配窗口**时才走
-          （有 `window_slots` 时被跳过）。这是**刻意保留的兼容兜底**,
-          不是"没做完"。
-        """
+    def test_zero_custom_next_run_repo_wide(self):
+        """★★ 起点 **10 处** -> 现在 **0 处**（用户: "删 custom_next_run"）。"""
         import re
         left = {}
         for p in (REPO / 'tasks').rglob('script_task.py'):
@@ -152,14 +147,17 @@ class TestRemainingCustomNextRun:
                     if 'custom_next_run' in l.split('#', 1)[0])
             if n:
                 left[p.parent.name] = n
-        assert set(left) == {'Restart', 'RyouToppa'}, (
-            f'自排期任务集合变了: {left} —— 请更新台账 §25')
-        assert left['Restart'] == 3 and left['RyouToppa'] == 2, left
+        assert not left, (
+            f'还有任务在用任务内自排期: {left}\n'
+            f'用户裁定: "删 custom_next_run, 用户没配窗口, 代表着这个只能'
+            f'按照排序依次执行"')
 
-    def test_both_have_window_shortcut(self):
-        """★ 两个任务都必须有"配了窗口就跳过自排期"的分支。"""
-        for name in ('Restart', 'RyouToppa'):
-            src = (REPO / 'tasks' / name / 'script_task.py').read_text(
-                encoding='utf-8')
-            assert 'window_slots' in src, (
-                f'{name} 缺"配了 window_slots 就不自排期"的分支')
+    def test_helper_still_exists_for_other_uses(self):
+        """★ `custom_next_run` **方法本身**保留（`base_task` 的 API）。
+
+        删的是**调用**, 不是 API —— 以后若有真实"绝对时刻"需求仍可用
+        （用户裁定第 ⑥ 条: "任务用 interval 还是真实日期时间"）。
+        """
+        from tasks.base_task import BaseTask
+        assert hasattr(BaseTask, 'custom_next_run'), \
+            'BaseTask.custom_next_run 被删了 —— 只该删调用, 不该删 API'

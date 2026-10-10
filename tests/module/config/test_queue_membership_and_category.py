@@ -120,12 +120,26 @@ class TestTimedPriorityHint:
         assert '需选「列表优先」才生效' in src, \
             '③ 缺"何时生效"的提示（两个下拉语义重叠）'
 
-    def test_backend_only_reads_in_list_mode(self):
-        """★ 后端**只在列表模式**读 `timed_priority` —— 这是提示的依据。"""
+    def test_legacy_fields_no_longer_read_for_ordering(self):
+        """★★ S6: 旧的 `timed_priority` **不再参与排序** ★★
+
+        ## 为什么这条断言反过来了
+
+        原来这里断言"`timed_priority` 的读取点在 `_order_by_timed_priority` 内"
+        —— 那是**旧设计**（两个下拉语义重叠）。
+
+        用户裁定（S6）: "**三个选项**: 定时任务优先、固定任务优先、自定义" ——
+        所以旧字段已并入 `priority_mode`, `_order_by_timed_priority()` 也**已删除**
+        （它是死代码）。
+
+        ★ 现在断言的是**反向**事实:
+          * `_order_by_timed_priority` **不存在**了
+          * 排段由 `priority_mode` / `_segment_queue()` 负责
+        """
         src = (REPO / 'module' / 'config' / 'config.py').read_text(
             encoding='utf-8')
-        i = src.find("opt_value('timed_priority'")
-        assert i > 0, '找不到 timed_priority 的读取点'
-        # 它的上文应在 `_order_by_timed_priority` 里
-        assert '_order_by_timed_priority' in src[:i], \
-            'timed_priority 的读取应在 _order_by_timed_priority 内'
+        assert 'def _order_by_timed_priority' not in src, \
+            '旧排序函数应已删除（S6 三模式取代）'
+        assert 'def _segment_queue' in src, \
+            '应有 `_segment_queue()` 负责按 priority_mode 排段'
+        assert "priority_mode" in src

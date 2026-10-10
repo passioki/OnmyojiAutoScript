@@ -105,13 +105,25 @@ class TestQueueIsAuthorityForAllRules:
             '非 LIST 分支缺 `_order_by_queue()` -> 队列外任务会泄漏'
 
     def test_timed_priority_not_used_to_reorder(self):
-        """★ 不该再用 `_order_by_timed_priority()` 重排（会破坏保序）。
+        """★★ S6: `_order_by_timed_priority()` **已被删除** ★★
 
-        ★ 该函数**保留**（供将来"类别优先"设计参考）, 但**不得**在当前
-          调度路径里被调用。
+        ## 为什么断言升级了
+
+        原来断言"该函数**保留**但**不得**在调度路径里调用"。
+
+        用户裁定（S6）: "**三个选项**: 定时任务优先、固定任务优先、自定义" ——
+        它的语义已由 `priority_mode` + `_segment_queue()` 取代, 而它本身是
+        **死代码**（实测: 只有定义、无调用）-> **已删除**。
+
+        ★ 所以现在断言**更强**: 它**连定义都不该有**了。
+          同时保留"调度路径不许重排 `pending`"这条核心约束（F3 回归守卫）:
+          `pending` 必须是 `queue` 的**保序子序列**（设计文档 §W4/Z1）。
         """
         src = (REPO / 'module' / 'config' / 'config.py').read_text(
             encoding='utf-8')
+        assert 'def _order_by_timed_priority' not in src, \
+            '死代码 `_order_by_timed_priority()` 应已删除（S6 三模式取代）'
+
         i = src.find('def update_scheduler')
         j = src.find('\n    def ', i + 10)
         body = src[i:j]
@@ -120,6 +132,14 @@ class TestQueueIsAuthorityForAllRules:
         assert '_order_by_timed_priority(' not in code, (
             '调度路径里仍在用 `_order_by_timed_priority()` 重排 -> '
             '用户拖的顺序会被覆盖（F3 回归）')
+        # ⚠ 我第一版还加了 `assert 'sorted(' not in code` —— **过严**:
+        #   `update_scheduler()` 里**合法地**排 `waiting_task`
+        #   （`sorted(waiting_task, key=attrgetter('next_run'))`）。
+        #   真正要守的是"**别重排 `pending_task`**", 由下面这条表达。
+        assert '_order_by_priority_mode(pending_task)' not in code, (
+            '分段排序**不能**在调度路径里重排 `pending` —— '
+            '会破坏"pending 是 queue 的保序子序列"不变量（§W4/Z1）。'
+            '分段排序应在**队列层** `_segment_queue()` 做。')
 
 
 class TestZombieCleanupSafe:

@@ -215,3 +215,39 @@ class Optimization(BaseModel):
         title='任务周期是否已按出厂默认值回填',
         json_schema_extra={'internal': True})
 
+    # ★★★ 执行顺序**配置页**（用户要求: "配置页 1/2/3/…"）★★★
+    #
+    # 用户原话:
+    # > "添加**执行顺序配置页 1/2/3/……**，可以添加、删除和切换配置页"
+    #
+    # ## 语义
+    #
+    # 一页 = **一套执行顺序**（`run_list` 的快照）。用户可以:
+    #   * **添加**一页（把当前顺序存为一页）
+    #   * **切换**到某一页（把那页的顺序应用回 `run_list`）
+    #   * **删除**一页
+    #
+    # ## 数据结构
+    #
+    # ```json
+    # "profiles": {
+    #   "active_id": "p1",
+    #   "items": [
+    #     {"id": "p1", "name": "1", "entries": [{"kind":"task","task":"Orochi"}]}
+    #   ]
+    # }
+    # ```
+    #
+    # ★ 每项的 `entries` 就是 `run_list` 的形状（同一套 `RunEntry` 序列化）,
+    #   所以"应用一页"= 把 `entries` 写回 `optimization.run_list` ——
+    #   **复用同一个写入路径**, 不新增第二套数据结构
+    #  （本轮刚修过"两套定义打架"的教训）。
+    #
+    # ⚠ 与 `run_list` 的关系: `run_list` 永远是**当前生效**的那份;
+    #   `profiles` 只是**存档**。切换 = 存当前 + 载目标。
+    profiles: dict = Field(
+        default_factory=dict,
+        description='profiles_help',
+        title='执行顺序配置页',
+        json_schema_extra={'internal': True})
+

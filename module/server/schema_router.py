@@ -1502,6 +1502,226 @@ async def post_cancel_running(script_name: str):
     return out
 
 
+# ============================================================ 执行顺序**配置页**
+#
+# 用户原话:
+#   "添加**执行顺序配置页 1/2/3/……**，可以添加、删除和切换配置页"
+#
+# ## 语义
+#
+# 一页 = **一套执行顺序**（`run_list` 的快照）。★ `run_list` 永远是
+# **当前生效**的那份; `profiles` 只是**存档** —— 与"切列/切筛选"那种
+# UI 偏好不同, 它改的是**调度依据**。
+#
+# ## 为什么复用 `run_list` 的形状
+#
+# ★ 每页的 `entries` 就是 `run_list` 的样子（同一套 `RunEntry` 序列化）,
+#   所以"应用一页"= 把 `entries` 写回 `optimization.run_list` ——
+#   **复用同一个写入路径**（`Config.save_run_list`）。
+#   ⚠ 本轮刚修过"两套定义打架"（`meta` vs 推荐窗口表）的教训, 不再造第二套。
+#
+# ## 自动保存（重要）
+#
+# 切换页之前会**先把当前 `run_list` 存回当前页** —— 否则用户拖了半天、
+# 一切页就丢了。★ 这是"切换"语义的一部分, 由后端保证（不指望前端记得）。
+
+
+def _profiles_store(config):
+    """取（并在需要时初始化）`script.optimization.profiles` 这个 dict。"""
+    opt = getattr(getattr(config.model, 'script', None), 'optimization', None)
+    if opt is None:
+        return None
+    p = getattr(opt, 'profiles', None)
+    if not isinstance(p, dict):
+        p = {}
+        config.model.deep_set(
+            config.model, keys='script.optimization.profiles', value=p)
+    p.setdefault('items', [])
+    p.setdefault('active_id', '')
+    return p
+
+
+def _profiles_view(config) -> list:
+    """给前端的页列表（含 `active` 标记与条目数）。"""
+    store = _profiles_store(config)
+    if store is None:
+        return []
+    active = str(store.get('active_id') or '')
+    out = []
+    for it in (store.get('items') or []):
+        if not isinstance(it, dict):
+            continue
+        pid = str(it.get('id') or '')
+        out.append({
+            'id': pid,
+            'name': str(it.get('name') or pid),
+            'count': len(it.get('entries') or []),
+            'active': pid == active,
+        })
+    return out
+
+
+@schema_app.get('/{script_name}/queue/profiles')
+async def get_queue_profiles(script_name: str):
+    """**列出执行顺序配置页**。
+
+    :return: {"profiles": [{id,name,count,active}], "active_id": str}
+    """
+    try:
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        store = _profiles_store(config)
+        if store is None:
+            return {'profiles': [], 'active_id': ''}
+        return {'profiles': _profiles_view(config),
+                'active_id': str(store.get('active_id') or '')}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'profiles': []}
+
+
+@schema_app.post('/{script_name}/queue/profiles')
+async def post_queue_profile(script_name: str, data: dict = Body(default={})):
+    """**新建一页** —— 把**当前** `run_list` 存为新页并切过去。
+
+    :param data: {"name": "可选名字"}；不传则自动编号（1/2/3/…）
+    """
+    try:
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        store = _profiles_store(config)
+        if store is None:
+            return {'error': '配置里没有 optimization'}
+
+        items = store['items']
+        # ★ 自动编号: 找第一个没被占用的正整数
+        used = {str(it.get('name')) for it in items if isinstance(it, dict)}
+        n = 1
+        while str(n) in used:
+            n += 1
+        name = str((data or {}).get('name') or n)
+        pid = f'p{n}' + ('' if all(
+            str(it.get('id')) != f'p{n}' for it in items) else f'_{len(items)}')
+
+        # ★ 当前顺序作为这一页的内容（快照）
+        entries = [e.to_dict() if hasattr(e, 'to_dict') else e
+                   for e in config.build_run_list()]
+        items.append({'id': pid, 'name': name, 'entries': entries})
+        store['active_id'] = pid
+
+        config.model.deep_set(
+            config.model, keys='script.optimization.profiles', value=store)
+        config.save()
+        return {'ok': True, 'created': pid, 'name': name,
+                'profiles': _profiles_view(config),
+                'message': f'已新建配置页「{name}」（含 {len(entries)} 条）'}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.put('/{script_name}/queue/profiles/activate')
+async def put_queue_profile_activate(script_name: str,
+                                     data: dict = Body(...)):
+    """**切换到某一页**。
+
+    ## 两步（顺序重要）
+
+    1. ★ **先把当前 `run_list` 存回当前页** —— 否则用户刚拖的顺序会丢
+    2. 再把目标页的 `entries` 写回 `run_list`
+
+    :param data: {"id": "p2"}
+    """
+    try:
+        from module.config.run_list import RunEntry, RunList
+        from module.server.main_manager import mm
+
+        pid = str((data or {}).get('id') or '').strip()
+        if not pid:
+            return {'error': '缺少 id'}
+        config = mm.config_cache(script_name)
+        store = _profiles_store(config)
+        if store is None:
+            return {'error': '配置里没有 optimization'}
+
+        items = store['items']
+        target = next((it for it in items
+                       if isinstance(it, dict) and str(it.get('id')) == pid),
+                      None)
+        if target is None:
+            return {'error': f'找不到配置页 {pid!r}'}
+
+        # ① 存当前
+        cur = str(store.get('active_id') or '')
+        cur_item = next((it for it in items
+                         if isinstance(it, dict)
+                         and str(it.get('id')) == cur), None)
+        if cur_item is not None and cur != pid:
+            cur_item['entries'] = [
+                e.to_dict() if hasattr(e, 'to_dict') else e
+                for e in config.build_run_list()]
+
+        # ② 载目标
+        raw = target.get('entries') or []
+        entries = []
+        for e in raw:
+            if not isinstance(e, dict):
+                continue
+            try:
+                entries.append(RunEntry.from_dict(e))
+            except Exception as exc:
+                logger.warning(f'配置页 {pid} 有一条非法条目, 已跳过: {exc}')
+        if not config.save_run_list(RunList(entries)):
+            return {'error': '写入运行列表失败（见日志）'}
+
+        store['active_id'] = pid
+        config.model.deep_set(
+            config.model, keys='script.optimization.profiles', value=store)
+        config.save()
+        return {'ok': True, 'active_id': pid,
+                'name': str(target.get('name') or pid),
+                'count': len(entries),
+                'profiles': _profiles_view(config),
+                'message': (f'已切到配置页「{target.get("name") or pid}」'
+                            f'（{len(entries)} 条）'
+                            f'；上一页的顺序已自动保存')}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.delete('/{script_name}/queue/profiles/{profile_id}')
+async def delete_queue_profile(script_name: str, profile_id: str):
+    """**删除一页**。★ 至少要留一页（否则用户就没有可切换的了）。"""
+    try:
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        store = _profiles_store(config)
+        if store is None:
+            return {'error': '配置里没有 optimization'}
+        items = store['items']
+        kept = [it for it in items
+                if not (isinstance(it, dict)
+                        and str(it.get('id')) == profile_id)]
+        if len(kept) == len(items):
+            return {'error': f'找不到配置页 {profile_id!r}'}
+        if not kept:
+            return {'error': '至少要保留一个执行顺序配置页'}
+        store['items'] = kept
+        if str(store.get('active_id') or '') == profile_id:
+            store['active_id'] = str(kept[0].get('id') or '')
+        config.model.deep_set(
+            config.model, keys='script.optimization.profiles', value=store)
+        config.save()
+        return {'ok': True, 'removed': profile_id,
+                'active_id': str(store.get('active_id') or ''),
+                'profiles': _profiles_view(config),
+                'message': '已删除该配置页（未改动当前执行顺序）'}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
 # ============================================================ 窗口 CRUD（S4）
 #
 # 设计: `docs/scheduler-architecture.md` §5.1。

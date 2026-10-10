@@ -3506,7 +3506,13 @@ pending 不是"队列剔除 waiting 后的保序子序列"
 
 **规则细节**:
 * **段内相对顺序不变**（`sorted` 是**稳定**的）—— 这正是"拖动只在**同类别内**生效"
-* `rest`（休息）条目**不参与分段**且**始终排最后** —— 它是"跑完这些再歇",
+* `rest`（休息）条目**不参与分段**。★ **它不再"始终排最后"** ——
+  ★ **用户的定义（第三次提出, 以此为准）**:
+  > **休息就是临时任务**（回庭院待着），只不过**可以选择被定时任务插队**。
+  >
+  > 推论: 休息与其它**临时任务**同一套规则 ——
+  > 没有"恒排最后"、没有特殊段名 `'__rest__'`、没有特殊 rank、**可自由拖动**；
+  > 唯一特殊性 = **可被定时任务插队**（`rest_interleave`, 一个**可选能力**, 不是约束）。
   排中间会把后面全挡住
 * ★ **不回写配置** —— 段名是派生的（与 `build_queue` 既有约定一致）
 
@@ -3910,7 +3916,12 @@ task_list_controller.dart setPriorityMode -> setGlobalField
 —— 与后端 `_check_drag_allowed` **同一判据**:
 * 同段内换序 -> rank 向量不变 -> **放行** ✓
 * 跨段移动 -> 出现 `1,0` 逆序 -> **拒绝** ✓
-* `rest` 用 `'__rest__'` 标（rank=2, 恒最后）—— 与后端 `_segment_queue` 一致
+* `rest` **不再**用 `'__rest__'` 标（该标记已删）—— ★ **用户的定义（第三次提出, 以此为准）**:
+> **休息就是临时任务**（回庭院待着），只不过**可以选择被定时任务插队**。
+>
+> 推论: 休息与其它**临时任务**同一套规则 ——
+> 没有"恒排最后"、没有特殊段名 `'__rest__'`、没有特殊 rank、**可自由拖动**；
+> 唯一特殊性 = **可被定时任务插队**（`rest_interleave`, 一个**可选能力**, 不是约束）。
   （我第一版注释写"rest 不参与", 但 `priorityGroupOf('')` 返回 `'fixed'`
    -> rest **被当成 fixed 参与**了, 注释与实现不符）。
 
@@ -3995,7 +4006,7 @@ Duel / MysteryShop / WeeklyTrifles / …）。
 | T9 | **抽屉与分栏 clamp 冲突**: 抽屉宽 380 而 `maxLeft = maxWidth - 320` -> 触顶时总宽 = maxWidth **+61px 溢出**; 抽屉关闭时拖动条仍渲染 | 🟡 中 | `maxLeft` 扣除抽屉宽 |
 | T10 | **前端死代码一批**: `timedPriority*` 三件套、`resetToDefault`（**危险**: 会清空 `run_list`）、`reflow`/`flowDisclaimer`（每次 reload 白请求 `/run_list/preview`）、11 个未调用的 `api_client` 方法、`lib/controller/args/group_controller.dart`（**0 字节**）| 🟡 中低 | 分批清; 清前先改掉钉住它们的陈旧测试 |
 | T11 | **`RunControlBar` 状态不刷新 + 失败无提示**（`initState` 只拉一次; `_do` 丢弃返回值）| 🟡 中 | 跟随 refresh; 失败上屏 |
-| T12 | **`rest` 条目在 `_segment_queue` 里恒排最后, 但没有任何测试观察它**（`test_queue_is_authority` 的 `_queue()` 把 rest 过滤掉了）| 🟡 中 | 补一条"rest 夹在中间会被排到最后" |
+| T12 | ~~`rest` 条目在 `_segment_queue` 里恒排最后~~ → ★ **已废除**（见「休息的定义」）。原记录: **但没有任何测试观察它**（`test_queue_is_authority` 的 `_queue()` 把 rest 过滤掉了）| 🟡 中 | 补一条"rest 夹在中间会被排到最后" |
 
 ## 47.6 ★ 建议的文档体系整改（来自审计员 C, 我认同）
 
@@ -4406,7 +4417,7 @@ Input should be 'Filter', 'FIFO', 'Priority' or 'List'
 
 | 类 | 覆盖 |
 |---|---|
-| `TestRestAlwaysLast` | ★ `timed_first`/`fixed_first` 下 rest **恒最后**（含"两个 rest 都垫底"）; ★ **`custom` 下留在用户放的位置** |
+| `TestRestAlwaysLast` | ~~★ `timed_first`/`fixed_first` 下 rest 恒最后~~ → ★ **已废除**（含"两个 rest 都垫底"）; ★ **`custom` 下留在用户放的位置** |
 | `TestRestNotSegmented` | rest **不打段名**; 中间夹 rest 不影响两段先后 |
 | `TestStabilityWithinSegment` | 段**内**用户顺序不变; ★ `custom` **完全不动** |
 | `TestBoundaries` | 空队列 / 只有 rest / 只有一条任务（三模式结果一致）/ 全同段（两模式结果一致）|
@@ -4776,7 +4787,7 @@ T1 删掉那个**调用**之后, 这条**行为保证**随之消失, **没有任
 
 **症状**: 后端用 `[e for e in rl.entries if e.task]` **跳过 rest**, 且
 **不校验 rest 的位置**; 而前端 `_sameGroupReorder` 给 `rest` 算 rank
-**2**（恒最后）-> **把它拖到中间前端拦、后端放行**。
+~~**2**（恒最后）~~ -> ~~把它拖到中间前端拦、后端放行~~ → ★ **已废除**（现为自由拖动）。
 
 ★ 与"后端是最终防线"相悖。**修**: 后端与前端**同一 rank 规则**
 （rest=2）+ `rest` 必须在所有任务之后的**专门文案**; 顺带删掉那段
@@ -5570,7 +5581,7 @@ tests/test_zz_probe.py .                                    [100%]
 >  **直接作为一个快捷排序**就好, 而不是定义一些没有意义的**不能跨类别拖动**
 >  以及**单独的调度优先级**。"
 
-追问确认: 「**任意拖，但「休息」条目仍强制排最后**」。
+~~追问确认: 「任意拖，但「休息」条目仍强制排最后」~~ —— ★ **已废除** —— 本行引述的是**误记的旧约束**，不是用户的裁定。见「休息的定义」：休息就是临时任务，可自由拖动。
 
 ★★ 这条裁定**推翻了我自己在 §43–§46 做的整个 S6** ——
 `priority_mode` 的"取代物"翻了**第二代**: `schedule_rule`/`timed_priority`

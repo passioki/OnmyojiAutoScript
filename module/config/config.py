@@ -130,7 +130,15 @@ class Function:
         except Exception as exc:      # 防御: catalog 坏掉不该让调度崩
             logger.warning(f'{self.command}: 读 task_catalog 失败'
                            f'({type(exc).__name__}: {exc}), 退回配置项')
-        if spec is not None:
+        if spec is not None and not sch.get('window_enable'):
+            # ★★ #1: **用户配置优先** ★★
+            #
+            # 只有用户**没启用**窗口时才用 `meta.py` 的**游戏机制窗口**兜底。
+            # 用户启用了 -> 走下面的配置分支（那是他的**偏好**, 更权威）。
+            #
+            # 用户原话: "用户可以选择每天, 然后把时间改为 17-23 点"
+            # 此前是反的（meta 永远压过用户）-> 实测用户把窗口改成
+            # 17:00-23:00 **完全没用**（meta 的整天窗口生效）。
             ws = list(getattr(spec, 'windows_effective', []) or [])
             real = [w for w in ws if getattr(w, 'enabled', False)]
             if real:
@@ -144,8 +152,24 @@ class Function:
                 return tuple(real)
 
         # ---------- 2. 退回: 配置项（用户覆盖 / 旧配置）----------
+        #
+        # ★★ #1: 读用户配置的**周期 / 周几 / 几号**（用户裁定的结构）★★
+        #
+        # 用户原话:
+        #   "窗口开始: 下拉选择：每天、每周、每月 /
+        #    下拉选择：时:分、周几：时：分、几号：时：分"
+        #   "窗口语义：(B) 两端必须同周期"
+        #
+        # 三者关系（按 `window_period`）:
+        #   * `daily`   -> 每天, 用 `window_start` / `window_end`
+        #   * `weekly`  -> 用 `window_days`（周几）, 时刻同上
+        #   * `monthly` -> 用 `window_dom`（几号）, 时刻同上
         if not sch.get('window_enable'):
             return (AvailabilityWindow(),)
+
+        wperiod = sch.get('window_period')
+        wperiod = getattr(wperiod, 'value', wperiod) or 'daily'
+        wperiod = str(wperiod).lower()
 
         days, bad = [], []
         for part in str(sch.get('window_days') or '').split(','):
@@ -161,12 +185,30 @@ class Function:
             logger.warning(f'{self.command}: window_days 无效项已忽略 {bad}'
                            f'（应为 0-6, 周一=0）')
 
+        dom, bad_dom = [], []
+        for part in str(sch.get('window_dom') or '').split(','):
+            part = part.strip()
+            if part == '':
+                continue
+            if part.isdigit() and 1 <= int(part) <= 31:
+                dom.append(int(part))
+            else:
+                bad_dom.append(part)
+        if bad_dom:
+            logger.warning(f'{self.command}: window_dom 无效项已忽略 {bad_dom}'
+                           f'（应为 1-31）')
+
         try:
             return (AvailabilityWindow(
                 enabled=True,
                 start=sch['window_start'],
                 end=sch['window_end'],
-                days=tuple(sorted(set(days))) or ALL_DAYS,
+                # `weekly` 才用 days; 其它周期保持全周
+                days=(tuple(sorted(set(days))) or ALL_DAYS)
+                if wperiod == 'weekly' else ALL_DAYS,
+                # `monthly` 才用 days_of_month; 其它周期保持不限
+                days_of_month=(tuple(sorted(set(dom)))
+                               if wperiod == 'monthly' else ()),
             ),)
         except Exception as exc:
             logger.warning(f'{self.command}: 开放时段配置非法'

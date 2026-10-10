@@ -26,6 +26,24 @@ class TaskPeriod(str, Enum):
     MONTHLY = 'monthly'
 
 
+class WindowPeriod(str, Enum):
+    """**窗口周期** —— 每天 / 每周 / 每月（用户裁定）。
+
+    ## 用户原话
+
+    > "窗口开始: 下拉选择：每天、每周、每月 / 下拉选择：时:分、周几：时：分、几号：时：分"
+
+    ## ★ 为什么**两端共用**一个
+
+    用户裁定窗口语义是 **(B) 两端必须同周期** —— 所以"开始"和"结束"共用一个
+    `window_period`, 不各自带一个（那会表达出不存在的语义）。
+    """
+
+    DAILY = 'daily'
+    WEEKLY = 'weekly'
+    MONTHLY = 'monthly'
+
+
 class Scheduler(ConfigBase):
     """
     ## ★★ 用户配置面 vs 内部排期字段 ★★
@@ -173,6 +191,25 @@ class Scheduler(ConfigBase):
         default='0,1,2,3,4,5,6',
         description='window_days_help',
         title='开放星期')
+    # ★★ #1: 窗口周期 + 月内日（用户裁定的结构, 两端**共用**周期）★★
+    #
+    # 用户原话:
+    #   "窗口开始: 下拉选择：每天、每周、每月 / 下拉选择：时:分、周几：时：分、几号：时：分"
+    #   "窗口语义：(B) 两端必须同周期"
+    #
+    # 所以:
+    #   * `window_period` 决定"时:分"是**哪一天**的时:分
+    #   * `window_days`   在 `weekly` 时有意义（周几）
+    #   * `window_dom`    在 `monthly` 时有意义（几号）
+    window_period: WindowPeriod = Field(
+        default=WindowPeriod.DAILY,
+        description='window_period_help',
+        title='窗口周期')
+    # 月内日: 逗号分隔 1-31; 空 = 整月
+    window_dom: str = Field(
+        default='',
+        description='window_dom_help',
+        title='开放几号')
 
     # ------------------------------------------------------------ 任务列表
     #

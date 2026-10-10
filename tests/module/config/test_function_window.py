@@ -39,18 +39,29 @@ def make_node(**overrides) -> dict:
         'next_run': '2023-01-01 00:00:00',
         'priority': 5,
         'window_enable': False,
+        # ★ #1: `window_period` 决定"时:分"是**哪一天**的时:分
+        #   （`window_days` 只在 weekly 生效, `window_dom` 只在 monthly 生效）。
+        #   ⚠ 漏了它 -> 测试里传 `window_days` 会**静默不生效**（踩过）。
+        'window_period': 'daily',
+        'window_dom': '',
         'window_start': time(17, 0),
         'window_end': time(23, 0),
         'window_days': '0,1,2,3,4,5,6',
     }
-    for k in ('window_enable', 'window_start', 'window_end', 'window_days'):
-        if k in overrides:
-            sch[k] = overrides.pop(k)
+    # ★ 允许**任意**调度器字段覆盖（原来是 4 个键的白名单 —— 新字段
+    #   `window_period` / `window_dom` 传进来会**被静默丢弃**, 导致
+    #   "测试说设了 weekly 其实还是 daily" 这种假失败。踩过。）
+    for k in list(overrides):
+        sch[k] = overrides.pop(k)
     return {'scheduler': sch}
 
 
 class TestMetaWindowPriority:
-    """★★ 优先级: **任务 `meta.py` 的 `TaskSpec.window` 权威**。
+    """★★ 优先级（#1 已**调正**）: **用户配置优先**, `meta.py` 兜底 ★★
+
+    ★ 此前是反的（meta 永远压过用户）—— 实测用户把窗口改成 17:00-23:00
+      **完全没用**。用户原话:
+        "用户可以选择每天, 然后把时间改为 17-23 点"
 
     ## 为什么这里必须改（曾经的假设已经不成立）
 
@@ -69,27 +80,19 @@ class TestMetaWindowPriority:
       （见 `TestSchedulerConfigFallback`）—— 那是配置项路径, 不能坏。
     """
 
-    def test_real_task_uses_meta_window(self):
-        """真实任务（有 meta）-> 用 meta 的窗口, **忽略** `scheduler.window_*`。"""
+    def test_user_config_wins_over_meta(self):
+        """★ #1: 用户**启用**了窗口 -> **以用户为准**（meta 只兜底）。"""
         f = Function('fallen_sun', make_node(
             window_enable=True, window_start=time(22, 0), window_end=time(2, 0)))
-        # FallenSun 的 meta.py 声明的是"整天"窗口, 不是 22:00-02:00
-        assert f.window is not None
-        assert f.window.enabled is True
-        assert f.window.crosses_midnight is False, (
-            'scheduler.window_* 不该覆盖 meta.py 的窗口')
-        assert f.in_window() is True        # 整天 -> 恒真
+        assert f.window is not None and f.window.enabled is True
+        assert f.window.crosses_midnight is True, (
+            '用户配置的 22:00-02:00 应生效（跨午夜）')
 
-    def test_meta_takes_precedence_over_config(self):
-        """★ 反向守卫: 配置里写"今天绝不允许", meta 是整天 -> 仍应允许。"""
-        from datetime import datetime
-        today = datetime.now().weekday()
-        other = tuple(d for d in range(7) if d != today)
-        f = Function('fallen_sun', make_node(
-            window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
-            window_days=','.join(str(d) for d in other)))
-        assert f.in_window() is True, (
-            'meta.py 的整天窗口应压过 scheduler.window_days 的"排除今天"')
+    def test_meta_used_when_user_disabled(self):
+        """★ #1: 用户**没启用** -> 用 meta 的窗口兜底。"""
+        f = Function('fallen_sun', make_node(window_enable=False))
+        assert f.window is not None and f.window.enabled is True, (
+            '用户没启用时应有 meta 窗口兜底')
 
     def test_normal_fields_still_parsed(self):
         f = Function('fallen_sun', make_node())
@@ -143,8 +146,9 @@ class TestSchedulerConfigFallback:
 
     def test_partially_valid_days_keeps_valid(self, no_meta):
         """`'4,abc,6'` -> 有效项保留（4/6）, 无效项忽略。"""
+        # ★ #1: `window_days` 只在 `window_period='weekly'` 时生效
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_days='4,abc,6'))
+            window_enable=True, window_period='weekly', window_days='4,abc,6'))
         assert set(f.window.days) == {4, 6}
 
 
@@ -169,6 +173,10 @@ class TestWindowGating:
         other = tuple(d for d in range(7) if d != today)
         f = Function('fallen_sun', make_node(
             window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
+            # ★ #1: `window_days` **只在 `weekly` 时生效**。
+            #   漏了这一行 -> days 被忽略 -> `in_window()` 恒 True ->
+            #   **假失败**（我为此白查了一阵, 记在这里防复犯）。
+            window_period='weekly',
             window_days=','.join(str(d) for d in other)))
         assert f.in_window() is False
         reason = f.window_reason
@@ -242,8 +250,9 @@ class TestRobustness:
         assert f.window.enabled is True, '不该因为 days 写错就整个禁用时段'
 
     def test_partially_valid_days_keeps_valid(self, no_meta):
+        # ★ #1: `window_days` 只在 `window_period='weekly'` 时生效
         f = Function('fallen_sun', make_node(
-            window_enable=True, window_days='4,abc,6'))
+            window_enable=True, window_period='weekly', window_days='4,abc,6'))
         assert set(f.window.days) == {4, 6}
 
     def test_missing_times_do_not_crash(self, no_meta):

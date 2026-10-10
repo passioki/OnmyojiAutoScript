@@ -129,10 +129,11 @@ class TestSchemaHidesInternal:
         shown = len(got.get('scheduler') or [])
         assert shown < total, (
             f'界面暴露 {shown} 个 / 模型共 {total} 个 —— 过滤没生效')
-        # ★ 2026-10-10: 用户要求 `window_*` + `period` 也可见/可改
-        #   -> 上限从 6 放宽到 10（实际 9 个）
-        assert shown <= 10, (
-            f'界面暴露 {shown} 个字段, 仍然太多（预期 <= 10）')
+        # ★ 2026-10-10: 用户要求 `window_*` + `period` 可见/可改;
+        #   随后又加了 `window_period`（每天/每周/每月）+ `window_dom`（几号）
+        #   -> 上限再放宽到 12（实际 11 个）
+        assert shown <= 12, (
+            f'界面暴露 {shown} 个字段, 仍然太多（预期 <= 12）')
 
     def test_multiple_tasks_consistent(self, config):
         """所有任务的截断规则要一致（不能只对 Orochi 生效）。"""

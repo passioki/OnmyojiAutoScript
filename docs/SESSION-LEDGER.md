@@ -640,3 +640,94 @@ weekday 5 不在 days=(4,) 里 -> **假失败**
 * 推导出的窗口**不该限制任何时刻**（否则会改变既有行为）
 * 8 个显式活动窗口的内容逐个钉住（逢魔 17:00 / 狭间暗域 周五六日 19:00 …）
 
+---
+
+# 10. F5 · 「移出队列」分两类 —— ✅ 已完成（用户修正了我的错误）
+
+## 10.1 用户修正
+
+我此前把"移出队列"写成**无条件停用**（`sch.enable = False`）。用户明确纠正:
+
+> "执行队列中移除后自动停用只针对定时任务, 固定任务移除后应该返回添加任务的池子里。"
+
+## 10.2 修正后的规则
+
+| 任务类型 | `auto_queue` | 移除后 |
+|---|---|---|
+| **定时任务** | `True` | 出队列 **且 `enable=false`** |
+| **固定/次数任务** | `False` | **只出队列**, `enable` 保持 -> 回到【添加任务】池子 |
+
+**为什么定时任务必须停用**: 自动进队列的任务只要 `enable=true` 就会被
+`Config.build_queue()` **重新补进队列** —— 只从 `run_list` 删掉是**无效操作**。
+
+**为什么次数任务不能停用**: 它们不在自动补齐范围内, 出队列后不会被补回来。
+若也停用, 用户想再跑就得先回任务列表启用 —— 多余步骤。
+
+## 10.3 实测证据
+
+```
+GoldYoukai: auto_queue=True  enable=False
+    msg: 已把「GoldYoukai」移出队列并停用。它启用后会自动回到队列。
+RealmRaid:  auto_queue=False enable=True
+    msg: 已把「RealmRaid」移出队列。它仍在【添加任务】里, 可随时加回。
+```
+
+守卫: `tests/module/server/test_queue_removal_semantics.py`（**5 个**）
+* 定时任务 -> `enable=False`（内存 + **磁盘**都查）
+* 次数任务 -> `enable=True`
+* 次数任务移出后**出现在候选端点里**（端到端）
+* 定时任务移出后（已停用）**不在**候选里
+* 提示文案分两类
+
+★ 踩过的坑: 断言"磁盘上的 `enable`"时**不能用 `mm.config_cache()` 再读** ——
+  它可能返回**缓存实例**, 而端点在内部用的是**另一个** `Config` 对象。
+  实测: 端点返回 `enable=False`、磁盘文件也是 `false`,
+  但测试持有的 `cfg.model` 仍是旧值 -> **假失败**。改为直接读 JSON 文件。
+
+## 10.4 前端同步（OASX）
+
+`queue_panel.dart` / `task_list_controller.dart` 的确认弹窗、按钮文案、tooltip
+都改成**分两类**（`Text(auto ? '移出并停用' : '移出队列')`）。
+`flutter analyze` 无问题; `flutter test` 79 passed。
+
+## 10.5 ★ OASX 推送**权限不足**（非代码问题）
+
+```
+remote: Permission to runhey/OASX.git denied to passioki.
+fatal: unable to access 'https://github.com/runhey/OASX/': 403
+```
+
+`git ls-remote --heads origin` 只有 `refs/heads/master` 与 `refs/heads/page`
+—— **远端根本没有 `oas-tasks-ui` 分支**, 且当前账号对该仓库**无写权限**。
+
+→ OASX 的改动**已提交在本地** (`oas-tasks-ui`), 但**推不上去**。
+  这不是重试能解决的（重试 20 次全 403）。**需要用户处理仓库权限**。
+
+## 10.6 ★ 发现一处**真实设计张力**（未解决, 记录）
+
+`GuildBanquet` 的 `custom_next_run` 用 **`banquet_day_1` / `banquet_day_2`**
+（**用户配置的周几**）决定下次哪天跑:
+
+```python
+if today < self.banquet_day_1:
+    self.custom_next_run(..., time_delta=self.banquet_day_1 - today)
+elif self.banquet_day_1 <= today < self.banquet_day_2:
+    self.custom_next_run(..., time_delta=self.banquet_day_2 - today)
+...
+```
+
+而 `AvailabilityWindow.days` 是**冻结的**（`frozen=True` dataclass, 声明时固定）
+—— **无法表示"用户可变的两个星期几"**。
+
+**这是真实张力, 不是遗漏**: 要删它的 `custom_next_run`, 必须先让窗口能表达
+"周几来自用户配置"。三个选项:
+
+| 选项 | 说明 |
+|---|---|
+| (a) 把宴会日**收窄**为固定值 | **改变用户语义**（用户就白配了）|
+| (b) 给 `AvailabilityWindow` 加 **"动态 days"**（运行时从配置读）| 让"冻结"的窗口变成可变, 影响面大 |
+| (c) **保留** `custom_next_run` 给这一个任务 | 与"彻底删除"目标冲突 |
+
+**未做决定, 已记录**。同类还有 `RyouToppa`（`next_ryoutoppa_time`）、
+`Restart`（领体力 12:00/20:00）、`MemoryScrolls`（跨任务给 Exploration 排期）。
+

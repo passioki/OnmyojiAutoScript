@@ -502,6 +502,17 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # ★ 幂等: 每个任务只要已有**合法值**就跳过 ——
         #   **包括 `none`**（那是用户选的"不限", 不能被默认值覆盖）。
         self.migrate_task_period_once()
+        # ★★★ 修正"全天窗口却被排到未来"的 next_run（用户报的"等待到点"）★★★
+        #
+        # 用户原话:
+        # > "**契灵之境为什么显示等待到点**? 这个是次数任务, 不应该有
+        # >  [还未到点]这种[拥有 window 的任务类]的属性啊"
+        #
+        # ★ 为什么需要它: 坏值**已经落盘**（`next_run` = 明天）,
+        #   而 `update_scheduler` 只读不重算 -> 光修排期算法**不够**
+        #   （实测: 修了 `next_run_after` 之后界面仍显示"等待到点"）。
+        # ★ 幂等: 修正后 `next_run` 不再是未来 -> 第二次无改动。
+        self.fix_stale_next_run_once()
         # ★★★ S7: **调度优先级三模式已整簇删除**（用户裁定）★★★
         #
         # 用户原话:
@@ -864,6 +875,87 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                            f'（{type(exc).__name__}: {exc}）, 跳过')
             return False
 
+    def fix_stale_next_run_once(self) -> bool:
+        """★★★ 一次性修正"全天窗口却被排到未来"的 `next_run`（用户报的 bug）★★★
+
+        ## 用户原话
+
+        > "**契灵之境为什么显示等待到点**? 这个是次数任务, 不应该有
+        >  [还未到点]这种[拥有 window 的任务类]的属性啊"
+
+        ## 根因（实测三层）
+
+        1. `next_run_after(strict=True)` 对**全天窗口**（`00:00-23:59`）
+           算出的是"**下一次**窗口开放" = ★ **明天 00:00**
+           （`next_opening(strict=True)` 先跳到 `next_closing` 今天 23:59,
+            再找下一次开放）。
+           ✅ 已在 `next_run_after` 修（`is_unrestricted` 特判 -> 返回 `when`）。
+        2. 但**已经落盘**的 `next_run` 是修复前算出来的坏值
+           （实测 `RealmRaid` = 明天 00:00, `MemoryScrolls` = 明天 22:21）。
+           `update_scheduler` 只**读**它 -> 修复后仍卡在 `waiting`
+           -> 界面继续显示「等待到点」。
+           ✅ **本条修**。
+
+        ## 判据（只改**确凿矛盾**的值）
+
+        对每个**启用**的任务, 三条同时成立才改:
+
+        * 它的窗口**此刻是开放的**（游戏机制允许跑）
+        * ★ 它**所有**有效窗口都是 `is_unrestricted`（= 全天窗口, 无时段约束）
+        * 而 `next_run` 却在**未来**
+
+        -> ★ 这是**矛盾**: 一个"全天可跑"的任务没有任何理由把自己推到明天。
+          **把 `next_run` 拉回现在**。
+
+        ⚠ 为什么只动"全天窗口": 受限窗口（如逢魔 `17:00-23:00`）的
+          `next_run` 落在未来是**正确**的（明天 17:00 才开放）
+          —— 那些**绝不能**动（实测: 修完后 `DemonEncounter` 仍是明天 17:00 ✓）。
+        ⚠ 幂等: 修正后 `next_run == now`, 不再是"未来" -> 第二次跑无改动。
+        """
+        try:
+            from module.config import task_catalog as TC
+
+            changed = []
+            now = datetime.now().replace(microsecond=0)
+            for name in _all_task_names():
+                key = convert_to_underscore(name)
+                node = getattr(self.model, key, None)
+                sch = getattr(node, 'scheduler', None)
+                if sch is None or not getattr(sch, 'enable', False):
+                    continue
+                nr = getattr(sch, 'next_run', None)
+                if not isinstance(nr, datetime) or nr <= now:
+                    continue                    # 不在未来 -> 没什么可修
+                # 只处理"全是全天窗口"的任务
+                spec = TC.get_spec(name)
+                if spec is None:
+                    continue
+                ws = [w for w in (spec.windows_effective or [])
+                      if getattr(w, 'enabled', False)]
+                if not ws:
+                    continue                    # 没窗口 -> 走别的分支
+                if not all(bool(getattr(w, 'is_unrestricted', False))
+                           for w in ws):
+                    continue                    # ★ 有受限窗口 -> 未来值是**对的**
+                # ★ 矛盾: 全天可跑却排在明天 -> 拉回现在
+                self.model.deep_set(self.model,
+                                    keys=f'{key}.scheduler.next_run',
+                                    value=now)
+                changed.append((name, str(nr)))
+
+            if not changed:
+                return False
+            self.save()
+            logger.info(f'已修正 {len(changed)} 个"全天窗口却被排到未来"的 '
+                        f'next_run（见 fix_stale_next_run_once）')
+            for n, old in changed:
+                logger.info(f'  {n}: {old} -> 现在')
+            return True
+        except Exception as exc:
+            logger.warning(f'修正 next_run 失败({type(exc).__name__}: {exc}) '
+                           f'—— 下次启动会重试')
+            return False
+
     def update_scheduler(self) -> None:
         """
         更新调度器， 设置pending_task and waiting_task
@@ -896,10 +988,44 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             if self._in_failure_cooldown(func.command):
                 waiting_task.append(func)
                 continue
-            if not isinstance(func.next_run, datetime):
+            # ★★★ 修: "等待到点"必须**真的有依据**（用户报的真 bug）★★★
+            #
+            # 用户原话:
+            # > "**契灵之境为什么显示等待到点**? 这个是次数任务, 不应该有
+            # >  [还未到点]这种[拥有 window 的任务类]的属性啊"
+            #
+            # ## 为什么"时刻已过 + 窗口开着"的还要看 `next_run`?
+            #
+            # 不该看。★ 两条成因:
+            #
+            # 1. ★ **排期算法错**: `next_run_after(strict=True)` 对**全天窗口**
+            #    （`00:00-23:59`）算出的是"**明天** 00:00" -> `next_run` 落在
+            #    未来 -> 归入 `waiting` -> 界面显示"等待到点"。
+            #    ✅ 已在 `next_run_after` 修（`is_unrestricted` 特判）。
+            # 2. ★ **落盘的旧坏值**: 已经写进配置的 `next_run` 是**修复前**
+            #    算出来的（实测 `RealmRaid` = 明天 00:00）。`update_scheduler`
+            #    只**读**它 -> 修复后仍卡在 `waiting`。
+            #    ✅ 本条修。
+            #
+            # ## 本条规则（一句话）
+            #
+            # ★ **窗口开着 + `next_run` 已过 -> 就是可跑**。
+            #
+            # ⚠ 依据: `next_run` 是"我上次跑完给自己定的下次时间"（**自定节奏**）;
+            #   `in_window()` 才是"**游戏机制允许**"。
+            #   当自定节奏与机制允许**矛盾**时, 机制优先 ——
+            #   这正是用户说的"次数任务不该有『未到点』属性"。
+            #
+            # ⚠ 行为安全性: 这个分支只在 `next_run < now` **之后**才可能命中,
+            #   所以**不会**让"刚跑完、还没到点"的任务提前重跑;
+            #   它只影响那些"被错误推远"的任务。
+            if isinstance(func.next_run, datetime) \
+                    and func.next_run < self.scheduler_update_dt \
+                    and func.in_window():
+                pending_task.append(func)
+            elif not isinstance(func.next_run, datetime):
                 error.append(func)
             elif func.next_run < self.scheduler_update_dt:
-                # ★★ C: "完成记忆"门槛**已移到 `_order_by_queue` 之后** ★★
                 #
                 # 原来在这里判 `_skip_by_period(...)` —— 但那时
                 # `func.entry_id` 还是 `None`（条目身份由 `_order_by_queue`
@@ -909,7 +1035,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 # 现在改为在排完序之后**逐条**按 `entry_id` 复查
                 # （见下面 "完成记忆（按条目）" 那一段）。
                 #
-                # 开放时段(新增, 默认关闭): 游戏机制决定的硬约束。
+                # 开放时段: 游戏机制决定的硬约束。
                 # 不在时段内的任务入 waiting 而不是 pending, 避免白跑一趟 ——
                 # 这正是用户此前只能靠"缩短轮询间隔碰运气"绕过的那个问题。
                 if not func.in_window():
@@ -2184,6 +2310,33 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         for w in spec.windows_effective:
             if not getattr(w, 'enabled', False):
                 continue
+            # ★★★ "全天窗口"特判（修一个用户报的真 bug）★★★
+            #
+            # 用户原话:
+            # > "**契灵之境为什么显示等待到点**? 这个是次数任务, 不应该有
+            # >  [还未到点]这种[拥有 window 的任务类]的属性啊"
+            #
+            # ## 根因（实测）
+            #
+            # `strict=True` 的语义是"**下一次**窗口开放"。对
+            # `00:00-23:59` 这种**全天窗口**, `next_opening(strict=True)` 会先跳到
+            # `next_closing`（今天 23:59）, 再找"下一次开放" -> ★ **明天 00:00**。
+            #
+            # ★ 于是排期把任务推到**明天** -> `next_run` 落在未来
+            #   -> `update_scheduler` 把它归入 `waiting` -> 界面显示
+            #   **「等待到点」**。实测 `RealmRaid`（个人突破, `period=none`）与
+            #   `MemoryScrolls`（绘卷）都是这个成因 —— 但它们明明"全天可跑"。
+            #
+            # ★ 修法: 全是**不受限**（`is_unrestricted`）的窗口时, 答案就是
+            #   "**现在就能跑**"。★ 这与下面 `if not spans: return when`
+            #   （**没有**窗口时）的语义**天然一致** —— 全天窗口本来就该等价于
+            #   "没有时段限制"。
+            # ⚠ `is_unrestricted` 是 **property（返回 bool）**, 不是方法 ——
+            #   我第一版写成 `w.is_unrestricted()` -> **运行时 TypeError**
+            #   （`'bool' object is not callable`）。
+            #   ★ 实测抓到: `availability.py:165` 是 `@property`。
+            if getattr(w, 'is_unrestricted', False):
+                continue
             try:
                 nxt = w.next_opening(when, strict=True)
             except Exception:
@@ -2196,6 +2349,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             close = nxt - timedelta(minutes=1) if w.contains(when) else nxt
             spans.append((nxt, close))
         if not spans:
+            # ★ 没有**受限**窗口（无窗口 / 只有全天窗口）-> 现在就能跑
             return when
         if strict:
             return min(s[0] for s in spans)

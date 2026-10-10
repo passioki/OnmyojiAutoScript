@@ -107,8 +107,7 @@ class Scheduler(ConfigBase):
 
     # 完成记忆。默认 none -> 新字段不改变既有行为
     period: TaskPeriod = Field(
-        default=TaskPeriod.NONE, description='period_help',
-        json_schema_extra={'internal': True})
+        default=TaskPeriod.NONE, description='period_help')
     # 周期边界(游戏每日重置时刻)。阴阳师以凌晨 0 点为界, 故默认为 00:00
     reset_at: Time = Field(
         default=Time(hour=0, minute=0, second=0), description='reset_at_help',
@@ -133,28 +132,39 @@ class Scheduler(ConfigBase):
     # ★ 4-A/4-E 之后: 时段已搬进各任务 `meta.py` 的 `TaskSpec.window`
     #   （游戏机制事实）, 这里降级为**内部字段** —— 仍然是权威值
     #   （`Function._build_window` 读它）, 但不再出现在界面上。
+    # ★★ 这些字段是**用户可改的**（2026-10-10 用户澄清后修正）★★
+    #
+    # 我一开始（4-E）把它们当成"内部字段"隐藏了 —— 那是**错的**。
+    # 用户明确要求:
+    #
+    #   "缺 window 用 period 推导, 记得要符合前端设计意义
+    #    （用户可以选择每天, 然后把时间改为 17-23 点）, 后端也要符合这个逻辑"
+    #
+    # 所以职责划分是:
+    #   * `period`（每天/每周/每月）—— 决定**节奏**, 同时给出**默认窗口**
+    #   * `window_start` / `window_end` —— **用户偏好**（"我每天只想在 17-23 跑"）
+    #   * 各任务 `meta.py` 的 `TaskSpec.window` —— **游戏机制硬约束**
+    #     （如狭间暗域只在周五六日）, 与用户时刻取**并集**
+    #
+    # 优先级见 `Function._build_window()`。
     window_enable: bool = Field(
         default=False,
         description='window_enable_help',
-        title='启用开放时段',
-        json_schema_extra={'internal': True})
+        title='启用开放时段')
     window_start: Time = Field(
         default=Time(hour=17, minute=0, second=0),
         description='window_start_help',
-        title='开放开始',
-        json_schema_extra={'internal': True})
+        title='开放开始')
     window_end: Time = Field(
         default=Time(hour=23, minute=0, second=0),
         description='window_end_help',
-        title='开放结束',
-        json_schema_extra={'internal': True})
+        title='开放结束')
     # 限定星期: 逗号分隔的 0-6(周一=0), 空或 "0,1,2,3,4,5,6" 表示每天。
     # 用字符串而非列表, 与既有 charge_slots='0,12' 的风格一致, 也便于 GUI 输入。
     window_days: str = Field(
         default='0,1,2,3,4,5,6',
         description='window_days_help',
-        title='开放星期',
-        json_schema_extra={'internal': True})
+        title='开放星期')
 
     # ------------------------------------------------------------ 任务列表
     #

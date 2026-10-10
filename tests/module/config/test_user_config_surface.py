@@ -29,7 +29,28 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 # 用户**应该**看到的（真正的调度配置）
-USER_FACING = {'enable', 'priority', 'target', 'expected_minutes'}
+#
+# ★★ 2026-10-10 用户澄清后**扩大**了 ★★
+#
+# 我一开始（4-E）把 `window_*` / `period` 当成"内部字段"隐藏了 —— 那是**错的**。
+# 用户明确要求:
+#
+#   "缺 window 用 period 推导, 记得要符合前端设计意义
+#    （用户可以选择每天, 然后把时间改为 17-23 点）, 后端也要符合这个逻辑"
+#   "period.monthly作为预留的嘛, 可以下拉选择每月, 确保后端有这个功能, 前端才能出现"
+#
+# 职责划分:
+#   * `period`（每天/每周/每月）—— **节奏**, 用户选; 同时给出**默认窗口**
+#   * `window_start` / `window_end` / `window_days` —— **用户偏好**
+#     （"我每天只想在 17-23 跑"）
+#   * 各任务 `meta.py` 的 `TaskSpec.window` —— **游戏机制硬约束**
+#     （如狭间暗域只在周五六日）, 与用户时刻取**并集**
+USER_FACING = {
+    'enable', 'priority', 'target', 'expected_minutes',
+    # ★ 用户可见可改（本轮修正）
+    'window_enable', 'window_start', 'window_end', 'window_days',
+    'period',
+}
 
 # 用户**不该**看到的（游戏机制 / 软件内部状态）
 INTERNAL = {
@@ -39,12 +60,9 @@ INTERNAL = {
     'server_update',     # 服务器维护顺延
     'delay_date',        # 同上
     'float_time',        # 随机抖动
-    'period',            # 完成记忆的内部依据
     'reset_at',          # 周期边界
-    'window_enable',     # 时段已搬进 meta.py 的 TaskSpec.window
-    'window_start',
-    'window_end',
-    'window_days',
+    # ★ `period` / `window_*` **不属于这里** —— 它们是用户可见可改的
+    #   （见上面 USER_FACING 的说明; 2026-10-10 修正）
 }
 
 
@@ -111,8 +129,10 @@ class TestSchemaHidesInternal:
         shown = len(got.get('scheduler') or [])
         assert shown < total, (
             f'界面暴露 {shown} 个 / 模型共 {total} 个 —— 过滤没生效')
-        assert shown <= 6, (
-            f'界面暴露 {shown} 个字段, 仍然太多（预期 <= 6, 台账目标 3~4）')
+        # ★ 2026-10-10: 用户要求 `window_*` + `period` 也可见/可改
+        #   -> 上限从 6 放宽到 10（实际 9 个）
+        assert shown <= 10, (
+            f'界面暴露 {shown} 个字段, 仍然太多（预期 <= 10）')
 
     def test_multiple_tasks_consistent(self, config):
         """所有任务的截断规则要一致（不能只对 Orochi 生效）。"""

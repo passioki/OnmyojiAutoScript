@@ -731,3 +731,134 @@ elif self.banquet_day_1 <= today < self.banquet_day_2:
 **未做决定, 已记录**。同类还有 `RyouToppa`（`next_ryoutoppa_time`）、
 `Restart`（领体力 12:00/20:00）、`MemoryScrolls`（跨任务给 Exploration 排期）。
 
+---
+
+# 11. F3 · 队列顺序成为唯一调度依据 —— ✅ 已完成（实测）
+
+## 11.1 用户的设计（原话）
+
+> "待执行里为什么不能和执行顺序一样拖动呢, 他俩应该并在一起啊, 而等待中还没到点的却没有一个"
+> "定时任务的拖动代表执行顺序发生了变化。完成上一个任务就会接着完成下一个。
+>  正在运行 a, 执行顺序 bcd, 待执行 efg, 我把 g 拖到 bgcd, 这样运行完 B 就会运行 g。"
+> "现有的不能拖动是不是意味着当前任务调度还是按照 interval 间隔时间来完成任务的,
+>  而非设计要求中的排序依次完成?"
+
+**用户的判断是对的** —— 此前确实不是"按队列依次执行"。
+
+## 11.2 查明**两个**根因
+
+### 根因 1: 队列顺序被 `timed_sort_key` 完全覆盖
+
+`TaskScheduler.schedule(LIST, ...)` **确实**按队列位置排好了,
+但紧接着 `_order_by_timed_priority()` 用 `timed_sort_key`
+（到点程度 / 窗口快关 / 耗时短）**把整个列表重排**。
+
+**实测**（2026-10-10）:
+
+| 队列位置 | 任务 | 实际派发位置 |
+|---|---|---|
+| 1 | `Delegation` | **第 4** |
+| 9 | `ExperienceYoukai` | **第 1** |
+
+### 根因 2: **队列外的任务也在跑**
+
+```
+queue   = 18 个
+pending = 25 个      ← 多出 9 个
+```
+
+多出的 9 个（`EternitySea` / `Exploration` / `Orochi` / `FallenSun` /
+`GoryouRealm` / `Hyakkiyakou` / `RealmRaid` / `RyouToppa` / `Sougenbi`）
+都是 `auto_queue=False` 的**次数任务** —— 用户**没把它们加进队列**,
+它们却在跑。这与"队列是唯一调度依据"直接矛盾。
+
+### 根因 3（顺带发现）: `server_update` **覆盖**了窗口对齐
+
+`task_delay()` 里原本是:
+
+```
+next_run = self._align_to_window(task, next_run)   ← 对齐
+if server: ...                                      ← 又覆盖!
+```
+
+`server_update` 默认 `09:00` -> 走 `else` 分支 ->
+`next_run = parse_tomorrow_server(...)` -> **直接变成"明天的 09:00"**,
+**完全无视窗口** —— 对齐**白做**。
+
+已把 `_align_to_window` 移到**最后**, 让"落在窗口内"成为不可被覆盖的终态。
+
+## 11.3 修法
+
+| 改动 | 说明 |
+|---|---|
+| `Config._is_list_rule(rule)` | **新增**。判断是否 `LIST` 规则 |
+| `Config._order_by_queue(pending)` | **新增**。按队列顺序排 + **剔除队列外任务** |
+| `LIST` 分支走 `_order_by_queue` | 队列顺序**就是**执行顺序, 队列外的**不跑** |
+| 其它规则保留 `_order_by_timed_priority` | `FILTER`/`FIFO`/`PRIORITY` 本来就是"按机制排" |
+| `_align_to_window` 移到 `server_update` **之后** | 修上面根因 3 |
+| 「运行一次」`_order_by_manual_run` **保留** | 它是用户的**显式即时指令**, 不是"按机制插队" |
+
+## 11.4 ★ 实测证据
+
+```
+★ pending == 队列剔除(waiting) 后的保序子序列: True
+
+队列顺序即执行顺序:
+   1. Delegation          待执行
+   2. KekkaiUtilize       待执行
+   3. AreaBoss            待执行
+   4. BondlingFairyland   待执行
+   5. AbyssShadows        未到开放时间      ← 窗口 周五六日 19:00-20:00
+   6. DailyTrifles        待执行
+   7. DemonEncounter      未到开放时间      ← 窗口 每天 17:00-23:00
+   8. Duel                待执行
+   9. ExperienceYoukai    待执行
+  10. GoldYoukai          待执行
+  ...
+
+pending 25 → 16（队列外的 9 个不再跑）
+```
+
+★ 这正是用户要的: **队列顺序 = 执行顺序**;
+**不在窗口的变灰进「未到开放时间」**（§8.2 的规则 B）。
+
+## 11.5 ★ 踩过一个**静默失效**的坑
+
+```python
+# ❌ 永远为 False —— 改动静默失效（派发顺序一点没变, 也不报错）
+if str(_rule).lower() not in ('schedule_rule.list', 'list'):
+
+# 实际: str(ScheduleRule.LIST) == 'ScheduleRule.LIST'  (不是 'List')
+```
+
+已改用 `_is_list_rule()`（枚举取 `.value`, 字符串直接比）,
+并加守卫 `test_str_of_enum_is_not_the_value` 把这个坑**钉住**。
+
+## 11.6 `interval` 的残留（如实）
+
+**顺序上已经不影响** —— 队列顺序是唯一依据（§11.4 实测）。
+
+但 `task_delay()` 里**仍有回退分支**（L1315-1316）:
+
+```
+if success:
+    interval = scheduler.success_interval
+else:
+    interval = scheduler.retry_interval     ← 失败退避, 保留（台账 7.6）
+```
+
+它只在 `_next_run_from_resource()` 返回 `None` 时生效（即
+`Resource.recharge.kind` 不是 `interval`/`slots` 的任务）。
+
+★ 失败路径的 `retry_interval` **要保留** —— 退避重试是独立概念（与资源补充无关）。
+★ `success_interval` 的**彻底删除**还未做（见 §13.2）。
+
+## 11.7 守卫测试（新增 8 个）
+
+`tests/module/config/test_queue_is_authority.py`:
+* **核心不变量**: `pending` 是队列剔除 `waiting` 后的**保序子序列**
+* 队列外的任务**不该**进 `pending`
+* `pending` **不能**是 `timed_sort_key` 排出来的顺序（反回归）
+* `_is_list_rule` 对 4 种规则 + 3 种字符串写法都正确
+* **钉住坑**: `str(ScheduleRule.LIST) == 'ScheduleRule.LIST'`
+

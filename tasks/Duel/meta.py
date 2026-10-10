@@ -12,6 +12,8 @@
 
 类别依据: 定时任务: 按周期调度
 """
+from datetime import time
+from module.config.availability import AvailabilityWindow
 from module.config.resource import Period, Recharge, Resource  # noqa: F401
 from module.config.task_catalog import Category, TaskSpec  # noqa: F401
 
@@ -21,6 +23,16 @@ SPEC = TaskSpec(
     category=Category.TIMED,
     # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
     auto_queue=True,
+    # ★ F2c: 显式声明开放时段（用户: "所有的定时都有着 window 属性"）。
+    #
+    # 目前是**整天** —— 与"未声明"在行为上**完全等价**（`contains()` 都恒 True）,
+    # 所以这是**纯声明**, 不改变任何既有行为。
+    #
+    # ⚠ 但**不是**"没有时段": 它让"这个任务有 window"这件事**可见**
+    #   （`dev_tools/check_windows.py` 会核对）。
+    #   若该玩法有**真实游戏时段**, 应把它收窄成实际的起止时刻 ——
+    #   那属于**行为变更**, 需要按机制核实后再改。
+    window=AvailabilityWindow(True, time(0, 0), time(23, 59)),
     list_pos=44,
     resource=Resource(capacity=1, recharge=Recharge(kind='interval', interval=(0, 3, 0))),
 )

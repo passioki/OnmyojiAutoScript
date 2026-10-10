@@ -49,20 +49,47 @@ def make_node(**overrides) -> dict:
     return {'scheduler': sch}
 
 
-class TestDefaultsUnchanged:
-    """核心保证: 既有配置(无 window_* 字段)的行为**完全不变**。"""
+class TestMetaWindowPriority:
+    """★★ 优先级: **任务 `meta.py` 的 `TaskSpec.window` 权威**。
 
-    def test_no_window_fields_means_unrestricted(self):
-        f = Function('fallen_sun', make_node())
+    ## 为什么这里必须改（曾经的假设已经不成立）
+
+    原版类名叫 `TestDefaultsUnchanged`, 断言是"既有配置（无 `window_*` 字段）
+    的行为完全不变 -> `f.window.enabled is False`"。
+
+    那个前提**已经不存在**: 用户明确要求
+
+        所有的定时都有着 window 属性
+
+    所以 `Function._build_window()` 现在**优先读 `TaskSpec.window`**,
+    `FallenSun` / `Tako` 这些任务在 `meta.py` 里已有窗口 ->
+    `scheduler.window_*` **不再生效**（那是旧机制的遗留字段, 4-E 已从界面移除）。
+
+    ★ 但仍然要保证: **没有 `meta.py` 窗口时, `scheduler.window_*` 照旧生效**
+      （见 `TestSchedulerConfigFallback`）—— 那是配置项路径, 不能坏。
+    """
+
+    def test_real_task_uses_meta_window(self):
+        """真实任务（有 meta）-> 用 meta 的窗口, **忽略** `scheduler.window_*`。"""
+        f = Function('fallen_sun', make_node(
+            window_enable=True, window_start=time(22, 0), window_end=time(2, 0)))
+        # FallenSun 的 meta.py 声明的是"整天"窗口, 不是 22:00-02:00
         assert f.window is not None
-        assert f.window.enabled is False
-        assert f.in_window() is True
-        assert f.window_reason is None
+        assert f.window.enabled is True
+        assert f.window.crosses_midnight is False, (
+            'scheduler.window_* 不该覆盖 meta.py 的窗口')
+        assert f.in_window() is True        # 整天 -> 恒真
 
-    def test_window_disabled_explicitly(self):
-        f = Function('fallen_sun', make_node(window_enable=False))
-        assert f.in_window() is True
-        assert f.window_reason is None
+    def test_meta_takes_precedence_over_config(self):
+        """★ 反向守卫: 配置里写"今天绝不允许", meta 是整天 -> 仍应允许。"""
+        from datetime import datetime
+        today = datetime.now().weekday()
+        other = tuple(d for d in range(7) if d != today)
+        f = Function('fallen_sun', make_node(
+            window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
+            window_days=','.join(str(d) for d in other)))
+        assert f.in_window() is True, (
+            'meta.py 的整天窗口应压过 scheduler.window_days 的"排除今天"')
 
     def test_normal_fields_still_parsed(self):
         f = Function('fallen_sun', make_node())
@@ -70,30 +97,73 @@ class TestDefaultsUnchanged:
         assert f.priority == 5
 
 
-class TestWindowParsing:
-    def test_daily_window(self):
-        f = Function('demon_encounter', make_node(
+class TestSchedulerConfigFallback:
+    """没有 `meta.py` 窗口时, `scheduler.window_*`（配置项）**照旧生效**。
+
+    ★ 为什么要 monkeypatch: 54 个任务**全部**都有 `meta.py` 了
+      （F2c 补齐），所以**没有真实任务**能走"配置项"这条路。
+      而合成任务名走不通 —— `ConfigModel.type()` 对未知任务名抛 `KeyError`。
+
+      所以用 monkeypatch 把 `TC.get_spec` 变成"查不到"，
+      等价于"这个任务没写 meta.py"，从而测到回退分支。
+    """
+
+    @pytest.fixture()
+    def no_meta(self, monkeypatch):
+        """让 `TC.get_spec` 恒返回 None -> 走 `scheduler.window_*` 回退。"""
+        import module.config.config as cfgmod
+        monkeypatch.setattr(cfgmod, '_spec_for_tests', None, raising=False)
+
+        from module.config import task_catalog as TC
+        monkeypatch.setattr(TC, 'get_spec', lambda task: None)
+        return None
+
+    def test_no_meta_means_unrestricted(self, no_meta):
+        f = Function('fallen_sun', make_node())
+        assert f.window is not None
+        assert f.window.enabled is False
+        assert f.in_window() is True
+        assert f.window_reason is None
+
+    def test_window_disabled_explicitly(self, no_meta):
+        f = Function('fallen_sun', make_node(window_enable=False))
+        assert f.in_window() is True
+        assert f.window_reason is None
+
+    def test_config_window_is_honoured(self, no_meta):
+        f = Function('fallen_sun', make_node(
             window_enable=True, window_start=time(17, 0), window_end=time(23, 0)))
         assert f.window.enabled is True
         assert f.window.describe() == '每天 17:00-23:00'
 
-    def test_day_restricted_window(self):
-        f = Function('abyss_shadows', make_node(
-            window_enable=True, window_start=time(19, 0), window_end=time(21, 0),
-            window_days='4,5,6'))
-        assert set(f.window.days) == {4, 5, 6}
-
-    def test_cross_midnight_window(self):
-        f = Function('tako', make_node(
+    def test_cross_midnight_from_config(self, no_meta):
+        f = Function('fallen_sun', make_node(
             window_enable=True, window_start=time(22, 0), window_end=time(2, 0)))
         assert f.window.crosses_midnight is True
+
+    def test_partially_valid_days_keeps_valid(self, no_meta):
+        """`'4,abc,6'` -> 有效项保留（4/6）, 无效项忽略。"""
+        f = Function('fallen_sun', make_node(
+            window_enable=True, window_days='4,abc,6'))
+        assert set(f.window.days) == {4, 6}
 
 
 class TestWindowGating:
     """不在时段内 -> `in_window()` 为 False 且能给出可读原因。"""
 
-    def test_blocked_by_day(self):
-        """把时段限定在"今天之外"的所有星期, 保证当前必被拦。"""
+    @pytest.fixture()
+    def no_meta(self, monkeypatch):
+        """屏蔽 `meta.py` -> 走 `scheduler.window_*` 配置项路径。"""
+        from module.config import task_catalog as TC
+        monkeypatch.setattr(TC, 'get_spec', lambda task: None)
+        return None
+
+    def test_blocked_by_day(self, no_meta):
+        """把时段限定在"今天之外"的所有星期, 保证当前必被拦。
+
+        ★ 需要 `no_meta`: 真实任务的 `meta.py` 会覆盖配置项
+          （`FallenSun` 有整天窗口 -> 恒允许）。
+        """
         from datetime import datetime
         today = datetime.now().weekday()
         other = tuple(d for d in range(7) if d != today)
@@ -133,9 +203,19 @@ class TestWindowGating:
 
 
 class TestRobustness:
-    """配置写错时退化为"不限时段", 不让任务卡死。"""
+    """配置写错时退化为"不限时段", 不让任务卡死。
 
-    def test_garbage_days_falls_back(self):
+    ★ 需要 `no_meta`: 这里测的是 **`scheduler.window_*` 配置项**路径,
+      真实任务的 `meta.py` 会覆盖它。
+    """
+
+    @pytest.fixture()
+    def no_meta(self, monkeypatch):
+        from module.config import task_catalog as TC
+        monkeypatch.setattr(TC, 'get_spec', lambda task: None)
+        return None
+
+    def test_garbage_days_falls_back(self, no_meta):
         """
         乱码的 `window_days` 应退化为"每天"。
 
@@ -154,19 +234,19 @@ class TestRobustness:
         # 用**固定时刻**断言 -> 完全不受运行时间影响
         assert f.in_window(now) is True
 
-    def test_garbage_days_keeps_window_active(self):
+    def test_garbage_days_keeps_window_active(self, no_meta):
         """退化的是 **days**, 不是整个时段开关。"""
         f = Function('fallen_sun', make_node(
             window_enable=True, window_start=time(0, 0), window_end=time(23, 59),
             window_days='abc,xyz'))
         assert f.window.enabled is True, '不该因为 days 写错就整个禁用时段'
 
-    def test_partially_valid_days_keeps_valid(self):
+    def test_partially_valid_days_keeps_valid(self, no_meta):
         f = Function('fallen_sun', make_node(
             window_enable=True, window_days='4,abc,6'))
         assert set(f.window.days) == {4, 6}
 
-    def test_missing_times_do_not_crash(self):
+    def test_missing_times_do_not_crash(self, no_meta):
         """缺 window_start/end 时应退化为不限时段, 而不是抛异常。"""
         f = Function('fallen_sun', {'scheduler': {
             'enable': True, 'next_run': '2023-01-01 00:00:00', 'priority': 5,
@@ -174,7 +254,7 @@ class TestRobustness:
         }})
         assert f.in_window() is True
 
-    def test_broken_scheduler_node(self):
+    def test_broken_scheduler_node(self, no_meta):
         """畸形节点不应崩 —— 沿用既有兜底行为。"""
         f = Function('fallen_sun', {'no_scheduler': 1})
         assert f.enable is False

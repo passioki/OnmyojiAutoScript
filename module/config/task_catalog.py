@@ -227,20 +227,56 @@ class TaskSpec:
     list_pos: int = None
 
     @property
-    def windows_effective(self) -> tuple:
-        """该任务的开放时段**列表**（没声明则返回一个"不限时段"的空窗口）。
+    def period_effective(self):
+        """该任务的**周期**（`Period`）—— 来自 `Resource.recharge.period`。
 
-        为什么统一成 list: 调用方不必关心"单段还是多段", 一律遍历即可。
+        没有 `resource` 或 `recharge` 时返回 `None`。
         """
-        from module.config.availability import AvailabilityWindow
+        r = self.resource
+        if r is None:
+            return None
+        return getattr(getattr(r, 'recharge', None), 'period', None)
+
+    @property
+    def declared_window(self):
+        """**显式声明**的窗口（`meta.py` 里写了才有）; 没写返回 `None`。
+
+        ★ 与 `windows_effective` 的区别: 后者会**回退到周期推导**。
+          校验脚本要用本属性来判断"哪些任务没显式声明"。
+        """
+        return self.window
+
+    @property
+    def windows_effective(self) -> tuple:
+        """该任务的开放时段**列表**。
+
+        ## 取值顺序（用户新澄清的设计）
+
+        1. **`meta.py` 显式声明的 `window`**（游戏机制, 最权威）
+        2. **由周期推导** —— `Period.DAILY` -> 每天 0-24;
+           `Period.WEEKLY` -> 周一 0 点到周日 24 点（即全周）;
+           `Period.MONTHLY` -> 当月 1 日到月末
+           （见 `availability.window_for_period`）
+        3. 都没有（`Period.NONE` 且没显式声明）-> 一个 `enabled=False` 的窗口
+
+        ★ **用户原话**: "所有的定时都有着 window 属性" —— 所以第 2 步是
+          **正常路径**, 不是兜底; 第 3 步才是"这个任务确实还没声明节奏"。
+
+        ★ 为什么统一成 list: 调用方不必关心"单段还是多段", 一律遍历即可。
+        """
+        from module.config.availability import AvailabilityWindow, window_for_period
+
         w = self.window
-        if w is None:
-            return (AvailabilityWindow(),)
         if isinstance(w, AvailabilityWindow):
             return (w,)
         if isinstance(w, (list, tuple)):
             got = tuple(x for x in w if isinstance(x, AvailabilityWindow))
-            return got if got else (AvailabilityWindow(),)
+            if got:
+                return got
+        # 没显式声明 -> 按周期推导
+        derived = window_for_period(self.period_effective)
+        if derived is not None:
+            return (derived,)
         return (AvailabilityWindow(),)
 
     @property

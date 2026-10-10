@@ -273,3 +273,6 @@ oas.bat
 
 # Per-instance FrogBoss prediction and result history
 data/frog_oas/
+
+# 本地配置备份（含用户数据, 不该进仓库）
+config/*.bak*

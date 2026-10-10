@@ -33,7 +33,6 @@ import pytest
 
 from module.config.run_list import (DURATION_CHOICES, KIND_HELP, KIND_LABEL,
                                     EntryKind, RunEntry, RunList, is_list_task)
-from module.config.scheduler import TaskScheduler
 from tasks.Script.config_optimization import ScheduleRule
 
 
@@ -382,56 +381,19 @@ class TestReorder:
         assert rl.is_empty()
 
 
-class TestListRuleScheduling:
-    """`ScheduleRule.LIST` 按 run_list 的 task 顺序排 pending 任务。"""
-
-    class F:
-        def __init__(self, cmd, nr='2026-01-01 00:00:00'):
-            self.command = cmd
-            self.next_run = nr
-            self.priority = 5
-
-        def __repr__(self):
-            return self.command
-
-    def test_orders_by_run_list(self):
-        rl = RunList.from_list([
-            {'kind': 'task', 'task': 'Orochi'},
-            {'kind': 'task', 'task': 'FallenSun'},
-            {'kind': 'task', 'task': 'GoryouRealm'},
-        ])
-        pend = [self.F('GoryouRealm'), self.F('Exploration'),
-                self.F('Orochi'), self.F('FallenSun')]
-        got = [f.command for f in
-               TaskScheduler.schedule(ScheduleRule.LIST, list(pend), rl)]
-        assert got[:3] == ['Orochi', 'FallenSun', 'GoryouRealm']
-        assert got[-1] == 'Exploration', '未编排的排最后'
-
-    def test_rest_does_not_appear_as_task(self):
-        rl = RunList.from_list([
-            {'kind': 'rest', 'minutes': 10},
-            {'kind': 'task', 'task': 'Orochi'},
-        ])
-        pend = [self.F('Orochi'), self.F('FallenSun')]
-        got = [f.command for f in
-               TaskScheduler.schedule(ScheduleRule.LIST, list(pend), rl)]
-        assert got[0] == 'Orochi'
-        assert set(got) == {'Orochi', 'FallenSun'}, '休息不该引入任务'
-
-    def test_legacy_string_still_works(self):
-        pend = [self.F('FallenSun'), self.F('Orochi')]
-        got = [f.command for f in
-               TaskScheduler.schedule(ScheduleRule.LIST, list(pend),
-                                      'FallenSun,Orochi')]
-        assert got[:2] == ['FallenSun', 'Orochi']
-
-    def test_empty_run_list_falls_back_to_list_pos(self):
-        """空清单 -> 回退到各任务 `meta.py` 的 `list_pos`。"""
-        pend = [self.F('FallenSun'), self.F('SoulsTidy')]
-        got = [f.command for f in
-               TaskScheduler.schedule(ScheduleRule.LIST, list(pend), RunList())]
-        assert got[0] == 'SoulsTidy', f'应按 list_pos 排: {got}'
-
+# ★★ 第二轮复审（待办 #4）: `TestListRuleScheduling` **已删除** ★★
+#
+# 它整类测的是 `TaskScheduler.schedule(ScheduleRule.LIST, ...)` —— 那个类
+# **生产 0 调用**（剥注释全仓核实: `module/` + `tasks/` 里只有它自己的
+# 定义）, 已随 `module/config/scheduler.py` 一起删除。
+#
+# ★ 那 4 条断言的是「`ScheduleRule.LIST` 按 run_list 顺序排 pending」——
+#   这个**语义本身已经搬到** `Config._order_by_queue()`（队列是唯一顺序
+#   权威, 且**不再看 `schedule_rule`**）—— 现行守卫在
+#   `test_queue_is_authority.py` 与 `test_execution_queue.py::TestWiring`。
+#
+# ★ 又一次印证: **覆盖率高 != 有人在管** —— 这 4 条忠实覆盖了死代码,
+#   全绿但没有任何生产路径会走到它们。
 
 class TestPreview:
     """预演（界面「预期执行流程」面板）—— 推算, 不是保证。"""

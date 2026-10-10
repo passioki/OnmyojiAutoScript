@@ -5238,3 +5238,95 @@ str(ScheduleRule.LIST) == 'ScheduleRule.LIST'   # ★ 不是 'List'!
 | 5 | 前端死代码: `scheduleRule` 簇 / `flow` 簇 / 11 个未调用 `api_client` 方法 / 0 字节 `group_controller.dart` | 中 |
 | 6 | `tests/module/config/test_battle_wait.py:250-268` 的 `test_owner_switch_resets_per_task` **模拟**了 `__call__` 而没真调（生产改了也不会红）| 中 |
 
+---
+
+# 58. 删 `module/config/scheduler.py`（`TaskScheduler` 只剩测试在用）
+
+## 58.1 依据
+
+剥注释全仓核实:
+
+* `TaskScheduler` 在 `module/` + `tasks/` 里**只有 `scheduler.py` 自己的引用**
+  （`:35/:40/:45/:50/:150` 全在类内部）—— ★ **生产 0 调用**
+* 唯一 import 它的是 **3 个测试文件**
+* `TaskSpec.list_pos` 的**唯一调度消费者**是 `scheduler.py:99-100`
+  （`list_order` 的 `default_index`）—— 随它一起死
+
+★ 这是 **T1**（删掉 `update_scheduler()` 里对 `TaskScheduler.schedule()` 的
+  调用）之后的**必然结果** —— 那个调用是它最后的生命线。
+
+## 58.2 删了什么 / 抢救了什么
+
+| 处置 | 内容 |
+|---|---|
+| ★ **删除** | `module/config/scheduler.py`（196 行）|
+| ★ **删除** | `tests/module/config/test_task_list.py`（224 行, **21 条测试** —— 全在测 `TaskScheduler`）|
+| ★ **删除** | `test_run_list.py::TestListRuleScheduling`（**4 条**）|
+| ★ **删除** | `test_duplicate_queue_entries.py` 里测量 `list_order` 的 **2 条** |
+| ★ **抢救** | `test_task_list.py` 里 **5 条元数据体检** -> 新建 `test_list_pos_metadata.py` |
+
+### ★ 为什么要"抢救"那 5 条
+
+原 `test_task_list.py` 的 21 条里, 有 **5 条测的是元数据**, 与调度器死活无关:
+
+* 40 个 `tasks/*/meta.py` 的 `list_pos` 是否**唯一**、覆盖是否够多
+* 已知的内置顺序是否被保留
+* `ScheduleRule.LIST` 是否还在枚举里（**读旧配置要用**）
+
+★ 它们仍能抓到"有人给两个任务写了同一个 `list_pos`"这类**元数据错误** ——
+  **不该跟着死代码一起丢**。
+
+### ★ 抢救时我自己踩的坑
+
+抢救出来的测试原来是**类方法**（缩进 8 空格）, 我直接拼成模块级函数
+-> `IndentationError`; 改完缩进又漏了一个 `ScheduleRule` 的 import
+-> `NameError`。★ 两次都是"机械搬运不看语义"。
+
+## 58.3 `list_pos` 的现状（★ 已**不是**调度输入）
+
+| 用途 | 状态 |
+|---|---|
+| `scheduler.py::list_order` 的 `default_index` | ★ **已删**（随文件）|
+| 40 个 `meta.py` 在维护 `list_pos=` | 保留（元数据）|
+| `schema_router` 用它算 `in_list`（`GET /{script}/queue/default_order`）| **保留**（对外契约）|
+
+★ 所以 `list_pos` **保留字段**, 但**队列顺序才是权威**。
+  40 个 `meta.py` 里那些 `list_pos=` 现在是"**给界面看的内置清单顺序**",
+  **不再影响实际执行顺序**。
+★ 这一条**必须写清** —— 否则下一个人会以为改 `list_pos` 能改执行顺序。
+
+## 58.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1631 passed, 3 skipped**（0 失败）|
+| ★ 测试数变化 | 1654 -> **1631**（**-23**）|
+| 删除的生产代码 | `scheduler.py` **196 行** |
+| 删除的测试 | **21 + 4 + 2 = 27 条**（新抢救 **5 条**）|
+| 污染告警 | **0 条** |
+
+## 58.5 ★★ 累计战果（第二轮复审）
+
+| 项 | 数字 |
+|---|---|
+| 后端测试数 | 1681 -> **1631**（**-50**, 全是死代码的测试）|
+| `timed_schedule.py` | 401 -> **121 行** |
+| `module/config/scheduler.py` | **196 -> 0 行**（删除）|
+| 文档守卫真正校验的引用 | **2 -> 31 条** |
+| 生产 bug 修掉 | `migrate_priority_mode_once` **缺 `save()`** |
+| 假绿守卫修掉 | **5 处**（"注释驱动"）+ **1 处恒真断言** |
+| 生产死函数删掉 | **6 个**（`_is_list_rule` + `timed_schedule` 4 个 + `TaskScheduler`）|
+
+★ **-50 条测试是好事**: 它们**不可能失败地通过**（被测代码没有生产调用方）。
+  删掉它们让"测试数"这个指标**重新有意义**。
+
+## 58.6 剩余待办
+
+| # | 项 | 级别 |
+|---|---|---|
+| 1 | **唯一根治污染** = conftest 把 `config/` 重定向到 `tmp_path` | 中 |
+| 2 | 两份废弃清单（`scheduler-architecture.md` §8 vs `deprecated.md`）**已漂移** -> §8 改成一行指针 | 中 |
+| 3 | 前端死代码: `scheduleRule` 簇 / `flow` 簇 / 11 个未调用 `api_client` 方法 / 0 字节 `group_controller.dart` | 中 |
+| 4 | `tests/.../test_battle_wait.py:250-268` 的 `test_owner_switch_resets_per_task` **模拟**了 `__call__` 而没真调（生产改了也不会红）| 中 |
+| 5 | `schema_router` 的 `/schema` 仍发布 `list.modes` / `list.mode_value` / `list.current_mode`（四个已废弃调度模式）+ `_current_schedule_rule()` | 中 |
+

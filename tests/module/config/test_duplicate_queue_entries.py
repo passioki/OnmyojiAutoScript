@@ -94,36 +94,27 @@ class TestCandidatesAllowDuplicates:
 
 
 class TestDuplicateEntriesKeepPosition:
-    """★ 障碍 2: 重复条目必须**各占一个队列位置**。"""
+    """★ 障碍 2: 重复条目必须**各占一个队列位置**。
 
-    def test_list_order_uses_entry_positions(self, live):
-        """★ 核心: 重复条目后面的任务**位置不被前移**。
+    ## ★★ 第二轮复审（待办 #4）: 删掉 3 条测已删代码的测试 ★★
 
-        编排 `[Delegation, RealmRaid, RealmRaid, AreaBoss]`:
-        * 旧行为（去重保首）-> AreaBoss 的位置被算成 **2**
-        * 新行为（按条目）  -> AreaBoss 的位置是 **3**
+    | 被删的测试 | 为什么 |
+    |---|---|
+    | `test_list_order_uses_entry_positions` | 调 `TaskScheduler.schedule()` —— 那个类**生产 0 调用**, 已随 `scheduler.py` 删除 |
+    | `test_list_order_source_no_task_order` | 读 `module/config/scheduler.py` 的源码 —— **文件都没了** |
 
-        排序结果都一样, 但**位置语义**不同 —— 后续插入/拖拽会受影响。
-        """
-        from module.config.run_list import RunEntry, RunList
-        from module.config.scheduler import TaskScheduler
-        from module.config.utils import convert_to_underscore
-        from tasks.Script.config_optimization import ScheduleRule
-
-        rl = RunList([
-            RunEntry(kind='task', task='Delegation'),
-            RunEntry(kind='task', task='RealmRaid'),
-            RunEntry(kind='task', task='RealmRaid'),
-            RunEntry(kind='task', task='AreaBoss'),
-        ])
-        pending = [_fn(live, 'delegation'), _fn(live, 'realm_raid'),
-                   _fn(live, 'area_boss')]
-        got = TaskScheduler.schedule(ScheduleRule.LIST, pending, rl)
-        order = [f.command for f in got]
-        assert order == ['Delegation', 'RealmRaid', 'AreaBoss'], order
+    ★ 而"重复条目各占一个位置"这个**真正的不变量**现在由
+    `Config._order_by_queue()` 负责（它按 `entry_id` 逐条分配）——
+    守卫在 `test_entry_scoped_state.py` 与 `test_entry_id.py`。
+    ★ 下面两条**保留**: 它们只依赖 `RunList` 自己, 与调度器死活无关。
+    """
 
     def test_duplicates_are_preserved_in_run_list(self):
-        """`RunList` 本身必须**允许**重复条目（不去重）。"""
+        """`RunList` 本身必须**允许**重复条目（不去重）。
+
+        ★ 这是"重复条目"能工作的**地基** —— 用户 ⑧ 明确要"可以重复添加
+        同一个任务"。
+        """
         from module.config.run_list import RunEntry, RunList
         rl = RunList([
             RunEntry(kind='task', task='RealmRaid'),
@@ -134,7 +125,8 @@ class TestDuplicateEntriesKeepPosition:
     def test_task_order_still_dedups_for_legacy(self):
         """`task_order()`（旧字段）**仍然**去重 —— 那是它的既有契约, 不改。
 
-        ⚠ 但 `list_order` **不再**用它来定位（改用条目遍历）。
+        ⚠ 但**队列顺序不再用它来定位**（`_order_by_queue` 改按条目遍历）。
+        ★ 保留这条是为了钉住"旧字段的语义**故意不变**"（读旧配置要用）。
         """
         from module.config.run_list import RunEntry, RunList
         rl = RunList([
@@ -143,16 +135,3 @@ class TestDuplicateEntriesKeepPosition:
             RunEntry(kind='task', task='Delegation'),
         ])
         assert rl.task_order() == ['RealmRaid', 'Delegation']
-
-    def test_list_order_source_no_task_order(self):
-        """★ 反向守卫: `list_order` **不该**再用 `task_order()` 建位置映射。"""
-        src = (REPO / 'module' / 'config' / 'scheduler.py').read_text(
-            encoding='utf-8')
-        i = src.find('def list_order')
-        j = src.find('def ', i + 100)
-        body = src[i:j if j > i else i + 4000]
-        assert 'run_list.task_order()' not in body, (
-            '`list_order` 又用回了 `task_order()`（去重保首）—— '
-            '重复条目会拿不到位置')
-        assert "getattr(run_list, 'entries'" in body, \
-            '`list_order` 应按**条目**建位置'

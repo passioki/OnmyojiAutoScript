@@ -1773,8 +1773,6 @@
       "run_list": [],
       "enable_fixed": true,
       "enable_timed": true,
-      "priority_mode": "custom",
-      "priority_mode_explicit": true,
       "timed_priority": "timed",
       "rest_interleave": false,
       "queue_mode": false,

@@ -503,10 +503,37 @@ def build_overview(config_name: str) -> dict:
             # ★ S7: 它现在**只用于显示**（类别色条/标签）与
             #   `sort_run_list(by=...)` 的排序依据 —— **不再限制拖动**。
             'priority_group': (meta.priority_group if meta else 'fixed'),
+            # ★★★ 优先级段的**中文名** —— 界面显示"定时/固定"**只用这一个** ★★★
+            #
+            # ## 为什么必须由后端给（实机验收发现的**口径不一致**）
+            #
+            # 用户原话:
+            # > "执行顺序下边的任务统计数量显示：**定时任务2条，固定任务14条**,
+            # >  但是**任务上的标签**显示的几乎都是紫色的定时, 红色的次数只有四个"
+            #
+            # **根因**: 界面有**三个口径**各读不同字段 ——
+            #   * 「执行顺序」分段条 -> `priority_group`（有效分段, 权威）
+            #   * 任务表格「类型」列 -> `category_label`（**声明**类别）
+            #   * 队列行色条/标签   -> `auto_queue`（会不会自动进队列）
+            # ★ 实测 16 条队列里有 **10 条**声明 `timed` 而有效分段是 `fixed`
+            #   -> 界面同时说它"是定时"又说"按 fixed 排", 看起来**自相矛盾**。
+            #
+            # ★ 修法: 后端给出**这一个**标签, 前端三处都用它 ——
+            #   "同一知识三处定义" 收敛成**一处**。
+            'priority_group_label': TC.PRIORITY_GROUP_LABEL.get(
+                (meta.priority_group if meta else 'fixed'), ''),
+            # ★ 当前是否**在开放时段内** —— 供界面区分"能跑/还没到点",
+            #   也是 `sort_run_list()` 把"跑不了的任务"排到后面的依据。
+            'in_window_now': bool(in_window),
             # 类别的中文标签 —— 界面不必自己维护一份映射。
             #
             # ★ 元数据缺失的任务(如尚未写 `meta.py` 的)也要给出标签,
             #   否则界面会出现"类型"列为空的行。用 FALLBACK_CATEGORY 兜底。
+            #
+            # ⚠ **注意**: 这是**声明类别**（`TaskMeta.category`）, 与
+            #   `priority_group`（**有效分段**）**不是一回事** ——
+            #   实测 54 个任务里 17 个两者不同。界面要显示"定时/固定"时
+            #   请用 `priority_group_label`, **不要**用这个（会自相矛盾）。
             'category_label': TC.CATEGORY_LABEL.get(
                 meta.category if meta else TC.FALLBACK_CATEGORY, ''),
             'enable': enabled,

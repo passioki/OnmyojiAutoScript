@@ -1335,22 +1335,58 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         * `custom` / 模式概念**已删除** —— 没有"自定义模式"这回事了,
           队列本来就是完全自定义的
 
+        ## ★★★ 「当前跑不了」的任务排到**后面**（实机验收反馈）★★★
+
+        用户原话:
+        > "有个**不在开放时段内的秘闻副本也参与了定时排前面的排序,
+        >  排到了最前边**"
+
+        **根因**: 原来只按 `priority_group`（定时/固定）排, **不看能不能跑**。
+        于是 `Secret`（秘闻副本, 窗口"周一 08:00-23:59"）在**非开放时段**仍被
+        当成"定时段第一条"排到**最前** —— 可它**根本跑不了**, 顶在最前面只是
+        把能跑的任务全挤到后面。
+
+        ★ 修法: rank 从 2 档变 4 档 ——
+            ① 属于 `by` 段 **且在开放时段内**   -> rank 0（能跑, 优先）
+            ② 属于 `by` 段 **但不在开放时段内** -> rank 1
+            ③ 另一段 **且在开放时段内**         -> rank 2
+            ④ 另一段 **且不在开放时段内**       -> rank 3
+            ⑤ 「休息」条目                       -> rank 9（恒最后）
+        ★ 这样"**能跑的优先**", 与调度器实际行为一致（不在窗口的会入 waiting）。
+        ★ **段内保序**仍然成立（`sorted` 稳定）—— 用户编排不被搅乱。
+
         :return 是否成功（写盘失败返回 `False`, 调用方负责上屏）
         """
         if by not in ('timed', 'fixed'):
             logger.warning(f'sort_run_list: 非法 by={by!r}, 应为 timed/fixed')
             return False
         try:
+            from module.config import task_catalog as TC
+
+            def _rank(e) -> int:
+                """★ 见上面「当前跑不了的排到后面」那一段的 ①~⑤。"""
+                task = getattr(e, 'task', '') or ''
+                if not task:
+                    return 9              # 休息条目恒最后
+                try:
+                    spec = TC.get_spec(task)
+                    runnable = bool(spec.in_window()) if spec else False
+                except Exception:
+                    # 判不出来就当成"能跑" —— 保守: 不因为一个异常把用户的
+                    # 编排踢到后面
+                    runnable = True
+                seg = self._segment_of(task)
+                if seg == by:
+                    return 0 if runnable else 1
+                return 2 if runnable else 3
+
             rl = self.build_run_list()
-            rl.entries = sorted(
-                rl.entries,
-                key=lambda e: (
-                    2 if not getattr(e, 'task', '')
-                    else (0 if self._segment_of(e.task) == by else 1)))
+            rl.entries = sorted(rl.entries, key=_rank)
             if not self.save_run_list(rl):
                 return False
             logger.info(f'已按「{"定时" if by == "timed" else "固定"}排前面」'
-                        f'重排执行顺序（{len(rl.entries)} 条）')
+                        f'重排执行顺序（{len(rl.entries)} 条）'
+                        f'—— 不在开放时段的排到后面')
             return True
         except Exception as exc:
             logger.warning(f'排序 run_list 失败({type(exc).__name__}: {exc})')

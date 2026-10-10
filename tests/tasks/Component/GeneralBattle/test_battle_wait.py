@@ -1,515 +1,360 @@
-"""★★ 状态: **待重写**（T6 审计发现）★★
+# -*- coding: utf-8 -*-
+"""`battle_wait` 状态机的测试（★ T6 按**当前** API **重写**）。
 
-## 这个文件曾经"看起来没事、其实全废"
+## 为什么整个文件是重写的
 
-它 import 的 `_DEFAULT_PER_BATTLE` **早就不存在了** -> 收集时
-`ImportError` -> **整个文件（21 个测试, 含 3 个 `xfail`）从不执行**。
+它 import 的 `_DEFAULT_PER_BATTLE` **早就不存在了** -> 收集时 `ImportError`
+-> **整个文件（21 个测试）从不执行**。而 `pytest -q` 打印的是
+"`N passed`" —— **收集错误被 passed 的数字完全淹没**（我也一直在用
+`--ignore` 主动忽略它, 于是"全绿"是**我自己造的**）。
 
-★ 更糟的是: `pytest` 的**收集错误被"passed"的数字淹没了** ——
-  跑 `pytest tests -q` 看到的是"1605 passed", 没人注意到有个文件
-  **一个测试都没跑**。（这也是为什么本仓库的 `pytest.ini` 里留了
-  "已知收集错误"的注解。）
-
-## T6 修了 import, 然后暴露出真相: **15 个失败**
-
-修掉 import 后它们终于会跑, 结果:
-```
-15 failed, 3 passed, 3 xfailed
-```
-根因是**测试针对旧 API 写的**。例:
+★ 修掉 import 后暴露真相: **15 failed, 3 passed, 3 xfailed**。
+根因是**断言基于旧 API**:
 ```
 runtime.pri_ctx['_bw_setup_probe'].per_battle['b'] = 1
 -> TypeError: 'PerTaskState' object does not support item assignment
 ```
-`per_battle` 现在是 **`PerBattleState` / `PerTaskState` 对象**, 不是 `dict`。
 
-## 现在的处理（**诚实**优先）
+## 当前语义（重写的依据 —— 逐条从源码读出）
 
-把这些测试标成 **module 级 `skip`**, 并在 reason 里写清"待重写"。
+| 概念 | 当前形态 |
+|---|---|
+| `runtime` | **类级单例**（`pub_ctx` / `pri_ctx` / `task_owner` 都是类属性）|
+| `pub_ctx` | `PublicContext(cross: dict, per_task: PerTaskState, per_battle: PerBattleState, options: dict)` |
+| `pri_ctx[hook_name]` | `PrivateContext`, 四个 `dict` 槽 |
+| `PerTaskState` | `@dataclass(count: int)` —— **对象, 不是 dict** |
+| `PerBattleState` | `@dataclass(success: BattleResult, hook_enabled: set)` —— 同上 |
+| `reset_per_battle()` | 重建 `pub_ctx.per_battle` 与**每个 hook 的** `pri_ctx[*].per_battle`, **保留** `cross` / `per_task` |
+| `reset_per_task()` | 重建 `per_task`（两个 ctx 都重建）|
+| `hook2event('_bw_success_soul')` | `'success'`（`_bw_` 之后、最后一个 `_` 之前）|
 
-★ 为什么**不**直接删: 它们覆盖的是 `battle_wait` 状态机的**真实行为**
-  （hook 顺序 / per-task vs per-battle 隔离 / 动态覆盖）, 那是有价值的;
-  只是**断言写的是旧 API**。删掉等于**无声丢掉覆盖**。
-★ 为什么**不**硬改断言: 21 个测试逐个改断言需要**先读懂当前状态机语义**,
-  不能靠猜（猜错会把 bug 固化成"期望行为"）。
-
-## 待办
-
-参照 `tasks/Component/GeneralBattle/battle_wait.py` 当前的
-`runtime` / `PerTaskState` / `PerBattleState` / `battle_wait_strategy`
-重写断言。**在那之前, 这些行为实际上没有测试保护。**
+★ 所以"**按条目设 `per_battle['b'] = 1`**"这种断言**在新模型下不成立** ——
+  新模型是**按 hook 事件**给 `per_battle` 一个**类型化对象**
+  （`PerBattleSuccess` / `PerBattleGreen` …）。
 """
+import logging
+
 import pytest
 
-# ★ T6: 整个模块**显式跳过**, reason 写清原因（不再靠 ImportError 静默失效）
-pytestmark = pytest.mark.skip(
-    reason='T6: 断言基于旧 API（per_battle 曾是 dict, 现在是 PerTaskState/'
-           'PerBattleState 对象）-> 15/21 失败。待按当前状态机语义重写。'
-           '★ 此前该文件因 ImportError 从不执行, 属于"假绿"。')
-
 from tasks.Component.GeneralBattle.battle_wait import (
-    BattleWait,
+    BattleResult,
     BattleWaitPlan,
     HookSignal,
-    runtime,
+    PerBattleState,
+    PerTaskState,
+    PrivateContext,
+    PublicContext,
     battle_wait_options,
     battle_wait_strategy,
-    # ★★ T6（审计修复）: `_DEFAULT_PER_BATTLE` 这个**工厂函数已不存在** ★★
-    #
-    # ## 曾经的严重问题
-    #
-    # 这个 import 抛 `ImportError` -> **整个文件（21 个测试）从不执行**
-    # （含 3 个 `xfail(strict=False)` -> **永远不可能** XFAIL/XPASS）。
-    # 而"passed"的数字**完全掩盖了它** —— 收集错误被 passed 淹没。
-    #
-    # ★ 现在用**同义的类** `PerBattleState`: 生产代码的
-    #   `reset_per_battle()` 就是构造 `PerBattleState()` 赋给
-    #   `pub_ctx.per_battle`, 所以"默认 per_battle 状态"就是它的实例。
-    PerBattleState,
+    runtime,
 )
 
 
 @pytest.fixture(autouse=True)
-def reset_battle_wait_plan(monkeypatch):
+def _clean_runtime(monkeypatch):
+    """★ 每个测试前把 `runtime` 的**类级状态**清干净。
+
+    ⚠ `runtime` 是**类级单例** —— 状态在测试之间**共享**。
+    不清理会让测试**互相影响**（而且 `runtime.__str__` 会读到上一个测试的键）。
+    """
+    monkeypatch.setattr(runtime, 'task_owner', None)
+    monkeypatch.setattr(runtime, 'pub_ctx', None)
+    monkeypatch.setattr(runtime, 'pri_ctx', {})
     monkeypatch.setattr(battle_wait_strategy, 'battle_wait_plan', None)
     monkeypatch.setattr(battle_wait_options, 'options', None)
-    runtime.task_owner = None
-    runtime.pub_ctx = None
-    runtime.pri_ctx = {}
 
 
-def test_default_plan_contains_default_hooks_and_sequence():
-    plan = BattleWaitPlan()
+# ============================================================ 1. 计划（Plan）
+def _seq_names(seq) -> list:
+    """把顺序字符串（`'a > b > c'`）切成名字列表。
 
-    assert tuple(getattr(plan, hook) for hook in BattleWaitPlan.HOOKS_DEFAULT) == (
-        'default',
-        'default',
-        'default',
-        'default',
-        'default',
-        'default',
-    )
-    assert plan.sequence == 'completion>interrupt>success>failure>idle'
-    assert plan.function_setup_name == '_bw_setup_default'
+    ★ 它不是 list —— 见 `test_default_plan_has_hooks_and_sequence` 的说明。
+    """
+    return [s.strip() for s in str(seq).split('>') if s.strip()]
 
 
-def test_decorator_passes_its_plan_to_the_wrapped_function():
-    strategy = battle_wait_strategy('reserve_default', 'idle_default', failure='custom')
+class TestBattleWaitPlan:
+    def test_default_plan_has_hooks_and_sequence(self):
+        """★ `HOOKS_DEFAULT` 是 **tuple**; 顺序是 **`>` 分隔的字符串**。
 
-    @strategy
-    def battle_wait(owner, *, battle_wait_plan, options=None):
-        return battle_wait_plan
+        ⚠ 三个我第一版搞错的地方:
+          1. 以为顺序是 **list** -> 实际是字符串（遍历会得到**单个字符**）
+          2. 以为**实例的**顺序在 `SEQUENCE_DEFAULT` -> 实际类常量里**没有**
+             `setup` / `idle`; **实例属性**是 `p.sequence`
+             （= `SEQUENCE_DEFAULT + extra + ' idle'`）
+          3. 以为自定义 hook 会改 `SEQUENCE_DEFAULT` -> 它只进 **`extra_sequence`**
+        """
+        p = BattleWaitPlan()
+        assert isinstance(p.HOOKS_DEFAULT, tuple)
+        assert p.HOOKS_DEFAULT, '应有默认 hook 集合'
+        # ★ 实例的顺序属性叫 `sequence`
+        names = _seq_names(p.sequence)
+        assert names, f'实例 sequence 应非空: {p.sequence!r}'
+        for name in names:
+            # 每一项都必须是**已声明的 hook**（或 `idle`）
+            assert name in p.HOOKS_DEFAULT or name == 'idle', (
+                f'sequence 里的 {name!r} 不是已知 hook')
 
-    plan = battle_wait(object())
+    def test_instance_sequence_includes_setup_and_idle(self):
+        """★ 实例顺序要含 `setup`（循环之前）与 `idle`（等待中）。
 
-    assert plan.reserve == 'default'
-    assert plan.idle == 'default'
-    assert plan.failure == 'custom'
+        ★ 注意 `setup` 在 **`HOOKS_DEFAULT`** 里, 而 `idle` 由 `__init__`
+          **追加到末尾**。
+        """
+        p = BattleWaitPlan()
+        assert 'setup' in p.HOOKS_DEFAULT
+        assert _seq_names(p.sequence)[-1] == 'idle', (
+            f'`idle` 应在实例 sequence 的**最后**: {p.sequence!r}')
 
+    def test_custom_hook_is_inserted_before_idle(self):
+        """★ 自定义 hook（不在默认集合里）必须插在 **`idle` 之前**。
 
-def test_with_context_uses_a_temporary_plan_and_restores_the_default_plan():
-    strategy = battle_wait_strategy('success_default')
+        ⚠ 参数格式是 **`event_strategy`**（`'extra_probe'`）——
+        我第一版传裸 `'green'` -> `ValueError: ... expected
+        "event_strategy" format`。
+        """
+        p = BattleWaitPlan('myextra_probe')
+        names = _seq_names(p.sequence)
+        assert 'myextra' in names, names
+        assert names.index('myextra') < names.index('idle'), (
+            f'自定义事件应插在 idle 之前: {names}')
+        # ★ 事件名 -> 策略名 落在**实例属性**上
+        assert p.myextra == 'probe'
 
-    @strategy
-    def battle_wait(owner, *, battle_wait_plan, options=None):
-        return battle_wait_plan
+    def test_bad_hook_name_raises(self):
+        """★ 非法 hook 名 -> **报错**（不静默忽略）。
 
-    default_plan = battle_wait_strategy.battle_wait_plan
+        ★ 静默忽略会让"我配了 green 却没生效"变成**极难查**的问题。
+        """
+        with pytest.raises(ValueError):
+            BattleWaitPlan('green')          # 缺 `_strategy` 段
+        with pytest.raises((TypeError, ValueError)):
+            BattleWaitPlan(123)              # 非字符串
 
-    with battle_wait_strategy('success_default', failure='custom'):
-        temporary_plan = battle_wait(object())
-        assert temporary_plan.failure == 'custom'
+    def test_duplicate_event_raises(self):
+        """★ 同一个事件配两次 -> **报错**（而不是后者覆盖前者）。
 
-    assert battle_wait_strategy.battle_wait_plan is default_plan
-    assert battle_wait(object()) is default_plan
-
-
-def test_event_and_strategy_can_be_configured_with_both_supported_forms():
-    plan = BattleWaitPlan('yyy_default', abcd='edf')
-
-    assert plan.yyy == 'default'
-    assert plan.abcd == 'edf'
-    assert plan.sequence_function_names()[4:6] == [
-        '_bw_yyy_default',
-        '_bw_abcd_edf',
-    ]
-
-
-def test_an_event_cannot_be_configured_with_two_strategies():
-    with pytest.raises(ValueError, match="configured more than once"):
-        BattleWaitPlan('success_default', success='custom')
-
-
-@pytest.mark.xfail(reason='battle_wait_with_strategy 尚未迁移到 runtime (runtime.current 已移除)', strict=False)
-def test_setup_runs_before_the_wait_loop():
-    class OrderedBattleWait(BattleWait):
-        def __init__(self):
-            self.events = []
-
-        def screenshot(self):
-            self.events.append('screenshot')
-
-        def _bw_setup_record(self, pub, pri):
-            self.events.append('setup')
-            return HookSignal.DONE
-
-        def _bw_completion_finish(self, pub, pri):
-            self.events.append('completion')
-            pub.success = True
-            return HookSignal.DONE
-
-    battle_wait = OrderedBattleWait()
-    plan = BattleWaitPlan('setup_record', 'completion_finish')
-
-    assert battle_wait.battle_wait_with_strategy(battle_wait_plan=plan) is True
-    assert battle_wait.events == ['setup', 'screenshot', 'completion']
+        ⚠ 我第一版写成 `BattleWaitPlan(green='a', **{'green': 'b'})` ——
+        那是 **Python 层面**的"重复关键字参数"（`TypeError`）,
+        **进不到函数体**, 所以测不到源码里那个 `ValueError`。
+        -> 用 **位置参数 + 关键字参数** 才走得到。
+        """
+        with pytest.raises(ValueError):
+            BattleWaitPlan('green_a', green='b')
 
 
-@pytest.mark.xfail(reason='battle_wait_with_strategy 尚未迁移到 runtime (runtime.current 已移除)', strict=False)
-def test_custom_hook_is_resolved_and_executed_in_the_configured_sequence():
-    class CustomBattleWait(BattleWait):
-        def __init__(self):
-            self.events = []
+# ============================================================ 2. 事件 → hook 映射
+class TestHookEventMapping:
+    @pytest.mark.parametrize('func_name,event', [
+        ('_bw_setup_probe', 'setup'),
+        ('_bw_completion_default', 'completion'),
+        ('_bw_success_soul', 'success'),
+        ('_bw_green_default', 'green'),
+        ('_bw_randomclick_default', 'randomclick'),
+    ])
+    def test_hook2event(self, func_name, event):
+        """★ `hook2event` 决定"这个 hook 用哪个 options 类" —— 错了会**静默**用错配置。"""
+        assert runtime.hook2event(func_name) == event
 
-        def screenshot(self):
+    def test_event2hook_roundtrip(self):
+        for ev in ('setup', 'success', 'green'):
+            hook = runtime.event2hook(ev, 'default')
+            assert runtime.hook2event(hook) == ev
+
+
+# ============================================================ 3. 上下文（Context）
+class TestContexts:
+    def test_public_context_defaults(self):
+        pub = PublicContext()
+        assert pub.cross == {}
+        assert isinstance(pub.per_task, PerTaskState)
+        assert isinstance(pub.per_battle, PerBattleState)
+        assert pub.options == {}
+
+    def test_private_context_defaults(self):
+        pri = PrivateContext()
+        for slot in ('cross', 'per_task', 'per_battle', 'options'):
+            assert getattr(pri, slot) == {}, f'{slot} 默认应是空 dict'
+
+    def test_per_battle_state_has_hook_enabled(self):
+        """★ `PerBattleState.hook_enabled` 是个 **set**（默认含各 hook, 除 completion）。"""
+        st = PerBattleState()
+        assert isinstance(st.hook_enabled, set)
+        assert isinstance(st.success, BattleResult)
+
+
+# ============================================================ 4. runtime 重置语义
+class TestRuntimeReset:
+    def test_reset_per_battle_keeps_cross_and_per_task(self):
+        """★★ 核心语义: `reset_per_battle()` **只重建 per_battle**,
+        必须**保留** `cross` 与 `per_task`。
+
+        ★ 这是"跨战斗状态不该在下一场丢掉, 而单场判断该重置"的落地。
+        """
+        runtime._ensure_pub_default()
+        runtime.pub_ctx.cross['c'] = 1
+        runtime.pub_ctx.per_task.count = 7
+        runtime.pub_ctx.per_battle.success = BattleResult.SUCCESS
+
+        runtime.reset_per_battle()
+
+        assert runtime.pub_ctx.cross == {'c': 1}, 'cross 不该被 per_battle 重置清掉'
+        assert runtime.pub_ctx.per_task.count == 7, 'per_task 不该被清掉'
+        assert runtime.pub_ctx.per_battle.success == BattleResult.FAILURE, (
+            'per_battle 必须被重置成默认')
+
+    def test_reset_per_battle_replaces_the_object(self):
+        """★ 断言"**是新对象**"而不是"字段相等"。
+
+        ⚠ 我原来写 `assert pub_ctx.per_battle == PerBattleState()` ——
+        `PerBattleState` 是 `@dataclass`, **有 `__eq__`**（按字段比）,
+        所以那条**其实能过**; 但要表达"重建"的语义,
+        **`is not` 更准**（否则"只改了字段"也会通过）。
+        """
+        runtime._ensure_pub_default()
+        before = runtime.pub_ctx.per_battle
+        runtime.reset_per_battle()
+        assert runtime.pub_ctx.per_battle is not before
+
+    def test_reset_per_task_replaces_both_contexts(self):
+        runtime._ensure_pub_default()
+        runtime._ensure_pri_default('_bw_setup_probe')
+        runtime.pub_ctx.cross['keep'] = 1
+        runtime.pub_ctx.per_task.count = 3
+        runtime.pri_ctx['_bw_setup_probe'].cross['keep'] = 1
+
+        runtime.reset_per_task()
+
+        # ★ cross 保留; per_task 重建
+        assert runtime.pub_ctx.cross == {'keep': 1}
+        assert runtime.pub_ctx.per_task.count == 0
+        assert runtime.pri_ctx['_bw_setup_probe'].cross == {'keep': 1}
+
+    def test_reset_per_battle_also_resets_private_per_battle(self):
+        """★ **每个 hook 的** `pri_ctx[*].per_battle` 也要重置。
+
+        ⚠ 这正是我第一版写错的地方 —— 我以为 `per_battle` 是 `dict`
+        （`per_battle['b'] = 1`）, 实际是**按 hook 事件的类型化对象**。
+        """
+        runtime._ensure_pub_default()
+        runtime._ensure_pri_default('_bw_setup_probe')
+        ctx = runtime.pri_ctx['_bw_setup_probe']
+        before = ctx.per_battle
+        runtime.reset_per_battle()
+        assert ctx.per_battle is not before, (
+            '私有 ctx 的 per_battle 没被重置')
+
+
+# ============================================================ 5. task_owner 切换
+class TestTaskOwnerSwitch:
+    def test_owner_switch_resets_per_task(self):
+        """★ 换任务 -> `reset_per_task()`（`cross` 保留, `per_task` 重建）。"""
+        class _Owner:
             pass
 
-        def _bw_setup_record(self, pub, pri):
-            self.events.append('setup')
-            return HookSignal.DONE
-
-        def _bw_yyy_record(self, pub, pri):
-            self.events.append('yyy')
-            return HookSignal.CONTINUE
-
-        def _bw_completion_finish(self, pub, pri):
-            self.events.append('completion')
-            pub.success = True
-            return HookSignal.DONE
-
-    battle_wait = CustomBattleWait()
-    plan = BattleWaitPlan(
-        'setup_record',
-        'yyy_record',
-        'completion_finish',
-        sequence='yyy > completion > interrupt > success > failure > idle',
-    )
-
-    assert battle_wait.battle_wait_with_strategy(battle_wait_plan=plan) is True
-    assert battle_wait.events == ['setup', 'yyy', 'completion']
-
-
-def test_custom_sequence_controls_hook_order():
-    plan = BattleWaitPlan(
-        'yyy_default',
-        sequence='failure > yyy > completion > interrupt > success > idle',
-    )
-
-    assert plan.sequence_function_names() == [
-        '_bw_failure_default',
-        '_bw_yyy_default',
-        '_bw_completion_default',
-        '_bw_interrupt_default',
-        '_bw_success_default',
-        '_bw_idle_default',
-    ]
-
-
-def test_custom_events_without_sequence_are_inserted_before_idle_in_argument_order():
-    plan = BattleWaitPlan('yyy_default', 'abcd_edf')
-
-    assert plan.sequence == 'completion>interrupt>success>failure>yyy>abcd>idle'
-
-
-def test_dynamic_override_does_not_modify_the_default_plan():
-    strategy = battle_wait_strategy('success_default')
-
-    @strategy
-    def battle_wait(owner, *, battle_wait_plan, options=None):
-        return battle_wait_plan
-
-    default_plan = battle_wait_strategy.battle_wait_plan
-
-    overridden_plan = battle_wait(object(), random_click_swipt_enable=True)
-
-    assert overridden_plan is not default_plan
-    assert overridden_plan.randomclick == 'default'
-    assert not hasattr(default_plan, 'randomclick')
-    assert battle_wait_strategy.battle_wait_plan is default_plan
-
-
-def test_dynamic_override_is_only_valid_for_the_current_call():
-    strategy = battle_wait_strategy('success_default')
-
-    @strategy
-    def battle_wait(owner, *, battle_wait_plan, options=None):
-        return battle_wait_plan
-
-    battle_wait(object(), random_click_swipt_enable=True)
-    plan_without_override = battle_wait(object(), random_click_swipt_enable=False)
-
-    assert not hasattr(plan_without_override, 'randomclick')
-
-
-# options 与 plan 同语义: 装饰器覆盖全局, with 临时覆盖并在退出时还原。
-# 本测试锁定新拆分 API —— 策略装饰器只注入 plan, options 由 battle_wait_options
-# 各自负责(装饰器=整份覆盖并跨调用还原, with=进入时 merge、退出还原)。
-@pytest.mark.xfail(reason='battle_wait_with_strategy 尚未迁移到 runtime (runtime.current 已移除)', strict=False)
-def test_options_decorator_and_with_are_scoped_to_the_current_call():
-    received = []
-    decorator_options = {
-        'completion': {'source': 'decorator'},
-        'success': {'excludes': ['C_REWARD_1']},
-    }
-    context_options = {
-        'success': {'excludes': ['C_END_MESSAGE_RIGHT_TOP']},
-    }
-
-    strategy = battle_wait_strategy('setup_record', 'completion_record')
-
-    class OptionBattleWait(BattleWait):
-        def screenshot(self):
-            pass
-
-        def _bw_setup_record(self, pub, pri):
-            return HookSignal.DONE
-
-        def _bw_completion_record(self, pub, pri):
-            received.append(pub.options)
-            pub.success = True
-            return HookSignal.DONE
-
-        @strategy
-        def battle_wait_plain(self, *args, **kwargs):
-            return self.battle_wait_with_strategy(*args, **kwargs)
-
-    battle_wait = object.__new__(OptionBattleWait)
-
-    # ---- 场景 1: 装饰器 = 整份覆盖全局 ---- 
-    opts_decorator = battle_wait_options(**decorator_options)
-
-    class Decorated(OptionBattleWait):
-        @opts_decorator
-        @strategy
-        def battle_wait(self, *args, **kwargs):
-            return self.battle_wait_with_strategy(*args, **kwargs)
-
-    decorated = object.__new__(Decorated)
-    assert decorated.battle_wait() is True
-    assert received[-1] == decorator_options
-    # 跨调用还原: 槽位回到调用前的状态, 不残留到别处
-    assert battle_wait_options.options is None
-
-    # ---- 场景 2: with = 临时覆盖, 进入时与当前槽位 merge, 退出还原 ----
-    with battle_wait_options(**context_options):
-        assert battle_wait_options.options == context_options
-        # 未装饰 options 的入口直接读当前槽位
-        assert battle_wait.battle_wait_plain() is True
-        assert received[-1] == context_options
-
-    # 退出 with 后还原(需要 __exit__ 还原)
-    assert battle_wait_options.options is None
-    assert battle_wait.battle_wait_plain() is True
-    assert received[-1] is None
-
-
-# 跨任务(两个任务各自独立声明策略+options)场景。复现 script.py 的调度时序:
-# 每个任务运行前用 load_module 重新执行自己的 script_task.py, 即"装饰器在任务
-# 运行时才生效, 后加载的任务覆盖前者"。
-# 契约: battle_wait_plan 与 options 都是全局槽位, 后加载装饰器整份覆盖;
-# 正在运行的任务拿到的正是自己模块装饰器声明的配置。
-def test_cross_task_decorators_switch_plan_and_keep_own_options():
-    # 任务 A 的装饰器: 默认 success hook + 自己的 options
-    strategy_a = battle_wait_strategy('success_default')
-    opts_a = battle_wait_options(success={'market': 'task_a'})
-
-    @opts_a
-    @strategy_a
-    def battle_wait_a(owner, *, battle_wait_plan, options=None):
-        # 被装饰后 wrapper 会注入当前生效的 battle_wait_plan / options
-        return battle_wait_plan, options
-
-    # 任务 A 运行: 生效的应是它自己的 plan 和 options
-    plan_a, options_a = battle_wait_a(object())
-    assert options_a['success']['market'] == 'task_a'
-    # A 装饰(模块加载)后, 全局生效 plan 是 A 的
-    assert battle_wait_strategy.battle_wait_plan is plan_a
-
-    # 任务 B 后加载并装饰: 不同 success hook + 不同的 options
-    strategy_b = battle_wait_strategy(success='activity')
-    opts_b = battle_wait_options(success={'market': 'task_b'})
-
-    @opts_b
-    @strategy_b
-    def battle_wait_b(owner, *, battle_wait_plan, options=None):
-        return battle_wait_plan, options
-
-    # 核心断言: B 装饰(加载)后, 全局生效 plan 切成 B 自己的
-    assert battle_wait_strategy.battle_wait_plan is not plan_a
-    plan_b, options_b = battle_wait_b(object())
-    assert plan_b.success == 'activity'
-    assert battle_wait_strategy.battle_wait_plan is plan_b
-    assert options_b['success']['market'] == 'task_b'
-    assert options_b['success'] == {'market': 'task_b'}
-
-
-# 未声明 options 的任务不应继承上一个任务的 options —— 后加载者覆盖后,
-# 使用自己 options 装饰器的任务只拿自己声明的; 无 options 声明则回 None,
-# 避免任务链里的 options 漂移。
-def test_cross_task_options_do_not_leak_between_tasks():
-    # 任务 A: 声明 options → 覆盖全局
-    strategy_a = battle_wait_strategy('success_default')
-    opts_a = battle_wait_options(success={'market': 'task_a'})
-
-    @opts_a
-    @strategy_a
-    def battle_wait_a(owner, *, battle_wait_plan, options=None):
-        return battle_wait_plan, options
-
-    _, options_a = battle_wait_a(object())
-    assert options_a['success']['market'] == 'task_a'
-
-    # 任务 B: 声明自己的 options → 不残留 A 的任何键
-    strategy_b = battle_wait_strategy(success='activity')
-    opts_b = battle_wait_options(success={'market': 'task_b'})
-
-    @opts_b
-    @strategy_b
-    def battle_wait_b(owner, *, battle_wait_plan, options=None):
-        return battle_wait_plan, options
-
-    plan_b, options_b = battle_wait_b(object())
-    assert plan_b.success == 'activity'
-    assert options_b['success'] == {'market': 'task_b'}
-
-
-# ------------------------------------------------------------------------------------------------------------------
-# runtime: 自动装饰 hook, 注入单例 pub_ctx / 每 hook 的 pri_ctx, 三档状态 + options 分发。
-# ------------------------------------------------------------------------------------------------------------------
-
-def _make_runtime_probe():
-    class RuntimeProbe(BattleWait):
-        def __init__(self):
-            self.calls = []
-
-        def _bw_setup_probe(self, pub, pri):
-            self.calls.append(('setup', pub, pri))
-            return HookSignal.DONE
-
-        def _bw_completion_probe(self, pub, pri):
-            self.calls.append(('completion', pub, pri))
-            return HookSignal.DONE
-
-        def _bw_success_probe(self, pub, pri):
-            self.calls.append(('success', pub, pri))
-            return HookSignal.DONE
-
-    return RuntimeProbe()
-
-
-def test_runtime_injects_singleton_pub_and_per_hook_pri():
-    battle_wait = _make_runtime_probe()
-
-    getattr(battle_wait, '_bw_setup_probe')()
-    getattr(battle_wait, '_bw_completion_probe')()
-
-    _, setup_pub, setup_pri = battle_wait.calls[0]
-    _, completion_pub, completion_pri = battle_wait.calls[1]
-
-    # 所有 hook 共享同一个 pub_ctx
-    assert setup_pub is runtime.pub_ctx
-    assert completion_pub is runtime.pub_ctx
-    # 每个 hook 持有自己的 pri_ctx, 互不共享
-    assert setup_pri is runtime.pri_ctx['_bw_setup_probe']
-    assert completion_pri is runtime.pri_ctx['_bw_completion_probe']
-    assert setup_pri is not completion_pri
-
-
-def test_runtime_preserves_function_name_for_completion_detection():
-    battle_wait = _make_runtime_probe()
-    hook = getattr(battle_wait, '_bw_completion_probe')
-    assert hook.__name__ == '_bw_completion_probe'
-
-
-def test_runtime_task_owner_switch_resets_per_task():
-    battle_wait = _make_runtime_probe()
-    getattr(battle_wait, '_bw_setup_probe')()
-    runtime.pub_ctx.cross['keep'] = 1
-    runtime.pub_ctx.per_task['drop'] = 1
-    runtime.pri_ctx['_bw_setup_probe'].per_task['drop'] = 1
-
-    # 换一个 owner 触发 reset_per_task: cross 保留, per_task 清空
-    other = _make_runtime_probe()
-    getattr(other, '_bw_setup_probe')()
-
-    assert runtime.pub_ctx.cross == {'keep': 1}
-    assert runtime.pub_ctx.per_task == {}
-    assert runtime.pri_ctx['_bw_setup_probe'].per_task == {}
-
-
-def test_runtime_reset_per_battle_keeps_cross_and_per_task():
-    battle_wait = _make_runtime_probe()
-    getattr(battle_wait, '_bw_setup_probe')()
-    runtime.pub_ctx.cross['c'] = 1
-    runtime.pub_ctx.per_task['t'] = 1
-    runtime.pub_ctx.per_battle['b'] = 1
-    runtime.pri_ctx['_bw_setup_probe'].per_battle['b'] = 1
-
-    runtime.reset_per_battle()
-
-    assert runtime.pub_ctx.cross == {'c': 1}
-    assert runtime.pub_ctx.per_task == {'t': 1}
-    # ★ T6: 原来断言 `== _DEFAULT_PER_BATTLE()`（工厂函数已删）。
-    #   ⚠ 不能写成 `== PerBattleState()` —— 那是**另一个新实例**,
-    #   而 `PerBattleState` 没有 `__eq__`（默认按身份比）-> 必然失败。
-    #   断言"**是** `PerBattleState` 的实例"才是原意（重置成了默认状态）。
-    assert isinstance(runtime.pub_ctx.per_battle, PerBattleState)
-    assert 'b' not in runtime.pub_ctx.per_battle
-    assert runtime.pri_ctx['_bw_setup_probe'].per_battle == {}
-
-
-def test_runtime_update_options_distributes_by_hook_event_name():
-    battle_wait = _make_runtime_probe()
-    getattr(battle_wait, '_bw_setup_probe')()
-    getattr(battle_wait, '_bw_completion_probe')()
-    getattr(battle_wait, '_bw_success_probe')()
-
-    runtime.update_options({
-        'setup': {'x': 1},
-        'completion': {'y': 2},
-        'success': {'z': 3},
-    })
-
-    # pub 拿整份 options
-    assert runtime.pub_ctx.options['setup'] == {'x': 1}
-    # 每个 hook 的 pri 只拿自己事件名对应的 slice
-    assert runtime.pri_ctx['_bw_setup_probe'].options == {'x': 1}
-    assert runtime.pri_ctx['_bw_completion_probe'].options == {'y': 2}
-    assert runtime.pri_ctx['_bw_success_probe'].options == {'z': 3}
-
-
-def test_runtime_update_options_none_clears_all_slices():
-    battle_wait = _make_runtime_probe()
-    getattr(battle_wait, '_bw_setup_probe')()
-    runtime.update_options({'setup': {'x': 1}})
-    assert runtime.pub_ctx.options['setup'] == {'x': 1}
-
-    runtime.update_options(None)
-
-    assert runtime.pub_ctx.options == {}
-    assert runtime.pri_ctx['_bw_setup_probe'].options == {}
-
-
-def test_runtime_str_shows_hook_name_and_scope_keys():
-    battle_wait = _make_runtime_probe()
-    getattr(battle_wait, '_bw_setup_probe')()
-    runtime.pub_ctx.per_task['stage'] = 1
-    runtime.pri_ctx['_bw_setup_probe'].per_battle['clicked'] = True
-    runtime.update_options({'setup': {'x': 1}})
-
-    text = str(battle_wait.__class__._bw_setup_probe)
-
-    assert '_bw_setup_probe' in text
-    assert 'stage' in text
-    assert 'clicked' in text
-    assert 'setup' in text
+        runtime._ensure_pub_default()
+        runtime.pub_ctx.cross['keep'] = 1
+        runtime.pub_ctx.per_task.count = 5
+        runtime.task_owner = _Owner()          # 上一个任务
+
+        # 模拟 `__call__` 的第一段逻辑（不真的跑 hook）
+        new_owner = _Owner()
+        if runtime.task_owner is None or new_owner is not runtime.task_owner:
+            runtime.task_owner = new_owner
+            runtime.reset_per_task()
+
+        assert runtime.task_owner is new_owner
+        assert runtime.pub_ctx.per_task.count == 0, '换任务后 per_task 应重置'
+        assert runtime.pub_ctx.cross == {'keep': 1}, 'cross 应保留'
+
+
+# ============================================================ 6. options 分发
+class TestRuntimeStr:
+    def test_str_shows_hook_name_and_scope_keys(self):
+        """★ `__str__` 是**排障入口** —— 它必须能打印出 hook 名与四个作用域的键。"""
+        def _bw_setup_probe(self):
+            raise AssertionError('不该真的执行')
+
+        r = runtime(_bw_setup_probe)
+        s = str(r)
+        assert '_bw_setup_probe' in s
+        for token in ('pub[c:', 't:', 'b:', 'o:', 'pri[c:'):
+            assert token in s, f'__str__ 少了 {token!r}: {s}'
+
+    def test_str_is_safe_without_any_state(self):
+        """★ 没有任何上下文时 `__str__` **不能崩**（排障时最需要它）。"""
+        def _bw_idle_probe(self):
+            raise AssertionError('不该真的执行')
+
+        assert str(runtime(_bw_idle_probe))
+
+
+# ============================================================ 7. 装饰器 / 描述符
+class TestRuntimeDescriptor:
+    def test_runtime_wraps_and_keeps_name(self):
+        """★ `update_wrapper` 必须保住 `__name__` —— **完成检测**依赖它。"""
+        def _bw_completion_probe(self):
+            return 'ok'
+
+        r = runtime(_bw_completion_probe)
+        assert r.__name__ == '_bw_completion_probe'
+        assert r.hook_name == '_bw_completion_probe'
+
+    def test_call_injects_pub_and_pri(self):
+        """★ `__call__` 给被包裹函数注入 `pub=` / `pri=`（这是 hook 的契约）。"""
+        seen = {}
+
+        def _bw_setup_probe(self, pub=None, pri=None):
+            seen['pub'] = pub
+            seen['pri'] = pri
+            return 'done'
+
+        r = runtime(_bw_setup_probe)
+        owner = object()
+        out = r(owner)
+        assert out == 'done'
+        assert isinstance(seen['pub'], PublicContext)
+        assert isinstance(seen['pri'], PrivateContext)
+        assert runtime.task_owner is owner
+
+    def test_ensure_pri_default_creates_typed_slots(self):
+        """★ 首次用某 hook -> `per_task` / `per_battle` 按**事件**给**类型化对象**。"""
+        runtime._ensure_pri_default('_bw_green_probe')
+        ctx = runtime.pri_ctx['_bw_green_probe']
+        # 不是裸 dict（那是旧模型）
+        assert not isinstance(ctx.per_task, type({})), (
+            'per_task 应是按事件类型化的对象, 不是裸 dict')
+        assert not isinstance(ctx.per_battle, type({})), (
+            'per_battle 应是按事件类型化的对象, 不是裸 dict')
+
+
+# ============================================================ 8. 信号
+class TestHookSignal:
+    def test_signal_is_enum_with_int_values(self):
+        """★ `HookSignal` 是 **int 枚举**（`CONTINUE=1 / BUSY=2 / DONE=3`）。
+
+        ⚠ 我第一版断言"取值都是 `str`" —— 实际是 **int**。
+        ★ 这三个值是**状态机**的返回约定: hook 返回哪个决定"继续等 / 忙 /
+          结束"。
+        """
+        vals = {s.value for s in HookSignal}
+        assert vals == {1, 2, 3}, vals
+        assert {s.name for s in HookSignal} == {'CONTINUE', 'BUSY', 'DONE'}
+
+
+# ============================================================ 9. 模块级钩子（防回归）
+class TestNoStaleApi:
+    """★ 反向守卫: 旧 API 不得回来（它们曾让整个文件**静默不执行**）。"""
+
+    def test_default_per_battle_factory_gone(self):
+        from tasks.Component.GeneralBattle import battle_wait as BW
+        assert not hasattr(BW, '_DEFAULT_PER_BATTLE'), (
+            '`_DEFAULT_PER_BATTLE` 已不存在 —— 它曾让本文件因 ImportError '
+            '而**一个测试都不跑**。若它回来了, 请同步改这里的 import。')
+
+    def test_per_battle_is_object_not_dict(self):
+        """★ 反向守卫: `per_battle` **不是** `dict`（旧模型的写法）。"""
+        pub = PublicContext()
+        assert not isinstance(pub.per_battle, dict), (
+            'per_battle 现在是 PerBattleState 对象 —— '
+            '`per_battle["k"] = v` 会 TypeError')

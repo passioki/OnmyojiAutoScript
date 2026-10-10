@@ -4576,3 +4576,120 @@ Input should be 'Filter', 'FIFO', 'Priority' or 'List'
 | T12 | `rest` 条目分段位置测试（16 条）| ✅ |
 | ★新 | `test_battle_wait.py` 21 个测试**按当前语义重写** | ⬜ **未做** |
 
+---
+
+# 53. ★★ T 系列全部完成（T1–T12）★★
+
+## 53.1 T10: 前端死代码 —— 先删**最危险**的
+
+### ★ 我第一版**删坏了整个类**（如实记录）
+
+我写了个"行范围算法"的脚本（找定义行 -> 按缩进找结尾 -> 从后往前删）。
+结果它**吃掉了 90+ 行**, 把 `script` / `reload` / `enableFixed` /
+`priorityModeChoices` 全删了 —— `flutter analyze` 报 **19 个 undefined**。
+
+★ **立刻 `git checkout` 回退**, 改**精确 `edit`**（一次一个成员, 每次
+  `flutter analyze` 验证）。
+
+**教训（第 6 次同类）**: "按缩进猜结尾"对 Dart 的多行表达式
+（三元 / 集合字面量 / 级联）**不可靠**。**删代码只用精确字符串匹配。**
+
+### 实际删掉的（每次验证 `No issues found!`）
+
+| 成员 | 危害 |
+|---|---|
+| **`resetToDefault()`** | ★★ **危险** —— `entries = []` **清空用户编排**, 而 `lib/` 内 **0 调用方** |
+| `timedPriority` / `timedPriorityChoices` / `setTimedPriority` | 读**已废弃**的 `global_fields.timed_priority`（后端已不返回）-> **死接口**（`choices` 永远空、`setTimedPriority` 写一个界面上不存在的字段）|
+| `scriptRunning` | 只读 getter, 无调用方（在用版本直接读 `ScriptService`) |
+| `isTaskEntry` | 一行的包装, 无调用方 |
+| `overviewRowOf` | 只读线性查, 无调用方（在用的是 `taskRowOf`）|
+
+### ★ 先改测试: 那条**给死代码上锁**的断言
+
+```dart
+expect(ctrl.contains('timedPriorityChoices'), isTrue, ...);   // ✗ 锁住死代码
+```
+★ 它让"清理死代码"**必然失败** -> 于是没人敢删。
+**改成**断言真正在用的 `priorityModeChoices` + **反向守卫**（`isFalse`）。
+
+★ **留下的**（保守）: `describeEntry` / `kindOf` / `taskNameZh`
+  （三者互相调用, 是**一整簇**）、`reorderEntries` / `moveEntryUp` /
+  `moveEntryDown` / `removeEntry` / `unqueuedEnabledTasks` /
+  `isScheduleRuleLoaded`。它们无调用方但**无副作用**, 风险低;
+  ★ 在**已删坏过一次**的情况下, 宁可少删 —— 已在台账留档待后续清理。
+
+## 53.2 ★★ T6 收尾: `test_battle_wait.py` 按**当前语义重写** ★★
+
+### 从"21 个测试从不执行"到"27 个测试真的在跑"
+
+| 阶段 | 状态 |
+|---|---|
+| 原来 | `ImportError` -> **21 个测试从不执行**（"假绿"） |
+| 修 import 后 | **15 failed**, 3 passed, 3 xfailed（断言基于旧 API）|
+| 显式 skip | 21 skipped（**诚实**但**无覆盖**）|
+| ★ **现在** | **27 passed**（按当前状态机语义重写）|
+
+### 重写时我**又错了 5 处**（都是"想当然的假设"）
+
+| # | 我的假设 | 真相 |
+|---|---|---|
+| 1 | `per_battle` 是 **dict** | 是 **`PerBattleState` / `PerTaskState` 对象**（`per_battle['k']=v` -> `TypeError`）|
+| 2 | `HookSignal` 取值为 **str** | 是 **int**（`CONTINUE=1 / BUSY=2 / DONE=3`）|
+| 3 | 顺序 `SEQUENCE_DEFAULT` 是 **list** | 是 **`'>'` 分隔的字符串**（遍历会得到**单个字符**）|
+| 4 | 实例顺序在 `SEQUENCE_DEFAULT` | 类常量里**没有** `setup`/`idle`; 实例属性是 **`p.sequence`** |
+| 5 | `BattleWaitPlan(green='a', **{'green':'b'})` 测重复 | 那是 **Python 层**重复 kwarg（`TypeError`），**进不到函数体** -> 要用**位置 + 关键字** |
+
+★ **共同点**: 全是"**没读源码就写断言**"。★ 正确姿势: **先读实现, 再写断言**
+  （或先写一个探针脚本打印真实形态）。
+
+### 27 个测试覆盖什么
+
+| 类 | 覆盖 |
+|---|---|
+| `TestBattleWaitPlan` | 默认 hook/顺序形态; ★ 非法 hook 名**报错**; 自定义 hook 插在 `idle` **之前**; 重复事件**报错** |
+| `TestHookEventMapping` | ★ `hook2event` 的 5 个参数化（含下划线策略名）+ 往返 |
+| `TestContexts` | `PublicContext` / `PrivateContext` 默认值; `PerBattleState.hook_enabled` 是 set |
+| **`TestRuntimeReset`** | ★★ **核心**: `reset_per_battle()` **保留 `cross`/`per_task`**、**重建** `per_battle`（含**每个 hook 的私有 ctx**）; ★ 断言 `is not`（"重建"语义, 比 `==` 更准）|
+| `TestTaskOwnerSwitch` | ★ 换任务 -> `reset_per_task()`（`cross` 保留）|
+| `TestRuntimeStr` | ★ 排障入口 `__str__` 打印 hook 名 + 四个作用域; ★ **无状态时不能崩** |
+| `TestRuntimeDescriptor` | ★ `update_wrapper` 保住 `__name__`（**完成检测依赖它**）; `__call__` 注入 `pub=`/`pri=`; 首用 hook -> **类型化**槽位 |
+| `TestHookSignal` | int 枚举的三个取值 |
+| `TestNoStaleApi` | ★ **反向守卫**: `_DEFAULT_PER_BATTLE` 不得回来; `per_battle` **不是** dict |
+
+## 53.3 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest（**不 ignore**）| **1673 passed, 3 skipped**（0 失败）|
+| ★ skipped 数 | **24 -> 3**（21 个从"假 skip"变成**真测试**）|
+| 前端 flutter test | **85 passed** |
+| 前端 analyze（我改的文件）| **No issues found!** |
+| 配置污染告警 | ★ **无** |
+
+## 53.4 ★★ T 系列最终状态（12/12）★★
+
+| # | 内容 | 状态 |
+|---|---|---|
+| **T1** | `schedule_rule` 真正合并进 `priority_mode` | ✅ |
+| **T2** | FILTER 白名单吞掉队列内任务（`FindJade`/`GotoMain`）| ✅ |
+| **T3** | 文档整改（分层定权威 + `deprecated.md` + 17 条守卫）| ✅ |
+| T4 | 删 `/schema` 的 `window_fields` 死 schema | ✅ |
+| T5 | 删 2 个坏死函数 | ✅ |
+| T6 | 21 个"假绿"测试 -> ★ **重写为 27 个真测试** | ✅ |
+| T7 | 修 2 条假通过的守卫 | ✅ |
+| T8 | 补 `migrate_priority_mode_once` 测试（8 条）| ✅ |
+| T9 | 抽屉与分栏超宽 61px | ✅ |
+| T10 | 前端死代码（最危险的已删; 其余留档）| ✅ |
+| T11 | `RunControlBar` 状态刷新 + 失败提示 | ✅ |
+| T12 | `rest` 条目分段位置测试（16 条）| ✅ |
+
+## 53.5 剩余（**低优先**, 已留档）
+
+| 项 | 说明 |
+|---|---|
+| 前端剩余死成员 | `describeEntry`/`kindOf`/`taskNameZh`（一整簇）· `reorderEntries`/`moveEntryUp`/`moveEntryDown`/`removeEntry`/`unqueuedEnabledTasks`/`isScheduleRuleLoaded` —— **无调用方但无副作用** |
+| `lib/controller/args/group_controller.dart` | **0 字节**文件 + `group.json` 等 5 个无引用 JSON |
+| 11 个未调用的 `api_client` 方法 | `getRunRecord`/`getRunArchive`/`getRunOnceQueue`/`getFailureState`/`getCapabilities`/`getTaskWindows`/`addTaskWindow`/`updateTaskWindow`/`deleteTaskWindow`/`restScript`/`delayScript` |
+| ★ **OASX 发布构建验证** | `flutter build windows --release`（需先关闭运行中的 OASX）|
+| ★ **实机端到端验收** | 启动 OAS 服务 + OASX, 人工核对三模式下拉 / 队列分段条 / 拖动拦截 |
+

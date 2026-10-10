@@ -111,23 +111,91 @@ class TestBuildQueue:
         return mm.config_cache('恋鸟树')
 
     def test_user_entries_come_first_in_order(self, config):
-        """★ 用户编排的必须**优先**且**保持顺序**（用户确认"疑点1 = a"）。"""
+        """★ 用户编排的条目必须**都在队列里**，且**同段内**保持用户顺序。
+
+        ## ★★ 第二轮复审（自查）: 这个测试的前提**从来就不对** ★★
+
+        原文:
+            user = [e.task for e in config.build_run_list()]
+            assert queue[:len(user)] == user
+
+        它假设"**队列的前 N 项 == 用户编排**"。但**分段优先于用户编排**:
+
+        * `timed_first`（出厂默认）下 `_segment_queue()` 把**定时段**排前面,
+          用户的定时条目才在前; 用户的**固定**条目会被推到定时段**之后**
+        * 实测本机: 用户编排 = `['Orochi']`（fixed）,
+          而 `queue = ['AbyssShadows','Restart','TrueOrochi', **'Orochi'**, ...]`
+          -> `Orochi` 在第 **3** 位（前面是自动补齐的 timed 条目）
+
+        ★ 所以"用户项 == 队列前缀"**在出厂默认模式下必然失败**。这不是
+          `build_queue()` 的 bug —— 是"**段序 = 模式决定, 段内 = 用户决定**"
+          （用户裁定 ③）这条设计**本来就该如此**。
+
+        ★ 正确的不变量（本测试现在断言的）:
+          1. 用户编排的**已启用**条目**全都**在队列里
+          2. **同段内**用户条目的**相对顺序**被保留
+        """
         user = [getattr(e, 'task', None) for e in config.build_run_list()]
+        user_on = [t for t in user if t and config._task_enabled(t)]
         queue = [getattr(e, 'task', None) for e in config.build_queue()]
-        assert queue[:len(user)] == user, (
-            f'用户编排的顺序被打乱了: 用户 {user}, 队列前 {len(user)} 项 {queue[:len(user)]}')
+
+        # ① 全在队列里（可能因为未启用而被剔除 -> 这里只看已启用的）
+        missing = [t for t in user_on if t not in queue]
+        assert not missing, (
+            f'用户编排（已启用）的条目不在执行队列里: {missing}\n'
+            f'  用户(启用) = {user_on}\n  队列 = {queue}')
+
+        # ② **同段内**用户顺序保留（跨段由模式决定, 不要求）
+        for seg in {config._segment_of(t) for t in user_on}:
+            seg_user = [t for t in user_on if config._segment_of(t) == seg]
+            seg_queue = [t for t in queue
+                         if t and config._segment_of(t) == seg]
+            # 段内: 用户条目的出现顺序必须与用户编排顺序一致
+            order_in_q = [t for t in seg_queue if t in set(seg_user)]
+            assert order_in_q == seg_user, (
+                f'[{seg} 段] 用户编排的段内顺序被打乱:\n'
+                f'  用户 = {seg_user}\n  队内出现次序 = {order_in_q}\n'
+                f'  （模式 = {config.priority_mode()}）')
 
     def test_auto_tasks_are_appended(self, config):
-        """自动任务**追加在后面**（不插队）。"""
-        user = {getattr(e, 'task', None) for e in config.build_run_list()}
+        """★ 自动补齐的条目**必须都已启用**, 且**不与用户条目重复**。
+
+        ⚠ 不说"追加在队列末尾" —— 分段会重排（见上一条说明）。
+        """
+        user = {t for t in (getattr(e, 'task', None)
+                            for e in config.build_run_list())
+                if t and config._task_enabled(t)}
         queue = [getattr(e, 'task', None) for e in config.build_queue()]
         appended = [t for t in queue if t not in user]
         assert appended, '一个自动任务都没补齐 —— build_queue 没生效'
-        # 追加的都在最后（即第一个追加项之后不应再出现用户项）
-        if appended:
-            first = queue.index(appended[0])
-            assert all(t in appended for t in queue[first:]), \
-                '自动补齐的任务中间夹了用户编排项'
+
+        # ★ 自动补齐的必须**全部已启用**（未启用的不该进队列）
+        disabled_in_queue = [t for t in appended if not config._task_enabled(t)]
+        assert not disabled_in_queue, (
+            f'队列里有**未启用**的自动任务: {disabled_in_queue}')
+
+        # ★ 用户条目不该被"补齐"成重复
+        #
+        # ⚠⚠ 我第一版写成 `queue.count(t) == 1` —— **必然假失败**:
+        #   用户**可以**在 `run_list` 里放**重复条目**（⑧ 明确确认的用法:
+        #   "可以重复添加同一个任务"）。实测 `queue` 里 `RealmRaid` 出现
+        #   **2 次** —— 两行**都是用户编排的**, 与自动补齐无关。
+        #
+        # ★ 正确判据: **`RunEntry` 身份**（`entry_id`）去重后再比, 而不是
+        #   按任务名。自动补齐只该补"用户**完全没编排过**"的任务。
+        from collections import Counter
+        user_ids = {getattr(e, 'entry_id', None)
+                    for e in config.build_run_list()
+                    if getattr(e, 'task', None)}
+        q_entries = config.build_queue()
+        auto_like = [getattr(e, 'task', None) for e in q_entries
+                     if getattr(e, 'entry_id', None) not in user_ids]
+        # 自动补齐的每个任务名, 在**用户条目之外**最多出现一次
+        for name, n in Counter(auto_like).items():
+            if name in user:
+                assert n == 0, (
+                    f'{name} 既在用户编排里, 又被自动补齐了 {n} 次 —— '
+                    f'自动补齐失去了去重')
 
     def test_queue_membership_includes_auto(self, config):
         """`queued_commands()` = 用户编排 + **已启用**的自动任务。

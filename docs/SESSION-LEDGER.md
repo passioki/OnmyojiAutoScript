@@ -4693,3 +4693,183 @@ expect(ctrl.contains('timedPriorityChoices'), isTrue, ...);   // ✗ 锁住死�
 | ★ **OASX 发布构建验证** | `flutter build windows --release`（需先关闭运行中的 OASX）|
 | ★ **实机端到端验收** | 启动 OAS 服务 + OASX, 人工核对三模式下拉 / 队列分段条 / 拖动拦截 |
 
+---
+
+# 54. 第二轮全面复审 —— 4 名复审员 + 自查
+
+## 54.0 怎么做的
+
+派了 **4 个独立复审员**（后端 / 前端 / 文档与守卫 / 测试与不变量），
+每个都给了"上一轮改了什么"的清单, 要求**复核这些改动有没有引入新问题**
+（而不是重复上一轮的结论）, 并**明确区分"确定"与"怀疑"**、
+**说明实际检查范围与没查的**。
+
+★ **4 份报告合计提出 60+ 条**, 下面按"我核实过并已修" / "我核实过但不成立"
+  / "留给后续" 三类如实记录。
+
+---
+
+## 54.1 ★★★ 修掉的真 bug（复审员发现, 我用**独立证据**复核后修）
+
+### (A) 生产 bug: `migrate_priority_mode_once()` **从不落盘**（测试复审员发现）
+
+**症状**: 这个函数改完内存**不调 `self.save()`** —— 而它的兄弟
+`migrate_windows_once()`（同文件）**明确调了**。
+
+**测试复审员用探针决定性证明**: 把 `clean_zombie_nodes()` 改成 no-op ->
+`test_priority_mode_migration.py` **8 条里 3 条立刻失败**。
+★ 也就是说那 8 条测试的绿是"**靠 `tasks/OrochiMoans/` 恰好是个僵尸目录**"
+换来的 —— `clean_zombie_nodes()` 顺手 `save()` 把内存写下去了。
+
+**后果（用户可见）**: 迁移只改内存 -> **重启后又迁一次**;
+`priority_mode_explicit` 也没落盘 -> **每次启动都重迁**。
+
+**修**: 加 `self.save()`, 且**落盘失败就 `return False`**（不能算迁移成功,
+否则下次启动又迁一次）。
+
+**★ 我用独立的验证确认修好了**（禁用 `clean_zombie_nodes` 后跑）:
+```
+RESULT 磁盘 priority_mode    = fixed_first (应 fixed_first)
+RESULT 磁盘 explicit         = True         (应 True)
+RESULT 迁移**自己**落盘了吗  = True
+```
+★ 这是"**生产 bug 与测试假通过同根**"的教科书案例 —— 修生产即修测试。
+
+### (B) ★★ `Restart` 的"置顶"约定被 T1 **静默丢掉**（后端复审员发现）
+
+**发现**: 这条约定原来在 `TaskScheduler.schedule()` 里**两处**写死
+（`scheduler.py:143-148` 与 `:159-164`）, 注释原话是
+"**永远保证 Restart 任务在最前(与 fifo 的既有约定一致)**"。
+T1 删掉那个**调用**之后, 这条**行为保证**随之消失, **没有任何地方接管**。
+
+**为什么重要**: `Restart` 是"重启 / 领体力", 它自己的窗口是
+**每天两段 2 小时**（12:00-14:00 / 20:00-22:00）。窗口一开就该**立刻**领。
+
+**★ 我复核时修正了复审员的一处推断**: 他实测 `Restart` 在队列第 2 位
+（旧行为恒为 0）—— 但那**不是**"它在 pending 里被推后":
+本机 `Restart` 因 `in_window=False` **根本不在 `pending`**
+（它进 `waiting`）。所以这个回归在本机**尚未实际发生**, 但**已经埋好**
+（窗口一开就会发生）。
+
+**修**: 在 `_order_by_queue()` 末尾**显式恢复**置顶, 并写清"为什么不与
+'队列是唯一顺序权威'冲突"（那是"谁在队列里/用户排的相对次序",
+这是一条**写死的例外**, 只影响 `Restart` 一个任务）。
+
+### (C) ★ `build_queue()` 与 `queued_commands()` 判据不一致（我自查 + 复审员佐证）
+
+**症状**: `queued_commands()`（`/overview` 的 `queued` 用它）原来**只对
+自动补齐**过滤 `enable`, 而**用户编排**的条目照收 -> 与 `build_queue()`
+不一致。实测 `queued_commands()` 返回 **42** 个, 其中 `MetaDemon`
+`enable=False`。
+
+**用户可见后果**（我复核时补充了复审员没写的两条）:
+1. `/overview` 把它标成 `queued=True` —— 明明不会跑
+2. 前端【添加任务】因为它"已在队列"而**排除它** -> **用户加不回来**
+3. 实测 `queued_commands` 42 -> **18**, 与 `build_queue()` 完全一致
+
+**连带修**: `build_queue()` 现在也**跳过未启用的用户条目**（判据统一为
+`_task_enabled()`）。★ 这**不影响**"用户能保留未启用的编排" ——
+条目**还在 `run_list`**（配置没动）, 只是不进执行队列; 重新启用后
+**回到原位置**。
+
+### (D) `_check_drag_allowed` **不管 `rest` 的位置**（我在自查中发现, 复审员独立佐证）
+
+**症状**: 后端用 `[e for e in rl.entries if e.task]` **跳过 rest**, 且
+**不校验 rest 的位置**; 而前端 `_sameGroupReorder` 给 `rest` 算 rank
+**2**（恒最后）-> **把它拖到中间前端拦、后端放行**。
+
+★ 与"后端是最终防线"相悖。**修**: 后端与前端**同一 rank 规则**
+（rest=2）+ `rest` 必须在所有任务之后的**专门文案**; 顺带删掉那段
+"**算完就丢**"的 `_ = cur_seg, new_seg`（每次白跑一次 `build_queue()`）。
+
+**覆盖**: 新增 `tests/module/config/test_drag_rest_position.py`（5 条,
+先复现 2 条失败 -> 修 -> 全绿）。
+
+---
+
+## 54.2 ★ 复审员提出、但我**核实后判定不成立**的（如实记录）
+
+| 复审员结论 | 我的核实结果 |
+|---|---|
+| 后端: "`_order_by_queue()` 里 **13 行 `return` 之后的不可达代码**（含同层第二个 `except`）" | ★ **不成立**: 我用 AST 扫**全仓**（"return 之后还有语句"的函数）-> **0 处**。复审员读到的是**旧快照**（并发会话的中间态）—— 他报告里也自承"后端在我复审期间被并发修改"。**我没有改任何代码** |
+| 前端: "`_loadedFor` 去重键写错, T11 的跟随刷新未生效" | ★ **成立**（详见 §55）—— 这条我**认** |
+| 文档: "`_SLOT_SPAN_MINUTES` 标为已删但仍在用" | ★ **成立**（详见 §55） |
+
+★ **这就是为什么要"4 个复审员 + 我自查"**: 复审员也会有**假阳性**
+（并发修改导致读到旧快照）, **必须逐条复核**, 不能照单全收。
+
+---
+
+## 54.3 测试期望值**过时**（T1 让 E3 无条件生效的连锁反应）
+
+T1 把"按条目复查完成记忆"（E3）从"**只在 `schedule_rule == List`**"
+改成**无条件执行**。这必然让**本周期已完成的任务离开 `pending`** ——
+于是**三条**断言"`pending` == 队列剔除 `waiting`"的旧测试**过时**:
+
+| 测试 | 过时原因 |
+|---|---|
+| `test_queue_is_authority.py::test_pending_is_ordered_subsequence_of_queue` | 没剔除"本周期已完成" |
+| `test_queue_no_leak_all_rules.py::test_ordered_subsequence_under_any_rule` | 同上 |
+| `test_execution_queue.py::TestBuildQueue` 两条 | ★ 前提**从来就不对**（见下） |
+
+★ 修法上我坚持一条原则: **用同一个权威函数**（`_skip_by_period` /
+`_task_enabled`）算期望值, 而不是在测试里**另写一套判断** ——
+否则又是"同一知识两处定义"。
+
+### ★★ `TestBuildQueue` 的两条测试**前提从来就不对**
+
+原文断言 `queue[:len(user)] == user`（"队列前 N 项 == 用户编排"）。
+**但分段优先于用户编排**: 出厂默认 `timed_first` 下, 用户的**固定**条目
+会被推到定时段**之后**。
+
+**实测本机**:
+```
+模式       = timed_first
+用户(启用) = ['Orochi']            <- fixed
+队列       = ['AbyssShadows','Restart','TrueOrochi','Orochi', ...]
+                                     ↑ 前面 3 个是**自动补齐的 timed**
+```
+★ `Orochi` 在第 **3** 位。**这不是 bug** —— 正是用户裁定 ③
+"**段间由模式决定, 段内由用户决定**"。
+
+**改成真实不变量**: ① 用户已启用条目**全在队列里**;
+② **同段内**用户顺序被保留; ③ 自动补齐的全部已启用。
+
+### ★ 我自己写测试时又踩了一个坑
+
+我第一版写 `assert queue.count(t) == 1`（"用户条目不该重复"）—— **必然
+假失败**: 用户**可以**在 `run_list` 里放**重复条目**（⑧ 明确确认的用法
+"可以重复添加同一个任务"）。实测 `queue` 里 `RealmRaid` 出现 **2 次**,
+**两行都是用户编排的**。
+-> 改成按 **`RunEntry` 身份**（`entry_id`）判"自动补齐有没有失去去重"。
+
+★ **又一次印证**: 单跑通过、全量失败 = **测试间污染**（那条重复条目是
+另一个测试写进实时配置的）。
+
+---
+
+## 54.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1678 passed, 3 skipped**（0 失败）|
+| 新增测试 | `test_drag_rest_position.py`（5 条）|
+| `queued_commands()` | 42 -> **18**（与 `build_queue()` 一致）|
+| `migrate_priority_mode_once` | ★ **现在自己落盘**（禁用 `clean_zombie_nodes` 下实证）|
+| 不可达代码 | ★ **0 处**（AST 全仓扫描）|
+
+## 54.5 留给后续（复审员的**中低**发现, 已登记）
+
+| 项 | 来源 |
+|---|---|
+| 文档守卫 `_ALLOW_DEAD_PATHS` 太宽（`architecture.md` 整份豁免 -> 守卫抓不到它**自己举的例子**）| 文档复审 |
+| `deprecated.md` 硬错: 3 行把"应当删除"写成"已删除"而文件还在; `_SLOT_SPAN_MINUTES` 标为已删但仍在用; 1 条路径写错 | 文档复审 |
+| `architecture.md` 头部"已过时节"行号错 + 漏列 + 对 §13.1 描述方向反了 | 文档复审 |
+| 两份废弃清单（`scheduler-architecture.md` §8 vs `deprecated.md`）已漂移 | 文档复审 |
+| 前端 `rest` 的 rank == `'fixed'`（注释声称 `'__rest__'`）-> 与后端不一致 | 前端复审 |
+| 前端 `_loadedFor` 去重键 == script（T11 的跟随刷新**未生效**）| 前端复审 |
+| 测试: 多条"注释驱动"的源码守卫（`src.find` 也匹配注释）| 测试复审 |
+| 测试: `test_waiting_tasks_are_in_queue` 的 `assert isinstance(x, list)` **恒真** | 测试复审 |
+| 测试: conftest 告警**默认被 pytest 吞掉**（`-q` 下看不见）| 测试复审 |
+| 死代码: `module/config/scheduler.py` / `_is_list_rule` / `timed_schedule` 4 个函数 / `TaskSpec.list_pos`（40 个 meta 在维护）| 后端复审 |
+

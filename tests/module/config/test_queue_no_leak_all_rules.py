@@ -66,14 +66,37 @@ class TestQueueIsAuthorityForAllRules:
         return cfg
 
     def _state(self, cfg):
+        """返回 `(queue, pending, waiting, 未启用, 本周期已完成)`。
+
+        ★★ 第二轮复审: 后两项是**新增的** —— 原来只算 `waiting`, 于是
+        期望值 `[t for t in q if t not in w]` 在 T1 之后**过时**:
+          * T1 让 E3（按条目完成记忆）**无条件生效**
+            -> 本周期做过的任务**也会**离开 pending
+          * 队列里可能有**未启用**的条目（实测 `MetaDemon` `enable=False`）
+            -> 它**既不在 pending 也不在 waiting**
+        """
+        from module.config.config_model import convert_to_underscore
+
         q = [e.task for e in cfg.build_queue() if getattr(e, 'task', None)]
         p = [f.command for f in (cfg.pending_task or [])]
         w = {f.command for f in (cfg.waiting_task or [])}
-        return q, p, w
+        disabled, done = set(), set()
+        for cmd in q:
+            try:
+                if not cfg._task_enabled(cmd):
+                    disabled.add(cmd)
+                    continue
+                key = convert_to_underscore(cmd)
+                tv = cfg.model.model_dump().get(key) or {}
+                if cfg._skip_by_period(key, tv, entry_id=None) is True:
+                    done.add(cmd)
+            except Exception:
+                pass
+        return q, p, w, disabled, done
 
     def test_no_leak_under_any_rule(self, live):
         """★ 当前规则（实测是 `Filter`）下也**不该**有队列外任务跑。"""
-        q, p, _ = self._state(live)
+        q, p, _, _, _ = self._state(live)
         leak = sorted(set(p) - set(q))
         assert not leak, (
             f'这些任务不在队列里却进了 pending: {leak}\n'
@@ -81,18 +104,24 @@ class TestQueueIsAuthorityForAllRules:
             f'非 LIST 分支也必须先 `_order_by_queue()`）')
 
     def test_ordered_subsequence_under_any_rule(self, live):
-        """★ `pending` 必须是"队列剔除 waiting"的**保序子序列**。
+        """★ `pending` 必须是"队列剔除 waiting/未启用/本周期已完成"的**保序子序列**。
 
         `_order_by_timed_priority()` 会**重排** -> 这条会失败（用户拖的顺序失效）。
+
+        ★★ 第二轮复审: 期望值原来只剔除 `waiting` —— T1 让 E3 无条件生效后
+        必须**同时**剔除"本周期已完成"与"未启用"的条目。
         """
-        q, p, w = self._state(live)
-        expected = [t for t in q if t not in w]
+        q, p, w, disabled, done = self._state(live)
+        expected = [t for t in q
+                    if t not in w and t not in disabled and t not in done]
         assert p == expected, (
             f'pending 不是队列的保序子序列\n'
-            f'  队列   : {q}\n'
-            f'  waiting: {sorted(w)}\n'
-            f'  期望   : {expected}\n'
-            f'  实际   : {p}')
+            f'  队列        : {q}\n'
+            f'  waiting     : {sorted(w)}\n'
+            f'  未启用      : {sorted(disabled)}\n'
+            f'  本周期已完成: {sorted(done)}\n'
+            f'  期望        : {expected}\n'
+            f'  实际        : {p}')
 
     def test_non_list_branch_orders_by_queue(self):
         """★ 源码守卫: 非 LIST 分支必须调用 `_order_by_queue()`。"""

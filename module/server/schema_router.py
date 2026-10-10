@@ -1043,37 +1043,78 @@ def _check_drag_allowed(config, rl):
         if mode == 'custom':
             return False, ''
 
-        # 队列里任务的**既有**段序（用于比对）
-        seg_of = {}
-        for task in [getattr(e, 'task', '') for e in rl.entries
-                     if getattr(e, 'task', '')]:
-            seg_of[task] = config._segment_of(task)
-        seq = [seg_of[getattr(e, 'task', '')] for e in rl.entries
-               if getattr(e, 'task', '')]
-        if not seq:
+        want_first = 'timed' if mode == 'timed_first' else 'fixed'
+        name = '定时任务优先' if mode == 'timed_first' else '固定任务优先'
+
+        # ★★ 第二轮复审（自查）修复: **必须把 `rest` 也算进 rank** ★★
+        #
+        # ## 原来的 bug（用户 ③ "拖了没效果"的一个真来源）
+        #
+        # 原来这里写的是:
+        #     seq = [... for e in rl.entries if getattr(e, 'task', '')]
+        # —— **跳过 rest 条目**, 只看任务的段序。于是:
+        #   * 前端 `_sameGroupReorder` 给 `rest` 算 rank **2**（恒最后）
+        #     -> 把它拖到中间会被**前端拦**
+        #   * 后端**看不见 rest** -> **放行**
+        #
+        # ★ 两端判据**不一致** -> "前端预检通过但后端拒绝"（或反之）,
+        #   正是本项目反复强调要避免的"知识存在两处"。
+        # ★ 而且后端本该是**最终防线**（后端权威重算 `group`）,
+        #   结果它**不兜底** -> 一旦前端有 bug 或用户直接调 API,
+        #   `rest` 就能被排到中间 -> **挡住后面所有任务**。
+        #
+        # ## 修法: 与前端**逐字同一规则**
+        #
+        #     rest / 未分段 -> rank 2（最后）
+        #     属于 want_first 段 -> rank 0
+        #     其它              -> rank 1
+        #
+        # 这样 `rest` 在中间会让 `rank != sorted(rank)` -> **被拦**,
+        # 而"rest 放最后"仍然合法。
+        ranks = []
+        rest_positions = []
+        task_positions = []
+        for idx, e in enumerate(rl.entries):
+            task = getattr(e, 'task', '') or ''
+            if not task:
+                ranks.append(2)
+                rest_positions.append(idx)
+                continue
+            task_positions.append(idx)
+            seg = config._segment_of(task)
+            ranks.append(0 if seg == want_first else 1)
+
+        if not ranks:
             return False, ''
 
-        want_first = 'timed' if mode == 'timed_first' else 'fixed'
-        rank = [0 if s == want_first else 1 for s in seq]
-        if rank != sorted(rank):
-            name = '定时任务优先' if mode == 'timed_first' else '固定任务优先'
+        # ① `rest` 必须在**所有任务之后**（否则会挡住它们）
+        if rest_positions and task_positions:
+            if any(r < t for r in rest_positions for t in task_positions):
+                return True, (
+                    '「休息」条目**不能排在任务前面或中间** —— '
+                    '它会挡住后面的任务。请把它拖到队列**最后**。')
+
+        # ② 段序必须单调（`rest` 的 rank=2 正好落在最后, 与 ① 一致）
+        if ranks != sorted(ranks):
             return True, (
                 f'当前是「{name}」模式, 队列按类别分段 —— '
                 f'**不能把条目跨类别拖动**。'
                 f'（想自由拖动请把「调度优先级」改成「自定义」）')
 
-        # ★ 段内保序: 与**当前队列**的段内相对次序比对
-        try:
-            cur = [getattr(e, 'task', '') for e in config.build_queue()]
-            cur_seg = [t for t in cur if seg_of.get(t) is not None]
-            new_seg = [getattr(e, 'task', '') for e in rl.entries
-                       if getattr(e, 'task', '')]
-            # 段内元素集合: 新次序不能把**不同段**混在一起（已由上一检查保证）,
-            # 这里只要求"每段内部的**相对次序**"对每个任务一致 —— 但因为
-            # 用户**可以**在段内重排, 所以这里**不**做段内保序校验。
-            _ = cur_seg, new_seg
-        except Exception:
-            pass
+        # ★★ 第二轮复审（自查）: 删掉下面这段**死代码** ★★
+        #
+        # 原来是:
+        #     cur = [... build_queue() ...]
+        #     cur_seg = [t for t in cur if seg_of.get(t) is not None]
+        #     new_seg = [...]
+        #     _ = cur_seg, new_seg          # ← 算完就丢
+        #
+        # ★ `_ = cur_seg, new_seg` 是"**写了个没用上的中间量**" —— 每次
+        #   调用都**白跑一次 `build_queue()`**（要遍历配置 + 排序）,
+        #   而且看起来像"做了段内保序校验", **其实什么都没做**。
+        #
+        # ★ 段内保序**本就不该校验**: 用户裁定"段**内**顺序由用户决定
+        #   （能拖）" —— 校验它会**禁止段内拖动**, 与设计相反。
         return False, ''
     except Exception as exc:
         logger.warning(f'拖动约束校验失败({type(exc).__name__}: {exc}), 放行')

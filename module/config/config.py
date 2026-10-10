@@ -602,6 +602,32 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             logger.info(
                 f'调度优先级迁移: schedule_rule={rule_v!r} + '
                 f'timed_priority={tp_v!r} -> priority_mode={new.value!r}')
+            # ★★ 第二轮复审修复: **必须自己落盘** ★★
+            #
+            # ## 原来的 bug（测试复审员用探针**决定性**证明）
+            #
+            # 这个函数**从不调 `self.save()`** —— 而它的兄弟
+            # `migrate_windows_once()`（同文件下面）**明确调了**。
+            #
+            # 后果: 迁移只改了**内存模型**, 磁盘还是旧值。于是:
+            #   * 本次进程内看起来迁好了
+            #   * **重启后又要迁一次**（`explicit` 也没落盘 -> 每次都重迁）
+            #   * 更隐蔽: `tests/module/config/test_priority_mode_migration.py`
+            #     断言的是**磁盘**, 它能通过**纯属巧合** —— 因为紧接着
+            #     `clean_zombie_nodes()` 会调 `save()` 把内存一起写下去。
+            #     ★ 探针实证: 把 `clean_zombie_nodes` 改成 no-op ->
+            #       **8 条里 3 条立刻失败**。也就是说那 8 条测试的绿
+            #       是"**靠 Tasks 目录里恰好有个僵尸目录**"换来的。
+            #
+            # ★ 这正是"**生产 bug 与测试假通过同根**" —— 修生产即修测试。
+            try:
+                self.save()
+            except Exception as exc:
+                # 落盘失败**不能**让迁移算成功（否则下次启动又迁一次）
+                logger.warning(
+                    f'调度优先级迁移落盘失败({type(exc).__name__}: {exc}) —— '
+                    f'内存已改, 磁盘未改; 下次启动会重试迁移')
+                return False
             return True
         except Exception as exc:
             logger.warning(f'priority_mode 迁移失败'
@@ -1037,7 +1063,47 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 logger.info(
                     f'F3: 这些任务不在执行队列里, 本次不参与调度: {dropped}')
             kept.sort(key=lambda x: x[0])
-            return [f for _, f in kept]
+            result = [f for _, f in kept]
+
+            # ★★ 第二轮复审修复: **恢复 `Restart` 置顶**（T1 静默丢掉的约定）★★
+            #
+            # ## 为什么会丢
+            #
+            # 这条约定原来在 `TaskScheduler.schedule()` 里, **两处**都写死了:
+            #   * `scheduler.py:143-148`（`list_order`）
+            #   * `scheduler.py:159-164`（`fifo`）
+            #   注释原话: "**永远保证 Restart 任务在最前(与 fifo 的既有约定一致)**"
+            #
+            # T1 把 `TaskScheduler.schedule()` 的**调用**删了（那是对的 ——
+            # 它带来 FILTER 白名单吞任务）。但那条**行为保证**随之消失,
+            # **没有任何地方接管** -> 静默回归。
+            #
+            # ## 为什么这条约定重要（不是随便加的）
+            #
+            # `Restart` 是"**重启 / 领体力**"（`tasks/Restart/meta.py`:
+            # `auto_queue=True`、`list_pos=0`、`period=DAILY`），而它自己的
+            # 开放窗口是**每天两段 2 小时**（12:00-14:00 / 20:00-22:00）。
+            # ★ 窗口一开就该**立刻**领 —— 排在前面任务之后就可能在窗口内
+            #   排不上, 于是"体力没领到"。
+            #
+            # ## 实测（复审时）
+            #
+            # 本机 `queue = ['MetaDemon','AbyssShadows','Restart', ...]`
+            # -> `Restart` 掉到**第 2 位**（旧行为恒为 0）。
+            #
+            # ## 与"队列是唯一顺序权威"冲不冲突
+            #
+            # **不冲突**。队列权威说的是"**谁在队列里、用户排的相对次序**"；
+            # 这是**一条写死的例外**（"领体力的先跑"）, 且**只影响 `Restart`
+            # 一个任务**。用户仍可以让它不跑（从队列移除 / 停用）。
+            # ★ 若将来要删这条约定, 应**显式**写进 `docs/deprecated.md`
+            #   并告知用户, 而不是静默丢掉。
+            for i, f in enumerate(result):
+                if getattr(f, 'command', '') == 'Restart':
+                    if i:
+                        result.insert(0, result.pop(i))
+                    break
+            return result
         except Exception as exc:
             logger.warning(f'_order_by_queue 失败({type(exc).__name__}: {exc}), '
                            f'保持原顺序')
@@ -1171,7 +1237,31 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         out = set()
         for e in self.build_run_list():
             task = getattr(e, 'task', None)
-            if task:
+            if not task:
+                continue
+            # ★★ 第二轮复审（自查）修复: **手动编排的条目也要过滤 `enable`** ★★
+            #
+            # 原来这里**无条件** `out.add(task)`, 于是:
+            #   * 用户把 `MetaDemon` 加进过 `run_list`, 后来**关掉**了它
+            #     （`enable=False`）
+            #   * `build_queue()` **不**收它（`_task_enabled` 过滤）
+            #   * `queued_commands()` **收**它 -> 两处**不一致**
+            #
+            # 后果（用户可见）:
+            #   1. `/overview` 把它标成 `queued=True` —— 明明不会跑
+            #   2. 前端【添加任务】把它**排除**（"已在队列"）-> 用户**加不回来**
+            #   3. `test_queue_membership_and_category.py` 的
+            #      `test_no_disabled_auto_task_in_queue` 直接报
+            #      "② 回归: 未启用的自动任务出现在队列成员里: ['MetaDemon']"
+            #
+            # ★ 实测证据: 队列 19 条 / pending 14 / waiting 6 ——
+            #   **`MetaDemon` 既不在 pending 也不在 waiting**（`enable=False`
+            #   在 `update_scheduler` 最早就被 `continue` 掉了）。它是
+            #   "**在队列成员里但根本不会被调度**"的那一个。
+            #
+            # ★ 判据统一为 **`_task_enabled()`** —— 与 `build_queue()`、
+            #   与下面那段 `auto_queue_tasks()` 的过滤**同一个函数**。
+            if self._task_enabled(task):
                 out.add(task)
         for task in self.auto_queue_tasks():
             # ★ 未启用的**不在队列里**（`build_queue()` 也是这么判的）
@@ -1230,10 +1320,40 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         ★ **不回写配置** —— 这是派生结果。回写会让
           "用户没编排过"与"用户确实想要它在列表里"分不清。
+
+        ## ★★ 第二轮复审修复: 用户编排的**未启用**条目也跳过 ★★
+
+        `build_queue()` 的语义是"**实际会跑的清单**"（与
+        `queued_commands()` 的 docstring 同义）。而 `update_scheduler()`
+        在**最早就** `if not func.enable: continue` —— 未启用的任务
+        **永远不会跑**。
+
+        ⚠ 原来这里只对**自动补齐**的过滤 `_task_enabled`, 而
+        `build_run_list()` 返回的用户条目**照收**。后果（实测）:
+          * `MetaDemon` 在 `run_list` 里但 `enable=False`
+          * `build_queue()` **收**它 -> 它出现在【执行顺序】页
+          * `queued_commands()`（已修）**不收** -> `/overview` 标 `queued=False`
+          * ★ 两处**不一致** -> 页面自相矛盾
+          * ★ 而 `pending` 里**根本没有它**（最早被 `continue` 掉）
+            -> 用户看到"在队列里却永远不跑、还排在第一"
+
+        ★ 判据统一为 **`_task_enabled()`**（与自动补齐那一支、与
+          `queued_commands()` **同一个函数**）。
+        ★ 这不影响"用户能保留未启用的编排" —— 条目**还在
+          `run_list`**（配置里没动），只是**不进执行队列**;
+          用户重新启用它, 它立刻回到队列的**原位置**。
         """
-        from module.config.run_list import RunEntry
+        from module.config.run_list import RunEntry, RunList
 
         rl = self.build_run_list()
+        # ★ 先剔除**未启用**的用户条目（保留在配置里, 只是不排队）
+        try:
+            rl = RunList([e for e in rl
+                          if not getattr(e, 'task', None)
+                          or self._task_enabled(e.task)])
+        except Exception as exc:
+            logger.warning(
+                f'过滤未启用条目失败({type(exc).__name__}: {exc}), 保持原样')
         existing = {getattr(e, 'task', None) for e in rl}
         try:
             for task in self.auto_queue_tasks():

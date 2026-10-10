@@ -60,17 +60,61 @@ class TestQueueIsAuthority:
     """★ 队列是唯一调度依据。"""
 
     def test_pending_is_ordered_subsequence_of_queue(self, live):
-        """★ 核心不变量: `pending` 是队列的**保序子序列**。"""
+        """★ 核心不变量: `pending` 是队列的**保序子序列**。
+
+        ## ★★ 第二轮复审: 期望值原来**过时**（两处）★★
+
+        ### (1) T1 让 E3（按条目完成记忆）**无条件生效**
+
+        原来写 `expected = [t for t in q if t not in w]`。
+        这在 T1 **之前**成立, 因为那时"按条目复查完成记忆"**只在
+        `schedule_rule == List` 时**执行, 而出厂默认是 `Filter`
+        -> 大多数用户那里 E3 **根本没生效**。
+
+        T1 把 E3 改成**无条件执行**（这正是 T1 要修的 bug）—— 于是
+        **本周期已完成的任务也会从 `pending` 移进 `waiting`**。
+
+        ### (2) ★ 队列里可能有**未启用**的条目
+
+        实测: `MetaDemon` 在 `run_list` 里但 `enable=False`
+        -> `update_scheduler` 在**最早**的 `if not func.enable: continue`
+          就跳过了 -> 它**既不在 pending 也不在 waiting**。
+        ★ 这不是 bug("未启用" -> "不参与调度"), 但**队列成员**里确实有它。
+
+        ★ 所以正确的期望是"**剔除 waiting + 剔除未启用**"。两处**都必须用
+          权威函数**算（`_skip_by_period` / `_task_enabled`）, 不自己另写
+          一套判断 —— 否则又是"知识存在两处"。
+        """
+        from module.config.config_model import convert_to_underscore
+
         q = _queue(live)
         p = [f.command for f in (live.pending_task or [])]
         w = {f.command for f in (live.waiting_task or [])}
-        expected = [t for t in q if t not in w]
+
+        done, disabled = set(), set()
+        for cmd in q:
+            try:
+                if not live._task_enabled(cmd):
+                    disabled.add(cmd)
+                    continue
+                key = convert_to_underscore(cmd)
+                tv = live.model.model_dump().get(key) or {}
+                if live._skip_by_period(key, tv, entry_id=None) is True:
+                    done.add(cmd)
+            except Exception:
+                pass
+
+        expected = [t for t in q
+                    if t not in w and t not in done and t not in disabled]
         assert p == expected, (
-            f'pending 不是"队列剔除 waiting 后的保序子序列"\n'
-            f'  队列   : {q}\n'
-            f'  waiting: {sorted(w)}\n'
-            f'  期望   : {expected}\n'
-            f'  实际   : {p}')
+            f'pending 不是"队列剔除 waiting/未启用/本周期已完成"的保序子序列\n'
+            f'  队列        : {q}\n'
+            f'  waiting     : {sorted(w)}\n'
+            f'  未启用      : {sorted(disabled)}\n'
+            f'  本周期已完成: {sorted(done)}\n'
+            f'  期望        : {expected}\n'
+            f'  实际        : {p}\n'
+            f'  ★ T1 之后 E3 **无条件生效** —— 本周期做过的任务**应当**不在 pending')
 
     def test_no_task_outside_queue_runs(self, live):
         """★ 队列外的任务**不该**在 pending 里（用户没加它就别跑）。"""

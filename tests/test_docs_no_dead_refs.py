@@ -140,6 +140,10 @@ class TestCurrentDocsFreeOfRemovedSymbols:
         ('Recharge', '同上'),
         ('scheduler_core', 'S5 已删（死代码）'),
         ('team_coordinator', 'S5 已删（待重设计为独立模块）'),
+        # ★★ 第二轮复审补录: 这三项当时**漏了**, 于是"契约文档仍在教人用"\n        #   已废弃字段**守卫抓不到**（复审员实测）。\n        ('schedule_rule', 'T1/S6 已并入 priority_mode（3 模式）'),
+        ('timed_priority', 'S6 已并入 priority_mode'),
+        ('window_fields', 'T4 已删（单值窗口全废, 改成 windows 列表）'),
+        ('list.modes', 'T1/S6 后是死链（四个旧调度模式）'),
     )
 
     @pytest.mark.parametrize('needle,why', REMOVED)

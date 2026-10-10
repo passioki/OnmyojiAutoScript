@@ -118,7 +118,24 @@ def _guard_live_config():
 
     if changed:
         names = ', '.join(p.name for p in changed)
-        # ★ 大声报警（不是静默还原）
+        # ★★ 第二轮复审修复: **用 `warnings.warn` 让告警默认可见** ★★
+        #
+        # ## 原来的 bug（测试复审员实测）
+        #
+        # 原来只用 `print()` —— 而 **`pytest -q`（不加 `-s`）会捕获
+        # stdout, 一个字都看不到**。也就是说默认跑法下, 这个"大声报警"
+        # **退化成它自己 docstring 明令禁止的"静默还原"**。
+        # ★ 复审员因此**复现不出**台账里反复写的"配置污染告警 ★ 无"。
+        #
+        # ★ 修法: 既 `print`（`-s` 时看得到全文）**也** `warnings.warn`
+        #   —— pytest 会把 warning 收进 **warnings summary**,
+        #   `-q` 下**照样显示**（且默认退出码不变, 不会把套件判红）。
+        import warnings as _w
+        _w.warn(
+            f'★★★ 测试污染了用户实时配置 —— 已自动还原: {names} ★★★ '
+            f'请修那个测试（应在 finally 里自己备份 + 还原; 正确范例: '
+            f'tests/module/config/test_queue_clear_and_settings.py）',
+            UserWarning, stacklevel=1)
         print('\n' + '=' * 72)
         print('★★★ 测试污染了用户实时配置 —— 已自动还原 ★★★')
         print(f'  被改的文件: {names}')
@@ -127,6 +144,22 @@ def _guard_live_config():
         print('=' * 72)
 
     if post_bad:
+        # ★ 同样: 用 warning 保证默认可见（原来只 print -> 被吞掉）
+        import warnings as _w
+        _w.warn('★★★ E2 不变量告警（entry_id 必须唯一）★★★ '
+                + ' / '.join(post_bad), UserWarning, stacklevel=1)
         print('\n★★★ E2 不变量告警（entry_id 必须唯一）★★★')
         for line in post_bad:
             print(f'  {line}')
+
+    # ★★ 第二轮复审: **E2 体检必须能失败**（原来只 print, 不可失败）★★
+    #
+    # 复审员指出: `pre_bad`（进会话前的体检）**算完从未使用**, 而
+    # `post_bad` 只 print —— 双向都"不可失败"。
+    # ★ 这里对**会话结束时**的重复 `entry_id` 直接**判定失败**
+    #   （它是数据损坏级问题: 两条条目共用一个 id -> 完成记忆会互相影响）。
+    assert not post_bad, (
+        'E2 不变量被破坏: `run_list` 里有**重复 entry_id**（同一 id 出现在'
+        '两条条目上）—— 完成记忆会互相影响, 且"按 id 删"会一删全删。\n  '
+        + '\n  '.join(post_bad)
+        + '\n★ 这是**数据损坏**级问题; 若确实是某个测试造成的, 请修那个测试。')

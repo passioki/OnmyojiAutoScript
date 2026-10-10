@@ -6,7 +6,7 @@
 > **冲突时以**：`docs/scheduler-architecture.md` 为准（调度域）
 >
 > ⚠ **已知未更新处**（见 `docs/deprecated.md`）:
-> §1.3「对方」列 / §2.6 `timed_priority` / §3 开放时段表单 / §5.2 /
+> §1.3「对方」列 / §2.6 `timed_priority`【已废弃】 / §3 开放时段表单【已重写】 / §5.2 /
 > §8.1 `charges` —— 这些小节仍按**旧模型**描述, **不要照做**。
 > 权威口径: 窗口见 **§9**（已重写）, 优先级见 **§2.5** 的
 > `priority_mode` 三模式。
@@ -146,13 +146,36 @@ GET /{script}/run_list/preview
 
 ★ 必须向用户显示 `disclaimer` —— 实际还受体力/网络/开放时段影响。
 
-#### 同时必须设置调度模式
+#### ★★ 「同时必须设置调度模式」—— **这一节已作废**（T1/S6）★★
 
-```
-PUT /{script}/script/optimization/schedule_rule/value?types=string&value=List
-```
-
-★ `schema.list.mode_value` 就是 `'List'`。
+> **原内容（**不要照做**）**：
+> ```
+> PUT /{script}/script/optimization/schedule_rule/value?types=string&value=List
+> ```
+> ★ `schema.list.mode_value` 就是 `'List'`。
+>
+> ## 为什么作废
+>
+> **T1** 删掉了 `update_scheduler()` 里对 `TaskScheduler.schedule()` 的调用 ——
+> ★ 于是 **`schedule_rule` 这个字段彻底不再影响排序**：
+> 队列顺序**无条件**生效（这正是 T1 要修的"拖了没用"）。
+>
+> **S6** 把它和 `timed_priority`【**已废弃**】一起并入了 **`priority_mode` 三模式**
+> （定时任务优先 / 固定任务优先 / 自定义）。
+>
+> ★★ **现在正确的做法**：写
+> ```
+> PUT /{script}/script/optimization/priority_mode/value?types=string&value=timed_first
+> ```
+> （三选一：`timed_first` / `fixed_first` / `custom`）
+> —— 见 §2.5 与 §9.5。
+>
+> ★ 后端**仍会**在 `/schema` 的 `list.modes`【已废弃】 / `list.mode_value` /
+> `list.current_mode` 里发布那四个旧模式，前端也**仍有一整簇死读取**
+> （`scheduleRule` / `scheduleRuleLabel` / `listModeLabel` /
+> **`setScheduleRule`（0 调用方但**会写配置**）**）。
+> ★ 那是**待清理的死链**（见 [`deprecated.md`](deprecated.md)），
+> **不要**再调用它 —— 调了会复活"两个排序权威"。
 
 #### ★ 前端不该硬编码的东西
 
@@ -164,7 +187,7 @@ PUT /{script}/script/optimization/schedule_rule/value?types=string&value=List
 | `entry_kinds[].needs_task` / `needs_minutes` / `blocks_list` | 界面据此决定显示任务选择器还是时长选择器 |
 | `duration_choices` | 时长可选项（分钟）|
 | `order_field` / `order_group` | 写入位置（`script.optimization.run_list`）|
-| `modes` | 四个调度模式的标签 |
+| ~~`modes`~~ | ★ **已废弃**（四个旧调度模式的标签）—— 改用 **`priority_mode` 三模式**（§9.5）|
 
 **前端一行映射都不该自己写。**
 
@@ -242,7 +265,7 @@ POST /{script}/run_list/entry?index=2   body: {"kind":"rest","minutes":30}
 |---|---|---|---|
 | `enable_fixed` | boolean | 启用固定任务 | 固定任务总开关 |
 | `enable_timed` | boolean | 启用定时任务 | 定时任务总开关 |
-| `timed_priority` | string | 定时任务优先级 | `timed` 定时优先 / `list` 列表优先 |
+| ~~`timed_priority`~~【**已废弃**】 | string | 定时任务优先级【**已并入 `priority_mode`**】 | `timed` 定时优先 / `list` 列表优先 |
 | `rest_interleave` | boolean | 休息时可穿插定时任务 | 判据：预期完成时间 < 休息剩余 |
 | `when_task_queue_empty` | string | 队列跑空后 | `goto_main` / `close_game` |
 
@@ -252,17 +275,20 @@ POST /{script}/run_list/entry?index=2   body: {"kind":"rest","minutes":30}
 写入走**既有通用接口**：
 
 ```
-PUT /{script}/script/optimization/timed_priority/value?types=string&value=timed
+PUT /{script}/script/optimization/timed_priority/value?types=string&value=timed   # ★【已废弃】
 PUT /{script}/script/optimization/enable_fixed/value?types=boolean&value=false
 ```
+
+> ★★ `timed_priority`【**已废弃**】那一行**不要再调** —— 它已被
+> `priority_mode` 取代（见 §2.5 与 §9.5）。留着只为说明**旧客户端的调用长什么样**。
 
 #### 语义要点
 
 | 项 | 说明 |
 |---|---|
 | 两个总开关 | **互不影响** —— 关掉固定任务不该影响定时任务 |
-| `timed_priority=timed` | 固定任务在跑、定时任务到点 → **打完当前这场**就让位 |
-| `timed_priority=list` | 定时任务等固定任务跑完 |
+| `timed_priority=timed`【**已废弃**】 | 固定任务在跑、定时任务到点 → **打完当前这场**就让位 |
+| `timed_priority=list`【**已废弃**】 | 定时任务等固定任务跑完 |
 | `rest_interleave` | 判据: 定时任务的 `scheduler.expected_minutes` < 休息剩余分钟数 |
 | `expected_minutes=0` | **未知** → 不穿插（保守）|
 
@@ -298,19 +324,32 @@ PUT /{script}/script/optimization/enable_fixed/value?types=boolean&value=false
 
 ★ **不是立即打断** —— 与「暂停调度」同样的理由（打断会卡在半途）。
 
-## 3. 开放时段表单（原型里没有，新增功能）
+## 3. 开放时段表单（★ 2026-10-10 **整体重写为多窗口**）
 
-原型里**没有**开放时段控件（那时后端还没有这个概念）。现在接口已支持：
+> **★★ 本节原来讲的四个单值字段 + `/schema` 的 `window_fields` **全部已删除** ★★**
+>
+> 原文（**不要照做**）：
+> | 字段 | 来源 |
+> |---|---|
+> | `window_enable`【已删】 | ~~`schema.window_fields[0]`~~【已删】 |
+> | `window_start` / `window_end` / `window_days`【已删】 | ~~`schema.window_fields[1..3]`~~【已删】 |
+>
+> 用户裁定："**不是 window slots, 而是设置多个 window**！"
+> —— S3 改成 **`Scheduler.windows: List[TaskWindow]`**（**7 个字段**），
+> `/schema` 的 `window_fields` 也在 T4 一并删除（那是**死 schema**，
+> 前端根本没用过它，却**有一个测试断言它必须存在** ——
+> "死代码 + 锁死它的断言"互相印证地一起过时）。
 
-| 字段 | 来源 | 说明 |
-|---|---|---|
-| `window_enable` | `schema.window_fields[0]` | 默认 `false` = 不限时段 |
-| `window_start` | `schema.window_fields[1]` | 默认 `17:00` |
-| `window_end` | `schema.window_fields[2]` | 默认 `23:00`；**`end <= start` 即跨午夜** |
-| `window_days` | `schema.window_fields[3]` | 逗号分隔，周一=0 |
+**现行契约见 §9（窗口字段模型）** —— 那里有：
 
-★ **前端不该硬编码这四个字段名** —— `schema.window_fields` 已给出
-名称、类型、默认值、标签，直接按它渲染表单。
+* `TaskWindow` 的 7 个字段（`id` / `enabled` / `period` / `start` /
+  `end` / `days` / `days_of_month`）
+* **5 个按 `id` 的 CRUD 端点**（`GET/PUT/POST/PUT{id}/DELETE{id}`）
+* 前端编辑器交互（`lib/views/args/window_editor.dart`）
+
+★ **"一天跑两次" = 配两个窗口**（不是 `window_slots`，那个字段已删）。
+★ `/args` 里 `windows` 的 `type` 是 **`array`** —— 原生表单渲染不了，
+  **必须用专用编辑器**。
 
 ---
 
@@ -435,7 +474,7 @@ pydantic 的 `model_json_schema()` 里，**带 `$ref` 的属性没有 `default` 
 | 界面职责 | 总览页 = 监控 + 批量；列表页 = **唯一**的单任务控制台 |
 | 单个启停开关 | **只在列表页**；总览页显示状态但不提供开关 |
 | 目标次数 | 列表页改 `scheduler.target` |
-| 开放时段 | 按 `schema.window_fields` 渲染，**不硬编码字段名** |
+| 开放时段 | ★ **改用 `windows` 列表 + 5 个按 `id` 的端点**（§9）—— `schema.window_fields`【**已删**】 |
 | 平台能力 | 按 `/capabilities` 灰掉不可用项 |
 | 三种运行控制 | ⏸ `battle` / ⏭ `round` / ▶ `resume`；**无"立即停"** |
 

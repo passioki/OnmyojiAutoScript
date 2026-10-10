@@ -14,16 +14,22 @@
 >
 > ### 本文**已过时**的部分（不要照做）
 >
-> | 节 | 问题 |
-> |---|---|
-> | §3（`:204-305`）| 整节讲**已删除**的 `Recharge` / `Resource` / `RunState` / `next_available()`, 还给了源码 |
-> | §5.4.1 | 把 `timed_priority` 当**现行**字段（已并入 `priority_mode`）|
-> | §11 / §13 | 编号错位; §13.1 把**已完成**的工作写成待办（`custom_next_run` 处置）|
-> | 附录（`:1813-1819`）| 列了**已删除**的 `scheduler_core.py` / `gen_resource_specs.py` / `test_availability.py` |
+> ★★ **行号已于第二轮复审修正**（原来写错, 且**恰好排除**了点名的符号）★★
+>
+> | 节 | 行范围 | 问题 |
+> |---|---|---|
+> | **§3** | `149-357` | 整节讲**已删除**的 `Recharge` / `Resource` / `RunState` / `next_available()` / `TaskSpec.resource`, 还给了源码。★ 原头部写 `:204-305` —— 那只覆盖 §3.0/§3.1, **恰好漏掉** §3.2-§3.4 那三个点名符号 |
+> | **§2.1**（编号与 `:81` 的 §2 **重复**）| `1674-1728` | 里面的 `TaskSpec.resource`（`:1722`）与 `scheduler_core.next_available()`（`:1724`）**已删除** |
+> | **§4.1 / §4.2 / §4.3** | `372-410` | `spec.resource` / `next_available(spec.resource, …)` / `team_coordinator.py` **均已删除** |
+> | **§5.4.1** | — | 把 `timed_priority` 当**现行**字段（已并入 `priority_mode`）|
+> | **§5.7 / §7.6 / §10.7** | `1007` / `1378` / `1626`,`1629` | 仍提 `_order_by_timed_priority()`【**已删除**】 / `charge` 任务【**已删除**】 / `resource`【**已删除**】 |
+> | **§11 / §13** | `1824` / `1764` | 编号错位; ★ **§13.1(`:1805`) 的方向是反的** —— 它把**已删除**的 `Resource`/`next_available` 写成"`✅ 接进调度`"（不是"已完成写成待办", 而是**已删除写成已完成**）|
+> | **附录** | `1850-1884` | 列了**已删除**的 `scheduler_core.py` / `gen_resource_specs.py` / `test_availability.py`（已打删除线）。★ 原头部写 `:1813-1819` —— 那是 §13.2 的表 |
+> | **`:1731`** | — | 仍称台账为"**唯一事实来源**" —— ★ 台账 `:3` 已**降级**为历史记录, 这句**自相矛盾** |
 >
 > ### 本文**仍有效**的部分
 >
-> 平台能力（§7.4）· 调研方法论 · 历史 bug 根因（那些"为什么当初这么做"的记录）
+> 平台能力（§7.4）· 调研方法论（§8）· 历史 bug 根因（那些"为什么当初这么做"的记录）
 > —— 这些与本次调度重构**无关**, 仍然可信。
 >
 > 更新：2026-10-08（原文）；2026-10-10（本轮降级）
@@ -749,13 +755,13 @@ v1 有 `休息`（连定时任务一起停）与 `延后`（只停列表、定�
 |---|---|---|
 | `enable_fixed` | `Script.optimization` | **固定任务**总开关 |
 | `enable_timed` | `Script.optimization` | **定时任务**总开关 |
-| `timed_priority` | `Script.optimization` | 定时任务到点时怎么跟固定任务抢 |
+| `timed_priority`【**已并入 `priority_mode`**】 | `Script.optimization` | 定时任务到点时怎么跟固定任务抢 |
 | `rest_interleave` | `Script.optimization` | 休息期间能否**穿插**定时任务 |
 
 ★ **两个总开关互不影响** —— 关掉固定任务不该影响定时任务，反之亦然。
 判定用 `timed_schedule.should_consider(category, enable_fixed, enable_timed)`。
 
-#### `timed_priority`
+#### `timed_priority`【**已并入 `priority_mode`**】
 
 | 取值 | 界面名 | 行为 |
 |---|---|---|
@@ -1004,7 +1010,7 @@ finally:
 请求了但**不在 `pending` 里**的任务（还没到点 / 被禁用）会被**忽略** ——
 不能因为用户点了就跳过调度约束。
 
-调用链上，手动请求是在 `_order_by_timed_priority()` **之后**应用的 ——
+调用链上，手动请求是在 `_order_by_timed_priority()`【**已删除**】 **之后**应用的 ——
 所以"点了就最快跑"但"仍然是在可跑集合内"。
 
 #### 与「重置选中」的区别（界面上是邻居）
@@ -1728,7 +1734,9 @@ grep -rn 'custom_next_run' tasks/*/script_task.py
 
 ## 12. 本会话（2026-10 改造）的决策
 
-> 完整进度与**逐条证据**见 `docs/SESSION-LEDGER.md`（唯一事实来源）。
+> 完整进度与**逐条证据**见 `docs/SESSION-LEDGER.md`（★ **历史台账** ——
+> 第二轮复审修正: 它已**降级**, **不再**是"唯一事实来源"。
+> 查**现状**请看 `docs/scheduler-architecture.md` / `docs/deprecated.md`）。
 
 ### 12.1 翻译
 

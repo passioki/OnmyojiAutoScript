@@ -5036,3 +5036,128 @@ assert isinstance(inq_outside, list)   # 只做结构检查, 不强制非空
 | 8 | `config.py` 的 `queue/candidates` 等前端文本死代码 · 11 个未调用的 `api_client` 方法 · 0 字节 `group_controller.dart` | 中 |
 | 9 | 测试: `test_drag_constraint.py` / `test_entry_id.py` / `test_queue_removal_semantics.py` **仍污染实时配置**（已确认的 3 个）—— 唯一根治是 conftest 把 `config/` 重定向到 `tmp_path` | 中高 |
 
+---
+
+# 56. 第二轮复审待办: 文档自相矛盾 + 告警被吞
+
+## 56.1 ★★ 最重要的发现: **我一直用 `-p no:warnings` 跑测试, 它把告警全吞了**
+
+### 症状（测试复审员报"复现不出台账里的'污染告警 ★ 无'"）
+
+我加的 `warnings.warn` 告警**第一次验证时不显示** —— 我以为机制坏了,
+排查后才发现真正原因:
+
+```
+pytest ... -p no:warnings      # ★ 这个标志**禁用了整个 warnings 插件**
+```
+★ 它不只是"不打印 warning 文本", 而是**连 `warnings summary` 一起关掉** ——
+  于是**任何**基于 `warnings` 的告警（包括我新加的污染告警）
+  **一个字都看不到**。
+
+### 证据（同一个测试, 两种跑法）
+
+```
+# 带 -p no:warnings（我一直在用的）
+1 passed in 0.04s                       ← 什么都没显示
+
+# 不带（默认）
+=============================== warnings summary ===============================
+tests/test_zz_probe.py::test_pollute
+  D:\...\tests\conftest.py:134: UserWarning: ★★★ 测试污染了用户实时配置 ——
+  已自动还原: 恋鸟树.json ★★★ 请修那个测试（应在 finally 里自己备份 + 还原;
+  正确范例: tests/module/config/test_queue_clear_and_settings.py）
+======================== 1 passed, 1 warning in 0.04s =========================
+```
+
+### ★★ 教训（写进纪律）
+
+**`-p no:warnings` 是"让输出变干净"的常用标志, 但它会同时关掉
+基于 warnings 的所有告警** —— 包括本项目**故意**用 `warnings.warn`
+实现的"污染告警"。
+
+★ 我此前每一轮都在验证表里写"配置污染告警 ★ **无**" ——
+  **那个"无"有一部分是标志造成的**, 不能完全当作证据。
+  复审员因此**复现不出来**, 是**对的**。
+
+★ 现在的跑法: `pytest tests -q`（**不加 `-p no:warnings`**）。
+  噪声用别的办法压（例如 `-W ignore::DeprecationWarning`), 不要整个关掉。
+
+## 56.2 修 conftest 的两处"不可失败"
+
+| 项 | 原来 | 现在 |
+|---|---|---|
+| 污染告警 | 只 `print` -> **`-q` 下被 pytest 捕获, 看不见** | ★ **同时 `warnings.warn`** -> 默认进 `warnings summary`, **`-q` 下也显示** |
+| E2 体检 | 只 `print`, **无 assert** -> **不可失败**（`pre_bad` 还**算完从未使用**）| ★ **加 `assert not post_bad`**（重复 `entry_id` 是**数据损坏**级问题: 完成记忆会互相影响, 按 id 删会一删全删）|
+
+★ 复审员原话: "E2 体检**不可能失败**" —— 已修。
+
+## 56.3 修契约文档的**自相矛盾**（待办 #3）
+
+### 症状
+
+`deprecated.md`（**自称"冲突时以它为准"**）明写 `schedule_rule` 已废弃;
+而**同一批现行文档**里:
+
+* `ui-api-mapping.md:149-155` 教人 `PUT .../schedule_rule/value?value=List`
+  并说"`schema.list.mode_value` 就是 `'List'`" —— **T1 之后这是彻底错误的指令**
+* `ui-api-mapping.md` §3 整节讲**已删除**的四个单值窗口字段 +
+  `/schema` 的 `window_fields`（T4 已删）
+* §2.5 / §2.6 把 `timed_priority` 当**现行**字段（S6 已并入 `priority_mode`）
+* `scheduler-architecture.md` §8 / §9 也仍提 `timed_priority` 与
+  `_order_by_timed_priority()`
+
+★ **而守卫抓不到** —— 因为 `REMOVED` 列表里**没有** `schedule_rule` /
+`timed_priority` / `window_fields`。
+
+### 修法
+
+1. **`REMOVED` 补 4 项**: `schedule_rule` / `timed_priority` /
+   `window_fields` / `list.modes`
+2. 补录后守卫**真的报**了 **14 处**残留 -> **逐个就地标注**
+3. 把 §2.5 的"同时必须设置调度模式"整段改成"**已作废**"+
+   **给出正确做法**（`PUT .../priority_mode/value?value=timed_first`）
+4. §3 整节重写为"**已整体重写为多窗口**"+ 指向 §9
+5. §4 的"按 `schema.window_fields` 渲染"改为指向 `windows` 列表
+
+### ★ 守卫在修复过程中**又抓到我自己新写的两行**
+
+我在改文档时新写的"`timed_priority` 一起并入"与"仍提
+`_order_by_timed_priority()`"两行**没写"已废弃/已删"** -> 守卫**立刻报**。
+
+★ 这是**守卫真的在工作**的最好证据 —— 它不是"写完就过"的摆设。
+
+## 56.4 修 `architecture.md` 头部的**错误清单**（待办 #1/#2）
+
+复审员逐条核对后发现头部那张"已过时**节**"表**错得恰好在关键处**:
+
+| 项 | 原来 | 实际 |
+|---|---|---|
+| §3 行范围 | `:204-305` | ★ **`149-357`** —— 原来那个范围**只覆盖 §3.0/§3.1**, **恰好漏掉** §3.2 `RunState` / §3.3 `next_available()` / §3.4 `TaskSpec.resource` **这三个点名符号** |
+| 附录行范围 | `:1813-1819` | ★ **`1850-1884`**（`1813-1819` 是 §13.2 的表）|
+| §13.1 的描述 | "把**已完成**的工作写成待办" | ★ **方向是反的**: 它把**已删除**的 `Resource`/`next_available` 写成 "`✅ Resource/next_available 接进调度`" —— **已删除写成已完成** |
+| 漏列 | 只列了 4 节 | ★ 补上 **§2.1**（编号与 `:81` 的 §2 **重复**）· **§4.1/4.2/4.3** · **§5.7 / §7.6 / §10.7** |
+| `:1731` | 仍称台账为"**唯一事实来源**" | ★ 台账 `:3` 已**降级**为历史记录 —— **自相矛盾**, 已改为"历史台账（不再唯一）" |
+
+★ 复审员还指出 `:1674` 有一个**孤立的 `## 2.1`** 夹在 §10.10 与 §12 之间
+  （与 `:81` 的 `## 2` **重复编号**）—— 已在头部表里说明。
+
+## 56.5 本轮验证（★ 用**修正后**的跑法）
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest（`-q`, **不加 `-p no:warnings`**）| **1681 passed, 3 skipped**（0 失败）|
+| ★ 污染告警 | **0 条**（这次是**真的**没有, 因为告警已经可见了）|
+| E2 不变量断言 | **通过**（无重复 `entry_id`）|
+| 文档守卫 | **20 passed**（`REMOVED` 从 9 项扩到 **13 项**）|
+| 文档守卫真正校验的引用 | **31 条**（原 2 条）|
+
+## 56.6 剩余待办
+
+| # | 项 | 级别 |
+|---|---|---|
+| 1 | 3 个测试**仍可能污染**（`test_drag_constraint` / `test_entry_id` / `test_queue_removal_semantics`）—— ★ 但本轮全量跑**0 告警**, 说明"它们污染"这条**现在不成立**（复审员当时看到的可能是并发写入）。**唯一根治** = conftest 把 `config/` 重定向到 `tmp_path` | 中 |
+| 2 | 两份废弃清单（`scheduler-architecture.md` §8 vs `deprecated.md`）**已漂移** -> §8 改成一行指针 | 中 |
+| 3 | 注释驱动的源码守卫（`src.find('代码片段')` **也匹配注释**）—— 抽公共 `code_of()` 统一剥注释 | 中 |
+| 4 | 后端死代码: `TaskScheduler` / `_is_list_rule` / `timed_schedule` 4 函数 / **`TaskSpec.list_pos`（40 个 `meta.py` 维护一个没人读的字段）** | 中 |
+| 5 | 前端死代码: `scheduleRule` 簇 / `flow` 簇 / 11 个未调用 `api_client` 方法 / 0 字节 `group_controller.dart` | 中 |
+

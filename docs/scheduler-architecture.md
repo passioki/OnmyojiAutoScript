@@ -129,7 +129,7 @@ category_effective =
 ★ **不变量 `S2`**：`pending == queue` 剔除 `waiting` 后的**保序子序列**。
 
 **踩过的坑（本轮修复）**：`schedule_rule=Filter` 时
-`_order_by_timed_priority()` **只排序、不剔除** -> 队列外 8 个任务照样跑。
+`_order_by_timed_priority()`【**已删除**】 **只排序、不剔除** -> 队列外 8 个任务照样跑。
 **修**：**任何**规则下都先 `_order_by_queue()` 过滤。
 
 ### 2.2 `run_list` 的**类别分段**
@@ -164,9 +164,9 @@ class PriorityMode(str, Enum):
     CUSTOM      = 'custom'        # 自定义（列表自定义）
 ```
 
-★ **取代**现有的两个重叠字段（`schedule_rule` 的四选一 + `timed_priority` 的二选一）。
+★ **取代**现有的两个重叠字段（`schedule_rule`【已废弃】的四选一 + `timed_priority`【已废弃】的二选一）。
 **踩过的坑**：两者语义重叠 -> 界面上"选了定时优先却没用"
-（后端只在 `schedule_rule == List` 时读 `timed_priority`）。
+（后端只在 `schedule_rule == List` 时读 `timed_priority`）【**两者均已废弃**】。
 
 ---
 
@@ -327,7 +327,7 @@ order = [e ∈ Q, g(e)=fixed] 按段内顺序  ⧺  [e ∈ Q, g(e)=timed] 按段
 | `Category.CHARGE` | ★ **删除** | S5 |
 | `_order_by_timed_priority()` | ★ **删除**（§3.4） | S6 |
 | `schedule_rule`（四选一） | ★ **合并**进 `priority_mode` | S6 |
-| `timed_priority`（二选一） | ★ **合并**进 `priority_mode` | S6 |
+| `timed_priority`（二选一）【**已删除**】 | ★ **合并**进 `priority_mode` | S6 |
 | `custom_next_run` | 已清零（§26） | ✅ 已完成 |
 | `success_interval` | 已删除（§20） | ✅ 已完成 |
 

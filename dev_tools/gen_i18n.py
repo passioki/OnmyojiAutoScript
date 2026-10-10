@@ -38,7 +38,17 @@ import sys
 from pathlib import Path
 
 REPO = Path(r'D:\OAS-dev\OnmyojiAutoScript')
-OASX = Path(r'D:\OAS-dev\OASX-src')
+# ★★ OASX 前端仓库路径 ★★
+#
+# ⚠ 原来指向 `D:\OAS-dev\OASX-src` —— 那是**历史仓库**（浅克隆、只读性质），
+#   **不是**权威源码。权威是 `D:\OASX-clean`（分支 `oas-tasks-ui-s7`，
+#   可推送、与远端一致）。
+#
+# ★ 实测踩到: 运行本脚本时它把新增的 i18n 键写进了 `OASX-src`，
+#   而**实际编译的是 `OASX-clean`** -> 界面里新任务显示英文 key。
+#
+# ★ 改成 `OASX-clean`。若你用的是别的路径, **改这一行**即可。
+OASX = Path(r'D:\OASX-clean')
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / 'dev_tools'))
 import os

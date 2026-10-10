@@ -1,6 +1,6 @@
 {
   "_note": "由 dev_tools/gen_task_catalog.py 生成, 请勿手工编辑。中文名取自 OASX i18n; 次数字段为脚本实测; 周期取自用户配置。",
-  "_interval_source": "恋鸟树.json",
+  "_interval_source": "伴生树.json",
   "tasks": [
     {
       "task": "AbyssShadows",
@@ -11,13 +11,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "ActivityShikigami",
@@ -28,13 +24,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 01:00:00"
+      "success_interval": null
     },
     {
       "task": "AreaBoss",
@@ -45,13 +37,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 06:00:00"
+      "success_interval": null
     },
     {
       "task": "AutoCheckinBigGod",
@@ -62,13 +50,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "BondlingFairyland",
@@ -79,13 +63,9 @@
       "count_field_mismatch": false,
       "count_default": "30",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "BudokaiTournament",
@@ -96,13 +76,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "CollectiveMissions",
@@ -113,13 +89,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "DailyTrifles",
@@ -130,13 +102,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "Delegation",
@@ -147,13 +115,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 01:00:00"
+      "success_interval": null
     },
     {
       "task": "DemonEncounter",
@@ -164,13 +128,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 01:00:00"
+      "success_interval": null
     },
     {
       "task": "DemonRetreat",
@@ -181,13 +141,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "Dokan",
@@ -198,13 +154,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "Duel",
@@ -215,13 +167,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "DyeTrials",
@@ -232,13 +180,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "EternitySea",
@@ -249,13 +193,9 @@
       "count_field_mismatch": false,
       "count_default": "30",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "EvoZone",
@@ -266,30 +206,22 @@
       "count_field_mismatch": false,
       "count_default": "30",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "ExperienceYoukai",
       "name_zh": "经验妖怪",
-      "category": "charge",
+      "category": "timed",
       "count_field": null,
       "count_field_detected": null,
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": true,
-      "charge_max": "2",
-      "charge_slots": "0,12",
-      "charge_consume": "1",
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "Exploration",
@@ -300,13 +232,9 @@
       "count_field_mismatch": false,
       "count_default": "30",
       "needs_unify": true,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 01:00:00"
+      "success_interval": null
     },
     {
       "task": "FallenSun",
@@ -317,13 +245,9 @@
       "count_field_mismatch": false,
       "count_default": "50",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "FindJade",
@@ -334,13 +258,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "FloatParade",
@@ -351,13 +271,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "03 00:00:00"
+      "success_interval": null
     },
     {
       "task": "FrogBoss",
@@ -368,30 +284,22 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "GoldYoukai",
       "name_zh": "金币妖怪",
-      "category": "charge",
+      "category": "timed",
       "count_field": null,
       "count_field_detected": null,
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": true,
-      "charge_max": "2",
-      "charge_slots": "0,12",
-      "charge_consume": "1",
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "GoryouRealm",
@@ -402,13 +310,9 @@
       "count_field_mismatch": false,
       "count_default": "30",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "GotoMain",
@@ -419,10 +323,6 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
       "success_interval": null
@@ -436,13 +336,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "GuildBanquet",
@@ -453,13 +349,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "HeroTest",
@@ -470,13 +362,9 @@
       "count_field_mismatch": false,
       "count_default": "100",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 01:00:00"
+      "success_interval": null
     },
     {
       "task": "Hunt",
@@ -487,13 +375,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "Hyakkiyakou",
@@ -504,13 +388,9 @@
       "count_field_mismatch": false,
       "count_default": "10",
       "needs_unify": true,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 12:00:00"
+      "success_interval": null
     },
     {
       "task": "KekkaiActivation",
@@ -521,13 +401,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "KekkaiUtilize",
@@ -538,13 +414,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "KittyShop",
@@ -555,13 +427,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "MemoryScrolls",
@@ -572,13 +440,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "MetaDemon",
@@ -589,13 +453,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "MysteryShop",
@@ -606,13 +466,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "Nian",
@@ -623,13 +479,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "Orochi",
@@ -640,13 +492,9 @@
       "count_field_mismatch": false,
       "count_default": "30",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "OtherWorldTwilight",
@@ -657,13 +505,9 @@
       "count_field_mismatch": false,
       "count_default": "30",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "Pets",
@@ -674,13 +518,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "Quiz",
@@ -691,30 +531,35 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "RealmRaid",
       "name_zh": "个人突破",
       "category": "toppa",
       "count_field": "number_attack",
-      "count_field_detected": "number_attack",
-      "count_field_mismatch": false,
+      "count_field_detected": "limit_count",
+      "count_field_mismatch": true,
       "count_default": "30",
       "needs_unify": true,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
+    },
+    {
+      "task": "Rest",
+      "name_zh": "休息",
+      "category": "timed",
+      "count_field": null,
+      "count_field_detected": null,
+      "count_field_mismatch": false,
+      "count_default": null,
+      "needs_unify": false,
+      "has_limit_time": false,
+      "fixed_schedule_time": null,
+      "success_interval": null
     },
     {
       "task": "Restart",
@@ -725,13 +570,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "RichMan",
@@ -742,13 +583,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "RyouToppa",
@@ -759,13 +596,9 @@
       "count_field_mismatch": false,
       "count_default": "50",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "Secret",
@@ -776,13 +609,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "07 00:00:00"
+      "success_interval": null
     },
     {
       "task": "SixRealms",
@@ -793,13 +622,9 @@
       "count_field_mismatch": false,
       "count_default": "1",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "Sougenbi",
@@ -810,13 +635,9 @@
       "count_field_mismatch": false,
       "count_default": "30",
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "01 00:00:00"
+      "success_interval": null
     },
     {
       "task": "SoulsTidy",
@@ -827,30 +648,22 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "Tako",
       "name_zh": "石距",
-      "category": "charge",
+      "category": "timed",
       "count_field": null,
       "count_field_detected": null,
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": true,
-      "charge_max": "2",
-      "charge_slots": "0,12",
-      "charge_consume": "1",
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "TalismanPass",
@@ -861,13 +674,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     },
     {
       "task": "TrueOrochi",
@@ -878,13 +687,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "03 00:00:00"
+      "success_interval": null
     },
     {
       "task": "WantedQuests",
@@ -895,13 +700,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 01:30:00"
+      "success_interval": null
     },
     {
       "task": "WeeklyTrifles",
@@ -912,13 +713,9 @@
       "count_field_mismatch": false,
       "count_default": null,
       "needs_unify": false,
-      "has_charge": false,
-      "charge_max": null,
-      "charge_slots": null,
-      "charge_consume": null,
       "has_limit_time": false,
       "fixed_schedule_time": null,
-      "success_interval": "00 03:00:00"
+      "success_interval": null
     }
   ]
 }

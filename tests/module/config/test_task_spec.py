@@ -132,5 +132,5 @@ class TestSpecOverridesJson:
     def test_json_only_task_still_visible(self):
         """即使某任务没有 meta.py, 也应能从 JSON 读到(渐进迁移不中断服务)。"""
         # 所有任务都有 meta.py, 但机制本身要保证退路存在
-        assert len(TC.all_meta()) == 54
+        assert len(TC.all_meta()) == 55
 

@@ -223,6 +223,9 @@
 		<message><source>MetaDemon</source><translation>超鬼王</translation></message>
 		<message><source>Quiz</source><translation>智力竞赛</translation></message>
 		<message><source>SixRealms</source><translation>六道之门</translation></message>
+
+		<!-- 由 dev_tools/gen_i18n.py 从 tasks/<Name>/meta.py 生成; 请勿手改, 改 meta.py -->
+		<message><source>Rest</source><translation>休息</translation></message>
 </context>
 <context>
     <name>TaskList</name>

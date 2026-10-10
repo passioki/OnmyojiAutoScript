@@ -1,4 +1,6 @@
 {
+  "config_name": "template",
+  "running_task": "",
   "abyss_shadows": {
     "scheduler": {
       "enable": false,
@@ -1310,6 +1312,11 @@
     "md_default_strategy": {
       "md_preset_group_team_default_1": "1,1",
       "md_preset_group_team_default_2": "1,1"
+    },
+    "md_strategies_1": {
+      "md_match_names": "御撰津",
+      "md_preset_group_team_1": "1,1",
+      "md_preset_group_team_2": "1,1"
     }
   },
   "mystery_shop": {
@@ -1416,6 +1423,22 @@
       "eleven_switch": "-1,-1",
       "twelve_switch": "-1,-1",
       "thirteen_switch": "-1,-1"
+    }
+  },
+  "orochi_moans": {
+    "scheduler": {
+      "enable": false,
+      "priority": 5,
+      "next_run": "2023-01-01 00:00:00",
+      "retry_interval": "01 00:00:00",
+      "server_update": "09:00:00",
+      "delay_date": 1,
+      "float_time": "00:00:00",
+      "period": "none",
+      "reset_at": "00:00:00",
+      "windows": [],
+      "target": 0,
+      "expected_minutes": 0
     }
   },
   "other_world_twilight": {
@@ -1544,6 +1567,22 @@
       "enable_switch_by_name": false,
       "group_name": "",
       "team_name": ""
+    }
+  },
+  "rest": {
+    "scheduler": {
+      "enable": false,
+      "priority": 5,
+      "next_run": "2023-01-01 00:00:00",
+      "retry_interval": "01 00:00:00",
+      "server_update": "09:00:00",
+      "delay_date": 1,
+      "float_time": "00:00:00",
+      "period": "none",
+      "reset_at": "00:00:00",
+      "windows": [],
+      "target": 0,
+      "expected_minutes": 0
     }
   },
   "restart": {
@@ -1777,7 +1816,8 @@
       "rest_interleave": false,
       "queue_mode": false,
       "queue_idle_threshold": 10,
-      "period_backfilled": true
+      "period_backfilled": true,
+      "profiles": {}
     },
     "anti_ban": {
       "enable": false,
@@ -2059,7 +2099,5 @@
       "save_touch_fish": false,
       "broken_amulet": 100
     }
-  },
-  "config_name": "template",
-  "running_task": ""
+  }
 }

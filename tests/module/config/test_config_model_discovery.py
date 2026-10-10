@@ -34,7 +34,7 @@ class TestDiscoveryCompleteness:
         (56 个任务/设置 + `config_name` + `running_task`)
         这是替换安全性的核心断言: 少一个字段就意味着某个任务的配置读不出来。
         """
-        assert len(ConfigModel.__annotations__) == 58
+        assert len(ConfigModel.__annotations__) == 59
 
     def test_contains_expected_globals(self):
         keys = set(ConfigModel.__annotations__)

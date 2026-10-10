@@ -48,7 +48,7 @@ class TestNames:
         assert missing == [], f'这些任务缺中文名: {missing}'
 
     def test_task_count(self):
-        assert len(TC.all_tasks()) == 54
+        assert len(TC.all_tasks()) == 55
 
 
 class TestCategories:
@@ -83,11 +83,11 @@ class TestCategories:
 
     def test_summary_totals(self):
         s = TC.summary()
-        assert s['total'] == 54
+        assert s['total'] == 55
         assert s['fixed'] == 13
         assert s['toppa'] == 2
         assert s['limited'] == 8
-        assert sum(s[c.value] for c in Category) == 54
+        assert sum(s[c.value] for c in Category) == 55
 
 
 class TestCountFieldAdaptation:

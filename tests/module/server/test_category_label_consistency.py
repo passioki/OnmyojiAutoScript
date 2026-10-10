@@ -254,4 +254,7 @@ class TestFrontendUsesOneSourceOnly:
             '★ 排序必须看"能不能跑"（用户报的"不在窗口的排到最前"）')
         for r in ('return 0 if runnable else 1', 'return 2 if runnable else 3'):
             assert r in body, f'★ 缺 rank 分支: {r}'
-        assert 'return 9' in body, '★ rest 恒最后那档不能丢'
+        assert 'return 9' not in body, (
+            '★ P-2: 休息**不再有**独立的 rank 9 分支（用户裁定: '
+            '休息就是临时任务, 与普通任务同规则）'
+        )

@@ -42,7 +42,7 @@ class TestAutoQueueMetadata:
         显式落值就不会有这种偏差。
         """
         specs = TC._load_specs()
-        assert len(specs) == 54, f'期望 54 个任务, 实际 {len(specs)}'
+        assert len(specs) == 55, f'期望 55 个任务, 实际 {len(specs)}'
         missing = sorted(t for t, s in specs.items() if s.auto_queue is None)
         assert not missing, f'这些 meta.py 没写 auto_queue（靠推导, 不可靠）: {missing}'
 
@@ -63,13 +63,18 @@ class TestAutoQueueMetadata:
         assert not bad, (
             f'{len(bad)} 个任务的 auto_queue 与 countable 矛盾: {bad}')
 
-    def test_counts_are_14_and_40(self):
-        """实测分布: 14 个次数任务（False）+ 40 个定时类（True）。"""
+    def test_counts_are_14_and_41(self):
+        """实测分布: 14 个次数任务（False）+ 41 个定时类（True）。
+
+        ★ 原来是 40 个定时类 —— 新增 `Rest`（休息）后变成 **41**。
+          `Rest` 在 **auto 边**：它不是次数任务（`countable=False`），
+          且 `auto_queue=True`（与其它临时任务一致，用户不必手动添加）。
+        """
         specs = TC._load_specs()
         manual = [t for t, s in specs.items() if not s.auto_queue_effective]
         auto = [t for t, s in specs.items() if s.auto_queue_effective]
         assert len(manual) == 14, f'次数任务应为 14 个, 实际 {len(manual)}: {sorted(manual)}'
-        assert len(auto) == 40, f'定时类应为 40 个, 实际 {len(auto)}'
+        assert len(auto) == 41, f'定时类应为 41 个, 实际 {len(auto)}'
 
     def test_the_fourteen_count_tasks(self):
         """钉住这 14 个（用户逐个核对过）。"""

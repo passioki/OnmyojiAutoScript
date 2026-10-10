@@ -300,7 +300,7 @@ class HyaSlave(HyaDevice, HyaColor, HyakkiyakouAssets):
 
 
 def covert_rgb():
-    images_folders: Path = Path(r'E:\Project\OnmyojiAutoScript\tasks\Hyakkiyakou\temp\20240614T214216')
+    images_folders: Path = Path(r'E:\Project\OnmyojiAutoScript\tasks\Hyakkiyakou\temp\20240614T214216')  # 调试示例
     save_folders = images_folders.parent / 'save14'
     save_folders.mkdir(parents=True, exist_ok=True)
     for file in images_folders.iterdir():

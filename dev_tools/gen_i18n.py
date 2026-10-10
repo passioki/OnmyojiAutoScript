@@ -37,18 +37,20 @@ import re
 import sys
 from pathlib import Path
 
-REPO = Path(r'D:\OAS-dev\OnmyojiAutoScript')
-# ★★ OASX 前端仓库路径 ★★
+from paths import oas_root  # noqa: E402  ★ 消除硬编码（见 paths.py）
+REPO = oas_root()
+# ★★ OASX 前端仓库路径 —— 由 `paths.py` 解析（★ **不再硬编码**）★★
 #
-# ⚠ 原来指向 `D:\OAS-dev\OASX-src` —— 那是**历史仓库**（浅克隆、只读性质），
-#   **不是**权威源码。权威是 `D:\OASX-clean`（分支 `oas-tasks-ui-s7`，
-#   可推送、与远端一致）。
+# 解析顺序: `$OASX_REPO` -> `dev_tools/paths.local.json` -> 候选目录探测。
+# ★ 找不到会**报错**（不猜）—— "写错地方"比"报错"更难查。
 #
-# ★ 实测踩到: 运行本脚本时它把新增的 i18n 键写进了 `OASX-src`，
-#   而**实际编译的是 `OASX-clean`** -> 界面里新任务显示英文 key。
+# ## 为什么必须这样（实测踩到的真 bug）
 #
-# ★ 改成 `OASX-clean`。若你用的是别的路径, **改这一行**即可。
-OASX = Path(r'D:\OASX-clean')
+# 这里原来硬编码 `D:\OAS-dev\OASX-src` —— 那是**历史仓库**（浅克隆），
+# 而**实际编译的是 `D:\OASX-clean`**。于是新增任务的 i18n 被写进了
+# **没人在编译的目录** -> 界面显示英文 key（`Rest` 而不是「休息」）。
+from paths import require_oasx  # noqa: E402
+OASX = require_oasx()
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / 'dev_tools'))
 import os

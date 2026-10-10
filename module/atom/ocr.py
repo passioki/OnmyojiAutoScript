@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # image = cv2.imread(r"E:\2025-01-16225353.png")
     # print(O_MALL_RESOURCE_5.ocr_quantity(image))
     from module.atom.image import RuleImage
-    image = cv2.imread(r"E:\Debug\MuMu-20260119-114931-173.png")
+    image = cv2.imread(r"E:\Debug\MuMu-20260119-114931-173.png")  # 调试示例
 
     I_SIDE_CHECK_SPECIAL = RuleImage(roi_front=(155,8,42,42), roi_back=(155,7,1115,90), threshold=0.7, method="Template matching", file="E:\Debug\\navbar_mall_sccales_check.png")
 

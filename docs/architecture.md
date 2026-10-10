@@ -1998,3 +1998,71 @@ sort_run_list('timed') -> ranks: Kekkai=0, Exploration=2, rest=2
 
 ★ **不能用"休息在不在末尾"判断改动是否生效** ——
 要看它在**同 rank 组内是否保持用户位置**。
+
+---
+
+## 13. ★★ 规矩：杜绝硬编码 ★★
+
+> **用户裁定（原话）**:
+> > "**杜绝硬编码，写进文档里。**"
+
+### 13.1 为什么（实测踩到的真 bug）
+
+`dev_tools/gen_i18n.py` 里硬编码了:
+
+```python
+OASX = Path(r'D:\OAS-dev\OASX-src')       # ★ 历史仓库
+```
+
+★ 而**实际编译的是 `D:\OASX-clean`** —— 于是新增任务（`Rest`）的 i18n
+被写进了**没人在编译的目录**，界面显示英文 key。
+
+**排查时的假象**: "i18n 明明加了、脚本也说加了，界面却没变"。
+★ 根因是**路径**，不是 i18n 逻辑。
+
+### 13.2 规矩
+
+| # | 规矩 |
+|---|---|
+| **1** | ★ **代码里不得出现绝对路径**（`D:\...`、`C:\...`）|
+| **2** | 需要仓库路径 -> **一律用 `dev_tools/paths.py`** 的 `oas_root()` / `oasx_root()` / `require_oasx()` |
+| **3** | 允许绝对路径的**唯一**位置: `paths.py` 内部的**候选列表**（且必须逐个**验证**它是不是真的那个仓库）|
+| **4** | ★ **找不到时【报错】，不许猜** —— "写错地方"比"报错"难查得多 |
+| **5** | 文档/注释里的示例路径要写清"**这是示例**"，避免被当成真配置 |
+
+### 13.3 `paths.py` 的解析顺序
+
+| # | 来源 | 用途 |
+|---|---|---|
+| 1 | 环境变量 `OAS_REPO` / `OASX_REPO` | CI、多份克隆、临时实验 |
+| 2 | `dev_tools/paths.local.json`（**不进 git**）| 本机覆盖 |
+| 3 | ★ **相对本文件推导**（OAS 仓库 = `paths.py` 的上上级）| **永不出错**，OAS 侧的默认 |
+| 4 | 候选目录**探测** | OASX 侧（它在 OAS 仓库**之外**，无法相对推导）|
+
+★ 第 4 步会**打印选中了哪个**（不静默），且判据要求同时存在
+`pubspec.yaml` + `lib/config/translation/i18n_cn.dart` ——
+"一个碰巧叫 OASX 的空目录"不会被误选。
+
+### 13.4 已清理
+
+`dev_tools/` 下 **8 个文件**，**12 处**硬编码绝对路径 -> 全部改为用 `paths.py`:
+
+`diag_dead_code.py` · `diag_i18n_drift.py` · `gen_i18n.py` · `migrate_list_pos.py` ·
+`verify_config_model_discovery.py` · `verify_config_model_zero_change.py` ·
+`verify_new_task_zero_change.py` · `verify_schema_http.py`
+
+★ 新增了守卫: `tests/module/config/test_no_hardcoded_paths.py`
+（扫描 `dev_tools/` 与 `module/`，出现绝对路径即失败）。
+
+### 13.5 本机覆盖怎么配
+
+```json
+// dev_tools/paths.local.json   （★ 已加入 .gitignore）
+{ "oasx": "D:/OASX-clean" }
+```
+
+或临时:
+
+```powershell
+$env:OASX_REPO = 'D:/somewhere/OASX'
+```

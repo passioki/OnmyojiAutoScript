@@ -15,7 +15,8 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-REPO = Path(r'D:\OAS-dev\OnmyojiAutoScript')
+from paths import oas_root  # noqa: E402  ★ 消除硬编码（见 paths.py）
+REPO = oas_root()
 os.chdir(REPO)
 sys.path.insert(0, str(REPO))
 

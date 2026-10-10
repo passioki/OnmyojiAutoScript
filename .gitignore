@@ -276,3 +276,5 @@ data/frog_oas/
 
 # 本地配置备份（含用户数据, 不该进仓库）
 config/*.bak*
+# ★ 本机路径覆盖（见 docs/architecture.md §13）
+dev_tools/paths.local.json

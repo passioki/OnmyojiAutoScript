@@ -29,8 +29,10 @@ import re
 import sys
 from pathlib import Path
 
-REPO = Path(r'D:\OAS-dev\OnmyojiAutoScript')
-OASX = Path(r'D:\OAS-dev\OASX-src')
+from paths import oas_root  # noqa: E402  ★ 消除硬编码（见 paths.py）
+REPO = oas_root()
+from paths import require_oasx  # noqa: E402  ★ 消除硬编码
+OASX = require_oasx()
 sys.path.insert(0, str(REPO))
 os.chdir(REPO)
 

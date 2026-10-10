@@ -293,6 +293,15 @@ class TestBuildQueue:
             spec = TC.get_spec(task)
             if spec is None or spec.auto_queue_effective:
                 continue           # 只看次数任务
+            # ★★★ `Rest` 是**有意的例外**（用户裁定 乙）★★★
+            #
+            # `Rest`: `auto_queue=False`（用户主动添加）但 **不是次数任务**。
+            # ★ 所以它可能"在 `run_list` 里、却因 `enable=False` 不在队列里"
+            #   —— 这是**正确行为**（用户停用了休息 -> 就不该休息）。
+            # ⚠ 本条测试的前提是"次数任务被编排 -> 一定在队列里"，
+            #   对 `Rest` **不成立**。★ 除它之外任何任务仍按原规则检查。
+            if task == 'Rest':
+                continue
             if task in user:
                 assert task in queued
             # 不在 run_list 的次数任务 —— 不该出现（除非它还没被启用时的编排）

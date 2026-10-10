@@ -192,8 +192,21 @@ class TestSortAvoidsOutOfWindowTasks:
         # 且它应该在**所有能跑的 timed 任务之后**
         assert seq.index(oow) > 0
 
-    def test_rest_still_last(self, tmp_cfg):
-        """★ 排序不能破坏"休息恒最后"。"""
+    def test_rest_is_a_normal_task(self, tmp_cfg):
+        """★★ 乙-A: 休息是**普通任务** —— 排序不把它特殊对待 ★★
+
+        用户裁定:
+        > "休息就是临时任务（回庭院待着），只不过可以选择被定时任务插队。"
+        > "有 period 和 window 属性, 是为了**统一管理**。"
+        > "2，可以，只要不要字段混乱就行。"
+
+        ★ 原来这里叫 `test_rest_still_last` —— 钉的是**已废除**的
+          "休息恒最后"。现在休息的行程:
+            1. 写进 `run_list` 的旧 `kind='rest'` 条目会被
+               `Config.migrate_rest_entries_once()` **迁移**成任务条目
+            2. 它的 `period=none` -> **临时任务** -> 排序按临时任务排它
+        ★ 所以这里钉: **不再有 `kind=rest`**, 且排序**不报错**。
+        """
         import json
 
         from module.config.config import Config
@@ -204,13 +217,17 @@ class TestSortAvoidsOutOfWindowTasks:
         P.write_text(json.dumps(d, ensure_ascii=False), encoding='utf-8')
         # ★ 必须在**写完 rest 之后**重新构造 Config ——
         #   `tmp_cfg` 给的那个实例是**写之前**建的, 它的内存里没有 rest。
-        #   （我第一版就没重建, 于是断言看到的是旧内容 -> 假失败。）
+        #   （踩过这个假失败。）★ 而且 `Config()` 会**顺手做迁移**。
         fresh = Config(CFG)
         assert fresh.sort_run_list('timed') is True
+
         entries = Config(CFG).build_run_list().entries
-        assert getattr(entries[-1], 'task', '') in ('', None), \
-            f'★ 排序把 rest 弄走了 —— 它必须恒在最后（实际末条: ' \
-            f'{getattr(entries[-1], "task", "")!r}）'
+        kinds = [str(getattr(getattr(e, 'kind', None), 'value',
+                             getattr(e, 'kind', ''))) for e in entries]
+        assert 'rest' not in kinds, (
+            f'★ 不该再有 `kind=rest` —— 应已被迁移成 `Rest` 任务条目: {kinds}')
+        tasks = [getattr(e, 'task', '') for e in entries if getattr(e, 'task', '')]
+        assert 'Rest' in tasks, f'★ 迁移后应有 `Rest` 任务条目: {tasks}'
 
 
 class TestFrontendUsesOneSourceOnly:

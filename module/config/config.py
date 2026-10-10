@@ -517,6 +517,17 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # ★ 幂等: **只补"模型里不存在"的节点** —— 已有的一个字段都不碰
         #   （用户改过的值绝不能被覆盖）。
         self.migrate_missing_task_nodes_once()
+        # ★★★ 迁移旧的 `kind='rest'` 条目 -> `Rest` 任务条目（用户裁定）★★★
+        #
+        # 用户原话:
+        # > "**2，可以，只要不要字段混乱就行。**"
+        #
+        # ★ "字段混乱" = `run_list` 里同时存在两种休息表示，
+        #   而"分钟数"一个读条目 `minutes`、一个读 `scheduler.target`。
+        #   迁移后**只剩一种**（普通任务条目 + `scheduler.target`）。
+        #
+        # ★ 分钟数从旧条目搬到 `scheduler.target` —— **不丢用户设的值**。
+        self.migrate_rest_entries_once()
         # ★★★ 修正"全天窗口却被排到未来"的 next_run（用户报的"等待到点"）★★★
         #
         # 用户原话:
@@ -803,6 +814,72 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             return True
         except Exception as exc:
             logger.warning(f'补齐缺失任务节点失败'
+                           f'({type(exc).__name__}: {exc}), 保持原样')
+            return False
+
+    def migrate_rest_entries_once(self) -> bool:
+        """把 `run_list` 里旧的 `kind='rest'` 条目改成 `Rest` **任务条目**。
+
+        ## ★★ 用户裁定 ★★
+
+        > "**2，可以，只要不要字段混乱就行。**"
+
+        ## 问题
+
+        改动前休息是特殊条目 `{"kind":"rest","minutes":30}`；
+        现在它是 `tasks/Rest/` 里的**真任务**，正确表示是
+        `{"kind":"task","task":"Rest"}`。
+
+        ★ 两种表示并存 = **字段混乱** —— "分钟数"一处读条目 `minutes`、
+          一处读 `scheduler.target`。
+
+        ## ★ 分钟数的搬运（不丢用户设的值）
+
+        旧的 `minutes` -> 任务的 `scheduler.target`
+        （★ 只在 `target` 还是 0 时写 —— **不覆盖**用户已设的值）。
+
+        ## 幂等
+
+        ★ 判据是"**列表里还有没有 `kind='rest'`**" —— 迁移完就没了，
+          **天然幂等**（与 `migrate_missing_task_nodes_once` 同一思路，
+          不需要一次性标记）。
+
+        :return: 是否真的改了
+        """
+        try:
+            from module.config.run_list import RunList
+
+            rl = self.build_run_list()
+            # ★ 先算好分钟数（走与运行时**同一个** `_rest_minutes`）
+            minutes = 0
+            try:
+                blocker = rl.blocking_entry()
+                if blocker is not None:
+                    minutes = self._rest_minutes(blocker)
+            except Exception:
+                minutes = 0
+            # ⚠ 只在 target 还是 0 时写（不覆盖用户已设的）
+            if minutes > 0:
+                try:
+                    node = getattr(self.model, 'rest', None)
+                    sch = getattr(node, 'scheduler', None) if node else None
+                    if sch is not None and int(getattr(sch, 'target', 0) or 0) == 0:
+                        self.model.deep_set(
+                            self.model, keys='rest.scheduler.target',
+                            value=int(minutes))
+                except Exception as exc:
+                    logger.warning(f'迁移休息分钟数失败'
+                                   f'({type(exc).__name__}: {exc})')
+            n = rl.migrate_rest_entries(minutes=minutes)
+            if not n:
+                return False
+            self.save_run_list(rl)
+            logger.info(f'已迁移 {n} 条旧的 `kind=rest` 条目 -> '
+                        f'`Rest` 任务条目（分钟数 {minutes} 写入 '
+                        f'`rest.scheduler.target`）')
+            return True
+        except Exception as exc:
+            logger.warning(f'迁移休息条目失败'
                            f'({type(exc).__name__}: {exc}), 保持原样')
             return False
 
@@ -2027,6 +2104,75 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
     # 休息的默认分钟数 —— 任务节点的 `target` 为 0 时用它
     REST_DEFAULT_MINUTES = 30
 
+    def rest_is_open(self, now=None) -> bool:
+        """★★ 休息的**门禁**: 现在该不该休息？（用户裁定）★★
+
+        ## 用户原话
+
+        > "**1，读，不满足就跳过。默认是临时任务，无周期的。**"
+
+        即：`rest` 任务节点的 **`period` / `windows`** 是**门禁** ——
+        不满足就**跳过**这条休息（列表继续，不阻塞）。
+
+        ## 判据（复用现成机制，**零新概念**）
+
+        用 `TaskRest.windows_effective`（`tasks/Rest/meta.py` 的 `window`
+        + `period` 推导）：
+
+        | 节点配置 | 生效窗口 | 结果 |
+        |---|---|---|
+        | `period=none`（★ **默认**，临时任务）| 全天（`meta.py` 的 00:00-23:59）| ★ **永远该休息**（与改动前一致）|
+        | `period=daily` | 每天 0-24 | 永远 |
+        | `period=weekly` | 周一 0 点 - 周日 24 点 | 永远 |
+        | ★ 用户把 `window` 收窄（如 12:00-14:00）| 12:00-14:00 | ★ **只在这个时段休息** |
+
+        ★ 关键: `period=none` **且** `meta.py` 声明了全天窗口 ->
+          窗口全天开放 -> **行为与改动前完全一致**（不误挡）。
+          这正是用户说的"**默认是临时任务，无周期的**"。
+
+        ## 为什么不用 `period` 直接判"完成记忆"
+
+        `period` 在本项目有**两个**含义（见 `TaskSpec.windows_effective` 的顺序）:
+          1. `meta.py` 的 `window`（游戏机制, 最权威）
+          2. 由 `period` **推导**窗口（`Period.DAILY` -> 全天 …）
+        ★ 所以"读 `period`/`windows`"的**正确落点**就是
+          `windows_effective` + `contains(now)` —— 一处判断覆盖两种来源。
+
+        :return: True = 现在可以休息；False = **跳过**这条休息
+        """
+        from datetime import datetime
+
+        now = now or datetime.now()
+        try:
+            from module.config import task_catalog as TC
+
+            spec = TC.get_spec('Rest')
+            if spec is None:
+                # 拿不到 spec（配置没这个任务）-> ★ **放行**
+                #   ★ 保守方向: 宁可休息（用户加了这条休息就是想休息），
+                #     也不要因为"读不到规格"而静默不休息。
+                logger.debug('拿不到 Rest 的 TaskSpec -> 门禁放行')
+                return True
+
+            windows = tuple(spec.windows_effective or ())
+            if not windows:
+                return True
+            for w in windows:
+                try:
+                    # ⚠ `contains` 是**方法**（不是属性）—— 踩过这个
+                    if w.contains(now):
+                        return True
+                except Exception:
+                    continue
+            logger.info('休息门禁: 当前不在 Rest 的开放时段内 -> '
+                        '**跳过**这条休息（列表继续）')
+            return False
+        except Exception as exc:
+            # ★ 任何异常 -> **放行**（同上的保守方向），并留痕
+            logger.warning(f'休息门禁判定失败({type(exc).__name__}: {exc}), '
+                           f'按放行处理')
+            return True
+
     def _rest_minutes(self, blocker) -> int:
         """休息**多少分钟** —— ★ 优先取**任务节点**，条目值兜底。
 
@@ -2065,8 +2211,17 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                          f'({type(exc).__name__}: {exc}), 回退条目值')
 
         # ② 条目值（向后兼容）
+        #
+        # ⚠ 支持**两种**访问方式 —— 因为调用方给的东西不一样:
+        #   * `RunEntry` 对象（`apply_run_list_blocker` 里传的）-> `getattr`
+        #   * 迁移时用的**裸 dict**（`{'kind': 'rest', 'minutes': 30}`）
+        #     -> `['minutes']`
+        # ★ 两条路都走通, 迁移与运行时就不会出现"读到 0"的静默差异。
         try:
-            m = int(getattr(blocker, 'minutes', 0) or 0)
+            if isinstance(blocker, dict):
+                m = int(blocker.get('minutes', 0) or 0)
+            else:
+                m = int(getattr(blocker, 'minutes', 0) or 0)
             if m > 0:
                 return m
         except Exception:
@@ -2115,6 +2270,26 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             logger.warning(f'运行列表: 未知的阻塞条目 {blocker!r}, 已移除')
             rl.remove_blocker()
             self.save_run_list(rl)
+            return False
+
+        # ★★★ 门禁（用户裁定）★★★
+        #
+        # > "**1，读，不满足就跳过。默认是临时任务，无周期的。**"
+        #
+        # 两层判定，**都不满足就跳过这条休息**（列表继续，不阻塞）:
+        #
+        # | # | 判据 | 为什么 |
+        # |---|---|---|
+        # | 1 | ★ **`rest.scheduler.enable`** | 与 `build_queue()` 一致 —— `Rest` 未启用就**不该生效**（否则"我在配置里停用了休息，它还在休息"）|
+        # | 2 | ★ **`rest` 的 `period`/`windows`**（`rest_is_open()`）| 用户要的"读，不满足就跳过" |
+        #
+        # ⚠ `period=none`（默认，临时任务）时窗口全天开放 ->
+        #   **行为与改动前完全一致**（用户: "默认是临时任务，无周期的"）。
+        if not self._task_enabled('Rest'):
+            logger.info('运行列表: `Rest` 未启用 -> **跳过**这条休息（列表继续）')
+            return False
+        if not self.rest_is_open(now):
+            # ★ 不满足周期/窗口 -> **跳过**（不消费这条休息、不写 rest_until）
             return False
 
         until = run_control.rest_until()

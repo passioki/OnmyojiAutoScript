@@ -61,7 +61,18 @@ P = REPO / 'config' / f'{CFG}.json'
 # ★ 全部选**全天窗口**的, 免得"不在窗口"那一档干扰排 序断言。
 T1, T2 = 'MetaDemon', 'KekkaiActivation'      # period != none -> 周期
 F1, F2, F3 = 'Exploration', 'Hyakkiyakou', 'HeroTest'   # period == none -> 临时
-REST = {'kind': 'rest', 'minutes': 10}
+# ★★★ 乙-A: 休息是**任务**（`tasks/Rest/`），不再是 `kind='rest'` 特殊条目 ★★★
+#
+# 用户裁定:
+# > "休息就是临时任务（回庭院待着），只不过可以选择被定时任务插队。"
+# > "2，可以，只要不要字段混乱就行。"
+#
+# ★ `Config.__init__` 的 `migrate_rest_entries_once()` 会把旧的
+#   `kind='rest'` 条目**自动**迁移成 `{'kind':'task','task':'Rest'}`
+#   —— 所以本文件**只能**用新表示（用旧的会被迁移掉, 断言必然失败）。
+REST = {'kind': 'task', 'task': 'Rest'}
+#: 队列里 `task` 字段的总数（含 `Rest`）
+_ALL_TASKS = (F1, F2, T1, 'Rest', T2, F3)
 
 
 def _mk(**opt_overrides):
@@ -130,27 +141,44 @@ class TestSortRunList:
     def test_timed_first(self, cfg):
         """`by='timed'` -> 定时段在前, 固定段在后, **段内相对顺序不变**。"""
         assert cfg.sort_run_list('timed') is True
-        assert _disk_tasks() == [T1, T2, F1, F2, F3], _disk_tasks()
-        # ★ 段内: 定时 = T1 -> T2（用户原顺序）; 固定 = F1 -> F2 -> F3
-        assert _disk_kinds()[-1] == 'rest', 'rest 必须最后'
+        # ★ `Rest` 的 `period=none` -> 它是**临时任务** -> 排在 fixed 段里。
+        #   段内保序（`sorted` 稳定）: 原顺序 F1, F2, [Rest 在 T1 之后], T2 之前,
+        #   F3 -> 排完后 fixed 段 = F1, F2, Rest, F3（保持它们的相对顺序）
+        assert _disk_tasks() == [T1, T2, F1, F2, 'Rest', F3], _disk_tasks()
+        # ★ 段内: 定时 = T1 -> T2（用户原顺序）; 固定 = F1 -> F2 -> Rest -> F3
+        assert 'rest' not in _disk_kinds(), (
+            '★ 不该再有 `kind=rest` —— 已被迁移成任务条目')
 
     def test_fixed_first(self, cfg):
         """`by='fixed'` -> 反之; 段内顺序同样不变。"""
         assert cfg.sort_run_list('fixed') is True
-        assert _disk_tasks() == [F1, F2, F3, T1, T2], _disk_tasks()
-        assert _disk_kinds()[-1] == 'rest', 'rest 必须最后'
+        assert _disk_tasks() == [F1, F2, 'Rest', F3, T1, T2], _disk_tasks()
+        assert 'rest' not in _disk_kinds(), '★ 不该再有 `kind=rest`'
 
-    def test_rest_always_last(self, cfg):
-        """★ rest 恒最后（**归一化**, 不是拒绝）。"""
+    def test_rest_is_a_normal_task(self, cfg):
+        """★★ 乙-A: 休息是**普通任务** —— 快捷排序按**它自己的段**排它 ★★
+
+        用户裁定:
+        > "休息就是临时任务（回庭院待着），只不过可以选择被定时任务插队。"
+        > "有 period 和 window 属性, 是为了**统一管理**。"
+
+        ★ `Rest` 的 `period=none` -> `_segment_of()` 判为 **'fixed'（临时任务）**
+          -> 快捷排序把它当**固定任务**排（不再"恒最后"）。
+        ★ 原来这里叫 `test_rest_always_last` —— 钉的是**已废除**的旧约束。
+        """
         cfg.sort_run_list('timed')
         kinds = _disk_kinds()
-        assert kinds == ['task'] * 5 + ['rest'], kinds
+        assert kinds == ['task'] * 6, kinds
+        assert _disk_tasks() == [T1, T2, F1, F2, 'Rest', F3], _disk_tasks()
+        # ★ `Rest` 不在末尾（它在 fixed 段内、按稳定排序保持相对位置）
+        assert _disk_tasks()[-1] != 'Rest', (
+            '★ 休息不该"恒最后" —— 它是普通任务')
 
     def test_written_to_disk_and_visible_in_build_run_list(self, cfg):
         """★ 它**写盘** —— 重新 `build_run_list()` 拿到的就是新顺序。"""
         cfg.sort_run_list('timed')
         tasks = [e.task for e in cfg.build_run_list() if e.task]
-        assert tasks == [T1, T2, F1, F2, F3], tasks
+        assert tasks == [T1, T2, F1, F2, 'Rest', F3], tasks
 
     def test_idempotent(self, cfg):
         """★ 幂等: 连排两次结果相同（再点一次不会翻回去）。"""
@@ -171,28 +199,27 @@ class TestSortRunList:
           2. 用户随后**手工改回来**的顺序, 也**不会**被任何东西重排
         """
         cfg.sort_run_list('fixed')
-        assert _disk_tasks() == [F1, F2, F3, T1, T2]
+        assert _disk_tasks() == [F1, F2, 'Rest', F3, T1, T2]
 
         # ① build_run_list / build_queue 都不该再动它
         assert [e.task for e in cfg.build_run_list() if e.task] == \
-            [F1, F2, F3, T1, T2]
+            [F1, F2, 'Rest', F3, T1, T2]
         # ⚠ `build_queue()` 会**追加**自动补齐的任务, 所以只看**前缀**
-        assert [e.task for e in cfg.build_queue() if e.task][:5] == \
-            [F1, F2, F3, T1, T2], 'build_queue() 把顺序排回去了'
+        assert [e.task for e in cfg.build_queue() if e.task][:6] == \
+            [F1, F2, 'Rest', F3, T1, T2], 'build_queue() 把顺序排回去了'
 
         # ② 用户"手工"把它改成 timed 在前（模拟拖动保存）
         from module.config.run_list import RunList
         rl = cfg.build_run_list()
         rl.entries = sorted(
             rl.entries,
-            key=lambda e: (2 if not getattr(e, 'task', '')
-                           else (0 if e.task in (T1, T2) else 1)))
+            key=lambda e: (0 if getattr(e, 'task', '') in (T1, T2) else 1))
         assert cfg.save_run_list(rl) is True
-        assert _disk_tasks() == [T1, T2, F1, F2, F3]
+        assert _disk_tasks() == [T1, T2, F1, F2, 'Rest', F3]
 
         # ★ 再走一遍调度路径 —— 顺序**必须原样**
-        assert [e.task for e in cfg.build_queue() if e.task][:5] == \
-            [T1, T2, F1, F2, F3], (
+        assert [e.task for e in cfg.build_queue() if e.task][:6] == \
+            [T1, T2, F1, F2, 'Rest', F3], (
                 '★ 有东西在按"模式"重排 —— 用户拖的顺序又被覆盖了')
 
     def test_does_not_touch_other_entries(self, cfg):
@@ -200,7 +227,9 @@ class TestSortRunList:
         before = _disk_kinds()
         cfg.sort_run_list('timed')
         assert sorted(_disk_kinds()) == sorted(before)
-        assert _disk_kinds().count('rest') == 1
+        # ★ 乙-A: 不再有 `kind=rest` —— 休息是**任务条目**
+        assert 'rest' not in _disk_kinds()
+        assert _disk_tasks().count('Rest') == 1
 
 
 class TestSortRunListRejectsBadInput:

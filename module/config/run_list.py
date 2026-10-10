@@ -386,6 +386,71 @@ class RunList:
         i = self.index_of_blocker()
         return self.remove_at(i) if i >= 0 else None
 
+    # ------------------------------------------------------------------ 迁移
+    #: 休息任务的**命令名**（= `tasks/Rest/meta.py` 的 `TaskSpec.task`）。
+    #: ★ 唯一契约, **不猜别名**。
+    REST_TASK = 'Rest'
+
+    def migrate_rest_entries(self, minutes: int = 0) -> int:
+        """把旧的 `kind='rest'` 条目**就地**改成 `Rest` **任务条目**。
+
+        ## ★★ 用户裁定 ★★
+
+        > "**2，可以，只要不要字段混乱就行。**"
+
+        ## 为什么迁移（"字段混乱"指什么）
+
+        改动前，休息是 `run_list` 里的一个**特殊条目**:
+        ```json
+        {"kind": "rest", "minutes": 30}
+        ```
+        它**没有** `enable`/`period`/`windows` —— 用户说它"格格不入"。
+
+        现在休息是 `tasks/Rest/` 里的一个**真正的任务**，所以正确表示是
+        **普通任务条目**:
+        ```json
+        {"kind": "task", "task": "Rest", "entry_id": "..."}
+        ```
+
+        ★ **不迁移**的后果: `run_list` 里同时存在两种表示，
+          而"分钟数"一个读条目 `minutes`、一个读 `scheduler.target`
+          —— ★ **那正是"字段混乱"**。
+
+        ## ★ 分钟数怎么办（关键）
+
+        迁移时把旧条目的 `minutes` 写进任务的 `scheduler.target`（由调用方
+        通过 `Config` 完成 —— `RunList` 不碰配置）。**参数 `minutes`**:
+        * `> 0` -> 用调用方已经算好的值（`Config._rest_minutes` 的结果）
+        * `0`  -> 不写（调用方没给, 保持任务节点现状）
+
+        ★ 这里只做**列表结构**的迁移（纯函数, 不写盘）—— 调用方决定何时保存。
+
+        :return: 迁移了几条（0 = 无需迁移）
+        """
+        out = []
+        n = 0
+        for e in self.entries:
+            kind = getattr(getattr(e, 'kind', None), 'value',
+                           getattr(e, 'kind', None))
+            if str(kind) != EntryKind.REST.value:
+                out.append(e)
+                continue
+            # ★ 就地改成任务条目：保留 `entry_id`（身份不变 ——
+            #   这样"按条目追踪完成状态"不会因为迁移而失效）
+            old_minutes = int(getattr(e, 'minutes', 0) or 0)
+            out.append(RunEntry(
+                kind=EntryKind.TASK,
+                task=self.REST_TASK,
+                entry_id=str(getattr(e, 'entry_id', '') or ''),
+            ))
+            if minutes <= 0 and old_minutes > 0:
+                # 调用方没给值 -> 用旧条目的（★ 不丢用户设的分钟数）
+                minutes = old_minutes
+            n += 1
+        if n:
+            self.entries = out
+        return n
+
     def clear(self) -> None:
         self.entries.clear()
 

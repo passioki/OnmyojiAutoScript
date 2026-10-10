@@ -1950,3 +1950,104 @@ Building Windows application...                    45.7s
 | `check_windows.py` | exit 0（54/54）|
 | `custom_next_run` | **0 处**（起点 10）|
 
+---
+
+# 27. 用户第三轮反馈（9 条）—— 进展与**实测根因**
+
+## 27.1 ✅ ⑧⑨ 已修（**前后端都改并都验证**）
+
+用户要求: "**一点要前后端对应**, 或者你需要前后端都确认好才能下结论"。
+
+### ⑨ 移除一条重复条目导致**两条都没了**
+
+**后端根因**（注释自己写着 "删掉**所有**该任务的条目"）:
+```python
+kept = [e for e in rl if not (getattr(e, 'task', None) == task)]
+```
+**前端根因**: `removeFromQueue(String command)` —— **只传任务名**, 不传条目身份。
+
+**修**:
+* `post_queue_remove` 接受可选 `entry_id` -> **只删那一条**;
+  找不到该 id **报错**（不再静默"成功"）; 不传则保持旧行为（删全部）
+* `api_client.removeFromQueue(..., {entryId})` / `controller.removeFromQueue(cmd, {entryId})`
+* `queue_panel` 传 `e['_entryId']`
+
+**实测**（后端, 真实配置）:
+```
+两条 id: ['...-RealmRaid', '...-RealmRaid-2']
+移除第 1 条 -> {'ok': True, 'removed_entries': 1}
+剩下: ['RealmRaid', 'AreaBoss']      ★ PASS
+乱 id -> error（不静默成功）          ★ PASS
+不带 id -> 该任务清零（向后兼容）      ★ PASS
+```
+
+### ⑧ 无法重复添加
+
+**前端根因**（实测）:
+```dart
+Future<void> appendToQueue(String command) async {
+  if (_entryIndex(command) >= 0) return;   // ← **静默拒绝**！点了没反应
+  ...
+}
+```
+**已删除**该行（后端候选端点早已不排除 `queued`, 见 §A）。
+
+## 27.2 ⚠️ **又发现一个严重 bug**: 拖动**抹掉** `entry_id`
+
+`reorderQueue` 重建 `entries` 时只写 `kind`/`task`/`minutes`:
+```dart
+.map((r) => {
+      'kind': ..., 'task': ...,
+      // entry_id 没了
+    })
+```
+-> **每拖一次**后端就重新生成 id -> **按条目追踪（C）的完成状态全部失效**
+（同名多条还会互相覆盖）。
+
+**已修**: 重建时保留 `entry_id`（为空则不写, 让后端生成）。
+
+## 27.3 ★★ ③ 的关键发现: **两个后端字段, 一个 UI 选项** ★★
+
+用户说"我前端这里选的**定时优先**啊"。但实测配置:
+
+| 字段 | 用户 `恋鸟树` 的值 | 后端用途 |
+|---|---|---|
+| `timed_priority` | **`timed`（定时优先）** | ✅ 与用户所说一致 |
+| `schedule_rule` | **`List`（列表优先）** | ← 后端**只看它**决定走哪条排序路径 |
+
+```python
+if self._is_list_rule(_rule):      # 'List' -> True
+    pending_task = self._order_by_queue(pending_task)     # 只按队列位置
+else:
+    pending_task = self._order_by_timed_priority(...)     # 定时优先在这里
+```
+
+★ 所以 **`timed_priority=timed` 被 `schedule_rule=List` 旁路了** ——
+  用户选了"定时优先"却看不到效果。**这极可能就是 ③ 的根因。**
+
+★ **已向用户确认**（是在 UI 上写入了哪个字段）, 待答复后再动手 ——
+  按纪律（§10.5 **不猜语义**）不在未确认时改排序语义。
+
+## 27.4 待办（本轮未做, 已如实登记）
+
+| # | 内容 |
+|---|---|
+| ① | 任务汇报 -> **全局可收纳抽屉**（删 tab + 常驻右栏）|
+| ② | 队列显示**未启用**任务 + 移除前端不生效（疑似与⑧⑨同根因, 待复测）|
+| ③ | 拖动限同类别 + 颜色/边框区分 + 顺序锚定**类别优先**（**待确认字段**）|
+| ④ | 任务设置入口**每行**都要有 |
+| ⑤ | 次数类移除**不弹**确认, 定时类才弹 |
+| ⑥ | `period=不限` -> 类别应为**固定**（选项 a, 待做）|
+| ⑦ | **一键清空队列** + 确认 |
+
+## 27.5 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1697 passed, 3 skipped**（+7 守卫）|
+| 前端 flutter test | **85 passed** |
+| `flutter analyze`（我改的文件）| No issues |
+
+★ 教训（用户明确要求）: **每个结论都要前后端都确认**, 不能只看一侧。
+  我此前 ③ 的判断只看了后端, 差点得出错误结论。
+

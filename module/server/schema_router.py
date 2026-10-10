@@ -993,7 +993,17 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
         "执行队列中移除后自动停用只针对定时任务, 固定任务移除后应该返回
          添加任务的池子里。"
 
-    :param data: {"task": "RealmRaid"} —— 任务命令名（大驼峰）
+    ## ★★ `entry_id`: 精确移除**某一条**（⑨ 的修复）★★
+
+    队列里同一任务可以出现**多次**（"重复跑整个任务"）。只按任务名删会
+    **一删全删**（实测: 两条「个人突破」删一条, 两条都没了）。
+
+    所以请求体可以再带 `entry_id`:
+    * **带了** -> 只删 `entry_id` 匹配的那一条（精确）
+    * **没带** -> 删该任务的**所有**条目（旧行为, 向后兼容）
+
+    :param data: {"task": "RealmRaid", "entry_id": "20261010T...-RealmRaid"}
+                 —— `task` 必填; `entry_id` 可选（精确移除用）
     :return: {"ok": True, "task": ..., "removed_entries": n,
               "enable": bool, "auto_queue": bool, "message": 中文提示}
     """
@@ -1016,10 +1026,31 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
         except Exception:
             pass
 
-        # ② 从 run_list 里删掉**所有**该任务的条目（可能有重复编排）
+        entry_id = str((data or {}).get('entry_id') or '').strip()
+
+        # ② 从 run_list 里移除。
+        #
+        # ★★ ⑨: 带了 `entry_id` 就**只删那一条** ★★
+        #
+        # 原来无条件删"所有该任务的条目" —— 同名重复条目会**一删全删**
+        # （实测: 两条「个人突破」删一条, 两条都没了）。
         rl = config.build_run_list()
-        kept = [e for e in rl
-                if not (getattr(e, 'task', None) == task)]
+        if entry_id:
+            kept, hit = [], 0
+            for e in rl:
+                same_task = getattr(e, 'task', None) == task
+                same_id = (getattr(e, 'entry_id', None) or '') == entry_id
+                if same_task and same_id and not hit:
+                    hit = 1          # 只跳过**第一条**匹配的
+                    continue
+                kept.append(e)
+            if not hit:
+                # 没找到 -> 不静默成功（否则界面"没反应"却报 OK）
+                return {'error': f'队列里找不到 entry_id={entry_id!r} 的条目',
+                        'task': task, 'entry_id': entry_id}
+        else:
+            kept = [e for e in rl
+                    if not (getattr(e, 'task', None) == task)]
         removed_n = len(rl) - len(kept)
         if removed_n:
             from module.config.run_list import RunList
@@ -1050,6 +1081,7 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
         return {
             'ok': True,
             'task': task,
+            'entry_id': entry_id,
             'removed_entries': removed_n,
             'enable': bool(sch.enable),
             'auto_queue': auto,

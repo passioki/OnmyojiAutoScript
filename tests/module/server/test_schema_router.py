@@ -315,7 +315,7 @@ class TestRunListSection:
         return schema['list']
 
     def test_has_expected_keys(self, lst):
-        for k in ('mode_value', 'modes', 'order_field', 'order_group',
+        for k in ('order_field', 'order_group',
                   'entry_kinds', 'duration_choices', 'note'):
             assert k in lst, f'list 段缺 {k}'
 
@@ -324,13 +324,36 @@ class TestRunListSection:
         assert lst['order_field'] == 'run_list'
         assert lst['order_group'] == 'script.optimization'
 
-    def test_mode_value_is_list(self, lst):
-        assert lst['mode_value'] == 'List'
+    # ★★ 第二轮复审（待办 #5）: 下面 3 条**反过来了** ★★
+    #
+    # 原来断言 `mode_value == 'List'` / `len(modes) >= 4` —— 那是**给死链
+    # 上锁**: 四个调度模式在 **T1** 删掉 `TaskScheduler.schedule()` 调用后
+    # **不再影响排序**, 又在 **S6** 被 `priority_mode` 三模式取代;
+    # 而后端仍然发布它们、前端仍然读它们（读进一整簇死代码, 其中
+    # **`setScheduleRule()` 会写配置**）。
+    #
+    # ★ 与 T4 的 `window_fields` 是**同一种形态**:
+    #   "死 schema + 锁死它的断言"互相印证地一起过时。
+    # ★ 现在断言它们**不存在**, 并指明现行做法。
+    def test_legacy_mode_keys_removed(self, lst):
+        for k in ('mode_value', 'modes', 'current_mode'):
+            assert k not in lst, (
+                f'`list.{k}` 是**已废弃**的调度模式死链 —— 四个旧模式'
+                '（Filter/FIFO/Priority/List）T1 后不再影响排序, '
+                'S6 已并入 `priority_mode` 三模式。'
+                '★ 现行做法: 读 `global_fields.priority_mode`'
+                '（见 test_priority_mode_is_in_global_fields）')
 
-    def test_modes_have_value_and_label(self, lst):
-        assert len(lst['modes']) >= 4
-        for m in lst['modes']:
-            assert 'value' in m and 'label' in m
+    def test_priority_mode_is_in_global_fields(self, schema):
+        """★ 现行做法: 三模式从 **`global_fields.priority_mode`** 读。"""
+        gf = schema['list'].get('global_fields') or {}
+        assert 'priority_mode' in gf, (
+            f'`global_fields` 里应有 `priority_mode`（三模式）—— '
+            f'实际: {sorted(gf)}')
+        pm = gf['priority_mode']
+        assert pm.get('choices'), '`priority_mode` 应带 `choices`（前端不硬编码）'
+        vals = {c['value'] for c in pm['choices']}
+        assert vals == {'timed_first', 'fixed_first', 'custom'}, vals
 
     def test_entry_kinds_cover_two(self, lst):
         """v2 只有两种条目: `task`（固定任务）与 `rest`（休息）。"""

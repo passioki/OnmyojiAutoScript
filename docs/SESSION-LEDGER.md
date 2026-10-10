@@ -5330,3 +5330,119 @@ str(ScheduleRule.LIST) == 'ScheduleRule.LIST'   # ★ 不是 'List'!
 | 4 | `tests/.../test_battle_wait.py:250-268` 的 `test_owner_switch_resets_per_task` **模拟**了 `__call__` 而没真调（生产改了也不会红）| 中 |
 | 5 | `schema_router` 的 `/schema` 仍发布 `list.modes` / `list.mode_value` / `list.current_mode`（四个已废弃调度模式）+ `_current_schedule_rule()` | 中 |
 
+---
+
+# 59. 删 `/schema` 的**已废弃调度模式死链**（待办 #5）+ 废弃清单**改指针**（#2）
+
+## 59.1 死链是什么
+
+| 键 | 状态 |
+|---|---|
+| `schema.list.modes` | 四个旧调度模式（`Filter` / `FIFO` / `Priority` / `List`）—— **T1 后不再影响排序** |
+| `schema.list.mode_value` | 同上 |
+| `schema.list.current_mode` | 同上（`_current_schedule_rule()`）|
+
+★ 前端**确实在读**它们, 但读进的是**一整簇死代码**:
+
+| 成员 | `lib/` 内引用 | 说明 |
+|---|---|---|
+| `scheduleRule` | 5（**簇内自环**）| 定义 + 从 `current_mode` 读 + 被 `scheduleRuleLabel` 读 |
+| `modes` | 3（全簇内）| 读 `schemaList['modes']` |
+| `listModeValue` / `listModeLabel` | 3 / 1 | 读 `schemaList['mode_value']` |
+| `scheduleRuleLabel` | 1 | 只用 `scheduleRule` |
+| `isScheduleRuleLoaded` | 2 | **只写不读** |
+| **`setScheduleRule`** | 1 | ★★ **0 调用方, 但会 `putScriptArg('schedule_rule', ...)` 写配置！** |
+
+★★ **最危险的是 `setScheduleRule`**: 只要有人重新接上它, 就会把
+`schedule_rule` **写回配置** —— 而那个字段 **T1 之后完全不影响排序**,
+于是用户会以为"我设了列表优先, 为什么顺序还是不对"。
+★ 这是"**已死的读写链**": 后端在发、前端在读、文档在教 —— 只差**再调一次**。
+
+## 59.2 修法
+
+| 端 | 改动 |
+|---|---|
+| 后端 | 删 `mode_value` / `modes` / `current_mode` 三键 + **`_current_schedule_rule()`**（14 行）+ 不再需要 `ScheduleRule`/`TimedPriority` 的 import |
+| 前端 | 删 `scheduleRule` / `modes` / `listModeValue` / `listModeLabel` / `scheduleRuleLabel` / `isScheduleRuleLoaded` / **`setScheduleRule`**（共 6 处编辑）|
+| 测试 | ★ 3 条**锁住死链**的断言**反过来**（`test_legacy_mode_keys_removed`）|
+| 文档 | `ui-api-mapping.md` §2.5 已在上轮改成"**已作废**"+ 给出正确做法 |
+
+### ★★ 与 T4 的 `window_fields` 是**同一种形态**
+
+> "**死 schema + 锁死它的断言**互相印证地一起过时"
+
+`test_schema_router.py` 原来断言 `mode_value == 'List'` /
+`len(modes) >= 4` —— 于是**没人敢删**那三个键。现在改成
+`assert k not in lst` + **新增** `test_priority_mode_is_in_global_fields`
+（确认现行做法真的在）。
+
+## 59.3 ★ 废弃清单**改指针**（待办 #2）
+
+### 症状
+
+`scheduler-architecture.md` §8 **自己列了一张废弃表** ——
+于是**同一份知识在两处定义**, 而复审员核实**两张表已经漂移**:
+
+| 差异 | `scheduler-architecture.md` §8 | `deprecated.md` |
+|---|---|---|
+| `charge_*` 规模 | **71 文件 / 327 行** | **75 文件 / 319 行** |
+| `success_interval` 的台账节号 | **§20** | **§26** |
+| 两个**整模块**删除（`scheduler_core.py` / `team_coordinator.py`）| ★ **完全没有** | 有 |
+| `RunState` / `next_available()` | ★ **完全没有** | 有 |
+| `/overview` 的 `charges` / `resource_describe` | ★ **完全没有** | 有 |
+
+★ 这正是本项目反复吃亏的"**同一知识两处定义必然漂移**" ——
+  **连"废弃清单"自己都犯了**。
+
+### 修法
+
+§8 **整节改成一行指针**（指向 `deprecated.md`）, 只保留 3 条**迁移原则**
+（那是设计约束, 不属于"清单"）, 并**补第 4 条**:
+
+> 4. ★ **迁移必须自己落盘** —— `migrate_priority_mode_once()` 曾经
+>    **只改内存不 `save()`**（见 §54.1）。
+
+## 59.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1631 passed, 3 skipped**（0 失败）|
+| 前端 flutter test | **85 passed** |
+| 前端 analyze | **No issues found!** |
+| 文档守卫 | **20 passed** |
+| 三个死键的**活代码**残留 | ★ **0**（剩下的是注释与反向守卫）|
+
+## 59.5 ★★ 第二轮复审: 全部待办**已完成**
+
+| # | 项 | 状态 |
+|---|---|---|
+| 1 | 文档: `ui-api-mapping.md` 教人用已废弃 `schedule_rule`（与 `deprecated.md` 矛盾）| ✅ |
+| 2 | `architecture.md` 头部行号错 / 方向反 / 漏列 / `:1731` 自相矛盾 | ✅ |
+| 3 | 新建 `tests/_srcutil.py` + 修 5 处"注释驱动"的假绿守卫 | ✅ |
+| 4 | conftest 告警改用 `warnings.warn` + E2 体检**可失败** | ✅ |
+| 5 | 清后端死代码（6 个函数 + `scheduler.py` 196 行）| ✅ |
+| 6 | **删 `/schema` 已废弃调度模式死链**（后端 3 键 + 前端整簇）| ✅ |
+| 7 | 废弃清单**改指针**（消除"两处定义"）| ✅ |
+
+### 累计数字
+
+| 项 | 数字 |
+|---|---|
+| 后端测试数 | 1681 -> **1631**（**-50**, 全是死代码的测试）|
+| 删除的生产代码 | `scheduler.py` **196 行** + `timed_schedule.py` **280 行** + `_current_schedule_rule()` **14 行** |
+| 删除的前端代码 | `scheduleRule` **整簇 6 处**（含**会写配置**的 `setScheduleRule`）|
+| 文档守卫真正校验 | **2 -> 31 条**引用 |
+| 生产 bug | `migrate_priority_mode_once` **缺 `save()`** |
+| 假绿守卫 | **5 处**"注释驱动" + **1 处**恒真断言 + **3 处**锁死链 |
+| 死代码 | **6 个函数 + 1 个模块 + 1 个前端整簇** |
+
+## 59.6 剩余（唯一一条"中"级）
+
+| # | 项 | 说明 |
+|---|---|---|
+| 1 | **唯一根治污染** = conftest 把 `config/` 重定向到 `tmp_path` | ★ 现在 conftest 是"**事后还原**"（快照 -> 比对 -> 还原）, 而 `ConfigModel.__setattr__` **每次赋值都 `self.save()`** -> 任何持有真实配置名的测试**都是潜在污染源**。★ 根治 = `os.chdir(tmp)` + `tmp/config/`（`write_json` 用 `Path.cwd()`）, 让测试**根本碰不到真实文件** |
+
+★ 其余"中"级项（`test_battle_wait.py` 的模拟测试、11 个未调用的
+  `api_client` 方法、0 字节 `group_controller.dart`、`flow`/`flowDisclaimer` 簇）
+  已登记, 但都**不影响正确性**（只是冗余）。
+

@@ -130,7 +130,7 @@ def _list_meta(config_name: str = '') -> dict:
 
     见 `docs/architecture.md` §5.4 与 `module/config/timed_schedule.py`。
     """
-    from tasks.Script.config_optimization import ScheduleRule, TimedPriority
+    # ★ 待办 #5: 不再需要 `ScheduleRule` / `TimedPriority`（死链已删）
 
     try:
         from module.config.run_list import (DURATION_CHOICES, EntryKind,
@@ -151,20 +151,25 @@ def _list_meta(config_name: str = '') -> dict:
         kinds, durations = [], []
 
     return {
-        # 列表模式的取值(界面把它填进 Script.optimization.schedule_rule)
-        'mode_value': ScheduleRule.LIST.value,
-        'modes': [
-            {'value': ScheduleRule.FILTER.value, 'label': '过滤器(内置默认顺序)'},
-            {'value': ScheduleRule.FIFO.value, 'label': '定时优先(先到点先跑)'},
-            {'value': ScheduleRule.PRIORITY.value, 'label': '优先级'},
-            {'value': ScheduleRule.LIST.value, 'label': '列表优先(自定义顺序)'},
-        ],
+        # ★★ 第二轮复审（待办 #5）: **删掉三个已废弃的死键** ★★
+        #
+        # 原来这里发 `mode_value` / `modes` / `current_mode` —— 那四个调度模式
+        # (`Filter`/`FIFO`/`Priority`/`List`) 在 **T1** 删掉
+        # `TaskScheduler.schedule()` 调用后就**彻底不再影响排序**了,
+        # 又在 **S6** 被 `priority_mode` 三模式取代。
+        #
+        # ★ 危害: 它们是"**已死的读写链**"—— 前端仍在读
+        #   (`task_list_controller.dart` 的 `modes`/`mode_value`/
+        #   `current_mode`), 后端仍在发, 只差**有人再调一次**
+        #   `setScheduleRule()`（它**会写配置**）就复活"两个排序权威"。
+        #   而 `ui-api-mapping.md` 还在教人调 `PUT .../schedule_rule/value`。
+        #
+        # ★ 现行做法: 模式从 **`global_fields` 的 `priority_mode`** 读
+        #   （三选一, 见 `_global_fields()` 与前端 `priorityMode*`）。
+        #
         # 用户编排写入的字段
         'order_field': 'run_list',
         'order_group': 'script.optimization',
-        # 当前的调度模式 —— ★ 界面**不能硬编码**默认值, 否则会显示成
-        # "顺序不生效"的样子(实际用户早就设成 List 了)
-        'current_mode': _current_schedule_rule(config_name),
         # 条目类型(界面据此渲染"添加条目"选择器)
         'entry_kinds': kinds,
         'duration_choices': durations,
@@ -393,19 +398,13 @@ def _current_priority_mode(config_name: str = '') -> str:
     return 'custom'
 
 
-def _current_schedule_rule(config_name: str = '') -> str:
-    """读**指定配置**的调度模式。取不到时给 `Filter`(后端的默认值)。"""
-    from tasks.Script.config_optimization import ScheduleRule
-    config = _config_of(config_name)
-    if config is not None:
-        try:
-            v = getattr(config.model.script.optimization,
-                        'schedule_rule', None)
-            if v is not None:
-                return str(getattr(v, 'value', v))
-        except Exception:
-            pass
-    return ScheduleRule.FILTER.value
+# ★★ 第二轮复审（待办 #5）: `_current_schedule_rule()` **已删除** ★★
+#
+# 它读 `Script.optimization.schedule_rule` 并返回那四个旧模式之一 ——
+# 唯一消费者是 `_list_meta()` 的 `current_mode`, 那个键**刚被删**。
+#
+# ★ 现行做法: `priority_mode`（三模式）走 `_global_fields()`。
+
 
 
 # --------------------------------------------------------------------------- 动态总览

@@ -317,24 +317,36 @@ order = [e ∈ Q, g(e)=fixed] 按段内顺序  ⧺  [e ∈ Q, g(e)=timed] 按段
 
 ---
 
-## 8. 迁移与废弃清单
+## 8. 迁移与废弃清单 —— ★★ **已改为一行指针**（第二轮复审）★★
 
-| 项 | 处置 | 步骤 |
-|---|---|---|
-| `window_slots` | ★ **删除**（字段 + `_SLOT_SPAN_MINUTES` + 迁移里的写法） | S3 |
-| `window_start` / `window_end` / `window_days` / `window_dom` / `window_period` | ★ **删除**，换成 `windows: list[Window]` | S3 |
-| `charge_*` 字段 + 存量逻辑（71 文件 / 327 行） | ★ **删除** | S5 |
-| `Category.CHARGE` | ★ **删除** | S5 |
-| `_order_by_timed_priority()` | ★ **删除**（§3.4） | S6 |
-| `schedule_rule`（四选一） | ★ **合并**进 `priority_mode` | S6 |
-| `timed_priority`（二选一）【**已删除**】 | ★ **合并**进 `priority_mode` | S6 |
-| `custom_next_run` | 已清零（§26） | ✅ 已完成 |
-| `success_interval` | 已删除（§20） | ✅ 已完成 |
+> ## ★ 权威清单只有一份: [`deprecated.md`](deprecated.md)
+>
+> 本节原来**自己列了一张废弃表** —— 于是**同一份知识在两处定义**,
+> 而复审员核实: **两张表已经漂移**:
+>
+> | 差异 | 本节（原）| `deprecated.md` |
+> |---|---|---|
+> | `charge_*` 规模 | **71 文件 / 327 行** | **75 文件 / 319 行** |
+> | `success_interval` 的台账节号 | **§20** | **§26** |
+> | 两个**整模块**删除（`scheduler_core.py` / `team_coordinator.py`）| ★ **完全没有** | 有 |
+> | `RunState` / `next_available()` | ★ **完全没有** | 有 |
+> | `/overview` 的 `charges` / `resource_describe` | ★ **完全没有** | 有 |
+>
+> ★ 这正是本项目反复吃亏的"**同一知识两处定义必然漂移**" ——
+>   连"废弃清单"自己都犯了。
+>
+> **要改废弃清单 -> 改 [`deprecated.md`](deprecated.md), 不要改这里。**
+> 本节保留下面 3 条**迁移原则**（它们是设计约束, 不属于"清单"）。
 
 **迁移原则**：
 1. **旧配置要能升上来**（用 `validation_alias` 或一次性迁移）
 2. **迁移必须幂等**（不能每次启动都覆盖用户的新设置）
 3. **不在实时配置上做有副作用的测试**（踩过两次）
+4. ★ **迁移必须自己落盘**（第二轮复审补的）——
+   `migrate_priority_mode_once()` 曾经**只改内存不 `save()`**,
+   于是"本次进程内看起来迁好了, 重启后又迁一次";
+   ★ 更糟: 它让 8 条迁移测试的绿**靠巧合**
+   （`clean_zombie_nodes()` 顺手 `save()` 把内存写下去）。
 
 ---
 

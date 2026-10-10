@@ -3258,3 +3258,101 @@ stash@{0}: On dev: wip: category_effective (影响充能/结界, 待确认)
 | `module/server/script_router.py` | 2 |
 | 其余 `dev_tools` | 7 |
 
+---
+
+# 42. ★★ S5 完成: 「充能/存量」机制**彻底移除**（`charge` 残留 0）★★
+
+## 42.1 用户裁定（本轮全部依据）
+
+> "**去掉组队协同，去掉存量次数。组队协同应该是单独模块啊，不应该放在金币妖怪里。**"
+> "**去除旧的充能存量说法。现在靠 window 的多次设置完全可以做到正常运行。**"
+> "**连 `charge_*` 字段和存量逻辑一起删**"
+> "**金币妖怪 (a) 多个 window —— 配 2 个窗口（0:00-11:59、12:00-23:59）**"
+
+## 42.2 ★ 成果: `charge` 相关代码 **75 文件 / 319 行 -> 0**
+
+```
+起始:  75 文件 / 319 行
+结束:   0 文件 /   0 行
+```
+
+## 42.3 S5-7 本批改了什么
+
+| 位置 | 改动 |
+|---|---|
+| `module/config/report.py` | 删 `_charges()` 函数 + 每行的 `charges` 字段 + 数据源 |
+| `module/server/schema_router.py` | 删 `if resource is not None:` 块（14 行）、`charges` 输出、`_resource_describe()`（15 行）、文档里的 `timed / charge / limited` |
+| `module/server/script_router.py` | 删 `charge_bucket` + 每行 `charges` + 文档 |
+| `module/config/task_catalog.py` | 删**过渡期** `resource` 字段 + `period_effective` 的兜底死代码 + 过时文档 |
+| `dev_tools/migrate_state_to_resource.py` | ★ **整个文件删**（迁移目标 `Resource` 已不存在）|
+| `dev_tools/gen_resource_specs.py` | ★ **整个文件删**（专生成 `Resource(...)`）|
+| `dev_tools/gen_task_meta.py` | `resource_expr()` 改写: 只生成 `period=Period.XXX`（原来生成 `Resource(capacity=..., recharge=Recharge(...))`）|
+| `dev_tools/gen_task_catalog.py` | 不再产出 `has_charge` / `charge_max` / `charge_slots` / `charge_consume` |
+| `dev_tools/verify_*.py` · `check_windows.py` | import 与提示文案 |
+
+## 42.4 ★ 前端同步（用户要求"前后端要同步改"）
+
+后端删了 `charges` / `resource_describe`, 但**前端在用它** —— 实测:
+
+| 前端位置 | 原来 | 现在 |
+|---|---|---|
+| `lib/service/task_prefs.dart` | `progress` 排序优先读 `charges['count']` | ★ 只读 `count`（"跑几轮"由**重复条目**表达）|
+| `lib/views/tasks/task_report_panel.dart` | 「还剩 N 次」标签（`charges`）| ★ **标签删除** |
+| `queue_panel.dart` · `task_row_view.dart` | 拼 `resource_describe` | **不用改** —— 它已恒为 `''`, 前端本来就跳过空串 |
+
+★ 前端**本来就做了 `is Map` / `isEmpty` 判空**, 所以不会崩; 但我**主动清掉了**
+  语义已死的分支（不留"看起来还有存量"的错觉）。
+
+## 42.5 我修掉的自己的问题（第 5、6 次删代码事故）
+
+| # | 症状 | 修法 |
+|---|---|---|
+| 1 | `task_catalog.py` 的 `has_charge=False` 等 4 行**没删掉**（脚本里的缩进不匹配 → `assert` 静默失败）| 用 `edit` 精确删 |
+| 2 | `test_minimal` 仍断言 `s.resource is None`（字段已删）| 改断言 `s.period == Period.NONE` |
+
+★ **至此我的"删代码脚本"共出事故 6 次**。台账 §41.5 已定规矩:
+  **删代码/删测试一律用 `edit`（精确字符串）, 不再写删除脚本。**
+  本批后半段**已经照此执行**（`schema_router` / `report` / 前端全用 `edit`）。
+
+## 42.6 ★ 新增 25 条**反向守卫**（`test_charge_system_removed.py`）
+
+守卫"**这些东西不存在了**", 防止它们悄悄回来:
+
+| 类 | 守卫内容 |
+|---|---|
+| `TestModulesDeleted` | `team_coordinator.py` / `scheduler_core.py` **不存在**; `Recharge`/`Resource` **不存在**; `Period` **必须存在**; `Category.CHARGE` **不存在**; `TIMED_CATEGORIES` 无 `charge` |
+| `TestTaskSpecClean` | `TaskSpec` 无 `resource` 字段; `period` 是独立字段; `TaskMeta` 无 4 个 `charge_*` |
+| `TestTaskConfigsClean` | 3 个任务的 `config.py` 无 `charge_*`; `script_task.py` 无 `task_state`/`team_coordinator`/`charge_`/`cfg_name`; `meta.py` 无 `Recharge`/`Resource(` |
+| `TestTwoWindows` | ★ 3 个任务**各有 2 个窗口**, 且恰为 `(0:00-11:59)` + `(12:00-23:59)` |
+| `TestTaskStateClean` | 存量函数**全不存在**; `summarize` 只返回 `config`/`global`; `peers_status` **保留**但不返回 `charges` |
+| `TestOverviewNoCharges` | 总览**不得**有 `charges` / `resource_describe` |
+
+## 42.7 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1578 passed, 3 skipped**（+25 守卫, 0 失败）|
+| 前端 flutter test | **85 passed** |
+| `charge` 残留 | ★★ **0 行**（起始 319）★★ |
+| 前端 analyze（我改的 2 文件）| `No issues found!` |
+
+## 42.8 S5 全阶段回顾
+
+| 子步 | 内容 | 结果 |
+|---|---|---|
+| **S5-1** | `period` 提升为 `TaskSpec` 独立字段（54 个 `meta.py`）| ✅ 逐任务验证语义零变化 |
+| **S5-2/3** | 3 个任务去掉存量次数 + 组队协同 | ✅ 换成两个窗口 |
+| **S5-4** | `task_state.py` 删存量存储（816→494）+ 删 `team_coordinator` 模块 | ✅ |
+| **S5-5** | 删 `Recharge`/`Resource`（`resource.py` 406→76）+ ★ 发现死代码 `scheduler_core`（346 行）| ✅ |
+| **S5-6** | 删 `Category.CHARGE` + `TaskMeta.charge_*` + 3 任务改判 `TIMED` | ✅ |
+| **S5-7** | `report` / `schema_router` / `script_router` / `dev_tools` 收尾 + **前端同步** | ✅ |
+
+## 42.9 下一步: **S6**
+
+| 内容 |
+|---|
+| `priority_mode` **三模式**（定时任务优先 / 固定任务优先 / **自定义**）—— 合并 `schedule_rule` 4 路 + `timed_priority` 2 路 |
+| `run_list` 的**类别分段**（`RunEntry.group`）|
+| **拖动约束**: 定时优先 / 固定优先 -> 只在**同类别段内**拖; 自定义 -> **全都能拖** |
+| 删 `_order_by_timed_priority()`（已无调用, 死代码）|
+

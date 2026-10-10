@@ -49,7 +49,6 @@ def build_schema(config_name: str = '') -> dict:
     tasks = {}
     for meta in TC.all_meta():
         spec = TC.get_spec(meta.task)
-        resource = getattr(spec, 'resource', None) if spec else None
 
         item = {
             'name': meta.task,
@@ -67,20 +66,6 @@ def build_schema(config_name: str = '') -> dict:
             'list_pos': getattr(spec, 'list_pos', None) if spec else None,
         }
 
-        if resource is not None:
-            item['resource'] = {
-                'capacity': resource.capacity,
-                'consume': resource.consume,
-                'refill': resource.refill,
-                'period': resource.period.value,
-                'amount': resource.amount,
-                'refill_to_full': resource.recharge.refill_to_full,
-                'interval': list(resource.interval),
-                'slots': [f'{h:02d}:{m:02d}' for h, m in resource.slots],
-                'describe': resource.describe(),
-                # 开放时段由用户配置, 默认关闭; 这里只暴露"有这个能力"
-                'window_supported': True,
-            }
         tasks[meta.task] = item
 
     return {
@@ -131,7 +116,7 @@ def _list_meta(config_name: str = '') -> dict:
     | 谁来管 | 内容 | 排序依据 |
     |---|---|---|
     | **运行列表** | 固定任务 + 休息 | 用户拖拽的顺序 |
-    | **定时调度器** | timed / charge / limited | window、剩余时间、预计耗时、自定义优先级 |
+    | **定时调度器** | timed / limited | window、剩余时间、预计耗时、自定义优先级 |
 
     见 `docs/architecture.md` §5.4 与 `module/config/timed_schedule.py`。
     """
@@ -408,22 +393,11 @@ def build_overview(config_name: str) -> dict:
 
     # 充能类任务的存量(如金币妖怪 1/2) —— 从状态文件一次取全, 避免逐任务查询
     #
-    # ⚠ `task_state.summarize()` 返回的键是**压缩小写**形式(如
-    #   `experienceyoukai`), 而 model_dump 的键是**下划线**形式
-    #   (`experience_youkai`)。两者不通用, 需归一化后再查(踩过:
-    #   直接查会全部拿不到, 但不会报错, 只是静默为空)。
-    charges_raw = {}
-    try:
-        from module.config import task_state
-        summary = task_state.summarize(config_name, now=now)
-        charges_raw = summary.get('charges') or {}
-    except Exception as exc:
-        logger.warning(f'overview: 充能状态获取失败({type(exc).__name__}: {exc})')
-
-    def _norm(k: str) -> str:
-        return str(k or '').lower().replace('_', '')
-
-    charges = {_norm(k): v for k, v in charges_raw.items()}
+    # ★★ S5: 存量（`charges`）已删除 —— 用户裁定去掉存量机制 ★★
+    #
+    #   原来这里调 `task_state.summarize()` 取 `charges`, 再按**压缩小写**归一
+    #   （`experienceyoukai` vs `experience_youkai`）。现在 `summarize()` 只返回
+    #   `global`（完成记忆）, 总览页也**不再有"存量"列**。
 
     # ★ 队列成员（用户编排 + 自动进队列）—— 一次算好, 循环里查集合即可。
     #
@@ -526,8 +500,13 @@ def build_overview(config_name: str) -> dict:
             #   见 `tasks/base_task.py` 的 `effective_target()`。
             'effective_target': _effective_target_of(meta, sch, value),
             # ---- 界面渲染需要的补充字段(避免前端再发一次请求) ----
-            # 充能类任务的"存量 x / 上限 y"(如金币妖怪 1/2)
-            'charges': charges.get(_norm(key)),
+            # ★★ S5: `'charges'`（"存量 x / 上限 y", 如金币妖怪 1/2）已删除 ★★
+            #   用户裁定去掉存量机制 —— 总览页**不再有"存量"列**。
+            #   何时能跑只看**窗口**（用户在 `/args` 的 `windows` 字段里配）。
+            #
+            # ⚠ 这里**不新增** `windows` 字段: 前端已经有
+            #   `GET /{script}/tasks/{task}/windows` 与窗口编辑器,
+            #   总览页也不需要它 —— 加字段属于**未要求的接口变更**。
             # 列表里的位置(来自 meta.py 的 TaskSpec); 用户编排在 task_order
             # ⚠ `list_pos` 在 **TaskSpec** 上, 不在 TaskMeta 上 ——
             #   用 `getattr(meta, ...)` 会静默拿到 None(踩过)。
@@ -550,7 +529,6 @@ def build_overview(config_name: str) -> dict:
             'auto_queue': _auto_queue_of(meta),
             'queued': command in queued_commands,
             # 该任务的效果说明(供界面展示"这个任务是干什么的")
-            'resource_describe': _resource_describe(meta),
             # ---- 连续失败冷却（见 `module/config/failure_state.py`）----
             # 到阈值时不再 `exit(1)`, 而是给该任务加冷却。界面上要让用户
             # **看见**并**能清除**（修好之后不想等 1 小时）。
@@ -754,21 +732,6 @@ def _auto_queue_of(meta):
     if meta is None:
         return True          # 元数据缺失 -> 保守当"定时类"（放行）
     return not bool(getattr(meta, 'countable', False))
-
-
-def _resource_describe(meta) -> str:
-    """
-    任务资源规则的可读描述(如 "每天 00:00、12:00"、"每 3 小时")。
-
-    数据来自 `tasks/<Name>/meta.py` 的 `TaskSpec.resource`;
-    这里只做转发, **不重复定义知识**。
-    """
-    spec = _spec_of(meta)
-    res = getattr(spec, 'resource', None) if spec else None
-    try:
-        return res.describe() if res is not None else ''
-    except Exception:
-        return ''
 
 
 def _team_snapshot(config_name: str, now: datetime) -> list:
@@ -1342,7 +1305,7 @@ async def get_queue_candidates(script_name: str):
       再添加任务才能进队列"。
 
     :return: {"candidates": [{command, name, name_zh, category_label,
-              count, effective_target, resource_describe}], "count": n}
+              count, effective_target}], "count": n}
     """
     try:
         from module.server.main_manager import mm
@@ -1383,8 +1346,7 @@ async def get_queue_candidates(script_name: str):
                 'category_label': TC.CATEGORY_LABEL.get(
                     meta.category, meta.category.value),
                 'count': meta.count_default,
-                'resource_describe': _resource_describe(meta),
-            })
+                })
 
         out.sort(key=lambda r: r['name_zh'])
         return {'script': script_name, 'candidates': out, 'count': len(out)}

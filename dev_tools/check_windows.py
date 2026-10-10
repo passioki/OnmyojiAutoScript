@@ -72,7 +72,7 @@ def main() -> int:
             print('修法（二选一）:')
             print('  a) 在 tasks/<Name>/meta.py 里显式写 '
                   'window=AvailabilityWindow(...)')
-            print('  b) 给它的 Resource.recharge 设 period=Period.DAILY/WEEKLY/MONTHLY')
+            print('  b) 在它的 meta.py 里设 period=Period.DAILY/WEEKLY/MONTHLY')
             print('     （用户: "所有的定时都有着 window 属性"）')
 
     if r['missing']:

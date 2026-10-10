@@ -173,13 +173,11 @@ class TaskSpec:
     # ★★ S5: **周期**（原来只能从 `resource.recharge.period` 拿到）★★
     #
     # 用户裁定: "去除旧的充能存量说法。现在靠 window 的**多次设置**完全可以
-    #          做到正常运行。" -> `Resource` / `Recharge`（= 存量机制）要**删除**。
+    #          做到正常运行。" -> `Resource` / `Recharge`（= 存量机制）已**删除**。
     #
-    # 但 `period` 本身**仍然需要**（"这是每天/每周/每月的任务"）,
-    # 所以先把它提升为**独立字段**, 再删 `Resource`。
+    # 而 `period` 本身**仍然需要**（"这是每天/每周/每月的任务"）,
+    # 所以 S5 把它提升为**独立字段**（54 个 `meta.py` 各加一行）。
     period: Period = Period.NONE
-    # ⚠ `resource` 是**过渡用**的兼容字段（S5 完成后删除）
-    resource: object = None          # Resource; 用 object 避免循环 import
     requires: tuple = ()
     note: str = ''
     # ★★ 是否**自动进入执行队列**（用户确认的"任务类别属性"）★★
@@ -252,24 +250,23 @@ class TaskSpec:
 
     @property
     def period_effective(self):
-        """该任务的**周期**（`Period`）。
+        """该任务的**周期**（`Period`）—— 直接读**独立字段** `self.period`。
 
-        ## ★★ S5: 优先读**独立字段** `self.period` ★★
+        ## ★★ S5 完成: 过渡期的 `resource` 兜底已删除 ★★
 
-        原来只能从 `resource.recharge.period` 拿 —— 那是"存量机制"的一部分,
-        而用户要求**连 `charge_*` 和存量逻辑一起删**。
+        原来 `period` 只能从 `resource.recharge.period` 拿 —— 那是"存量机制"的
+        一部分。用户裁定:
 
-        所以先加独立的 `period` 字段, **旧的 `resource` 路径保留为兜底**
-        （过渡期), 等 54 个 `meta.py` 迁移完再删 `resource`。
+            "去掉组队协同，去掉存量次数。"
+            "去除旧的充能存量说法。现在靠 window 的**多次设置**完全可以做到正常运行。"
+            "连 `charge_*` 字段和存量逻辑一起删"
+
+        所以 S5 分两步: ① 先把 `period` 提升为独立字段（54 个 `meta.py` 各加一行）
+        ② 再删 `Resource` / `Recharge`。
+
+        ★ 现在 `resource` 字段**也已删除**, 这个属性就是**一层直读**。
         """
-        if self.period is not None and self.period != Period.NONE:
-            return self.period
-        # 兜底: 旧路径（`resource.recharge.period`）
-        r = self.resource
-        if r is None:
-            return self.period
-        legacy = getattr(getattr(r, 'recharge', None), 'period', None)
-        return legacy if legacy is not None else self.period
+        return self.period if self.period is not None else Period.NONE
 
     @property
     def declared_window(self):
@@ -355,15 +352,19 @@ class TaskSpec:
         |---|---|---|
         | `timed` | `NONE` | **`fixed`**（"不限"就不是定时任务）|
         | `timed` | 其它 | `timed` |
-        | `charge` / `toppa` / `limited` / `fixed` | 任意 | **保持声明** |
+        | `toppa` / `limited` / `fixed` | 任意 | **保持声明** |
 
         ## 为什么**不**无条件跟随（我实测过 (i) 并回退了）
 
-        无条件跟随会让:
-        * `GoldYoukai`（**charge 充能**）-> fixed
-        * `RealmRaid`（**toppa 结界突破**）-> fixed
+        无条件跟随会让 `RealmRaid`（**toppa 结界突破**）也变成 `fixed`
+        —— 那是**类别混淆**: 结界突破是独立类别, 不该因为 `period` 而被改判。
 
-        -> **总览页找不到充能存量**（`test_charge_tasks_can_find_charges` 失败）。
+        ★ 所以规则**限定在 `timed`**: 只有"声明为定时、但 `period` 不限"的才落到
+          `fixed`。`toppa` / `limited` / `fixed` **永远保持声明**。
+
+        ★ S5 后 `GoldYoukai` / `ExperienceYoukai` / `Tako` 从 `charge` 改判为
+          `timed`（它们的 `period=NONE`）, 因此**最终也是 `fixed`** ——
+          与用户此前裁定的"**period=none 时算'固定'**"一致。
 
         ★ 「充能（按存量在固定时刻补充）」与「固定（打满 N 次）」是**不同的
           游戏机制**, 被 `period=none` 抹平会丢语义。所以规则收窄到
@@ -617,10 +618,6 @@ def _load() -> tuple:
                 count_field=None,
                 count_default=None,
                 needs_unify=False,
-                has_charge=False,
-                charge_max=None,
-                charge_slots=None,
-                charge_consume=None,
                 has_limit_time=False,
                 success_interval=None,
             )

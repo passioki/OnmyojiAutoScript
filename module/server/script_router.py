@@ -140,7 +140,7 @@ async def script_task_status(script_name: str, task: str = '', peer: str = ''):
     :param task: 可选, 单个任务(下划线形式); 留空返回该账号全部任务
     :param peer: 可选, 只看指定对方账号
     :return: {config, at, tasks:[{name,command,enable,period,priority,next_run,
-             slot,last_success,completed,charges}], peers:[{config,online,charges}]}
+             slot,last_success,completed}], peers:[{config,online}]}
     """
     from module.config import task_state
 
@@ -161,7 +161,6 @@ async def script_task_status(script_name: str, task: str = '', peer: str = ''):
 
     summary = task_state.summarize(script_name, now=now)
     state_bucket = summary.get('global') or {}
-    charge_bucket = summary.get('charges') or {}
 
     wanted = convert_to_underscore(task) if task else ''
     tasks = []
@@ -189,7 +188,6 @@ async def script_task_status(script_name: str, task: str = '', peer: str = ''):
             'slot': _slot_of(command),
             'last_success': rec.get('last_success'),
             'completed': bool(rec.get('period_key')) and period_str != 'none',
-            'charges': charge_bucket.get(key),
         })
 
     peers = task_state.peers_status(script_name, task=wanted or None, now=now)

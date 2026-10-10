@@ -30,15 +30,14 @@ DIR = REPO / 'tasks' / FAKE
 
 META = '''# -*- coding: utf-8 -*-
 """演示: 新增一个游戏活动只需写这个文件。"""
-from module.config.resource import Period, Recharge, Resource
+from module.config.resource import Period
 from module.config.task_catalog import Category, TaskSpec
 
 SPEC = TaskSpec(
     task='ZZZDemoActivity',
     name_zh='演示新活动',
     category=Category.LIMITED,
-    resource=Resource(capacity=1,
-                      recharge=Recharge(kind='window', period=Period.DAILY)),
+    resource=Resource(capacity=1),
 )
 '''
 

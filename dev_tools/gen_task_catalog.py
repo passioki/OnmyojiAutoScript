@@ -254,10 +254,6 @@ def main() -> int:
             'count_default': (fields.get(count_field, {}) or {}).get('default')
                              if count_field else None,
             'needs_unify': bool(count_field and count_field != UNIFIED_COUNT_FIELD),
-            'has_charge': 'charge_max' in fields,
-            'charge_max': (fields.get('charge_max', {}) or {}).get('default'),
-            'charge_slots': (fields.get('charge_slots', {}) or {}).get('default') or None,
-            'charge_consume': (fields.get('charge_consume', {}) or {}).get('default'),
             'has_limit_time': 'limit_time' in fields,
             'fixed_schedule_time': (fields.get('next_ryoutoppa_time', {}) or {}).get('default'),
             'success_interval': intervals.get(snake(task)),

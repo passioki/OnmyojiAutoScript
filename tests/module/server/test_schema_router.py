@@ -140,12 +140,26 @@ class TestOverview:
         界面渲染所需的补充字段。
 
         ★ 这些字段存在是为了让前端**不必内置任务知识** ——
-          类别中文标签、列表位置、存量、资源描述全部由后端给出。
+          类别中文标签、列表位置、周期等全部由后端给出。
+
+        ★★ S5: 原来还要求 `charges`（存量）与 `resource_describe`（资源描述）
+           —— 用户裁定**去掉存量机制**, `Resource` 已删, 这两个字段随之删除。
         """
         for r in overview['tasks']:
-            for k in ('category_label', 'charges', 'list_pos', 'in_list',
-                      'resource_describe'):
+            for k in ('category_label', 'list_pos', 'in_list',
+                      'auto_queue', 'countable', 'period'):
                 assert k in r, f'{r.get("name")} 缺界面字段 {k}'
+
+    def test_charges_field_is_gone(self, overview):
+        """★ S5 回归守卫: 总览**不得**再有 `charges` / `resource_describe`。
+
+        用户裁定: "去掉组队协同，去掉存量次数" + "连 `charge_*` 字段和存量逻辑一起删"。
+        """
+        for r in overview['tasks']:
+            assert 'charges' not in r, \
+                f'{r.get("name")} 仍有 charges —— 存量字段应已删除'
+            assert 'resource_describe' not in r, \
+                f'{r.get("name")} 仍有 resource_describe —— Resource 已删除'
 
     def test_category_label_is_chinese(self, overview):
         """
@@ -177,21 +191,11 @@ class TestOverview:
             assert r['in_list'] == (r['list_pos'] is not None), \
                 f'{r["name"]}: in_list 与 list_pos 不一致'
 
-    def test_charges_shape_when_present(self, overview):
-        """
-        `charges` 的键名必须能对上 —— 归一化过的。
-
-        ⚠ 踩过的坑: `task_state.summarize()` 的键是**压缩小写**
-          (`experienceyoukai`), 而 `model_dump` 是**下划线**
-          (`experience_youkai`)。直接查**不报错、只是为空**。
-        """
-        for r in overview['tasks']:
-            c = r['charges']
-            if c is None:
-                continue
-            assert isinstance(c, dict)
-            assert 'count' in c and 'max' in c, f'{r["name"]} 的 charges 结构不对'
-
+    # ★★ S5: `test_charges_shape_when_present` **已删除** ★★
+    #
+    # 它断言 `r['charges']` 的结构（`count` / `max`）—— 存量机制已按用户裁定
+    # 删除（"去掉组队协同，去掉存量次数"）, 字段不存在了, 测试随之删除。
+    # 反向守卫见 `test_charges_field_is_gone`。
 
     def test_in_window_uses_meta_window(self, overview):
         """★ `in_window` 必须由**任务的 `meta.py` 窗口**决定, 不再恒为 True。

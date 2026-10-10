@@ -34,7 +34,10 @@ class TestTaskSpecConstruction:
         s = TaskSpec(task='Demo', name_zh='演示')
         assert s.task == 'Demo'
         assert s.category == Category.TIMED, '默认应为定时任务'
-        assert s.resource is None
+        # ★ S5: 原来还断言 `s.resource is None` —— `Resource` / `Recharge`
+        #   （存量机制）已按用户裁定删除, `TaskSpec.resource` 字段随之删除。
+        #   周期现在是**独立字段**。
+        assert s.period == Period.NONE, '默认周期应为 NONE（不限）'
         assert s.requires == ()
 
     def test_category_from_string(self):

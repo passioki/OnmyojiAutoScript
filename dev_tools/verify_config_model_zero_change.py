@@ -62,15 +62,14 @@ class ZZZDemoNewTask(ConfigBase):
 
 META_PY = '''# -*- coding: utf-8 -*-
 """演示: 新增任务的自描述。"""
-from module.config.resource import Period, Recharge, Resource
+from module.config.resource import Period
 from module.config.task_catalog import Category, TaskSpec
 
 SPEC = TaskSpec(
     task='ZZZDemoNewTask',
     name_zh='演示新任务',
     category=Category.FIXED,
-    resource=Resource(capacity=7,
-                      recharge=Recharge(kind='none', period=Period.DAILY)),
+    resource=Resource(capacity=7),
 )
 '''
 

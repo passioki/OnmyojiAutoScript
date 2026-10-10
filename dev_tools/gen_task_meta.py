@@ -13,14 +13,13 @@
 
 ## 生成的 meta.py 长什么样
 
-    from module.config.resource import Period, Recharge, Resource
+    from module.config.resource import Period
     from module.config.task_catalog import Category, TaskSpec
 
     SPEC = TaskSpec(
         task='FallenSun',
         name_zh='日轮之陨',
         category=Category.FIXED,
-        resource=Resource(capacity=50, recharge=Recharge(period=Period.DAILY)),
     )
 
 ## 幂等与安全
@@ -74,61 +73,36 @@ HEADER = '''# -*- coding: utf-8 -*-
 
 类别依据: {category_note}
 """
-from module.config.resource import Period, Recharge, Resource  # noqa: F401
+from module.config.resource import Period  # noqa: F401
 from module.config.task_catalog import Category, TaskSpec  # noqa: F401
 
 SPEC = TaskSpec(
     task={task!r},
     name_zh={name_zh!r},
     category=Category.{category_upper},
-{list_pos_block}{requires_block}{note_block}    resource={resource_expr},
+{list_pos_block}{requires_block}{note_block}    period={resource_expr},
 )
 '''
 
 
 def resource_expr(res: dict) -> str:
-    """把 resource_specs.json 里的一条转成 Resource(...) 表达式。"""
-    kind = res.get('refill', 'none')
-    cap = res.get('capacity', 1)
-    consume = res.get('consume', 1)
+    """把 `resource_specs.json` 里的一条转成 **`period=`** 表达式。
+
+    ## ★★ S5: `Resource(...)` 已删除 ★★
+
+    用户裁定: "去掉组队协同，去掉存量次数" + "连 `charge_*` 字段和存量逻辑一起删"。
+
+    原来这里生成 `resource=Resource(capacity=..., recharge=Recharge(...))`
+    —— `Resource` / `Recharge` 已删, 所以改成只生成**唯一还有意义的**
+    `period=Period.XXX`（`TaskSpec.period` 在用）。
+
+    ★ 容量 / 补充时刻 / 每次消耗这些**存量概念**已在窗口机制里消失,
+      所以这些参数**直接丢弃**（不再有对应的字段）。
+    """
     period = res.get('period', 'none')
-    amount = res.get('amount', 1)
-
-    parts = []
-    if consume != 1:
-        parts.append(f'consume={consume}')
-
-    recharge_parts = [f"kind={kind!r}"]
-
-    if kind == 'interval':
-        iv = res.get('interval') or {}
-        recharge_parts.append(
-            f"interval=({iv.get('days', 0)}, {iv.get('hours', 0)}, "
-            f"{iv.get('minutes', 0)})")
-    elif kind == 'slots':
-        slots = []
-        for s in res.get('slots') or []:
-            h, m = s.split(':')
-            slots.append(f'({int(h)}, {int(m)})')
-        recharge_parts.append(f"slots=({', '.join(slots)},)")
-        # 充能类的语义是"补充时刻回满可用次数"
-        if cap > 1:
-            recharge_parts.append('refill_to_full=True')
-
-    if period != 'none':
-        recharge_parts.append(f'period=Period.{period.upper()}')
-    # `amount` 只在**增量式**补充(interval/slots 且不回满)时有意义;
-    # 周期重置固定回满 capacity, 写 amount 是冗余且会误导读者。
-    if amount != 1 and kind in ('interval', 'slots') \
-            and not res.get('refill_to_full'):
-        recharge_parts.append(f'amount={amount}')
-
-    expr = f'Resource(capacity={cap}'
-    if parts:
-        expr += ', ' + ', '.join(parts)
-    expr += f", recharge=Recharge({', '.join(recharge_parts)})"
-    expr += ')'
-    return expr
+    if period == 'none':
+        return ''
+    return f'Period.{period.upper()}'
 
 
 def main() -> int:

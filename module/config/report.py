@@ -64,9 +64,8 @@ def build_report(config_name: str, now: datetime = None) -> dict:
     runs = _safe(lambda: _runs(config_name), {})
     completed = _safe(lambda: _completed(config_name, now), set())
     fails = _safe(lambda: _fails(config_name, now), {})
-    charges = _safe(lambda: _charges(config_name), {})
 
-    names = sorted(set(runs) | set(completed) | set(fails) | set(charges))
+    names = sorted(set(runs) | set(completed) | set(fails))
 
     for key in names:
         r = runs.get(key) or {}
@@ -83,10 +82,6 @@ def build_report(config_name: str, now: datetime = None) -> dict:
             'cooldown_until': f.get('cooldown_until'),
             'cooldown_minutes': int(f.get('cooldown_minutes') or 0),
         }
-        if key in charges:
-            c = charges[key]
-            row['charges'] = {'count': c.get('count'), 'max': c.get('max')}
-
         # ---- 标注（用户要求"出错任务标注"）----
         marks = []
         if row['in_cooldown']:
@@ -221,10 +216,3 @@ def _minutes_left(cooldown_until, now: datetime) -> int:
     except Exception:
         return 0
 
-
-def _charges(config_name: str) -> dict:
-    """充能任务的剩余次数。"""
-    from module.config import task_state
-    data = task_state.summarize(config_name) or {}
-    got = data.get('charges') or {}
-    return {str(k).lower(): v for k, v in got.items() if isinstance(v, dict)}

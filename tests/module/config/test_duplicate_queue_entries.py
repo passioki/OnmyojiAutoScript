@@ -45,14 +45,26 @@ class TestCandidatesAllowDuplicates:
     """★ 障碍 1: 候选端点**不该**排除"已在队列"的任务。"""
 
     def test_source_does_not_filter_queued(self):
-        """源码里候选规则**不该**再有 `if command in queued: continue`。"""
-        import re
-        src = (REPO / 'module' / 'server' / 'schema_router.py').read_text(
-            encoding='utf-8')
-        i = src.find('async def get_queue_candidates')
-        assert i > 0
-        j = src.find('\n@', i)
-        body = src[i:j if j > i else i + 4000]
+        """源码里候选规则**不该**再有 `if command in queued: continue`。
+
+        ## ★ 第二轮复审修复: 必须**剥注释**（正反两个方向都会错）
+
+        复审员指出这条与 `test_execution_queue.py` 的
+        `test_candidates_endpoint_filters_correctly` **是同一守卫的第二份**,
+        而**这份没剥注释**:
+          * 反向断言 `'if command in queued' not in body` ->
+            只要注释里**解释历史**就会**假失败**
+          * 正向断言 `'_auto_queue_of(meta)' in body` ->
+            只要注释里提一句就**假通过**
+
+        ★ 改用 `_srcutil.code_of()`（剥注释 + 剥 docstring）。
+        ★ 报告还建议"两份守卫合并成一份" —— 已在两边都注明彼此,
+          保留两份是因为**跨端**（这一份测 `/queue/candidates`, 另一份
+          测同一端点的**过滤器**）观察角度不同。
+        """
+        from _srcutil import code_of
+        body = code_of(REPO / 'module' / 'server' / 'schema_router.py',
+                       'async def get_queue_candidates')
         assert 'if command in queued' not in body, (
             '候选端点仍在排除"已在队列"的任务 —— '
             '用户要求可以重复添加相同的任务')

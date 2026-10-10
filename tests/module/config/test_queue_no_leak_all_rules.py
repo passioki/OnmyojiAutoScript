@@ -124,14 +124,37 @@ class TestQueueIsAuthorityForAllRules:
             f'  实际        : {p}')
 
     def test_non_list_branch_orders_by_queue(self):
-        """★ 源码守卫: 非 LIST 分支必须调用 `_order_by_queue()`。"""
-        src = (REPO / 'module' / 'config' / 'config.py').read_text(
-            encoding='utf-8')
-        i = src.find('if self._is_list_rule(_rule):')
-        j = src.find('_order_by_manual_run', i)
-        seg = src[i:j]
-        assert '_order_by_queue' in seg, \
-            '非 LIST 分支缺 `_order_by_queue()` -> 队列外任务会泄漏'
+        """★ 源码守卫（**第二轮复审重写**）: `update_scheduler` 必须走
+        `_order_by_queue()`。
+
+        ## ★★ 原来这条是"注释驱动的假绿" ★★
+
+        原文:
+            i = src.find('if self._is_list_rule(_rule):')
+            j = src.find('_order_by_manual_run', i)
+            seg = src[i:j]
+            assert '_order_by_queue' in seg
+
+        ★ 复审员实测: `i=29913, j=31830, seg len=1917` —— 那段**几乎
+        完全落在注释里**, 命中来源是 **T1 自己写的**那句
+        `` # 原来这里是 `if self._is_list_rule(_rule): ... else: ...` ``。
+        ★ 于是这条测试**永远通过**, 与生产代码是否真调 `_order_by_queue()`
+        **无关**。（本仓已记录过 3 次"守卫匹配到自己的说明文字", 这是第 4 次。）
+
+        ★ 修法: 用 `tests/_srcutil.py` 的 `code_of()`（**剥注释 + 剥
+        docstring**）取 `update_scheduler` 的**函数体**再断言。
+        """
+        from _srcutil import code_of
+        body = code_of(REPO / 'module' / 'config' / 'config.py',
+                       'def update_scheduler')
+        assert '_order_by_queue(' in body, (
+            '`update_scheduler` 缺 `_order_by_queue()` -> 队列外任务会泄漏')
+        # ★ 反向: T1 之后**不得**再调 `TaskScheduler.schedule()`
+        assert 'TaskScheduler.schedule(' not in body, (
+            'T1 之后不应再调 `TaskScheduler.schedule()`')
+        # ★ 反向: 那段 `if self._is_list_rule` 分支**已被合并掉**
+        assert '_is_list_rule(_rule)' not in body, (
+            '`if _is_list_rule(_rule)` 分支已被 T1 合并, 不该还在')
 
     def test_timed_priority_not_used_to_reorder(self):
         """★★ S6: `_order_by_timed_priority()` **已被删除** ★★

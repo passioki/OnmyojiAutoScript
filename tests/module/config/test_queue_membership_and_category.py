@@ -135,9 +135,16 @@ class TestPriorityModeHint:
             '前端应读后端给的 `priority_mode`（不硬编码）'
 
     def test_backend_returns_drag_flag(self):
-        """★ 后端要给出 `drag_within_group_only` —— 前端据此决定拖动范围。"""
-        src = (REPO / 'module' / 'server' / 'schema_router.py').read_text(
-            encoding='utf-8')
+        """★ 后端要给出 `drag_within_group_only` —— 前端据此决定拖动范围。
+
+        ## ★ 第二轮复审修复: 必须**剥注释**再断言
+
+        原来直接 `assert 'drag_within_group_only' in src` —— 复审员实测
+        `schema_router.py` 的 **docstring 里就有这个词**, 于是把三处真代码
+        全删掉**这条仍然通过**。★ 正是本仓反复踩的"守卫匹配到自己的说明文字"。
+        """
+        from _srcutil import code_only
+        src = code_only(REPO / 'module' / 'server' / 'schema_router.py')
         assert 'drag_within_group_only' in src, \
             '后端未给出拖动范围标记'
 
@@ -157,10 +164,10 @@ class TestPriorityModeHint:
           * `_order_by_timed_priority` **不存在**了
           * 排段由 `priority_mode` / `_segment_queue()` 负责
         """
-        src = (REPO / 'module' / 'config' / 'config.py').read_text(
-            encoding='utf-8')
+        from _srcutil import code_only
+        src = code_only(REPO / 'module' / 'config' / 'config.py')
         assert 'def _order_by_timed_priority' not in src, \
             '旧排序函数应已删除（S6 三模式取代）'
         assert 'def _segment_queue' in src, \
             '应有 `_segment_queue()` 负责按 priority_mode 排段'
-        assert "priority_mode" in src
+        assert 'priority_mode' in src

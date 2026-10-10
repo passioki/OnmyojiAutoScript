@@ -133,6 +133,17 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
         self.goto_page(page_hyakkiyakou)
 
         while 1:
+            # ★★★ 任务级暂停安全点（A 方案的排除名单任务）★★★
+            #
+            # 用户确认: 第一件按 **A**（框架级兜底）做。
+            # ⚠ 但 `Hyakkiyakou` 在**排除名单**里 —— `one()` 会调
+            #   `self.invite_friend()`（`hya_invite_friend` 开启时）,
+            #   中途停下会让队友干等（不可回滚）。所以框架级 `screenshot()`
+            #   检查**不覆盖**它。
+            #
+            # ★ 这里手放一个**任务级**安全点: 位置在**每轮之间** ——
+            #   上一轮已完整结束（含可能的邀请）, 下一轮还没开始。
+            self.raise_if_paused()
             if hya_count >= self.limit_count:
                 logger.info('Hyakkiyakou count limit out')
                 break

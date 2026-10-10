@@ -17,6 +17,18 @@ class ScriptTask(GameUi, FindJadeAssets):
         self.fade_conf = self.config.find_jade
 
         for accountInfo in self.fade_conf.sup_account_list:
+            # ★★★ 任务级暂停安全点（A 方案的排除名单任务）★★★
+            #
+            # 用户确认: 第一件按 **A**（框架级兜底）做。
+            # ⚠ 但 `FindJade` 在**排除名单**里（它会给真人发邀请 ——
+            #   中途停下会让队友干等, 不可回滚）, 所以框架级 `screenshot()`
+            #   检查**不覆盖**它。
+            #
+            # ★ 所以这里手放一个**任务级**安全点: 位置在**账号切换的间隙**
+            #   —— 当前账号已完整跑完（登录 / 找勾协 / 保存历史都做完）,
+            #   下一个账号还没登录。中断在这里**不会留下半个账号的状态**。
+            from tasks.base_task import BaseTask  # noqa: F401  (类型提示用)
+            self.raise_if_paused()
             logger.info("start %s-%s ", accountInfo.character, accountInfo.svr)
             if not self.is_need_login(accountInfo):
                 logger.warning("%s Skipped last Login Time:%s", accountInfo.character, accountInfo.last_complete_time)

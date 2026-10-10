@@ -5,6 +5,7 @@
 import inspect
 import inflection
 import random
+from contextlib import contextmanager
 from typing import Union
 from datetime import datetime, timedelta, time as dt_time
 from pathlib import Path
@@ -367,6 +368,119 @@ class BaseTask(GlobalGameAssets, CostumeBase):
             logger.info('收到暂停请求: 已在安全点(本场战斗已结束)中断当前任务')
             raise TaskPaused()
 
+    # ------------------------------------------------------------------ 暂停护栏
+    #
+    # ★★★ 框架级兜底（A 方案, 用户确认）★★★
+    #
+    # 背景: 只有 15/54 个任务自己调了 `raise_if_paused()`; 其余 21 个
+    #（不使用 `GeneralBattle` 的）**完全没有暂停检查点** -> 点「暂停调度」
+    # 它们一直跑到自己结束（用户报的 1a）。
+    #
+    # ★ 做法: 在 `screenshot()` 这个**公共入口**上加检查 —— 一处改, 54/54 覆盖。
+    #
+    # ⚠ **代价（必须知道）**: `screenshot()` 在**任何**循环里都会被调,
+    #   所以它比"战斗结束"**更早**中断 —— 可能在某个界面操作的中途停下。
+    #   对大多数任务是安全的（游戏状态是持久的、下次会重来）,
+    #   但**组队类**任务中途停下会让**队友干等**。
+    #
+    # ★ 所以有两道闸:
+    #   ① `PAUSE_FRAMEWORK_EXEMPT` —— 需要人工确认的**永久排除名单**
+    #   ② `pause_blocked()`       —— 任务可临时把自己的**临界区**保护起来
+    #      （如"已经在房间里了, 让我把这一轮打完"）
+
+    #: ★ 框架级暂停检查的**排除名单**（需要逐个人工确认）。
+    #:
+    #: 判据: **会邀请真人队友 / 让第三方等待**的任务。
+    #: 在这些任务里于 `screenshot()` 处中断, 会让队友卡在房间里 ——
+    #: 那是**不可回滚**的社交代价（比"多跑一会儿"严重得多）。
+    #:
+    #: ⚠ 这份名单是**实测 + 人工确认**的, 不是关键词猜的:
+    #:   `MysteryShop` / `FindJade` / `Hyakkiyakou` 有**真实的
+    #:   `invite_friend(...)` 调用**（见各任务 `script_task.py`）。
+    #:
+    #: ★ 名单里的任务**不是**没有暂停能力 —— 它们仍可在自己的
+    #:   **任务级安全点**（`raise_if_paused()`）被停; 只是不走框架级兜底。
+    PAUSE_FRAMEWORK_EXEMPT = (
+        'MysteryShop',    # invite_friend(...)  —— 组队邀请
+        'FindJade',       # invite_type / invite_history —— 邀请配置
+        'Hyakkiyakou',    # invite_friend 策略 —— 邀请
+    )
+
+    def pause_blocked(self) -> bool:
+        """当前是否处于**临界区**（任务要求"暂时别打断我"）。
+
+        任务可在"已经进了房间 / 正在结算 / 正在购买"等**不可回滚**的片段里
+        临时挡一下, 例如::
+
+            with self.pause_protected():
+                self.enter_room_and_fire()
+
+        ★ 为什么要这个: 框架级检查发生在 `screenshot()` —— 那是**任意时刻**。
+          有些片段被打断的代价很高（队友在等 / 道具已消耗）。
+        """
+        return int(getattr(self, '_pause_block_depth', 0) or 0) > 0
+
+    @contextmanager
+    def pause_protected(self):
+        """上下文管理器: 这段代码里**不响应**「暂停调度」（见 `pause_blocked`）。
+
+        ★ 可嵌套（引用计数）。★ 退出时一定会减回去（`finally`）。
+        """
+        self._pause_block_depth = int(
+            getattr(self, '_pause_block_depth', 0) or 0) + 1
+        try:
+            yield
+        finally:
+            self._pause_block_depth = max(
+                0, int(getattr(self, '_pause_block_depth', 0) or 0) - 1)
+
+    def _pause_check_at_screenshot(self) -> None:
+        """★ 框架级暂停兜底 —— 在 `screenshot()` 时检查（A 方案）。
+
+        ## 为什么放在这里
+
+        `screenshot()` 是**所有任务循环**都会经过的公共入口
+        （实测 21 个非战斗任务的每个 `while` 里都有它）。
+        ★ 一处改动 -> **54/54** 任务都能被「暂停调度」停下
+          （此前只有 33 个, 见 `raise_if_paused` 的说明）。
+
+        ## 三道闸（缺一不可）
+
+        1. **模式闸**: 只在 `PAUSE_BATTLE`（"跑完当前这场战斗就停"）下生效。
+           ★ `PAUSE_ROUND`（"本轮打满再停"）**必须**交给任务自己判断
+             （它要知道 `limit_count` / `current_count`）——
+             框架层没有那个知识, 硬判会**破坏"跑完本轮"的语义**。
+        2. **排除闸**: `PAUSE_FRAMEWORK_EXEMPT` 里的任务跳过
+           （组队类, 中途停下会让队友干等）。
+        3. **临界区闸**: `pause_blocked()` 为真时跳过。
+
+        ## 失败安全
+
+        ★ 任何异常都**只记日志、绝不抛出** —— 暂停检查绝不能打扰任务运行
+          （这个项目里"状态读取失败把任务卡死"是明确要避免的）。
+        """
+        try:
+            # ① 临界区 / 排除名单
+            if self.pause_blocked():
+                return
+            if self.get_task_name() in self.PAUSE_FRAMEWORK_EXEMPT:
+                return
+            # ② 模式闸（只处理 battle；round 交给任务自己）
+            from module.config import run_control
+            if not run_control.is_paused():
+                return
+            if run_control.pause_mode() != run_control.PAUSE_BATTLE:
+                return
+            # ③ 命中 -> 中断（收尾由 `script.py` 的 finally 保证）
+            from module.exception import TaskPaused
+            logger.info(f'{self.get_task_name()}: 收到暂停请求'
+                        f'（框架级检查点, 位置=截图后）, 中断当前任务')
+            raise TaskPaused()
+        except TaskPaused:
+            raise
+        except Exception as exc:
+            logger.debug(f'暂停检查异常({type(exc).__name__}: {exc}), 忽略')
+
     def get_task_name(self) -> str:
         """
         取任务名, 以任务类所在目录名为准。
@@ -476,6 +590,18 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         self.device.screenshot()
         # 判断勾协
         self._burst()
+
+        # ★★★ 框架级「暂停调度」兜底（A 方案, 用户确认）★★★
+        #
+        # ★ 为什么放这里: `screenshot()` 是**所有任务循环**都会经过的公共入口
+        #   （实测那 21 个不使用 `GeneralBattle` 的任务, 每个 `while` 里都有它）。
+        #   一处改动 -> **54/54** 任务都能被暂停停下（此前只有 33 个）。
+        #
+        # ⚠ 它比"战斗结束"更早中断（可能停在界面操作中途）—— 三道闸 + 排除名单
+        #   见 `_pause_check_at_screenshot()` 的 docstring。
+        # ⚠ 放在 `_burst()` **之后**: 勾协是"突然事件", 先处理完它再考虑暂停,
+        #   免得暂停把协作响应打断（那是要立刻做的）。
+        self._pause_check_at_screenshot()
 
         # # 判断网络异常
         # if self.appear(self.I_NETWORK_ABNORMAL):

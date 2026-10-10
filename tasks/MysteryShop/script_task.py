@@ -31,6 +31,18 @@ class ScriptTask(FriendshipPoints, MysteryShopAssets, GeneralInvite):
         con = self.config.mystery_shop
         self.share(con.share_config)
         while 1:
+            # ★★★ 任务级暂停安全点（A 方案的排除名单任务）★★★
+            #
+            # 用户确认: 第一件按 **A**（框架级兜底）做。
+            # ⚠ 但 `MysteryShop` 在**排除名单**里 —— 它的 `share()` 会给
+            #   真人发**组队邀请**（`self.invite_friend(...)` × 5）,
+            #   中途停下会让队友干等（不可回滚）。所以框架级 `screenshot()`
+            #   检查**不覆盖**它。
+            #
+            # ★ 这里手放一个**任务级**安全点: 位置在**每个好友的商店之间**
+            #   —— 上一个好友的商店已逛完（购买 + 结算都完成）,
+            #   下一个好友还没开始。中断在这里**不会留下半个邀请**。
+            self.raise_if_paused()
             self.run_shop(con.shop_config)
             if not self.next_one():
                 break

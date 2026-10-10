@@ -2601,3 +2601,86 @@ ryou_toppa: 1 个窗口  旧字段残留=[]
 | **S5** | **删除充能存量**（71 文件 / 327 行, 含 `charge_*` 字段 + `Category.CHARGE`）|
 | **S6** | `priority_mode` 三模式 + `run_list` **类别分段** + 拖动约束 |
 
+---
+
+# 34. S4（后端部分）: 窗口 CRUD 端点 + 清掉弃用警告
+
+## 34.1 ✅ 5 个端点（**按 `id`**, 不按下标）
+
+设计依据: `docs/scheduler-architecture.md` §5.1。
+
+| 操作 | 端点 |
+|---|---|
+| 查 | `GET /{script}/tasks/{task}/windows` |
+| 整单替换 | `PUT /{script}/tasks/{task}/windows` |
+| 增 | `POST /{script}/tasks/{task}/windows`（后端生成 `id`）|
+| 改 | `PUT /{script}/tasks/{task}/windows/{id}`（**`id` 不可改**）|
+| 删 | `DELETE /{script}/tasks/{task}/windows/{id}` |
+
+**实测**（`恋鸟树`/`restart`）:
+```
+① GET      -> 2 个窗口 [12:00-14:00, 20:00-22:00]
+② PUT 3 条 -> count=3, id 全部自动补齐
+③ PUT by id -> 只改那一条, 另一条不动
+④ DELETE by id -> 剩 2 个, 只少了一条     ★ 与队列 ⑨ 同类问题已避免
+⑤ DELETE 乱 id -> error「找不到窗口 id='no-such'」★ 不静默成功
+```
+
+★ **为什么按 `id`**: 窗口是**原子实体**, 按**下标**删在"前端重排后"会删错
+  —— 与队列条目 ⑨（按任务名删导致一删全删）是**同一类**错误（§1.5）。
+
+## 34.2 ★ 修掉 2 个 pydantic 问题（实测发现）
+
+### 问题 1: 赋值 dict -> 序列化警告
+
+`sch.windows = [dict, ...]` —— pydantic v2 **默认不在赋值时校验**,
+于是列表里躺着 dict:
+```
+UserWarning: Expected `TaskWindow` but got `dict` ... serialized value may not be as expected
+```
+**修**: 用 `TaskWindow.model_validate()` **显式**转换（顺带做业务校验）。
+
+### 问题 2: `.dict()` 已弃用（8 处）
+
+```
+UserWarning: The `dict` method is deprecated; use `model_dump` instead.
+Deprecated in Pydantic V2.0 to be removed in V3.0.
+```
+**修**: 全部改 `model_dump()`（`config.py` / `config_model.py` /
+`config_modify.py` / `tool_router.py`）。
+
+★ 用户要求"**每一步都要确认前后端代码, 检查事实实现是否符合记忆**" ——
+  这类**弃用警告**也是"事实与记忆不一致", 该清掉（否则 V3 升级会崩）。
+**现在 `-W error::UserWarning` 下加载 + `update_scheduler()` 全程无警告。**
+
+## 34.3 ⚠️ 我又污染了一次配置（如实记录）
+
+我用**生产端点**做 CRUD 实测时, "按 id 改"那一步返回了 `KeyError`
+（我的测试脚本 bug）-> **`finally` 没跑到** -> `恋鸟树/restart` 被留在
+`01:00-02:00` + `12:00-14:00`（**错的**）。
+
+**发现方式**: 全量测试里 `test_restart_has_two_windows` 失败。
+**修复**: 用**要交付的 API**（`PUT /windows`）恢复成 12:00-14:00 + 20:00-22:00,
+并**复核 GET** 确认。**已核对磁盘**。
+
+★ 这是本会话**第三次**同类错误（§26 `task_state.clear`、§29 `run_list`
+  被清空）。**根因**: 在**实时配置**上跑有副作用的脚本/测试, 且还原逻辑
+  放在"成功路径"之后。**新守卫**已用 `restored` fixture（备份 + **必定还原**）。
+
+## 34.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1751 passed, 3 skipped**（+11 守卫）|
+| 前端 flutter test | **85 passed** |
+| pydantic 警告 | ★ **零**（`-W error::UserWarning` 通过）|
+| `恋鸟树/restart` | 12:00-14:00 + 20:00-22:00 ✓（已复核）|
+
+## 34.5 待做
+
+| 步 | 内容 |
+|---|---|
+| **S4 前端** | ★ **窗口列表编辑器**（增 / 删 / 改）—— **前端目前没有这块 UI** |
+| **S5** | 删除充能存量（71 文件 / 327 行, 含 `charge_*` + `Category.CHARGE`）|
+| **S6** | `priority_mode` 三模式 + `run_list` 类别分段 + 拖动约束 |
+

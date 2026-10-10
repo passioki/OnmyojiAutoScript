@@ -507,7 +507,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         保存配置文件
         :return:
         """
-        self.model.write_json(self.config_name, self.model.dict())
+        self.model.write_json(self.config_name, self.model.model_dump())
 
     # ------------------------------------------------------------------ 一次性迁移
     def migrate_windows_once(self) -> bool:
@@ -569,7 +569,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         waiting_task = []
         error = []
         self.scheduler_update_dt = datetime.now()
-        for key, value in self.model.dict().items():
+        for key, value in self.model.model_dump().items():
             func = Function(key, value)
             if not func.enable:
                 continue
@@ -681,7 +681,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 kept = []
                 for f in pending_task:
                     tk = convert_to_underscore(getattr(f, 'command', '') or '')
-                    tv = self.model.dict().get(tk) or {}
+                    tv = self.model.model_dump().get(tk) or {}
                     if self._skip_by_period(
                             tk, tv,
                             entry_id=getattr(f, 'entry_id', None)):

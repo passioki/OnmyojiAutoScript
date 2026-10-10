@@ -1092,6 +1092,164 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
         return {'error': str(exc)}
 
 
+# ============================================================ 窗口 CRUD（S4）
+#
+# 设计: `docs/scheduler-architecture.md` §5.1。
+# ★ **按 `id`** 定位（"身份不是位置" —— 踩过按下标删错条目）。
+
+def _windows_of(config, task: str):
+    """取某任务的 `windows` 列表（`[{...}]`）与 `scheduler` 对象。
+
+    :return: `(scheduler_obj, [窗口dict...])`; 任务不存在时 `(None, None)`
+    """
+    from module.config.config_model import convert_to_underscore
+    key = convert_to_underscore(task)
+    node = getattr(config.model, key, None)
+    if node is None:
+        return None, None
+    sch = getattr(node, 'scheduler', None)
+    if sch is None:
+        return None, None
+    ws = [w.model_dump() if hasattr(w, 'model_dump') else dict(w)
+          for w in (getattr(sch, 'windows', None) or [])]
+    return sch, ws
+
+
+def _to_task_window(item: dict, *, new_id: bool = False):
+    """把 dict 转成 `TaskWindow`（**显式**校验 + 类型正确）。
+
+    ★ 必须先转: `sch.windows = [dict, ...]` 时 pydantic v2 **默认不在赋值时
+      校验** -> 列表里躺着 dict -> 序列化警告
+      （`Expected TaskWindow but got dict`, 实测踩过）。
+    """
+    from tasks.Component.config_scheduler import TaskWindow
+    return TaskWindow.model_validate(_normalize_window(item, new_id=new_id))
+
+
+def _normalize_window(item: dict, *, new_id: bool = False) -> dict:
+    """把前端传来的一条窗口**规范化**（补 id / 补默认）。
+
+    ★ 不做业务校验（交给 pydantic `TaskWindow`）—— 这里只保证"有 id"。
+    """
+    import uuid
+    d = dict(item or {})
+    if new_id or not str(d.get('id') or '').strip():
+        d['id'] = uuid.uuid4().hex[:8]
+    return d
+
+
+@schema_app.get('/{script_name}/tasks/{task}/windows')
+async def get_task_windows(script_name: str, task: str):
+    """查某任务的**窗口列表**。"""
+    try:
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        sch, ws = _windows_of(config, task)
+        if sch is None:
+            return {'error': f'找不到任务 {task!r}'}
+        return {'script': script_name, 'task': task, 'windows': ws,
+                'count': len(ws)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.put('/{script_name}/tasks/{task}/windows')
+async def put_task_windows(script_name: str, task: str,
+                           windows: list = Body(...)):
+    """**整单替换**窗口列表（前端列表编辑器一次提交全部）。
+
+    ★ 为什么也提供整单替换: 前端编辑多条后一次保存最简单可靠,
+      也避免"改到一半只写了一半"的中间态（与 `PUT run_list` 同理）。
+    ★ `id` 缺失的项会自动补 —— 前端新增行可以不生成 id。
+    """
+    try:
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        sch, _ = _windows_of(config, task)
+        if sch is None:
+            return {'error': f'找不到任务 {task!r}'}
+        # ★ 先转 `TaskWindow`（显式校验 + 类型正确）
+        cleaned = [_to_task_window(w) for w in (windows or [])]
+        sch.windows = cleaned
+        config.save()
+        _, ws = _windows_of(config, task)
+        return {'ok': True, 'script': script_name, 'task': task,
+                'windows': ws, 'count': len(ws)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.post('/{script_name}/tasks/{task}/windows')
+async def post_task_window(script_name: str, task: str,
+                           window: dict = Body(...)):
+    """**新增**一条窗口（后端生成 `id`）。"""
+    try:
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        sch, _ = _windows_of(config, task)
+        if sch is None:
+            return {'error': f'找不到任务 {task!r}'}
+        item = _to_task_window(window, new_id=True)
+        sch.windows = list(getattr(sch, 'windows', None) or []) + [item]
+        config.save()
+        _, ws = _windows_of(config, task)
+        return {'ok': True, 'added': item.model_dump(), 'windows': ws, 'count': len(ws)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.put('/{script_name}/tasks/{task}/windows/{window_id}')
+async def put_task_window(script_name: str, task: str, window_id: str,
+                          window: dict = Body(...)):
+    """**改**一条窗口（**按 `id`**）。"""
+    try:
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        sch, ws = _windows_of(config, task)
+        if sch is None:
+            return {'error': f'找不到任务 {task!r}'}
+        idx = next((i for i, w in enumerate(ws)
+                    if str(w.get('id')) == window_id), None)
+        if idx is None:
+            return {'error': f'找不到窗口 id={window_id!r}'}
+        item = _to_task_window(window)
+        item.id = window_id                       # ★ id 不可改
+        ws[idx] = item
+        sch.windows = ws
+        config.save()
+        _, after = _windows_of(config, task)
+        return {'ok': True, 'updated': item.model_dump(), 'windows': after,
+                'count': len(after)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@schema_app.delete('/{script_name}/tasks/{task}/windows/{window_id}')
+async def delete_task_window(script_name: str, task: str, window_id: str):
+    """**删**一条窗口（**按 `id`**）。"""
+    try:
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        sch, ws = _windows_of(config, task)
+        if sch is None:
+            return {'error': f'找不到任务 {task!r}'}
+        kept = [w for w in ws if str(w.get('id')) != window_id]
+        if len(kept) == len(ws):
+            return {'error': f'找不到窗口 id={window_id!r}'}
+        sch.windows = kept
+        config.save()
+        _, after = _windows_of(config, task)
+        return {'ok': True, 'removed': window_id, 'windows': after,
+                'count': len(after)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
 @schema_app.post('/{script_name}/queue/clear')
 async def post_queue_clear(script_name: str):
     """**一键清空执行队列**（用户要求, ⑦）。

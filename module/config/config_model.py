@@ -648,8 +648,8 @@ class _ConfigModelBase(ConfigBase):
 
     def reset_datetime_for_all_enabled_tasks(self, task_datetime: datetime):
         logger.warn(f"trying to reset datetime of all tasks to: {task_datetime}")
-        # logger.info(f"current config: {self.dict()}")
-        data = self.dict()
+        # logger.info(f"current config: {self.model_dump()}")
+        data = self.model_dump()
         self.replace_next_run(data, task_datetime)
         # logger.info(f"new config: {data}")
 

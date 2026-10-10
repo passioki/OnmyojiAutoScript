@@ -340,20 +340,32 @@ class TestRunListSection:
             assert k not in lst, (
                 f'`list.{k}` 是**已废弃**的调度模式死链 —— 四个旧模式'
                 '（Filter/FIFO/Priority/List）T1 后不再影响排序, '
-                'S6 已并入 `priority_mode` 三模式。'
-                '★ 现行做法: 读 `global_fields.priority_mode`'
-                '（见 test_priority_mode_is_in_global_fields）')
+                'S6 曾并入 `priority_mode` 三模式, 而**三模式本身也已在'
+                '架构简化中删除**。'
+                '★ 现行做法: 没有"模式"这个概念了 —— 执行顺序就是 `run_list`'
+                '的顺序; 排序是 `PUT /{script}/queue/sort` 的**一次性动作**')
 
-    def test_priority_mode_is_in_global_fields(self, schema):
-        """★ 现行做法: 三模式从 **`global_fields.priority_mode`** 读。"""
+    def test_priority_mode_is_not_in_global_fields(self, schema):
+        """★★ 反向断言: `global_fields` **不含** `priority_mode`（用户裁定）★★
+
+        用户原话:
+        > "固定任务优先和定时任务优先以及**不能跨类别拖动太蠢了**……
+        >  而不是定义一些没有意义的不能跨类别拖动以及**单独的调度优先级**。"
+
+        ★ 所以 `global_fields` 现在**只有 4 个键**, 且**没有**"模式"这个概念。
+          排序改成一个**动作**: `PUT /{script}/queue/sort` body `{"by": ...}`。
+        """
         gf = schema['list'].get('global_fields') or {}
-        assert 'priority_mode' in gf, (
-            f'`global_fields` 里应有 `priority_mode`（三模式）—— '
-            f'实际: {sorted(gf)}')
-        pm = gf['priority_mode']
-        assert pm.get('choices'), '`priority_mode` 应带 `choices`（前端不硬编码）'
-        vals = {c['value'] for c in pm['choices']}
-        assert vals == {'timed_first', 'fixed_first', 'custom'}, vals
+        assert 'priority_mode' not in gf, (
+            f'`priority_mode` 应已删除（它定义了一个"状态", 而用户要的是'
+            f'"一次性快捷排序"）—— 实际: {sorted(gf)}')
+        assert set(gf) == {'enable_fixed', 'enable_timed', 'rest_interleave',
+                           'when_task_queue_empty'}, (
+            f'`global_fields` 应**恰好**只有这 4 个键, 实际: {sorted(gf)}')
+        # ★ 反向守卫: 旧的拖动范围标记也不该回来
+        for key in ('drag_within_group_only', 'timed_priority',
+                    'schedule_rule'):
+            assert key not in gf, f'`{key}` 不该再暴露'
 
     def test_entry_kinds_cover_two(self, lst):
         """v2 只有两种条目: `task`（固定任务）与 `rest`（休息）。"""
@@ -384,17 +396,30 @@ class TestRunListSection:
     def test_exposes_two_master_switches(self, lst):
         """暴露"启用固定/启用定时"与相关开关的定义, 前端不必硬编码字段名。
 
-        ★★ S6: 原来的 `timed_priority` **已并入** `priority_mode`
-          （用户裁定: 三个选项 —— 定时任务优先 / 固定任务优先 / 自定义）。
-          这里改为断言新的 `priority_mode`, 并**反向**断言旧字段不再暴露。
+        ★★ 架构简化: `global_fields` 现在**只有 4 个键** ★★
+
+        | 键 | 说明 |
+        |---|---|
+        | `enable_fixed` | 启用固定任务（总开关）|
+        | `enable_timed` | 启用定时任务（总开关）|
+        | `rest_interleave` | 休息时可穿插定时任务 |
+        | `when_task_queue_empty` | 队列跑空后 |
+
+        ⚠ 原来的 `priority_mode`（三模式）**已删除** —— 排序改成
+          `PUT /{script}/queue/sort` 的**一次性动作**, 不再是配置里的状态。
+        ⚠ 更旧的 `timed_priority` / `schedule_rule` 也不再暴露。
         """
         gf = lst.get('global_fields') or {}
         for key in ('enable_fixed', 'enable_timed',
-                    'priority_mode', 'rest_interleave'):
+                    'rest_interleave', 'when_task_queue_empty'):
             assert key in gf, f'list.global_fields 缺 {key}'
             assert gf[key].get('label'), f'{key} 缺 label'
+        assert set(gf) == {'enable_fixed', 'enable_timed', 'rest_interleave',
+                           'when_task_queue_empty'}, sorted(gf)
         assert 'timed_priority' not in gf, \
-            '旧字段 `timed_priority` 不该再出现在全局设置里（已并入 priority_mode）'
+            '旧字段 `timed_priority` 不该再出现在全局设置里'
+        assert 'priority_mode' not in gf, \
+            '`priority_mode` 已删除（现在是一次性排序动作, 不是状态）'
 
     def test_duration_choices_positive_sorted(self, lst):
         d = lst['duration_choices']

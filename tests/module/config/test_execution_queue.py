@@ -111,51 +111,54 @@ class TestBuildQueue:
         return mm.config_cache('恋鸟树')
 
     def test_user_entries_come_first_in_order(self, config):
-        """★ 用户编排的条目必须**都在队列里**，且**同段内**保持用户顺序。
+        """★★ 用户编排**整段**在队列最前, 且**顺序原样** ★★
 
-        ## ★★ 第二轮复审（自查）: 这个测试的前提**从来就不对** ★★
+        ## 这条断言**反转过三次**, 现在是最终形态
 
-        原文:
-            user = [e.task for e in config.build_run_list()]
-            assert queue[:len(user)] == user
+        | 时期 | 队列顺序由谁决定 |
+        |---|---|
+        | 最初 | 假设"队列前缀 == 用户编排"（**错了**）|
+        | S6 | "段序 = **模式**决定, 段内 = 用户决定" |
+        | **现在** | **执行顺序 = `run_list` 的顺序本身** —— 没有任何模式 |
 
-        它假设"**队列的前 N 项 == 用户编排**"。但**分段优先于用户编排**:
+        用户裁定把「调度优先级三模式」整簇删掉:
 
-        * `timed_first`（出厂默认）下 `_segment_queue()` 把**定时段**排前面,
-          用户的定时条目才在前; 用户的**固定**条目会被推到定时段**之后**
-        * 实测本机: 用户编排 = `['Orochi']`（fixed）,
-          而 `queue = ['AbyssShadows','Restart','TrueOrochi', **'Orochi'**, ...]`
-          -> `Orochi` 在第 **3** 位（前面是自动补齐的 timed 条目）
+        > "我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和
+        >  定时任务优先**直接作为一个快捷排序**就好。"
 
-        ★ 所以"用户项 == 队列前缀"**在出厂默认模式下必然失败**。这不是
-          `build_queue()` 的 bug —— 是"**段序 = 模式决定, 段内 = 用户决定**"
-          （用户裁定 ③）这条设计**本来就该如此**。
-
-        ★ 正确的不变量（本测试现在断言的）:
-          1. 用户编排的**已启用**条目**全都**在队列里
-          2. **同段内**用户条目的**相对顺序**被保留
+        ★ 所以现在**可以**断言最强的那条: 用户编排（已启用的）就是队列的
+          **前缀**, 且**顺序一字不动**; 自动补齐的追加在**后面**
+          （见 `build_queue()` 的 docstring: "用户手动排的必须优先"）。
         """
         user = [getattr(e, 'task', None) for e in config.build_run_list()]
         user_on = [t for t in user if t and config._task_enabled(t)]
         queue = [getattr(e, 'task', None) for e in config.build_queue()]
 
-        # ① 全在队列里（可能因为未启用而被剔除 -> 这里只看已启用的）
+        # ① 全在队列里（未启用的会被剔除 -> 只看已启用的）
         missing = [t for t in user_on if t not in queue]
         assert not missing, (
             f'用户编排（已启用）的条目不在执行队列里: {missing}\n'
             f'  用户(启用) = {user_on}\n  队列 = {queue}')
 
-        # ② **同段内**用户顺序保留（跨段由模式决定, 不要求）
+        # ② ★ 用户编排就是队列**前缀**, 且顺序原样（拖动永远自由）
+        assert queue[:len(user_on)] == user_on, (
+            f'用户编排没有成为队列前缀（被按段重排了?）:\n'
+            f'  用户 = {user_on}\n  队列前 {len(user_on)} 项 = '
+            f'{queue[:len(user_on)]}\n'
+            f'  ★ 现行设计: 执行顺序 = `run_list` 的顺序本身')
+
+        # ③ 段名仍然是**派生显示值**（不影响顺序）—— 保留这条以防
+        #    "段名判据" 被误用成排序判据
         for seg in {config._segment_of(t) for t in user_on}:
             seg_user = [t for t in user_on if config._segment_of(t) == seg]
             seg_queue = [t for t in queue
                          if t and config._segment_of(t) == seg]
-            # 段内: 用户条目的出现顺序必须与用户编排顺序一致
             order_in_q = [t for t in seg_queue if t in set(seg_user)]
             assert order_in_q == seg_user, (
                 f'[{seg} 段] 用户编排的段内顺序被打乱:\n'
                 f'  用户 = {seg_user}\n  队内出现次序 = {order_in_q}\n'
-                f'  （模式 = {config.priority_mode()}）')
+                f'  （★ 现行设计: 执行顺序 = `run_list` 的顺序本身, '
+                f'没有任何"模式"能重排它）')
 
     def test_auto_tasks_are_appended(self, config):
         """★ 自动补齐的条目**必须都已启用**, 且**不与用户条目重复**。
@@ -454,7 +457,7 @@ class TestWiring:
             'update_scheduler 未走 `_order_by_queue()` —— 队列不是顺序权威')
         assert 'TaskScheduler.schedule(' not in us, (
             'T1 后不应再调 `TaskScheduler.schedule()` —— '
-            '它会让 FILTER 白名单吞掉队列内任务, 且与 priority_mode 互相牵制')
+            '它会让 FILTER 白名单吞掉队列内任务, 且与队列排序权威互相牵制')
 
         obq = code_of('_order_by_queue')
         assert 'build_queue()' in obq, (

@@ -296,41 +296,26 @@ async def script_task(script_name: str, task: str, group: str, argument: str, ty
         # 类型不正确
         raise HTTPException(status_code=400, detail=f'Argument type error: {e}')
 
-    # ★★ 审计修复（P0）: 通用写路径也必须置「用户已明确设置」标记 ★★
+    # ★★★ S7: `priority_mode_explicit` 特殊处理**已删除**（用户裁定）★★★
     #
-    # ## 为什么（这是"选了定时优先却没用"的**真正原因**）
+    # ## 它原来为什么存在（P0 审计修复）
     #
-    # 前端改「调度优先级」**不是**调 `PUT /{script}/priority_mode`, 而是走这条
-    # **通用**路径:
-    #     task_list_controller.dart `setPriorityMode` -> `setGlobalField`
-    #       -> `PUT /{script}/script/optimization/priority_mode/value`
+    # 前端改「调度优先级」走的是**通用**写路径
+    # `PUT /{script}/script/optimization/priority_mode/value`, 而置
+    # `priority_mode_explicit=True` 的地方只有 `put_priority_mode()`。
+    # -> 用户选了模式但 `explicit` 仍为 False -> 下次加载时
+    #    `migrate_priority_mode_once()` 按旧字段推算 -> **静默改回**。
     #
-    # 而置 `priority_mode_explicit=True` 的地方**只有** `put_priority_mode()`
-    # —— 前端**从不调用**它。于是:
-    #   1. 用户选「定时任务优先」-> 值写进配置, 但 `explicit` 仍为 **False**
-    #   2. 下次加载配置 -> `Config.__init__` -> `migrate_priority_mode_once()`
-    #      -> 见 `explicit == False` -> 按**旧字段**推算 -> 出厂组合
-    #      (`Filter` + `timed`) 命中 -> **`custom`**
-    #   3. **用户的选择被静默改回** —— 正是本设计要消灭的现象。
+    # ## 现在为什么能删
     #
-    # ★ 修法: 在**同一个 config 对象**上把 `explicit` 也置真, 再交给
-    #   `script_set_arg()` **一次**保存（分两次 save 会因为 `config_cache()`
-    #   每次返回新对象而互相覆盖 —— 我第一版就写错了）。
+    # 用户裁定**整簇删除**:
+    # > "固定任务优先和定时任务优先以及**不能跨类别拖动太蠢了**……
+    # >  而不是定义一些没有意义的不能跨类别拖动以及**单独的调度优先级**。"
     #
-    # ★ 为什么放在这里而不是 `script_set_arg()` 里: 那个方法在 `config_model`
-    #   （数据层）, 不该知道"迁移标记"这件事; 而这里是**对外接口层**, 正是
-    #   "用户在界面上表了态"的语义发生地。
+    # ★ `priority_mode` / `priority_mode_explicit` 两个字段都没了,
+    #   迁移也没了 -> 这段"置标记"的代码**失去目标** -> 一并删除。
+    # ★ `cfg` 现在只用于下面这一次 `script_set_arg`。
     cfg = mm.config_cache(script_name)
-    if argument == 'priority_mode':
-        try:
-            cfg.model.deep_set(
-                cfg.model,
-                keys='script.optimization.priority_mode_explicit',
-                value=True)
-        except Exception as exc:
-            logger.warning(f'[{script_name}] 置 priority_mode_explicit 失败'
-                           f'({type(exc).__name__}: {exc}) —— '
-                           f'用户的优先级选择可能被迁移覆盖')
 
     return cfg.model.script_set_arg(task, group, argument, value)
 

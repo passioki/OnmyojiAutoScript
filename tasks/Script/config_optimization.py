@@ -28,41 +28,39 @@ class TimedPriority(str, Enum):
     TIMED = 'timed'
     LIST = 'list'
 
-class PriorityMode(str, Enum):
-    """★★ **调度优先级三模式**（用户裁定, S6）★★
-
-    用户原话:
-
-    > "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
-    >  如果选了**列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
-    >  **三个选项**: **定时任务优先、固定任务优先、自定义**"
-
-    ## 为什么合并两个旧设置
-
-    原来有**两个重叠**的下拉:
-
-    | 旧字段 | 取值 | 含义 |
-    |---|---|---|
-    | `schedule_rule` | `Filter` / `FIFO` / `Priority` / `List` | 调度规则(4 路)|
-    | `timed_priority` | `timed` / `list` | 定时任务怎么跟固定任务抢设备(2 路)|
-
-    ★ 用户要的是**一个**三选项, 于是合并成本枚举。
-
-    ## 三模式
-
-    | 值 | 界面名 | 队列顺序 | 拖动范围 |
-    |---|---|---|---|
-    | `timed_first` | **定时任务优先** | 定时段在前, 固定段在后 | 只能**同类别段内**拖 |
-    | `fixed_first` | **固定任务优先** | 固定段在前, 定时段在后 | 只能**同类别段内**拖 |
-    | `custom`      | **自定义**     | **完全按用户拖的顺序** | ★ **全都能拖** |
-
-    ★ `timed_first` 的界面名沿用用户看到过的字眼:
-      「**定时优先（打完当前这场就让位）**」—— 插队时机是**战斗边界**,
-      不是立即打断（与"暂停调度"用同一个安全点）。
-    """
-    TIMED_FIRST = 'timed_first'
-    FIXED_FIRST = 'fixed_first'
-    CUSTOM = 'custom'
+# ★★★ `PriorityMode`（调度优先级三模式）**已整簇删除**（用户裁定）★★★
+#
+# ## 用户原话
+#
+# > "我觉得……这个**固定任务优先和定时任务优先以及不能跨类别拖动太蠢了**。
+# >  我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和
+# >  定时任务优先**直接作为一个快捷排序**就好, **而不是定义一些没有意义的
+# >  不能跨类别拖动以及单独的调度优先级**。"
+#
+# ## 删掉了什么
+#
+# | 删除 | 原来在哪 |
+# |---|---|
+# | `PriorityMode` 枚举 | 这里 |
+# | `Optimization.priority_mode` / `priority_mode_explicit` | 本文件下方 |
+# | `migrate_priority_mode_once()` | `module/config/config.py` |
+# | `Config.priority_mode()` / `_order_by_priority_mode()` | 同上 |
+# | `_check_drag_allowed()` / `drag_blocked` | `module/server/schema_router.py` |
+# | `GET`/`PUT /{script}/priority_mode` | 同上 |
+# | `/schema` 的 `global_fields.priority_mode` + `drag_within_group_only` | 同上 |
+# | 前端「调度优先级」下拉 + 全部拖动判据 | `OASX-src/lib/...` |
+#
+# ## 取而代之
+#
+# * **执行顺序 = `run_list` 的顺序本身**（唯一权威, 永远可以自由拖）
+# * 「定时排前面 / 固定排前面」= `PUT /{script}/queue/sort`
+#   的**一次性动作**（`Config.sort_run_list(by)`）—— **不留状态**
+# * 唯一硬约束: 「休息」条目**恒最后**（`Config.place_rest_last()`,
+#   **归一化**而不是拒绝）
+#
+# ⚠ 老配置里遗留的 `priority_mode` / `priority_mode_explicit` 键:
+#   `Optimization` 不再声明它们 -> pydantic 加载时**静默忽略多余键**
+#   -> 下次 `save()` 时从磁盘上**自然消失**。**不需要写清理迁移。**
 
 
 class ScheduleRule(str, Enum):
@@ -141,52 +139,22 @@ class Optimization(BaseModel):
         description='enable_timed_help',
         title='启用定时任务')
 
-    # ★★ S6: **调度优先级三模式**（用户裁定的**唯一**开关）★★
+    # ★★★ S7: **`priority_mode` / `priority_mode_explicit` 已删除** ★★★
     #
     # 用户原话:
-    #   "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
-    #    如果选了**列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
-    #    **三个选项: 定时任务优先、固定任务优先、自定义**"
+    # > "固定任务优先和定时任务优先以及**不能跨类别拖动太蠢了**。
+    # >  我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和
+    # >  定时任务优先**直接作为一个快捷排序**就好, 而不是定义一些没有
+    # >  意义的不能跨类别拖动以及**单独的调度优先级**。"
     #
-    # | 值 | 队列顺序 | 拖动范围 |
-    # |---|---|---|
-    # | `timed_first` | 定时段在前, 固定段在后 | 只能**同类别段内**拖 |
-    # | `fixed_first` | 固定段在前, 定时段在后 | 只能**同类别段内**拖 |
-    # | `custom`      | **完全按用户拖的顺序** | ★ **全都能拖** |
+    # ★ 现在**没有"调度优先级"这个概念** —— 执行顺序就是 `run_list`
+    #   的顺序本身, 永远可以自由拖动。
+    # ★ 「定时排前面 / 固定排前面」是 `PUT /{script}/queue/sort` 的
+    #   **一次性动作**（`Config.sort_run_list(by)`）, **不留状态**。
     #
-    # ★ 它**取代**了下面两个重叠的旧字段（`schedule_rule` / `timed_priority`）,
-    #   那两个保留仅为**读旧配置**; 迁移见 `Config.migrate_priority_mode_once()`。
-    # ★ 默认 = `custom`: **行为保持** —— 与改造前一致（用户拖的顺序就是执行
-    #   顺序）。★ 若默认 `timed_first`, 会**悄悄重排**所有既有用户的队列
-    #   （实测: `build_queue()` 的"用户编排在前 + 自动追加在后"两条契约
-    #   立刻被打破, 2 个测试失败）。本项目一贯做法是**新开关默认不改变行为**。
-    priority_mode: PriorityMode = Field(
-        default=PriorityMode.CUSTOM,
-        description='priority_mode_help',
-        title='调度优先级')
+    # ⚠ 老配置里遗留的这两个键: pydantic 加载时**静默忽略多余键**
+    #   -> 下次 `save()` 时从磁盘上**自然消失**。不需要清理迁移。
 
-    # ★★ S6: 迁移用**显式标记**（不要用默认值当哨兵！）★★
-    #
-    # ## 为什么必须有这个字段
-    #
-    # `priority_mode` **有默认值**（`timed_first`）—— 所以"用户没设过"与
-    # "用户明确选了 timed_first" **分辨不出来**。
-    #
-    # 我第一版想"用它是否偏离默认"当判断 -> **逻辑自相矛盾**（会在
-    # "还是默认"时提前 `return False`, 于是默认配置永远迁不动）。
-    #
-    # ★ 改用这个**真实字段**当标记:
-    #   * `False` = 还没迁移过 -> 读旧字段推算 `priority_mode`
-    #   * `True`  = 用户在新界面**明确表过态** -> 永不覆盖
-    #
-    # ⚠ 必须是**真实字段**: pydantic v2 的 `extra='ignore'` 会把"自定义键"
-    #   从 `model_dump()` 丢掉 -> 用自定义键做标记会**每次启动都覆盖用户设置**
-    #   （这个坑我们踩过, 见 `migrate_windows_once` 的注释）。
-    priority_mode_explicit: bool = Field(
-        default=False,
-        description='priority_mode_explicit_help',
-        title='调度优先级（是否已由用户明确设置）',
-        json_schema_extra={'internal': True})
 
     # ⚠⚠ **已废弃**（S6）: 请用上面的 `priority_mode`。
     #

@@ -18,10 +18,9 @@ assert '_order_by_queue' in seg          # ★ 命中的是**注释**！
 | 位置 | 症状 |
 |---|---|
 | `test_queue_no_leak_all_rules.py:101-105` | `find()` 命中 T1 **自己写的注释** -> **永远通过**（假绿）|
-| `test_queue_membership_and_category.py:141` | `'drag_within_group_only' in src` 命中 `schema_router.py` 的 **docstring** |
+| `test_queue_membership_and_category.py`（**已删的** `TestPriorityModeHint`）| `'drag_within_group_only' in src` 命中 `schema_router.py` 的 **docstring**；`'def _segment_queue' in src` 只证明文本出现过 |
 | `test_entry_scoped_state.py:115` | `body` **没剥注释**（同文件 `:126` 剥了, 反差明显）|
 | `test_duplicate_queue_entries.py:47-60` | 未剥注释, 可被注释满足 / 会被注释**假失败** |
-| `test_queue_membership_and_category.py:164` | `'def _segment_queue' in src` 只证明文本出现过 |
 
 ★ 根本原因: **剥注释逻辑在 4+ 个文件里各写一份**（"同一知识多处定义"
 在测试里也在犯）。这个模块把它收敛成**一处**。

@@ -1,7 +1,8 @@
 # 废弃清单（**唯一权威**）
 
 > **状态**：**废弃清单**（唯一）
-> **最后按代码核对**：2026-10-10 @ `1da97b9e`
+> **最后按代码核对**：2026-10-10 @ `0c5e9819` + **S7 工作区改动**
+> （S7 = 「调度优先级三模式」整簇删除, 见 §3.2）
 > **冲突时以**：本文为准（关于"某东西还在不在"）
 >
 > ## 这份文件解决什么
@@ -81,29 +82,90 @@
 
 ---
 
-## 3. 两个重叠的排序设置（S6 合并为一个）
+## 3. 排序设置的三代演化（**S7 之后只剩 `run_list` 顺序**）
 
-用户裁定：
+### 3.1 第一代（S6 之前）: 两个**语义重叠**的字段
+
+用户裁定（S6 依据）:
 
 > "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时, 如果选了
 >  **列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
 > **三个选项: 定时任务优先、固定任务优先、自定义**"
 
-| 废弃的 | 取代它的 |
-|---|---|
-| `schedule_rule`（4 路: `Filter`/`FIFO`/`Priority`/`List`）| ★ `priority_mode`（3 路）|
-| `timed_priority`（2 路: `timed`/`list`）| ★ 同上 |
-| `Config._order_by_timed_priority()`（74 行, 死代码）| `Config._segment_queue()`（**队列层**排段）|
-| **`TaskScheduler.schedule()` 的调用** | `Config._order_by_queue()`（**队列是唯一顺序权威**）|
-| 前端「优先级依据」四选一下拉 | 前端「调度优先级」三模式下拉 |
+| 废弃的 | S6 时被谁取代 | ★ S7 之后 |
+|---|---|---|
+| `schedule_rule`（4 路: `Filter`/`FIFO`/`Priority`/`List`）| `priority_mode`（3 路）| ★ **两个都已删** -> 执行顺序 = `run_list` 顺序 |
+| `timed_priority`（2 路: `timed`/`list`）| 同上 | ★ **两个都已删** |
+| `Config._order_by_timed_priority()`（74 行, 死代码）| `Config._segment_queue()`（队列层排段）| ★ 后者在 S7 **改名**为 `Config._tag_and_place_rest()`（**只打段名 + 挪 rest, 不排段**）|
+| **`TaskScheduler.schedule()` 的调用** | `Config._order_by_queue()`（**队列是唯一顺序权威**）| ★ **仍然有效** —— 唯一没被 S7 推翻的一条 |
+| 前端「优先级依据」四选一下拉 | 前端「调度优先级」三模式下拉 | ★ **两个下拉都已删** -> 换成两个**按钮**（见 §3.2）|
 
-★ `ScheduleRule` / `TimedPriority` **枚举仍在**、`TaskScheduler` **类仍在**
-  —— 只为**读旧配置**与测试; ★ **它们不再影响行为**。
 ★ `schedule_rule` / `timed_priority` 两个**配置字段仍在**（旧配置里可能有,
-  直接删会崩）, 但已标 `json_schema_extra={'internal': True}`（界面不显示）。
-★ `priority_mode_explicit` 是**迁移标记**: `True` = 用户已在新界面表过态 ->
-  **永不覆盖**。不用它的话, 自定义键会被 pydantic `extra='ignore'` 丢掉 ->
-  **每次启动都覆盖用户设置**。
+  直接删会崩）, 但已标 `json_schema_extra={'internal': True}`（界面不显示）;
+  `ScheduleRule` / `TimedPriority` **枚举仍在** —— 只为**读旧值**与测试。
+★ **它们不再影响行为**。
+
+### 3.2 ★★★ 第二代（S6）: `priority_mode` 三模式 —— **S7 整簇删除** ★★★
+
+用户裁定（**这是本轮删除的唯一依据**, 原话）:
+
+> "我觉得……这个**固定任务优先和定时任务优先以及不能跨类别拖动太蠢了**。
+>  我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和定时任务优先
+>  **直接作为一个快捷排序**就好, 而不是定义一些没有意义的**不能跨类别拖动**
+>  以及**单独的调度优先级**。"
+
+**为什么删**（逐句对应原话）:
+
+1. "**不能跨类别拖动太蠢了**" -> **拖动约束**（前端判据 + 后端校验）**全删**。
+2. "**单独的调度优先级**…没有意义" -> `priority_mode` 这个**常驻状态**删掉。
+3. "**直接作为一个快捷排序**" -> 换成**一次性动作** `PUT /{script}/queue/sort`。
+4. "**自由拖动/改变执行顺序**" -> **执行顺序 = `run_list` 的顺序本身**。
+
+| 删除的东西 | 类型 / 原位置 |
+|---|---|
+| `PriorityMode` 枚举（`timed_first` / `fixed_first` / `custom`）| 枚举（`tasks/Script/config_optimization.py`）|
+| `Optimization.priority_mode` / `priority_mode_explicit` | 模型字段（同上）|
+| `Config.priority_mode()` | 方法（`module/config/config.py`）|
+| `Config._order_by_priority_mode()` | 方法（同上, 本就是**生产 0 调用**的死代码）|
+| `Config.migrate_priority_mode_once()` | 方法（同上, 原来在 `Config.__init__` 里调）|
+| `Config._segment_queue(rl)` | 方法（同上）-> ★ **改名** `Config._tag_and_place_rest(rl)` |
+| `Config.resegment_run_list()` | 方法（同上）-> ★ **改名** `Config.sort_run_list(by)` |
+| `_check_drag_allowed()` / `drag_blocked` | 函数 + 返回键（`module/server/schema_router.py`）|
+| `_current_priority_mode()` | 函数（同上）|
+| `GET` / `PUT /{script_name}/priority_mode` | **两个端点**（同上）|
+| `/schema` 的 `global_fields.priority_mode` | 契约字段（同上）|
+| `/schema` 的 `global_fields.drag_within_group_only` | 契约字段（同上, 给前端判"能不能跨类别拖"）|
+| 前端「调度优先级」下拉 + `priorityMode` / `dragWithinGroupOnly` / `setPriorityMode` / `dragRejection` | 前端代码（`OASX-src/lib/...`）|
+| `tests/module/config/test_drag_constraint.py`（115 行）| **整个文件已删** |
+| `tests/module/config/test_drag_rest_position.py`（78 行）| **整个文件已删** |
+| `tests/module/config/test_priority_mode.py`（169 行）| **整个文件已删** |
+| `tests/module/config/test_priority_mode_migration.py`（124 行）| **整个文件已删** |
+
+★ **取代它的**（现行唯一权威）:
+
+* **执行顺序 = `run_list` 的顺序本身** —— 没有任何"模式"能改变它。
+* 「定时排前面 / 固定排前面」= **一次性动作** `Config.sort_run_list(by)`
+  （`by ∈ 'timed'` / `'fixed'`, **会写盘**）; 端点
+  `PUT /{script_name}/queue/sort`, body `{"by": "timed"|"fixed"}`。
+  ★ **点一次排一次, 不留状态** —— 排完之后用户**可以随意再拖**（跨类别也行）。
+* ★ **唯一硬约束**: 「休息」（`rest`）条目**恒排最后** —— 由
+  `Config.place_rest_last(rl)` **归一化**（挪到最后）, **不是拒绝**。
+  用户确认: "**任意拖，但「休息」条目仍强制排最后**"。
+* `/schema` 的 `global_fields` 现在**只有 4 个键**:
+  `enable_fixed` / `enable_timed` / `rest_interleave` / `when_task_queue_empty`。
+* 新增测试: `tests/module/config/test_queue_sort.py`（21 条）+
+  `tests/module/config/test_segment_of.py`（3 条）。
+* ★ `RunEntry.group` 的"**永不落盘**"守卫**已从** `test_priority_mode.py`
+  **搬到** `tests/module/config/test_run_list.py`（`TestRunEntryGroup`）。
+
+⚠ **如实记录的残留**:
+
+* `module/server/schema_router.py` 里 `_check_drag_allowed()` 只剩一个
+  **恒定返回 `(False, '')` 的空壳签名**（**0 调用**, 只为兼容可能的旧调用点）——
+  约束**逻辑已删**, 空壳**未删**。
+* 老配置里遗留的 `priority_mode` / `priority_mode_explicit` 键: `Optimization`
+  不再声明它们 -> pydantic 加载时**静默忽略多余键** -> 下次 `save()` 时从磁盘上
+  **自然消失**。**不需要写清理迁移**。
 
 ---
 
@@ -122,7 +184,7 @@
 | `module/config/scheduler_core.py` | ★（第二轮补录）**整个模块** 346 行, 死代码 | 无 | §40 |
 | `module/config/team_coordinator.py` | ★（第二轮补录）**整个模块** 213 行 | ★ 待重新设计为**独立模块** | §39 |
 | 前端 `resetToDefault()` | ★（第二轮补录）**会清空 `run_list`** 的危险死代码 | 无（0 调用）| §53 |
-| 前端 `timedPriority` / `timedPriorityChoices` / `setTimedPriority` | ★（第二轮补录）读**已废弃**的 `global_fields.timed_priority`（后端已不返回）| `priorityMode*` | §53 |
+| 前端 `timedPriority` / `timedPriorityChoices` / `setTimedPriority` | ★（第二轮补录）读**已废弃**的 `global_fields.timed_priority`（后端已不返回）| ★ `priorityMode*`（S6）—— **它也在 S7 被删**, 现为两个**排序按钮**（`sortQueueBy`）| §53 / §61 |
 | 前端 `scriptRunning` / `isTaskEntry` / `overviewRowOf` | ★（第二轮补录）只读、0 调用 | `taskRowOf` / 直读 `ScriptService` | §53 |
 
 ★ **`TaskMeta.success_interval` 与配置 JSON 里的 `success_interval` 是
@@ -137,9 +199,11 @@
 | `Category.CHARGE` / `Recharge` / `Resource` **不存在**; `Period` **必须存在** | `tests/module/config/test_charge_system_removed.py` |
 | `team_coordinator.py` / `scheduler_core.py` **不存在** | 同上 |
 | `/overview` **不得**有 `charges` / `resource_describe` | 同上 |
-| `RunEntry.to_dict()` **永不**序列化 `group`（派生值） | `tests/module/config/test_priority_mode.py` |
+| `RunEntry.to_dict()` **永不**序列化 `group`（派生值） | `tests/module/config/test_run_list.py`（★ S7 从**已删除**的 `tests/module/config/test_priority_mode.py` **搬过来**）|
 | `/schema` **不得**有 `window_fields` | `tests/module/server/test_schema_router.py` |
 | 单值 `window_*` 字段**不存在** | `tests/module/config/test_multi_window_storage.py` |
 | `_order_by_timed_priority` **不存在** | `tests/module/config/test_queue_no_leak_all_rules.py` |
 | 调度路径**不得**再调 `TaskScheduler.schedule()` | `tests/module/config/test_execution_queue.py` |
+| ★ `Optimization` **不得**再有 `priority_mode` / `priority_mode_explicit`; `put_priority_mode` / `get_priority_mode` **不存在** | `tests/module/config/test_queue_sort.py`（`TestSortEndpointContract`）|
+| ★ `GET`/`PUT /{script}/priority_mode` **不存在**; 排序只走 `PUT /{script}/queue/sort` | 同上 |
 | 文档里的 `.py` 路径**必须存在** | `tests/test_docs_no_dead_refs.py` |

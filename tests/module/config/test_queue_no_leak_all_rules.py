@@ -166,24 +166,32 @@ class TestQueueIsAuthorityForAllRules:
             '`if _is_list_rule(_rule)` 分支已被 T1 合并, 不该还在')
 
     def test_timed_priority_not_used_to_reorder(self):
-        """★★ S6: `_order_by_timed_priority()` **已被删除** ★★
+        """★★ 反向守卫: **调度路径里不许按段重排 `pending`** ★★
 
         ## 为什么断言升级了
 
-        原来断言"该函数**保留**但**不得**在调度路径里调用"。
+        原来断言"`_order_by_timed_priority()` **保留**但**不得**在调度路径里
+        调用"。用户裁定后那个函数是**死代码**（实测: 只有定义、无调用）
+        -> **已删除**; 后来的「调度优先级三模式」（`_order_by_priority_mode()`
+        / `Config.priority_mode()` / `migrate_priority_mode_once()`）
+        也**整簇删除**了。
 
-        用户裁定（S6）: "**三个选项**: 定时任务优先、固定任务优先、自定义" ——
-        它的语义已由 `priority_mode` + `_segment_queue()` 取代, 而它本身是
-        **死代码**（实测: 只有定义、无调用）-> **已删除**。
-
-        ★ 所以现在断言**更强**: 它**连定义都不该有**了。
+        ★ 所以现在断言**更强**: 它们**连定义都不该有**。
           同时保留"调度路径不许重排 `pending`"这条核心约束（F3 回归守卫）:
           `pending` 必须是 `queue` 的**保序子序列**（设计文档 §W4/Z1）。
+
+        ★ 现行设计: **执行顺序 = `run_list` 的顺序本身**。按段排序只有
+          **一个**入口 —— `Config.sort_run_list(by)` 的**一次性动作**
+          （用户点按钮触发, 会写盘）, 它**不在**调度路径里。
         """
         src = (REPO / 'module' / 'config' / 'config.py').read_text(
             encoding='utf-8')
-        assert 'def _order_by_timed_priority' not in src, \
-            '死代码 `_order_by_timed_priority()` 应已删除（S6 三模式取代）'
+        for dead in ('def _order_by_timed_priority',
+                     'def _order_by_priority_mode',
+                     'def priority_mode',
+                     'def migrate_priority_mode_once',
+                     'def _segment_queue'):
+            assert dead not in src, f'死代码 `{dead}()` 应已删除'
 
         i = src.find('def update_scheduler')
         j = src.find('\n    def ', i + 10)
@@ -197,10 +205,13 @@ class TestQueueIsAuthorityForAllRules:
         #   `update_scheduler()` 里**合法地**排 `waiting_task`
         #   （`sorted(waiting_task, key=attrgetter('next_run'))`）。
         #   真正要守的是"**别重排 `pending_task`**", 由下面这条表达。
-        assert '_order_by_priority_mode(pending_task)' not in code, (
-            '分段排序**不能**在调度路径里重排 `pending` —— '
-            '会破坏"pending 是 queue 的保序子序列"不变量（§W4/Z1）。'
-            '分段排序应在**队列层** `_segment_queue()` 做。')
+        for call in ('_order_by_priority_mode(', '_tag_and_place_rest(',
+                     'sort_run_list(', 'resegment_run_list('):
+            assert call not in code, (
+                f'调度路径里出现了 `{call}` —— 它会重排 `pending`, '
+                f'破坏"pending 是 queue 的保序子序列"不变量（§W4/Z1）。'
+                f'★ 按段排序只能是**用户触发的一次性动作**'
+                f'（`sort_run_list`）, 不能在每次调度时重来一遍')
 
 
 class TestZombieCleanupSafe:

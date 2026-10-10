@@ -111,63 +111,23 @@ class TestFrontendCategoryVisuals:
             'Container 同时给了 color 与 decoration -> 会 assert 崩'
 
 
-class TestPriorityModeHint:
-    """③: 说清「调度优先级」的**拖动范围**（用户 2026-10-10 反馈的 ③）。
-
-    ★★ S6 变化 ★★
-
-    原来这里断言「需选『列表优先』才生效」—— 那是**两个重叠下拉**时代的
-    提示（用户抱怨"两个下拉语义重叠"）。
-
-    用户裁定（S6）: "**三个选项: 定时任务优先、固定任务优先、自定义**" ——
-    两个下拉已合并成 `priority_mode`, 提示也改成**拖动范围**的说明。
-    """
-
-    def test_drag_scope_hint_present(self):
-        src = (OASX / 'lib/views/tasks/task_list_view.dart').read_text(
-            encoding='utf-8')
-        # ★ 说清"当前模式下能怎么拖" —— 正是用户 ③ 的诉求
-        assert '只能同类别内拖动' in src, \
-            '缺"只能同类别内拖动"的提示（用户 ③ 的诉求）'
-        assert '可自由拖动' in src, \
-            '缺"可自由拖动"的提示（自定义模式）'
-        assert 'priority_mode' in src, \
-            '前端应读后端给的 `priority_mode`（不硬编码）'
-
-    def test_backend_returns_drag_flag(self):
-        """★ 后端要给出 `drag_within_group_only` —— 前端据此决定拖动范围。
-
-        ## ★ 第二轮复审修复: 必须**剥注释**再断言
-
-        原来直接 `assert 'drag_within_group_only' in src` —— 复审员实测
-        `schema_router.py` 的 **docstring 里就有这个词**, 于是把三处真代码
-        全删掉**这条仍然通过**。★ 正是本仓反复踩的"守卫匹配到自己的说明文字"。
-        """
-        from _srcutil import code_only
-        src = code_only(REPO / 'module' / 'server' / 'schema_router.py')
-        assert 'drag_within_group_only' in src, \
-            '后端未给出拖动范围标记'
-
-    def test_legacy_fields_no_longer_read_for_ordering(self):
-        """★★ S6: 旧的 `timed_priority` **不再参与排序** ★★
-
-        ## 为什么这条断言反过来了
-
-        原来这里断言"`timed_priority` 的读取点在 `_order_by_timed_priority` 内"
-        —— 那是**旧设计**（两个下拉语义重叠）。
-
-        用户裁定（S6）: "**三个选项**: 定时任务优先、固定任务优先、自定义" ——
-        所以旧字段已并入 `priority_mode`, `_order_by_timed_priority()` 也**已删除**
-        （它是死代码）。
-
-        ★ 现在断言的是**反向**事实:
-          * `_order_by_timed_priority` **不存在**了
-          * 排段由 `priority_mode` / `_segment_queue()` 负责
-        """
-        from _srcutil import code_only
-        src = code_only(REPO / 'module' / 'config' / 'config.py')
-        assert 'def _order_by_timed_priority' not in src, \
-            '旧排序函数应已删除（S6 三模式取代）'
-        assert 'def _segment_queue' in src, \
-            '应有 `_segment_queue()` 负责按 priority_mode 排段'
-        assert 'priority_mode' in src
+# ★★★ `TestPriorityModeHint` **整类已删除** ★★★
+#
+# 用户裁定（架构简化）:
+# > "我觉得……这个**固定任务优先和定时任务优先以及不能跨类别拖动太蠢了**。
+# >  我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和
+# >  定时任务优先**直接作为一个快捷排序**就好, 而不是定义一些没有意义的
+# >  不能跨类别拖动以及**单独的调度优先级**。"
+#
+# 所以这一簇东西全没了, 类里那 3 条**全部**依赖已删符号:
+#
+# | 原测试 | 依赖 |
+# |---|---|
+# | `test_drag_scope_hint_present` | 前端的「只能同类别内拖动」提示 + `priority_mode` |
+# | `test_backend_returns_drag_flag` | 后端 `drag_within_group_only` |
+# | `test_legacy_fields_no_longer_read_for_ordering` | `_segment_queue()`（已改名 `_tag_and_place_rest()`）|
+#
+# ★ 其中"`_order_by_timed_priority` 已删除"这个**反向意图**没有丢:
+#   它仍由 `test_queue_no_leak_all_rules.py::test_timed_priority_not_used_to_reorder`
+#   守着; 而"拖动永远自由"的根基（`_tag_and_place_rest()` **不改变任务相对顺序**）
+#   由 `test_segment_rest_position.py::TestOnlyTagsGroups` 守着。

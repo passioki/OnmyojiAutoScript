@@ -1,28 +1,33 @@
 # -*- coding: utf-8 -*-
-"""T12: `rest`（休息）条目在**队列分段**里的位置 —— 原来完全没有测试。
+"""`Config._tag_and_place_rest(rl)` —— **打段名 + 把「休息」挪到最后**。
 
-## 审计发现（T12）
+## ★★★ 这一版是"架构简化"之后重写的 ★★★
 
-`Config._segment_queue()` 给 `rest` 条目算 `rank = 2`（**恒排最后**）,
-但**没有任何测试观察它**:
+用户原话（**唯一依据**）:
 
-* `test_queue_is_authority.py` 的 `_queue()` **把 rest 过滤掉了**
-  （`if getattr(e, 'task', None)`）—— 于是 rest 在队列里的位置
-  **从未被任何断言看过**
-* `test_run_list.py` 只测 `RunList` 层（`replace_all` 能插任意位置）,
-  不是 `_segment_queue()` 的行为
+> "我觉得……这个**固定任务优先和定时任务优先以及不能跨类别拖动太蠢了**。
+>  我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和
+>  定时任务优先**直接作为一个快捷排序**就好, 而不是定义一些没有意义的
+>  不能跨类别拖动以及**单独的调度优先级**。"
 
-## 为什么这个位置很重要
+所以:
 
-`rest` 条目是"**跑完这些之后歇一会儿**"。如果它被排到中间,
-**后面所有任务都会被它挡住** —— 那是用户一眼能看出的严重体验问题。
+* 执行顺序 = **`run_list` 的顺序本身**。这个方法**不按任何模式排段** ——
+  它只做两件事: ① 给条目打 `group` 段名（**显示用**）② 把 `rest` 挪到最后。
+* 「定时排前面 / 固定排前面」是**一次性动作**（`Config.sort_run_list(by)`）,
+  **不是模式** —— 那个能力的测试在 `test_queue_sort.py`。
 
-## 覆盖
+## 为什么 `rest` 恒最后是**唯一**保留的硬约束
 
-* 三种模式下 `rest` 都必须在**最后**
-* `rest` 不参与分段标签（`group` 为空）
-* 同段内用户顺序不被 `_segment_queue` 打乱
-* 空队列 / 只有 rest / 只有一条任务 —— 边界
+`rest` 条目会**阻塞列表**（跑完前面的才继续）。排在中间会把它后面的任务
+**全挡住**。用户确认: "任意拖，但「休息」条目仍强制排最后"。
+
+★ 而且它是**归一化**（挪到最后）**不是拒绝** —— 用户拖到哪都接受。
+
+## 为什么"不改变任务之间的相对顺序"必须被钉住
+
+这是"**拖动永远自由**"的根基: 若这个方法会重排任务, 用户拖出来的顺序
+就**永远显示不出来**（正是用户抱怨的"拖了没用"）。
 """
 import logging
 import os
@@ -37,187 +42,174 @@ if str(REPO) not in sys.path:
 
 logging.disable(logging.CRITICAL)
 
-CFG = '恋鸟树'
 T_TASK, F_TASK = 'MetaDemon', 'Orochi'      # T=timed, F=fixed
+REST10 = {'kind': 'rest', 'minutes': 10}
 
 
 @pytest.fixture()
 def cfg():
-    os.chdir(REPO)
+    """★ 用**临时配置名** —— 绝不碰 `config/恋鸟树.json` 等真实配置。
+
+    `_tag_and_place_rest()` 本身只操作传进来的 `RunList`（不读不写配置）,
+    但为了不再重演"测试改用户实时配置"的事故, 这里一律用临时配置。
+    """
+    import json
     import server  # noqa: F401
-    from module.server.main_manager import mm
-    c = mm.config_cache(CFG)
-    before = c.priority_mode()
-    yield c
-    # ★ 备份 + 必定还原（我在实时配置上做过测试 —— 必须还原）
+    from module.config.config import Config
+
+    os.chdir(REPO)
+    name = '__seg_rest__'
+    p = REPO / 'config' / f'{name}.json'
+    tmpl = json.loads((REPO / 'config' / 'template.json').read_text(
+        encoding='utf-8'))
+    tmpl['script']['optimization']['run_list'] = []
+    p.write_text(json.dumps(tmpl, ensure_ascii=False), encoding='utf-8')
     try:
-        c.model.script.optimization.priority_mode = before
-        c.model.script.optimization.priority_mode_explicit = True
-    except Exception:
-        pass
+        yield Config(name)
+    finally:
+        try:
+            p.unlink()
+        except OSError:
+            pass
+
+
+def _snap(rl):
+    """把 `RunList` 拍成 `(kind, task 或 minutes, group)` 列表。"""
+    return [(getattr(getattr(e, 'kind', None), 'value', ''),
+             getattr(e, 'task', '') or getattr(e, 'minutes', 0),
+             getattr(e, 'group', '')) for e in rl.entries]
 
 
 def _seg(cfg, entries):
-    """用 `_segment_queue()` 给一份 `RunList` 排序, 返回 (kind, task/分钟, group)。"""
+    """跑 `_tag_and_place_rest()`, 返回 `(kind, task 或 minutes, group)`。"""
     from module.config.run_list import RunList
     rl = RunList.from_list(entries)
-    cfg._segment_queue(rl)
-    out = []
-    for e in rl.entries:
-        kind = getattr(getattr(e, 'kind', None), 'value', '')
-        out.append((kind, getattr(e, 'task', '') or getattr(e, 'minutes', 0),
-                    getattr(e, 'group', '')))
-    return out
+    cfg._tag_and_place_rest(rl)
+    return _snap(rl)
 
 
-REST10 = {'kind': 'rest', 'minutes': 10}
+def _kinds(got):
+    return [k for k, _, _ in got]
+
+
+def _tasks(got):
+    return [t for k, t, _ in got if k == 'task']
 
 
 class TestRestAlwaysLast:
-    """★★ `rest` 在 `timed_first` / `fixed_first` 下**恒排最后** ★★
+    """★★ `rest` **恒排最后** —— 删掉三模式之后**唯一**的硬约束 ★★"""
 
-    ## ★ T12 修正: **`custom` 下不排**（我第一版写错了）
-
-    我第一版把三种模式一起断言"rest 恒最后" —— **2 条失败**, 因为
-    `_segment_queue()` 在 `custom` 时**直接返回**, rest **不**被挪走。
-
-    ★ 哪个对? **两个都对, 取决于模式**:
-      * `timed_first` / `fixed_first` -> 段序由**模式**决定, 而 rest
-        **不属于任何段** -> 只能**垫最后**（否则挡住后面所有任务）
-      * `custom` -> 用户裁定"**全都可以拖动次序**" ——
-        rest 的位置**也是用户拖出来的**, 必须尊重
-
-    ★ 我原来的代码注释写"rest **始终**排在最后" —— **与实现不符**。
-      已改注释, 并在这里**显式**覆盖两种行为。
-    """
-
-    @pytest.mark.parametrize('mode', ['timed_first', 'fixed_first'])
-    def test_rest_after_all_tasks(self, cfg, mode):
-        cfg.model.script.optimization.priority_mode = mode
+    def test_rest_after_all_tasks(self, cfg):
         got = _seg(cfg, [
             {'kind': 'task', 'task': F_TASK},
             REST10,
             {'kind': 'task', 'task': T_TASK},
         ])
-        kinds = [k for k, _, _ in got]
-        assert kinds[-1] == 'rest', (
-            f'[{mode}] rest 没排在最后 -> {got}\n'
+        assert _kinds(got)[-1] == 'rest', (
+            f'rest 没排在最后 -> {got}\n'
             f'★ rest 排中间会把后面所有任务都挡住')
 
-    @pytest.mark.parametrize('mode', ['timed_first', 'fixed_first'])
-    def test_rest_not_between_tasks(self, cfg, mode):
-        cfg.model.script.optimization.priority_mode = mode
+    def test_rest_not_between_tasks(self, cfg):
         got = _seg(cfg, [
             REST10,
             {'kind': 'task', 'task': F_TASK},
             {'kind': 'task', 'task': T_TASK},
         ])
         idx = [i for i, (k, _, _) in enumerate(got) if k == 'rest']
-        assert idx == [len(got) - 1], f'[{mode}] rest 在下标 {idx}: {got}'
+        assert idx == [len(got) - 1], f'rest 在下标 {idx}: {got}'
 
-    def test_custom_keeps_rest_where_user_put_it(self, cfg):
-        """★ `custom` -> rest **留在用户放的位置**（不强制挪到最后）。"""
-        cfg.model.script.optimization.priority_mode = 'custom'
-        got = _seg(cfg, [
-            REST10,
-            {'kind': 'task', 'task': F_TASK},
-            {'kind': 'task', 'task': T_TASK},
-        ])
-        assert [k for k, _, _ in got] == ['rest', 'task', 'task'], (
-            f'custom 下 rest 被挪走了: {got} —— '
-            f'用户裁定"全都可以拖动次序", 不该动他排的休息位置')
+    def test_rest_moved_even_if_user_put_it_first(self, cfg):
+        """★★ 归一化（**挪**）而不是拒绝 —— 用户拖到哪都接受 ★★
+
+        这条正是与"旧的拖动约束"的**分界**: 旧实现会**拒绝**这种顺序
+        （`drag_blocked`）; 现在**接受**并把 rest 挪到最后。
+        """
+        got = _seg(cfg, [REST10, {'kind': 'task', 'task': F_TASK}])
+        assert _kinds(got) == ['task', 'rest'], got
+        assert _tasks(got) == [F_TASK], '任务顺序不该被动'
 
     def test_chained_rests_all_at_end(self, cfg):
-        cfg.model.script.optimization.priority_mode = 'timed_first'
+        """★ 链式多个 rest —— 全都到最后, 且**它们之间**保序。"""
         got = _seg(cfg, [
-            REST10,
+            {'kind': 'rest', 'minutes': 10},
             {'kind': 'task', 'task': F_TASK},
             {'kind': 'rest', 'minutes': 20},
             {'kind': 'task', 'task': T_TASK},
         ])
-        kinds = [k for k, _, _ in got]
-        assert kinds[:2] == ['task', 'task'], f'任务没被提到前面: {got}'
-        assert kinds[2:] == ['rest', 'rest'], f'rest 没都在最后: {got}'
+        assert _kinds(got) == ['task', 'task', 'rest', 'rest'], got
+        # 稳定排序 -> 10 分钟那个仍在 20 分钟之前
+        assert [t for k, t, _ in got if k == 'rest'] == [10, 20], got
 
-
-class TestRestNotSegmented:
-    @pytest.mark.parametrize('mode', ['timed_first', 'fixed_first', 'custom'])
-    def test_rest_has_no_group(self, cfg, mode):
-        """★ `rest` **不参与分段** —— `group` 应为空（它没有类别）。"""
-        cfg.model.script.optimization.priority_mode = mode
-        got = _seg(cfg, [{'kind': 'task', 'task': F_TASK}, REST10])
-        for kind, _, group in got:
-            if kind == 'rest':
-                assert group == '', (
-                    f'[{mode}] rest 被打了段名 {group!r} —— '
-                    f'它不该参与分段（`priorityGroupOf` 也不该给它段名）')
-
-    def test_rest_does_not_break_segment_order(self, cfg):
-        """★ 中间夹一个 rest, 不影响两个任务段的先后。"""
-        cfg.model.script.optimization.priority_mode = 'timed_first'
-        got = _seg(cfg, [
-            {'kind': 'task', 'task': F_TASK},
-            REST10,
-            {'kind': 'task', 'task': T_TASK},
-        ])
-        tasks = [(k, g) for k, _, g in got if k == 'task']
-        assert tasks == [('task', 'timed'), ('task', 'fixed')], (
-            f'分段顺序不对: {tasks}')
-
-
-class TestStabilityWithinSegment:
-    """★ 段**内**用户顺序不被 `_segment_queue` 打乱（稳定排序）。"""
-
-    def test_user_order_kept_inside_segment(self, cfg):
-        cfg.model.script.optimization.priority_mode = 'timed_first'
-        # 三个 fixed, 用户顺序 Orochi -> Exploration -> SixRealms
-        got = _seg(cfg, [
-            {'kind': 'task', 'task': 'Orochi'},
-            {'kind': 'task', 'task': 'Exploration'},
-            {'kind': 'task', 'task': 'SixRealms'},
-        ])
-        assert [t for _, t, _ in got] == ['Orochi', 'Exploration', 'SixRealms']
-
-    def test_custom_keeps_full_user_order(self, cfg):
-        """★★ `custom` **完全不动** —— 用户拖的顺序直接生效。"""
-        cfg.model.script.optimization.priority_mode = 'custom'
-        entries = [
-            {'kind': 'task', 'task': 'Orochi'},      # fixed
-            {'kind': 'task', 'task': T_TASK},        # timed
-            {'kind': 'task', 'task': 'Exploration'},  # fixed
-        ]
-        got = _seg(cfg, entries)
-        assert [t for _, t, _ in got] == ['Orochi', T_TASK, 'Exploration'], (
-            f'custom 模式下被重排了: {got}')
-
-
-class TestBoundaries:
-    """★ 边界: 空队列 / 只有 rest / 只有一条任务。"""
+    def test_only_rest_stays(self, cfg):
+        got = _seg(cfg, [REST10])
+        assert _kinds(got) == ['rest']
 
     def test_empty(self, cfg):
         assert _seg(cfg, []) == []
 
-    def test_only_rest(self, cfg):
-        got = _seg(cfg, [REST10])
-        assert [k for k, _, _ in got] == ['rest']
+    def test_single_task_untouched(self, cfg):
+        got = _seg(cfg, [{'kind': 'task', 'task': F_TASK}])
+        assert _tasks(got) == [F_TASK], got
 
-    def test_single_task(self, cfg):
-        """★ 只有一条任务 —— 三种模式结果**必须一样**
-        （没有"段间"可排, 最容易掩盖分段 bug 的情形）。"""
-        outs = []
-        for mode in ('timed_first', 'fixed_first', 'custom'):
-            cfg.model.script.optimization.priority_mode = mode
-            outs.append([t for _, t, _ in _seg(
-                cfg, [{'kind': 'task', 'task': F_TASK}])])
-        # ⚠ 我第一版写成 `== [[F_TASK]]`（多包了一层）—— 必然失败。
-        assert outs[0] == outs[1] == outs[2] == [F_TASK], outs
 
-    def test_all_same_segment(self, cfg):
-        """★ 全是同一段 —— 两种模式应给**相同**结果（同段内顺序 = 用户顺序）。"""
+class TestOnlyTagsGroups:
+    """★ 「只打 `group` 段名」+ **不改变任务之间的相对顺序**。"""
+
+    def test_group_assigned_per_segment(self, cfg):
+        got = _seg(cfg, [{'kind': 'task', 'task': T_TASK},
+                         {'kind': 'task', 'task': F_TASK}])
+        assert [(k, g) for k, _, g in got] == [
+            ('task', 'timed'), ('task', 'fixed')], got
+
+    def test_rest_has_no_group(self, cfg):
+        """★ `rest` **不参与分段** —— `group` 为空（它没有类别）。"""
+        got = _seg(cfg, [{'kind': 'task', 'task': F_TASK}, REST10])
+        for kind, _, group in got:
+            if kind == 'rest':
+                assert group == '', f'rest 被打了段名 {group!r}'
+
+    def test_relative_order_of_tasks_never_changes(self, cfg):
+        """★★★ **拖动永远自由**的根基: 任务之间的相对顺序**一字不动** ★★★
+
+        用户抱怨的正是"拖了没用"。若这里会按段重排, 用户拖出来的顺序就
+        **永远显示不出来**。★ 所以本方法**只打段名, 不排段**。
+        """
+        entries = [
+            {'kind': 'task', 'task': F_TASK},          # fixed
+            {'kind': 'task', 'task': T_TASK},          # timed
+            {'kind': 'task', 'task': 'Exploration'},   # fixed
+            {'kind': 'task', 'task': 'Nian'},          # timed
+            {'kind': 'task', 'task': 'SixRealms'},     # fixed
+        ]
+        got = _seg(cfg, entries)
+        assert _tasks(got) == [e['task'] for e in entries], (
+            f'任务被重排了（拖动就不自由了）: {got}')
+
+    def test_timed_after_fixed_is_kept(self, cfg):
+        """★ 反向也成立: **定时段在后**时同样不重排（没有"定时优先"）。"""
+        entries = [{'kind': 'task', 'task': F_TASK},
+                   {'kind': 'task', 'task': T_TASK}]
+        assert _tasks(_seg(cfg, entries)) == [F_TASK, T_TASK]
+        entries = [{'kind': 'task', 'task': T_TASK},
+                   {'kind': 'task', 'task': F_TASK}]
+        assert _tasks(_seg(cfg, entries)) == [T_TASK, F_TASK]
+
+    def test_all_same_segment_order_kept(self, cfg):
         entries = [{'kind': 'task', 'task': t}
                    for t in ('Orochi', 'Exploration', 'SixRealms')]
-        cfg.model.script.optimization.priority_mode = 'timed_first'
-        a = [t for _, t, _ in _seg(cfg, entries)]
-        cfg.model.script.optimization.priority_mode = 'fixed_first'
-        b = [t for _, t, _ in _seg(cfg, entries)]
-        assert a == b == [e['task'] for e in entries], (a, b)
+        got = _seg(cfg, entries)
+        assert _tasks(got) == ['Orochi', 'Exploration', 'SixRealms'], got
+
+    def test_repeated_iteration_is_idempotent(self, cfg):
+        """★ 连跑两次结果相同（它是纯函数式的派生步骤）。"""
+        from module.config.run_list import RunList
+        entries = [REST10, {'kind': 'task', 'task': T_TASK},
+                   {'kind': 'task', 'task': F_TASK}]
+        rl = RunList.from_list(entries)
+        cfg._tag_and_place_rest(rl)
+        first = _snap(rl)
+        cfg._tag_and_place_rest(rl)
+        second = _snap(rl)
+        assert first == second == [('task', T_TASK, 'timed'),
+                                   ('task', F_TASK, 'fixed'),
+                                   ('rest', 10, '')], (first, second)

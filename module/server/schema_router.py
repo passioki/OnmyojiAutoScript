@@ -286,34 +286,18 @@ def _global_fields(config_name: str = '') -> dict:
     | **两者关系** | `timed_priority` / `rest_interleave` |
     | **杂项** | `when_task_queue_empty` |
     """
-    from tasks.Script.config_optimization import (PriorityMode,
-                                                  WhenTaskQueueEmpty)
+    from tasks.Script.config_optimization import WhenTaskQueueEmpty
 
-    # ★★ S6: **三模式**（用户裁定）★★
+    # ★★★ 「调度优先级三模式」**已整簇删除**（用户裁定）★★★
     #
     # 用户原话:
-    #   "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
-    #    如果选了**列表自定义**, 那么全都可以拖动次序。你理解下, 也就是
-    #    **三个选项: 定时任务优先、固定任务优先、自定义**"
+    # > "我觉得……这个**固定任务优先和定时任务优先以及不能跨类别拖动
+    # >  太蠢了**。我只需要保持**可以自由拖动/改变执行顺序**就行,
+    # >  固定任务优先和定时任务优先**直接作为一个快捷排序**就好,
+    # >  而不是定义一些没有意义的不能跨类别拖动以及**单独的调度优先级**。"
     #
-    # ★ 界面名要能对上用户说过的字眼 —— 他看到的那个下拉写的是
-    #   「**定时优先（打完当前这场就让位）**」。
-    mode_labels = {
-        PriorityMode.TIMED_FIRST.value: '定时任务优先',
-        PriorityMode.FIXED_FIRST.value: '固定任务优先',
-        PriorityMode.CUSTOM.value: '自定义',
-    }
-    mode_help = {
-        PriorityMode.TIMED_FIRST.value:
-            '定时任务排在固定任务前面。到点时固定任务在跑, **打完当前这场就让位**'
-            '（战斗边界, 不会打断半途）。此时队列**只能在同一类别内拖动**。',
-        PriorityMode.FIXED_FIRST.value:
-            '固定任务排在定时任务前面。定时任务等固定任务跑完再做。'
-            '此时队列**只能在同一类别内拖动**。',
-        PriorityMode.CUSTOM.value:
-            '完全按你在队列里拖出来的顺序跑。'
-            '★ 此时**所有条目都能互相拖动**（不限类别）。',
-    }
+    # ★ 所以这里**不再暴露 `priority_mode` / `drag_within_group_only`**。
+    #   排序改成**一个动作**（`PUT /{script}/queue/sort`）, 见下面的端点。
     queue_labels = {
         WhenTaskQueueEmpty.GOTO_MAIN.value: '回庭院待命',
         WhenTaskQueueEmpty.CLOSE_GAME.value: '关闭游戏',
@@ -333,22 +317,16 @@ def _global_fields(config_name: str = '') -> dict:
             'current': bool(_opt_value(config_name, 'enable_timed', True)),
             'help': '定时任务 = 有开放时段/周期的, 由定时调度器管',
         },
-        # ---- ★★ S6: 调度优先级（**三模式, 唯一开关**）★★ ----
-        'priority_mode': {
-            'group': 'script.optimization', 'field': 'priority_mode',
-            'type': 'string', 'label': '调度优先级',
-            'current': _current_priority_mode(config_name),
-            'choices': [
-                {'value': m.value, 'label': mode_labels[m.value],
-                 'help': mode_help[m.value],
-                 # ★ 前端据此决定**能否跨类别拖动**
-                 'drag_within_group_only': m != PriorityMode.CUSTOM}
-                for m in PriorityMode
-            ],
-            'help': '决定"谁先跑"与"队列里哪些条目能互相拖动"。',
-        },
-        # ⚠ 旧字段保留（读旧配置用）, 但**不再作为选项暴露**。
-        #   `timed_priority` / `schedule_rule` 已并入上面的 `priority_mode`。
+        # ★★ S6: 调度优先级三模式 **已删除**（用户裁定）★★
+        #
+        # 原来这里是 `priority_mode` 三选一（含 `drag_within_group_only`）。
+        # 用户裁定: "我只需要保持**可以自由拖动/改变执行顺序**就行,
+        # 固定任务优先和定时任务优先**直接作为一个快捷排序**就好"。
+        #
+        # ★ 现在**没有"模式"这个状态** —— 排序是
+        #   `PUT /{script}/queue/sort` 的**一次性动作**。
+        # ⚠ `timed_priority` / `schedule_rule` 这两个更旧的字段也不再暴露
+        #   （它们原来被并进 `priority_mode`, 现在整簇都没了）。
         'rest_interleave': {
             'group': 'script.optimization', 'field': 'rest_interleave',
             'type': 'boolean', 'label': '休息时可穿插定时任务',
@@ -385,25 +363,23 @@ def _current_run_list(config_name: str = '') -> list:
         return []
 
 
-def _current_priority_mode(config_name: str = '') -> str:
-    """当前**调度优先级模式**（S6 三模式）。
-
-    ★ 读**新字段** `priority_mode`; 读不到就回退 `custom`
-      （= **行为保持**, 与 `Optimization` 的默认一致）。
-    """
-    v = _opt_value(config_name, 'priority_mode', None)
-    v = str(getattr(v, 'value', v) or '').strip().lower()
-    if v in ('timed_first', 'fixed_first', 'custom'):
-        return v
-    return 'custom'
-
+# ★★★ `_current_priority_mode()` **已删除**（用户裁定）★★★
+#
+# 它读 `Script.optimization.priority_mode` 并返回三模式之一 —— 唯一消费者是
+# `_global_fields()` 的 `priority_mode` 字段, 那个字段**刚被删**。
+#
+# ★ 用户原话:
+# > "固定任务优先和定时任务优先以及**不能跨类别拖动太蠢了**……而不是定义
+# >  一些没有意义的不能跨类别拖动以及**单独的调度优先级**。"
+#
+# ★ 现行做法: **没有"模式"** —— 执行顺序就是 `run_list` 的顺序;
+#   「定时/固定排前面」是 `PUT /{script}/queue/sort` 的**一次性动作**。
+#
 
 # ★★ 第二轮复审（待办 #5）: `_current_schedule_rule()` **已删除** ★★
 #
 # 它读 `Script.optimization.schedule_rule` 并返回那四个旧模式之一 ——
 # 唯一消费者是 `_list_meta()` 的 `current_mode`, 那个键**刚被删**。
-#
-# ★ 现行做法: `priority_mode`（三模式）走 `_global_fields()`。
 
 
 
@@ -521,8 +497,11 @@ def build_overview(config_name: str) -> dict:
             'category_effective_label': TC.CATEGORY_LABEL.get(
                 meta.category_effective if meta else None, ''),
             # 优先级段: `'timed'` / `'fixed'` —— 与 `Config._segment_of()`
-            # 以及 `build_queue()` 的 `_segment_queue()` 用**同一处**判据
-            # （`TaskSpec.priority_group`）。
+            # 以及 `build_queue()` 的 `_tag_and_place_rest()` 用**同一处**判据
+            #（`TaskSpec.priority_group`）。
+            #
+            # ★ S7: 它现在**只用于显示**（类别色条/标签）与
+            #   `sort_run_list(by=...)` 的排序依据 —— **不再限制拖动**。
             'priority_group': (meta.priority_group if meta else 'fixed'),
             # 类别的中文标签 —— 界面不必自己维护一份映射。
             #
@@ -968,16 +947,20 @@ async def put_run_list(script_name: str, entries: list = Body(...)):
     ★ 坏条目会被**跳过**并记 warning(列表是用户编辑的内容,
       一条写坏不该让整份配置加载失败); 返回体里会给出跳过了几条。
 
-    ★★ S6: **拖动约束**（用户裁定）★★
+    ★★ S7: **拖动永远自由**（用户裁定）★★
 
-    用户原话:
-      "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时,
-       如果选了**列表自定义**, 那么全都可以拖动次序。"
+    ★ 这里原来写着「S6 拖动约束」: `priority_mode == custom` 不校验,
+      另两模式校验段序并返回 `drag_blocked`。**那整条已删除** ——
+      用户原话:
 
-    所以:
-    * `priority_mode == custom`    -> **不校验**, 任意次序都能存
-    * `timed_first` / `fixed_first` -> 校验**段序**与**段内保序**,
-      跨段拖动返回 `drag_blocked`（带可读原因）
+      > "固定任务优先和定时任务优先以及**不能跨类别拖动太蠢了**。
+      >  我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和
+      >  定时任务优先**直接作为一个快捷排序**就好, 而不是定义一些没有
+      >  意义的不能跨类别拖动以及**单独的调度优先级**。"
+
+    ★ 现在**任意次序都能存**（含跨类别、含把 rest 拖到最前）。
+    ★ 唯一保留的硬约束: 「休息」条目**归一化到最后**
+      （`config.place_rest_last(rl)` —— 是**挪位**而不是**拒绝**）。
     """
     try:
         from module.config.run_list import RunList
@@ -991,16 +974,25 @@ async def put_run_list(script_name: str, entries: list = Body(...)):
         # ★★ 审计修复: `group` 是**派生**字段, 不信任前端传的值 ★★
         #
         # 前端为了渲染分段条会在 entries 里带 `group`。但它是
-        # `build_queue()` 的**派生结果**（`_segment_queue()` 刻意**不回写**）。
+        # `build_queue()` 的**派生结果**（`_tag_and_place_rest()` 刻意**不回写**）。
         # 若原样存盘: ① 破坏"单一数据源" ② 前端判据与后端不一致时会存下**错的段名**。
         # -> 这里**丢掉传进来的**, 用后端的权威值。
         rl = _assign_groups(config, rl)
 
-        # ★★ S6: 拖动约束校验 ★★
-        blocked, reason = _check_drag_allowed(config, rl)
-        if blocked:
-            return {'error': reason, 'drag_blocked': True,
-                    'entries': rl.to_list()}
+        # ★★★ 拖动约束**已删除**（用户裁定）★★★
+        #
+        # 用户原话: "固定任务优先和定时任务优先以及**不能跨类别拖动太蠢了**。
+        #   我只需要保持**可以自由拖动/改变执行顺序**就行。"
+        #
+        # ★ 这里原来是 `blocked, reason = _check_drag_allowed(...)`, 命中就
+        #   返回 `{'error': ..., 'drag_blocked': True, 'entries': ...}`。
+        #   **前端曾把带 `entries` 的返回当成"保存成功"** -> 用户看到的是
+        #   "三种模式都能随便拖, 而且没有任何提示"（后端一直在拒绝）。
+        #
+        # ★ 现在**唯一**的硬约束是「休息」条目**恒最后** —— 而且它是
+        #   **归一化**（挪到最后）而不是**拒绝**: 用户拖到哪都接受。
+        #   用户确认: "任意拖，但「休息」条目仍强制排最后"。
+        rl = config.place_rest_last(rl)
 
         ok = config.save_run_list(rl)
         if not ok:
@@ -1021,14 +1013,14 @@ def _assign_groups(config, rl):
 
     ## 为什么必须有这一步
 
-    `group` 是 `build_queue()` 的**派生结果**（`Config._segment_queue()`
-    刻意**不回写**配置）。但前端为了渲染分段条, 会在 `entries` 里**带上**
-    `group`。若原样存盘:
+    `group` 是 `build_queue()` 的**派生结果**（`Config._tag_and_place_rest()`
+    刻意**不回写**配置；S7 前它叫 `_segment_queue()`）。但前端为了渲染分段条,
+    会在 `entries` 里**带上** `group`。若原样存盘:
 
     1. **破坏"单一数据源"**（台账 §10.8）—— 段名就有了两个来源。
     2. 前端按 `category` 算, 后端按 `TaskSpec.priority_group` 算; 两者判据
-       万一不一致, 配置里会**躺着错的段名**, 而 `_segment_queue()` 又会
-       覆盖它 —— 于是"存了但没用", 白白污染配置。
+       万一不一致, 配置里会**躺着错的段名**, 而 `_tag_and_place_rest()`
+       又会覆盖它 —— 于是"存了但没用", 白白污染配置。
 
     ★ 所以: **丢掉前端传的 `group`**, 一律用后端的权威判据重算。
 
@@ -1049,186 +1041,90 @@ def _assign_groups(config, rl):
     return rl
 
 
-def _check_drag_allowed(config, rl):
-    """校验当前 `priority_mode` 下的**拖动约束**（S6）。
+# ★★★ `_check_drag_allowed()` **已整函数删除**（用户裁定）★★★
+#
+# ## 它原来做什么
+#
+# 在 `timed_first` / `fixed_first` 下校验"段序单调", 跨类别拖动就返回
+# `(True, 可读原因)`, 调用方据此返回 `{'error': ..., 'drag_blocked': True}`。
+#
+# ## 为什么删
+#
+# 用户原话:
+# > "固定任务优先和定时任务优先以及**不能跨类别拖动太蠢了**。
+# >  我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和
+# >  定时任务优先**直接作为一个快捷排序**就好, 而不是定义一些没有
+# >  意义的不能跨类别拖动以及**单独的调度优先级**。"
+#
+# ★ 唯一的硬约束（「休息」恒最后）现在由 `Config.place_rest_last()`
+#   负责 —— 而且是**归一化**（挪到最后）而不是**拒绝**。
+#
+# ★★ 为什么不保留一个"恒返回放行"的空壳 ★★
+#
+# 我一度留了空壳（`return False, ''`）"以防有旧调用点"。但实测**没有任何
+# 调用点**, 而且空壳有个真实风险: **未来有人把它接回某个分支**, 它恒放行
+# **不会有任何提示** —— 那就变成"看起来在校验、其实没有"的静默假守卫。
+# ★ 本项目纪律是"**让静默失败变成看得见**" -> 直接删干净, 要恢复就得
+#   重新写一遍（那时自然会想清楚"知识为什么要在两处定义"）。
+#
+# ★ 反向守卫见 `tests/module/server/test_drag_is_free.py`。
 
-    :return: `(blocked: bool, reason: str)`
+
+# ★★★ `GET`/`PUT /{script_name}/priority_mode` **已删除**（用户裁定）★★★
+#
+# 用户原话:
+# > "固定任务优先和定时任务优先以及**不能跨类别拖动太蠢了**。
+# >  我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和
+# >  定时任务优先**直接作为一个快捷排序**就好, 而不是定义一些没有
+# >  意义的不能跨类别拖动以及**单独的调度优先级**。"
+#
+# ★ 取而代之的是下面的 `PUT /{script_name}/queue/sort` ——
+#   **一个动作, 不是一个状态**。排完之后队列就是新顺序, 用户可以随意再拖。
+
+
+@schema_app.put('/{script_name}/queue/sort')
+async def put_queue_sort(script_name: str, body: dict = Body(...)):
+    """★ **一次性排序执行顺序**（用户裁定: "直接作为一个快捷排序"）。
+
+    body: `{"by": "timed"}` 或 `{"by": "fixed"}`
+      * `timed` -> **定时段**排到前面, 固定段在后
+      * `fixed` -> **固定段**排到前面, 定时段在后
+
+    ## ★★★ 它为什么不是"模式" ★★★
+
+    旧实现是一个 `priority_mode` **状态**: 一旦设定, **每次** `build_queue()`
+    都按它排, 而且**限制拖动范围**（不能跨类别拖）。用户裁定那太蠢:
+
+    > "我只需要保持**可以自由拖动/改变执行顺序**就行, 固定任务优先和
+    >  定时任务优先**直接作为一个快捷排序**就好。"
+
+    ★ 所以: **点一次, 排一次, 不留状态**。排完之后:
+      * 队列顺序 = 新的 `run_list` 顺序
+      * 用户**可以随意再拖**（跨类别也行）—— 没有东西拦他
 
     ## 规则
 
-    | 模式 | 允许的次序 |
-    |---|---|
-    | `custom` | 任意 |
-    | `timed_first` | 所有 `timed` 条目在所有 `fixed` 之前; 且**段内保序** |
-    | `fixed_first` | 反之 |
+    * **段内相对顺序不变**（`sorted` 稳定）—— 保住用户既有的编排
+    * 「休息」条目**恒最后**（用户确认的唯一硬约束）
 
-    ## ★ 为什么同时校验"段内保序"
-
-    用户要的是"**拖动只在同类别内生效**" —— 也就是说:
-    * 段**间**顺序由模式决定（不能拖）
-    * 段**内**顺序由用户决定（能拖）
-
-    ★ **`rest` 条目不参与**（它不进段）—— 允许放在任意位置, 否则用户连
-      "在哪休息"都调不了。
-    """
-    try:
-        mode = config.priority_mode()
-        if mode == 'custom':
-            return False, ''
-
-        want_first = 'timed' if mode == 'timed_first' else 'fixed'
-        name = '定时任务优先' if mode == 'timed_first' else '固定任务优先'
-
-        # ★★ 第二轮复审（自查）修复: **必须把 `rest` 也算进 rank** ★★
-        #
-        # ## 原来的 bug（用户 ③ "拖了没效果"的一个真来源）
-        #
-        # 原来这里写的是:
-        #     seq = [... for e in rl.entries if getattr(e, 'task', '')]
-        # —— **跳过 rest 条目**, 只看任务的段序。于是:
-        #   * 前端 `_sameGroupReorder` 给 `rest` 算 rank **2**（恒最后）
-        #     -> 把它拖到中间会被**前端拦**
-        #   * 后端**看不见 rest** -> **放行**
-        #
-        # ★ 两端判据**不一致** -> "前端预检通过但后端拒绝"（或反之）,
-        #   正是本项目反复强调要避免的"知识存在两处"。
-        # ★ 而且后端本该是**最终防线**（后端权威重算 `group`）,
-        #   结果它**不兜底** -> 一旦前端有 bug 或用户直接调 API,
-        #   `rest` 就能被排到中间 -> **挡住后面所有任务**。
-        #
-        # ## 修法: 与前端**逐字同一规则**
-        #
-        #     rest / 未分段 -> rank 2（最后）
-        #     属于 want_first 段 -> rank 0
-        #     其它              -> rank 1
-        #
-        # 这样 `rest` 在中间会让 `rank != sorted(rank)` -> **被拦**,
-        # 而"rest 放最后"仍然合法。
-        ranks = []
-        rest_positions = []
-        task_positions = []
-        for idx, e in enumerate(rl.entries):
-            task = getattr(e, 'task', '') or ''
-            if not task:
-                ranks.append(2)
-                rest_positions.append(idx)
-                continue
-            task_positions.append(idx)
-            seg = config._segment_of(task)
-            ranks.append(0 if seg == want_first else 1)
-
-        if not ranks:
-            return False, ''
-
-        # ① `rest` 必须在**所有任务之后**（否则会挡住它们）
-        if rest_positions and task_positions:
-            if any(r < t for r in rest_positions for t in task_positions):
-                return True, (
-                    '「休息」条目**不能排在任务前面或中间** —— '
-                    '它会挡住后面的任务。请把它拖到队列**最后**。')
-
-        # ② 段序必须单调（`rest` 的 rank=2 正好落在最后, 与 ① 一致）
-        if ranks != sorted(ranks):
-            return True, (
-                f'当前是「{name}」模式, 队列按类别分段 —— '
-                f'**不能把条目跨类别拖动**。'
-                f'（想自由拖动请把「调度优先级」改成「自定义」）')
-
-        # ★★ 第二轮复审（自查）: 删掉下面这段**死代码** ★★
-        #
-        # 原来是:
-        #     cur = [... build_queue() ...]
-        #     cur_seg = [t for t in cur if seg_of.get(t) is not None]
-        #     new_seg = [...]
-        #     _ = cur_seg, new_seg          # ← 算完就丢
-        #
-        # ★ `_ = cur_seg, new_seg` 是"**写了个没用上的中间量**" —— 每次
-        #   调用都**白跑一次 `build_queue()`**（要遍历配置 + 排序）,
-        #   而且看起来像"做了段内保序校验", **其实什么都没做**。
-        #
-        # ★ 段内保序**本就不该校验**: 用户裁定"段**内**顺序由用户决定
-        #   （能拖）" —— 校验它会**禁止段内拖动**, 与设计相反。
-        return False, ''
-    except Exception as exc:
-        logger.warning(f'拖动约束校验失败({type(exc).__name__}: {exc}), 放行')
-        return False, ''
-
-
-@schema_app.get('/{script_name}/priority_mode')
-async def get_priority_mode(script_name: str):
-    """查**调度优先级三模式**（S6）。
-
-    ★ 返回 `drag_within_group_only` —— 前端据此决定**能否跨类别拖动**。
-    """
-    from tasks.Script.config_optimization import PriorityMode
-
-    labels = {
-        PriorityMode.TIMED_FIRST.value: '定时任务优先',
-        PriorityMode.FIXED_FIRST.value: '固定任务优先',
-        PriorityMode.CUSTOM.value: '自定义',
-    }
-    cur = _current_priority_mode(script_name)
-    return {
-        'script': script_name,
-        'current': cur,
-        'drag_within_group_only': cur != PriorityMode.CUSTOM.value,
-        'choices': [
-            {'value': m.value, 'label': labels[m.value],
-             'drag_within_group_only': m != PriorityMode.CUSTOM}
-            for m in PriorityMode
-        ],
-    }
-
-
-@schema_app.put('/{script_name}/priority_mode')
-async def put_priority_mode(script_name: str, body: dict = Body(...)):
-    """设置**调度优先级三模式**（S6）。
-
-    ★ 同时把 `priority_mode_explicit` 置真 —— 否则下次加载配置时
-      迁移逻辑会用旧字段把它**覆盖回去**（见 `migrate_priority_mode_once`）。
+    :return `{ok, by, entries, count}` 或 `{error}`
     """
     from module.server.main_manager import mm
-    from tasks.Script.config_optimization import PriorityMode
 
-    val = str((body or {}).get('priority_mode')
-              or (body or {}).get('value') or '').strip().lower()
-    if val not in {m.value for m in PriorityMode}:
-        return {'error': f'非法 priority_mode: {val!r}; '
-                         f'应为 {[m.value for m in PriorityMode]}'}
+    by = str((body or {}).get("by") or "").strip().lower()
+    if by not in ("timed", "fixed"):
+        return {"error": f"非法 by: {by!r}; 应为 timed / fixed"}
     try:
         config = mm.config_cache(script_name)
-        # ⚠ `deep_set(obj, keys, value)` 是**三参**。
-        # ★ 传**枚举对象**而不是裸字符串 —— 否则 pydantic 序列化警告:
-        #   Expected enum but got str with value 'custom'
-        config.model.deep_set(
-            config.model, keys='script.optimization.priority_mode',
-            value=PriorityMode(val))
-        config.model.deep_set(
-            config.model, keys='script.optimization.priority_mode_explicit',
-            value=True)
-        config.save()
-        # ★★ 实机验收修复: 切换模式后**把分段顺序落到 `run_list`** ★★
-        #
-        # 用户原话: "切换优先级后, **任务排序并没有被重排**, 如固定切换为
-        #   定时, 任务列表排序并不会定时排到前边"
-        #
-        # ★ 根因: 分段只发生在**队列层**（`build_queue()` ->
-        #   `_segment_queue()`, 那是**派生结果**, 刻意不回写配置）。
-        #   而界面「执行顺序」显示的是 `GET /run_list` = **原始顺序**
-        #   -> 切了模式**看不到变化**。
-        #
-        # ★ 这里显式落盘: 用户**主动切换模式**就是编排表态。
-        #   `custom` 模式下 `_segment_queue()` 原样返回 -> 不会动用户顺序。
-        try:
-            config.resegment_run_list()
-        except Exception as exc:
-            logger.warning(f'切换优先级后重排失败: {exc}')
-        return {'ok': True, 'current': val,
-                'drag_within_group_only': val != PriorityMode.CUSTOM.value,
-                'entries': config.build_run_list().to_list()}
+        if not config.sort_run_list(by):
+            return {"error": "排序失败(见后端日志)"}
+        rl = config.build_run_list()
+        return {"ok": True, "by": by,
+                "count": len(rl.entries),
+                "entries": rl.to_list()}
     except Exception as exc:
         logger.exception(exc)
-        return {'error': str(exc)}
+        return {"error": str(exc)}
 
 
 @schema_app.post('/{script_name}/run_list/entry')
@@ -1250,15 +1146,11 @@ async def post_run_list_entry(script_name: str,
         rl = config.build_run_list()
         rl.add(e, index=None if index < 0 else index)
 
-        # ★★ 审计修复: 与 `PUT /run_list` **同一套契约** ★★
-        #
-        # 原来这个端点**绕过**拖动约束 -> 约束可以被插入操作绕过。
-        # 现在: ① 清洗派生字段 `group` ② 校验拖动约束。
+        # ★ 与 `PUT /run_list` **同一套契约**: 清洗派生字段 `group`
+        # ★★ 拖动约束**已删除**（用户裁定）★★ —— 见 `PUT /run_list` 的说明。
+        #    唯一的硬约束是「休息」恒最后, 且是**归一化**不是拒绝。
         rl = _assign_groups(config, rl)
-        blocked, reason = _check_drag_allowed(config, rl)
-        if blocked:
-            return {'error': reason, 'drag_blocked': True,
-                    'entries': rl.to_list()}
+        rl = config.place_rest_last(rl)
 
         if not config.save_run_list(rl):
             return {'error': '保存失败(见日志)'}

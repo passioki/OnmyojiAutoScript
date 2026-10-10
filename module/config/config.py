@@ -17,7 +17,6 @@ from module.config.config_watcher import ConfigWatcher
 from module.config.config_menu import ConfigMenu
 from module.config.config_model import ConfigModel
 from module.config.config_state import ConfigState
-from module.config.scheduler import TaskScheduler
 from module.config.utils import *
 from module.notify.notify import Notifier
 
@@ -714,16 +713,32 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # f = Filter(regex=r"(.*)", attr=["command"])
         # f.load(self.SCHEDULER_PRIORITY)
         if pending_task:
-            _opt = self.model.script.optimization
-            _rule = _opt.schedule_rule
-            pending_task = TaskScheduler.schedule(
-                rule=_rule,
-                pending=pending_task,
-                # ★ 用 `build_queue()`（用户编排 + **自动补齐**）而不是
-                #   `build_run_list()`（只有用户编排）—— 否则
-                #   `auto_queue=True` 的定时任务启用后**不会**自动获得顺序,
-                #   用户还得手动拖一次才生效, 与设计不符。
-                run_list=self.build_queue())
+            # ★★ T1/T2（审计修复）: **不再调 `TaskScheduler.schedule()`** ★★
+            #
+            # 原来这里是:
+            #     _opt = self.model.script.optimization
+            #     _rule = _opt.schedule_rule
+            #     pending_task = TaskScheduler.schedule(rule=_rule, ...)
+            #
+            # ## 为什么删（两个真 bug）
+            #
+            # **T2 —— FILTER 白名单会吞掉队列内的任务。**
+            #   出厂默认 `schedule_rule=Filter` -> `TaskScheduler.schedule`
+            #   -> `Filter.apply(pending)` 按 `ConfigManual.SCHEDULER_PRIORITY`
+            #   白名单过滤。实测: `FindJade` / `GotoMain` **不在白名单**却被丢掉
+            #   —— 而它们 `auto_queue=True`（**启用即自动进队列**）
+            #   -> **在队列里却永不执行**。白名单里还有 2 个**已不存在**的任务名。
+            #
+            # **T1 —— 两个排序权威互相牵制。**
+            #   `schedule_rule` 与 `priority_mode` 都在回答"谁先跑":
+            #   用户拖了顺序, 却因为 `schedule_rule != List` 而不生效。
+            #
+            # ## 现在
+            #
+            # **唯一的顺序权威是队列**（下面 `_order_by_queue()`),
+            # 不论 `schedule_rule` 是什么。`ScheduleRule` 枚举保留, 仅为
+            # **读**旧配置（迁移用）—— 它不再影响行为。
+            # ★ 用户裁定: "**三个选项: 定时任务优先、固定任务优先、自定义**"。
             # ★★ F3: **`LIST` 规则下, 队列顺序就是最终次序, 且队列外的不跑** ★★
             #
             # 用户明确的设计:
@@ -763,57 +778,49 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             # ★ 用户原话（A 选项）: "间隔完全废弃" —— 曾经的
             #   `timed_priority='timed'`（定时任务插到最前）是"谁到点先跑"
             #   的残留; 在"队列顺序为唯一依据"的模型下它**会让用户拖的顺序失效**。
-            if self._is_list_rule(_rule):
-                pending_task = self._order_by_queue(pending_task)
-                # ★★ C: **完成记忆（按条目）** ★★
-                #
-                # `_order_by_queue()` 刚给每个 `Function` 写好了 `entry_id`
-                # （重复条目是**不同的对象、不同的 id**）。这里逐条判断
-                # "这一条本周期做过没有":
-                #
-                # * 做过 -> 移出 pending（同任务**下一条**不受影响）
-                # * 旧数据 / 无 entry_id -> 退回按任务名判断（向后兼容）
-                kept = []
-                for f in pending_task:
-                    tk = convert_to_underscore(getattr(f, 'command', '') or '')
-                    tv = self.model.model_dump().get(tk) or {}
-                    if self._skip_by_period(
-                            tk, tv,
-                            entry_id=getattr(f, 'entry_id', None)):
-                        waiting_task.append(f)
-                        continue
-                    kept.append(f)
-                pending_task = kept
-            else:
-                # ★★ F3 修: **先按队列过滤, 再按规则排序** ★★
-                #
-                # 实测（2026-10-10）: `schedule_rule=Filter` 时
-                # `_order_by_timed_priority()` **只排序、不剔除** ->
-                # 队列外的任务（未加入队列的 `auto_queue=False` 任务）照样进
-                # pending 被执行。实测泄漏 8 个:
-                # `Orochi` / `FallenSun` / `EternitySea` / `Exploration` /
-                # `BondlingFairyland` / `GoryouRealm` / `Hyakkiyakou` / `Sougenbi`
-                # —— 全是 `enable=True` 但**用户没加进队列**的次数任务。
-                #
-                # 这与"**队列是唯一调度依据**"直接冲突（用户原话）。
-                # 所以这里**先**用 `_order_by_queue()` 剔除非队列任务（它同时
-                # 写入 `entry_id`）。
-                #
-                # ★★ 关于 `Filter` 模式还要不要 `_order_by_timed_priority()` ★★
-                #
-                # 用户的设计是"**队列顺序 = 执行顺序**"（F3, 见
-                # `tests/module/config/test_queue_is_authority.py` 的**不变量**:
-                # `pending == 队列剔除 waiting 后的保序子序列`）。
-                #
-                # 而 `_order_by_timed_priority()` 会**重排**（按
-                # `timed_sort_key`: 到点程度 / 窗口快关 / 耗时 / 优先级）——
-                # 那会让"保序子序列"不成立, 即**用户拖的顺序失效**。
-                # 所以这里**不再**调用它。
-                #
-                # ★ 需要"定时优先/固定优先"的**类别**偏序时, 由 `window`
-                #   与**类别分段**表达（见 S6 的设计）——
-                #   不在排序函数里偷偷重排。
-                pending_task = self._order_by_queue(pending_task)
+            # ★★ T1（审计修复）: `schedule_rule` **不再参与排序** ★★
+            #
+            # ## 原来这里是 `if self._is_list_rule(_rule): ... else: ...`
+            #
+            # 两个分支的**实际动作已经一样**（都只 `_order_by_queue()`）——
+            # 差别只在"要不要按条目复查完成记忆"。而 E3（完成状态**按条目**
+            # 记）是**不变量**（设计文档 §4）, 却原来**只在 `List` 规则下成立**：
+            # 几乎所有用户的 `schedule_rule` 都是出厂默认 `Filter` -> **E3 不成立**。
+            #
+            # ★ 而且前端那个「优先级依据」四选一下拉仍在渲染, 与 `priority_mode`
+            #   构成**两个互相牵制的控件** —— 用户拖了顺序却不生效
+            #   （台账 §27.3 那类"拖了没用"陷阱的复现）。
+            #
+            # ## 现在（用户裁定: 三个选项合并成一个「调度优先级」）
+            #
+            # * **唯一的顺序权威是队列**（`_order_by_queue()`）—— 不论规则
+            # * **无条件**按条目复查完成记忆（E3 处处成立）
+            # * `TaskScheduler.schedule()` **不再被调用**
+            #   （`ScheduleRule` 枚举保留, 仅为**读**旧配置）
+            #
+            # ★ 这条同时守住 F3 的不变量: `pending` 是"队列剔除 waiting 后的
+            #   **保序子序列**"（`tests/module/config/test_queue_is_authority.py`）。
+            pending_task = self._order_by_queue(pending_task)
+
+            # ★★ C: **完成记忆（按条目）** —— 现在**无条件**执行 (T1) ★★
+            #
+            # `_order_by_queue()` 刚给每个 `Function` 写好了 `entry_id`
+            # （重复条目是**不同的对象、不同的 id**）。这里逐条判断
+            # "这一条本周期做过没有":
+            #
+            # * 做过 -> 移出 pending（同任务**下一条**不受影响）
+            # * 旧数据 / 无 entry_id -> 退回按任务名判断（向后兼容）
+            kept = []
+            for f in pending_task:
+                tk = convert_to_underscore(getattr(f, 'command', '') or '')
+                tv = self.model.model_dump().get(tk) or {}
+                if self._skip_by_period(
+                        tk, tv,
+                        entry_id=getattr(f, 'entry_id', None)):
+                    waiting_task.append(f)
+                    continue
+                kept.append(f)
+            pending_task = kept
             # ★ 「运行一次」: 手动请求的任务提到**最前**（按点击顺序）
             #
             # 这一条**保留**: 它是用户的**显式即时指令**（"现在就给我跑一次"）,

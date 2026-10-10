@@ -4017,3 +4017,79 @@ Duel / MysteryShop / WeeklyTrifles / …）。
 E4 部分 / S1 ✓ / S2 ✓（有 2 个未记录例外: 手动置顶、运行中置顶）/
 **S3 曾不成立（17 任务, 已修）** / S4 ✓ / Z1/Z2 ✓。
 
+---
+
+# 48. T1/T2: `schedule_rule` **真正合并** + FILTER 白名单**吞掉队列内任务**
+
+## 48.1 两个 bug 是**同一个根因**
+
+审计 T1 与 T2 看起来是两件事, 实际是**同一个东西**:
+`update_scheduler()` 里的 `TaskScheduler.schedule(rule=_opt.schedule_rule, ...)`。
+
+| # | 症状 |
+|---|---|
+| **T2** | 出厂默认 `schedule_rule=Filter` -> `Filter.apply(pending)` 按 `ConfigManual.SCHEDULER_PRIORITY` **白名单过滤**。实测 `FindJade` / `GotoMain` **不在白名单**却被丢掉 —— 而它们 `auto_queue=True`（**启用即自动进队列**）-> **在队列里却永不执行**。白名单里还有 2 个**已不存在**的任务名（`orochijudgement` / `orochimoans`）|
+| **T1** | 那个 `if self._is_list_rule(_rule): ... else: ...` 分支里, **只有 `List` 规则**才按条目复查完成记忆（E3）—— 其它规则（含出厂默认）**不做** -> **E3 不变量在大多数用户那里不成立**。且它与 `priority_mode` 构成**两个互相牵制的排序权威** |
+
+## 48.2 修法
+
+1. **删掉 `TaskScheduler.schedule()` 调用**（连同 `_opt` / `_rule` 两行）
+2. **删掉 `if _is_list_rule / else` 分支** -> 合并成一条路径
+3. **完成记忆（按条目）改为无条件执行** -> E3 处处成立
+4. **`ScheduleRule` 枚举 + `TaskScheduler` 类保留** —— 仍被 6 个测试文件
+   直接调用（`test_task_list.py` / `test_run_list.py` /
+   `test_duplicate_queue_entries.py` 等）; ★ 只是**生产代码不再用它**
+5. **前端删掉「优先级依据」四选一下拉**（`task_list_view.dart`）+ 它那句
+   「⚠ 顺序要生效需选「列表优先」」提示 —— 那个提示本身就是在向用户解释
+   一个**本不该存在**的困惑
+
+★ 用户裁定: "**三个选项: 定时任务优先、固定任务优先、自定义**" ——
+  调度优先级只有**一个**开关。
+
+## 48.3 ★ 我第一版只改了一半（如实记录）
+
+我第一版**只替换了 `if/else` 块**, **没删上面那个 `TaskScheduler.schedule()`
+调用** —— 于是:
+* 我自己的日志显示"替换 L766..L816, OK", 但 `TaskScheduler.schedule` 仍在
+  L718 真实执行
+* 我一度以为"T2 被 T1 顺带修好了", 差点误报
+
+★ 是**逐行查真实代码**（剥注释后仍看到 `L718: pending_task =
+TaskScheduler.schedule(`）才发现的。**教训**: "替换成功"的日志不等于
+"目标没了" —— 改完要**再查一次目标是否还存在**。
+
+## 48.4 修掉的守卫测试
+
+`test_execution_queue.py::TestWiring::test_scheduler_uses_build_queue`
+
+* **原来**: 断言 `update_scheduler` 里有 `self.build_queue()` ——
+  那是 `TaskScheduler.schedule(run_list=self.build_queue())` 留下的。
+  T1 删掉那行后, 这个**正确的改动被它判成回归**。
+* **现在**: 改成**跟随调用链** —— 断言
+  `update_scheduler` 走 `_order_by_queue()` 且**不再**调
+  `TaskScheduler.schedule()`; 而 `_order_by_queue()` 内部用 `build_queue()`。
+
+★ 并且**踩了一个自己埋的坑**: 我写的断言 `'TaskScheduler.schedule(' not in us`
+**匹配到了我自己注释里的**"**不再调 `TaskScheduler.schedule()`**" -> 假失败。
+**修**: 断言前**剥注释**（`code_of()`）。本项目已在多处记录这个坑
+（"守卫匹配到自己的说明文字"）。
+
+## 48.5 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1605 passed, 3 skipped**（0 失败）|
+| 前端 flutter test | **85 passed** |
+| 前端 analyze | **No issues found!** |
+| `TaskScheduler.schedule` 真实调用 | ★ **0** |
+| 前端 `schedule_rule` 下拉 | ★ **已删** |
+
+## 48.6 ★ T1/T2 的**后果校验**（对用户的实际影响）
+
+| 之前 | 现在 |
+|---|---|
+| `FindJade` / `GotoMain` 在队列里却**永不执行** | 按队列顺序**正常执行** |
+| `schedule_rule != List` 时"拖的顺序不生效" | 队列**永远是**顺序权威 |
+| 完成记忆（按条目）在多数用户那里**不生效** | **处处生效** |
+| 前端两个排序控件互相牵制 | **只剩「调度优先级」一个** |
+

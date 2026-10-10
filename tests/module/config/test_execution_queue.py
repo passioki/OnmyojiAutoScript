@@ -314,16 +314,49 @@ class TestWiring:
     """队列必须**真的**接进调度, 否则自动补齐只是摆设。"""
 
     def test_scheduler_uses_build_queue(self):
-        """★ `update_scheduler` 必须用 `build_queue()`, 不是 `build_run_list()`。"""
+        """★★ `update_scheduler` 必须走 `_order_by_queue()` -> `build_queue()` ★★
+
+        ## T1 后的更新
+
+        原来断言"`update_scheduler` 里有 `self.build_queue()`" —— 那是
+        `TaskScheduler.schedule(run_list=self.build_queue())` 那一行留下的。
+
+        T1 删掉了 `TaskScheduler.schedule()` 调用（它带来两个真 bug:
+        FILTER 白名单吞队列内任务 / 两个排序权威互相牵制）。现在
+        `update_scheduler` 的顺序权威是 **`_order_by_queue()`**, 而
+        **`_order_by_queue()` 内部用 `build_queue()`**（用户编排 + 自动补齐）。
+
+        ★ 所以这条守卫改成**跟随调用链**——否则会把"正确的 T1 改动"判成回归。
+        """
         src = (REPO / 'module' / 'config' / 'config.py').read_text(
             encoding='utf-8')
-        i = src.find('def update_scheduler')
-        assert i > 0
-        j = src.find('\n    def ', i + 10)
-        body = src[i:j]
-        assert 'self.build_queue()' in body, (
-            'update_scheduler 还在用 build_run_list —— 自动补齐不会生效, '
+
+        def code_of(name):
+            """取方法体并**剥掉注释** —— ⚠ 否则会匹配到注释里的反面说明。
+
+            我自己就踩了: T1 的注释里写着"**不再调 `TaskScheduler.schedule()`**"
+            -> 断言 `not in body` **匹配到自己的注释** -> 假失败。
+            （本项目多次踩"守卫匹配到自己的说明文字" —— 见 `codeOnly` 的注释。）
+            """
+            i = src.find(f'def {name}')
+            assert i > 0, f'找不到 {name}'
+            j = src.find('\n    def ', i + 10)
+            body = src[i:j if j > i else len(src)]
+            return '\n'.join(l.split('#', 1)[0] for l in body.split('\n'))
+
+        us = code_of('update_scheduler')
+        assert '_order_by_queue(' in us, (
+            'update_scheduler 未走 `_order_by_queue()` —— 队列不是顺序权威')
+        assert 'TaskScheduler.schedule(' not in us, (
+            'T1 后不应再调 `TaskScheduler.schedule()` —— '
+            '它会让 FILTER 白名单吞掉队列内任务, 且与 priority_mode 互相牵制')
+
+        obq = code_of('_order_by_queue')
+        assert 'build_queue()' in obq, (
+            '_order_by_queue 未用 `build_queue()` —— 自动补齐不会生效, '
             'auto_queue 任务启用后仍不会进队列')
+        assert 'build_run_list()' not in obq, (
+            '`_order_by_queue` 只该用 `build_queue()`（含自动补齐）')
 
     def test_overview_exposes_queue_fields(self):
         """`/overview` 必须给前端 `queued` 与 `auto_queue`。"""

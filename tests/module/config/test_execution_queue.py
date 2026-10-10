@@ -53,31 +53,55 @@ class TestAutoQueueMetadata:
             idx = {m.task: m for m in idx}
         specs = TC._load_specs()
 
+        # ★★★ `Rest` 是**有意的例外**（用户裁定 乙）★★★
+        #
+        # 用户原话:
+        # > "休息就是临时任务（回庭院待着），只不过可以选择被定时任务插队。"
+        #
+        # 而在我给出"甲/乙"两个选项后, 用户选 **乙** =
+        # ★ 休息**不自动进队列**, 由用户**主动添加**（与改动前的体验一致）。
+        #
+        # 所以 `Rest` 破了"`auto_queue == NOT countable`"这条不变量:
+        #     `Rest`: auto_queue=False（不自动进队列）
+        #             countable=False（它不是"打满 N 次"的任务）
+        #
+        # ★ 这条不变量本来的含义是"**次数任务不自动进队列, 定时任务自动进**"
+        #   —— 它描述的是**例行任务**。而休息是**控制类**条目（用户手动安排
+        #   "跑到这一行歇一会儿"），不属于这两类。
+        # ⚠ 所以这里**显式排除** Rest, 并写明原因 —— 不是放水:
+        #   除了它之外**任何一个**任务违反不变量仍然会失败。
+        _EXEMPT = {'Rest'}
+
         bad = []
         for task, spec in specs.items():
+            if task in _EXEMPT:
+                continue
             meta = idx.get(task)
             if meta is None:
                 continue
             if spec.auto_queue_effective == bool(meta.countable):
                 bad.append((task, spec.auto_queue_effective, meta.countable))
         assert not bad, (
-            f'{len(bad)} 个任务的 auto_queue 与 countable 矛盾: {bad}')
+            f'{len(bad)} 个任务的 auto_queue 与 countable 矛盾: {bad}'
+            f'（★ 唯一允许的例外是 {sorted(_EXEMPT)}，理由是用户裁定 乙）')
 
-    def test_counts_are_14_and_41(self):
-        """实测分布: 14 个次数任务（False）+ 41 个定时类（True）。
+    def test_counts_are_15_and_40(self):
+        """实测分布: **15** 个不自动进队列（False）+ **40** 个自动（True）。
 
-        ★ 原来是 40 个定时类 —— 新增 `Rest`（休息）后变成 **41**。
-          `Rest` 在 **auto 边**：它不是次数任务（`countable=False`），
-          且 `auto_queue=True`（与其它临时任务一致，用户不必手动添加）。
+        ★ 原来是 14 + 40 —— 新增 `Rest`（休息）后变成 **15 + 40**。
+        ★ `Rest` 在 **manual 边**（`auto_queue=False`）:
+          用户裁定 **乙** = 休息**由用户主动添加**, 不自动进队列。
+        ★ 注意它**不是次数任务**（`countable=False`）—— 见
+          `test_auto_queue_matches_countable` 里对这条例外的说明。
         """
         specs = TC._load_specs()
         manual = [t for t, s in specs.items() if not s.auto_queue_effective]
         auto = [t for t, s in specs.items() if s.auto_queue_effective]
-        assert len(manual) == 14, f'次数任务应为 14 个, 实际 {len(manual)}: {sorted(manual)}'
-        assert len(auto) == 41, f'定时类应为 41 个, 实际 {len(auto)}'
+        assert len(manual) == 15, f'应为 15 个, 实际 {len(manual)}: {sorted(manual)}'
+        assert len(auto) == 40, f'应为 40 个, 实际 {len(auto)}' 
 
-    def test_the_fourteen_count_tasks(self):
-        """钉住这 14 个（用户逐个核对过）。"""
+    def test_the_fifteen_manual_tasks(self):
+        """钉住这 15 个（14 个次数任务 + ★ 新增的 `Rest`）。"""
         specs = TC._load_specs()
         manual = {t for t, s in specs.items() if not s.auto_queue_effective}
         expected = {
@@ -85,6 +109,9 @@ class TestAutoQueueMetadata:
             'FallenSun', 'GoryouRealm', 'HeroTest', 'Hyakkiyakou', 'Orochi',
             'OtherWorldTwilight', 'RealmRaid', 'RyouToppa', 'SixRealms',
             'Sougenbi',
+            # ★ 休息: 用户裁定 乙 -> 主动添加, 不自动进队列
+            #   （它不是次数任务, 见 test_auto_queue_matches_countable）
+            'Rest',
         }
         assert manual == expected, (
             f'差异: 多了 {sorted(manual - expected)}, 少了 {sorted(expected - manual)}')

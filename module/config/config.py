@@ -502,6 +502,21 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # ★ 幂等: 每个任务只要已有**合法值**就跳过 ——
         #   **包括 `none`**（那是用户选的"不限", 不能被默认值覆盖）。
         self.migrate_task_period_once()
+        # ★★★ 补齐模板里**新增**的任务节点（否则新任务在老配置里不存在）★★★
+        #
+        # ## 为什么需要（实测）
+        #
+        # `Rest`（休息）任务加进 `tasks/Rest/` 后：
+        #   * `template.json` 有 `rest` 节点（新配置自动带）
+        #   * ★ 但**老配置**（用户已有的 `恋鸟树.json`）里**没有**
+        #     -> `GET /schema` **不返回它** -> 界面上根本没这个任务
+        #
+        # ★ 这就是"加了新任务，老配置用户看不到"的根因。
+        #   与 `migrate_task_period_once()` 同一类问题（老配置缺新键）。
+        #
+        # ★ 幂等: **只补"模型里不存在"的节点** —— 已有的一个字段都不碰
+        #   （用户改过的值绝不能被覆盖）。
+        self.migrate_missing_task_nodes_once()
         # ★★★ 修正"全天窗口却被排到未来"的 next_run（用户报的"等待到点"）★★★
         #
         # 用户原话:
@@ -718,6 +733,78 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
           `category` -> `category_effective` -> `priority_group` 三层推导。
         """
         return 'fixed' if self.task_period(task_command) == 'none' else 'timed'
+
+    def migrate_missing_task_nodes_once(self) -> bool:
+        """把 `template.json` 里**有、但本配置里没有**的任务节点补进来。
+
+        ## ★★★ 为什么需要（实测踩到）★★★
+
+        `Rest`（休息）任务加进 `tasks/Rest/` 之后:
+
+        | 来源 | 有没有 `rest` 节点 |
+        |---|---|
+        | `config/template.json` | ✅ 有（新配置自动带）|
+        | ★ **老配置**（如 `恋鸟树.json`）| ❌ **没有** |
+
+        ★ 而 `GET /{script}/schema` 是**遍历模型**的 ->
+          老配置**根本不会返回**这个任务 -> 界面上找不到它。
+        ★ 用户看到的是"新加的任务在老配置里不存在"。
+
+        ## 与 `migrate_task_period_once()` 的关系
+
+        同一类问题（老配置缺新键），但**判据不同**:
+        * 那个按 `period_backfilled` **一次性标记**（因为要区分
+          "用户选了 none" 与 "从没设过"）
+        * ★ 这个**不需要标记** —— 判据就是"**模型里有没有这个节点**"，
+          **天然幂等**（补上之后下次就"有"了）。少一个状态位就少一处不同步。
+
+        ## ★ 安全性（最要紧）
+
+        * **只补"不存在"的节点** —— 已存在的一个字段都不碰
+          （★ 用户改过的值**绝不能**被覆盖）
+        * 只从 `template.json` 取**该节点**（不是整份模板覆盖）
+        * 任何异常 -> 记日志返回 False，**绝不**让配置加载失败
+
+        :return: 是否真的补了节点
+        """
+        try:
+            import copy
+            import json
+
+            # ★ 模板路径 —— **从 `filepath_config` 推导**，不硬编码
+            #   （★ 见 `docs/architecture.md` §13「杜绝硬编码」）。
+            #   `filepath_config(name) -> <repo>/config/<name>.json`
+            #   -> 同目录下的 `template.json`
+            from module.config.utils import filepath_config
+            tpl_path = Path(filepath_config(self.config_name)).parent / 'template.json'
+            if not tpl_path.is_file():
+                logger.debug(f'模板不存在: {tpl_path} —— 跳过补齐')
+                return False
+            tpl = json.loads(tpl_path.read_text(encoding='utf-8'))
+            have = set(self.model.model_dump().keys())
+
+            added = []
+            for key, node in tpl.items():
+                # 只处理**任务节点**（模板顶层除 script/device 等之外的都是）
+                if not isinstance(node, dict) or 'scheduler' not in node:
+                    continue
+                if key in have:
+                    continue        # ★ 已有 -> 一个字段都不碰
+                # ★ 深拷贝后**按节点**写入（不是整份覆盖）
+                self.model.deep_set(self.model, keys=key,
+                                    value=copy.deepcopy(node))
+                added.append(key)
+
+            if not added:
+                return False
+            self.save()
+            logger.info(f'已补齐 {len(added)} 个模板里新增的任务节点: '
+                        f'{sorted(added)}（老配置缺新任务的根因）')
+            return True
+        except Exception as exc:
+            logger.warning(f'补齐缺失任务节点失败'
+                           f'({type(exc).__name__}: {exc}), 保持原样')
+            return False
 
     def migrate_task_period_once(self) -> bool:
         """★ 一次性把 `scheduler.period` **按出厂默认值回填**（用户确认要做）。

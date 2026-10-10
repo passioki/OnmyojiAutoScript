@@ -64,8 +64,27 @@ SPEC = TaskSpec(
     #   而 `period=NONE` 会让 `_segment_of()` 把它判为**临时任务**
     #   （判据只看 period, 不看 category —— 见 `Config.task_period`）。
     category=Category.TIMED,
-    # ★ 与其它临时任务一致: 自动进队列（用户不必手动添加）
-    auto_queue=True,
+    # ★★★ `auto_queue=False` —— 休息**由用户主动添加**（用户裁定 乙）★★★
+    #
+    # 用户在我给出"甲/乙"两个选项后选: **乙**。
+    #
+    # ## 为什么不能 `auto_queue=True`（我第一版写错了）
+    #
+    # `auto_queue=True` 有两个后果, 都不是用户要的:
+    #
+    # 1. ★ `build_queue()` 会把它**自动补齐进队列** ->
+    #    **休息会永远躺在队列里**（用户没主动加也在）。
+    #    而休息是"**跑到这一行才歇**"的东西 ——
+    #    常驻队列 = 每次都会歇, 那不是用户的意图。
+    #
+    # 2. ★ `GET /queue/candidates` 会 `if _auto_queue_of(meta, config): continue`
+    #    -> **「添加休息」候选里看不到它**。
+    #
+    # ## 乙 的行为（与用户既有体验一致）
+    #
+    # 用户点「添加休息」-> `setEnabled('rest', True)` + 加进 `run_list`
+    # -> 与改动前"用户主动加一条休息"**完全一致**。
+    auto_queue=False,
     # ★ 全天窗口（与 AreaBoss 同样的声明方式）。
     #   ★ 用户可改成 12:00-14:00 之类 -> "只在这个时段才休息"。
     #   全天与"未声明"行为等价（`contains()` 恒 True）—— 纯声明。

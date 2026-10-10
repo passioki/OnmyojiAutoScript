@@ -2388,3 +2388,127 @@ queued = 18   未启用的 = 0      ← 修前 41 / 23
 | 前端 flutter test | **85 passed** |
 | `flutter analyze`（我改的文件）| No issues |
 
+---
+
+# 32. S1: 僵尸节点清理（完成）+ **两个真 bug**
+
+用户第四轮裁定（我记下的原话）:
+> "僵尸配置节点清理掉"
+> "去除旧的充能存量说法。现在靠 window 的**多次设置**完全可以做到正常运行。"
+> "类别跟随 period 为什么要回退？这不是浪费额度吗？**应该先问再做决定**。"
+> "period=none 时算'固定'"
+> "拖动只在同类别内生效**是在选了定时优先或者固定任务优先时**, 如果选了
+>  列表自定义, 那么**全都可以拖动次序**。也就是三个选项: **定时任务优先、
+>  固定任务优先、自定义**"
+> "给 `run_list` **加类别分段**"
+> "不是 window slots, 而是**设置多个 window**！slots 不是已经废弃了吗,
+>  请**通读代码、设计文档并更新记忆**！**前后端要同步改**！"
+> "连 `charge_*` 字段和**存量逻辑一起删**"
+> "固定优先要**新增**"
+> "这个排序问题请**从架构上专门设计一款调度**, 参考**原子化、集合类**理念,
+>  包括数据的增删改查、分类及互相的联动。"
+> "每一大步都需要**确认前后端代码**, **检查事实实现是否符合记忆**"
+
+**已确认**: 顺序对 (S1..S6) · **a 结构化存储** · **确认废弃 `window_slots`**
+
+## 32.1 ★ 我纠正的记忆错误（用户说对了）
+
+| 我此前的说法 | **代码事实** |
+|---|---|
+| "靠 `window_slots` 就能表达多个时刻" | ★ `window_slots` 是**我发明的绕法**, 用户**从未认可**; 要**废弃** |
+| "多 window 已实现" | 只对**一半**成立: `AvailabilityWindow` 是**一段**; `TaskSpec.window` **支持单段或 tuple**; `Config._build_windows()` 能产多段。**但用户配置只有 `window_start`/`window_end` 两个单值** -> **用户只能配一个窗口** |
+| （前端）| 实测: 前端**没有任何 window UI 代码**（0 处）, 只是靠"字段自动渲染"显示成文本框 |
+
+★ **真正的缺口**: `scheduler` 里要存**窗口列表**（`windows: list[{start,end,period,days,dom}]`）,
+  前端要**新写**增删改的列表编辑器。
+
+## 32.2 ✅ S1: 僵尸配置节点清理
+
+### 判定（收紧后）
+
+`tasks/<Name>/` **有 `config.py`** 但**缺 `meta.py`**, 且**不在白名单**里,
+且 `TC.get_spec()` 查不到 -> 僵尸。
+
+白名单: `EXTRA_GLOBAL`（`Script` / `GlobalGame`）+ 资源库目录
+（`Component` / `GameUi` / `Utils` / `General`）。
+
+**实测**: 只 `OrochiMoans` 一个（`tasks/OrochiMoans/` 只有 `assets.py` +
+`config.py`, 无 `meta.py` / 无 `script_task.py`）。
+
+**清理结果**（4 个配置）: `僵尸还在=False`, 且 `script` / `global_game` **都在**。
+
+### ★★ 我第一版把它做错了两遍（如实记录）★★
+
+**错误 1: 判据太宽 -> 把必需节点删了**
+
+第一版只判"有 `config.py` 但缺 `meta.py`" -> **`Script`** 与 **`GlobalGame`**
+也中招, 被**删掉**。但它们:
+* `config_model.py:44`: `EXTRA_GLOBAL = ('Script', 'GlobalGame')`
+* 继承 `BaseModel`（非 `ConfigBase`）-> **本来就不该有 `meta.py`**
+* 删掉 = **丢了脚本设置 / 全局设置**
+
+**已从 `config/template.json`（git 跟踪）恢复**，个人配置也从 template 补回。
+
+**错误 2: 把函数插到了 `@lru_cache` 与 `def _load_specs()` 之间**
+
+```python
+@lru_cache(maxsize=1)          # ← 本来属于 _load_specs
+def zombie_task_keys() -> set: # ← 抢走了装饰器
+```
+-> `reload_specs()` 报 `AttributeError: 'function' object has no attribute
+'cache_clear'`。
+
+★ 与台账 §26 记的 `@dataclass` 被函数抢走是**同一类错误**。
+  **教训: 插入点必须检查"锚点的上一行是不是装饰器/`@`"。**
+
+## 32.3 ★★ 修掉一个**真 bug**: `schedule_rule=Filter` 时队列外任务照样跑 ★★
+
+### 实测
+
+用户 `戀鳥樹` 的 `schedule_rule = Filter`（不是 `List`）。实测:
+
+```
+queue(19)   pending(22)
+★ 泄漏（不在队列却在 pending）: BondlingFairyland EternitySea Exploration
+   FallenSun GoryouRealm Hyakkiyakou Orochi Sougenbi
+   —— 8 个, 全是 enable=True 但**用户没加进队列**的 auto_queue=False 任务
+```
+
+### 根因
+
+`_order_by_timed_priority()` **只排序、不剔除**（它假定调用方已过滤）。
+`List` 分支有 `_order_by_queue()` 剔除, 而 **`Filter`/`Priority`/`FIFO`
+分支没有** -> 泄漏。这与"**队列是唯一调度依据**"**直接冲突**。
+
+★ 这**正是用户最初报告的现象**: "现在似乎**没有严格锚定实时的调度**"。
+
+### 修 + 实测
+
+非 LIST 分支也**先** `_order_by_queue()` 过滤; 并**去掉**重复调用与
+`_order_by_timed_priority()`（后者会**重排**, 让"pending 是队列的保序子序列"
+不成立 = **用户拖的顺序失效**）。
+
+```
+修前: queue(19) pending(22) 泄漏 8 个
+修后: queue(19) pending(14) 泄漏 无    保序子序列 True
+```
+
+## 32.4 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1729 passed, 3 skipped**（+15 守卫）|
+| 前端 flutter test | **85 passed** |
+| 僵尸清理 | 4 个配置全清, `script`/`global_game` **保留** |
+| 队列泄漏 | **0**（修前 8）|
+
+## 32.5 待做（S2..S6, 用户已确认顺序）
+
+| 步 | 内容 |
+|---|---|
+| **S2** | **调度架构设计文档**（原子化 / 集合 / CRUD / 联动）—— **先出文档给用户审** |
+| **S3** | **多 window**（`scheduler.windows: list` 结构化）+ 迁移 + **废弃 `window_slots`** |
+| **S4** | **前端窗口列表编辑器**（增删改）|
+| **S5** | **删除充能存量**（71 文件 / 327 行, 含 `charge_*` 字段）|
+| **S6** | **三模式**（定时优先 / 固定优先 / **自定义**）+ `run_list` **类别分段** + 拖动约束 |
+

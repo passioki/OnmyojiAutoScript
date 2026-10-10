@@ -43,6 +43,7 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 
+from module.config.resource import Period  # ★ ⑥ 要用
 from module.logger import logger
 
 DATA_FILE = Path(__file__).with_name('task_catalog_data.json')
@@ -101,6 +102,27 @@ class TaskMeta:
     success_interval: str or None   # 充能周期原文, 如 '00 03:00:00'
 
     # ---- 便捷属性 ----
+    @property
+    def category_effective(self) -> Category:
+        """**最终类别** —— 转发给 `TaskSpec.category_effective`（⑥）。
+
+        ## 为什么需要转发
+
+        `schema_router` 用的是 **`TaskMeta`**（`TC.get()`）, 而
+        `category_effective` 定义在 **`TaskSpec`**（`TC.get_spec()`）上。
+        不加转发 -> `AttributeError`（我实测踩过: **53 errors**）。
+
+        ★ 判定逻辑**只有一处**（`TaskSpec.category_effective`）—— 这里只转发,
+          保持**单一数据源**（台账 §10.8）。
+        """
+        try:
+            spec = get_spec(self.task)
+            if spec is not None:
+                return spec.category_effective
+        except Exception:
+            pass
+        return self.category
+
     @property
     def countable(self) -> bool:
         """是否可以设"目标次数"(界面是否显示次数输入框)。"""
@@ -308,6 +330,41 @@ class TaskSpec:
 
 
     @property
+    def category_effective(self) -> Category:
+        """**最终类别** —— `period=不限` 的**定时**任务算**固定任务**（⑥）。
+
+        ## 用户反馈
+
+        > "OrochiMoans 设置中, period 设置的是**不限**, 为什么还是**定时任务**呢。"
+
+        ## ★ 规则（选项 ii）—— **只对原本 `timed` 的生效**
+
+        | 声明类别 | `period_effective` | 最终类别 |
+        |---|---|---|
+        | `timed` | `NONE` | **`fixed`**（"不限"就不是定时任务）|
+        | `timed` | 其它 | `timed` |
+        | `charge` / `toppa` / `limited` / `fixed` | 任意 | **保持声明** |
+
+        ## 为什么**不**无条件跟随（我实测过 (i) 并回退了）
+
+        无条件跟随会让:
+        * `GoldYoukai`（**charge 充能**）-> fixed
+        * `RealmRaid`（**toppa 结界突破**）-> fixed
+
+        -> **总览页找不到充能存量**（`test_charge_tasks_can_find_charges` 失败）。
+
+        ★ 「充能（按存量在固定时刻补充）」与「固定（打满 N 次）」是**不同的
+          游戏机制**, 被 `period=none` 抹平会丢语义。所以规则收窄到
+          **只影响原本是 `timed` 的**（那才是用户说的"不该是定时任务"）。
+
+        ★ 单一数据源: `cat_of` / schema / 前端**都读这里**（台账 §10.8）。
+        """
+        if self.category == Category.TIMED and \
+                self.period_effective == Period.NONE:
+            return Category.FIXED
+        return self.category
+
+    @property
     def auto_queue_effective(self) -> bool:
         """最终判定: 显式 `auto_queue` 优先, 否则按 `category` 推导。
 
@@ -384,6 +441,88 @@ def _discover_specs() -> dict:
             spec = dataclasses.replace(spec, task=d.name)
         out[spec.task] = spec
     return out
+
+
+def zombie_task_keys() -> set:
+    """**僵尸任务**的任务目录名（存在目录, 但**缺 `meta.py`**）。
+
+    ★ **不加 `@lru_cache`** —— 任务目录会随开发变化（新增/删除 `meta.py`）,
+      缓存住会让"明明补了 meta.py 还被当僵尸"这种诡异问题出现。
+      本函数只在 `Config.__init__` 的迁移里调用一次/配置, 开销可忽略。
+
+    ## 为什么要它
+
+    用户要求"**僵尸配置节点清理掉**"。
+
+    实测: `tasks/OrochiMoans/` 只有 `assets.py` + `config.py` ——
+    **没有 `meta.py`**（-> 没类别、没窗口）, **也没有 `script_task.py`**
+    （-> 根本跑不了）。它在配置里留下的 `scheduler` 节点就是**僵尸**:
+    界面上会显示成一个没有类别、永远跑不动的任务。
+
+    ★ **只认"有目录但缺 `meta.py`"的**。资源库目录
+      （`Component` / `GameUi` / `GlobalGame` / `Script` / `Utils` / `General`）
+      **本来就不该有** `meta.py`, 且配置里也没有它们的 `scheduler` 节点 ——
+      不能误判成僵尸（踩过这个坑的邻居: `test_task_list.py` 里把
+      `OrochiMoans` / `OrochiJudgement` 记为"任务早已不存在"）。
+
+    ## ★★ 必须排除**必需的非任务配置节点**（我第一版踩过）★★
+
+    我第一版判据只有"有 `config.py` 但缺 `meta.py`" -> 把 **`Script`** 与
+    **`GlobalGame`** 也当僵尸**删掉了**。但它们**不是任务**:
+    * `module/config/config_model.py:44`: `EXTRA_GLOBAL = ('Script', 'GlobalGame')`
+    * 继承 `BaseModel`（非 `ConfigBase`）, **本来就不该有 `meta.py`**
+    * 删掉 -> 脚本设置 / 全局设置整块丢失
+
+    :return: 形如 `{'OrochiMoans'}` 的**目录名**集合
+    """
+    out = set()
+    try:
+        tasks_dir = Path(__file__).resolve().parent.parent.parent / 'tasks'
+        if not tasks_dir.is_dir():
+            return out
+
+        # ★ 白名单: 必需的**非任务**配置节点 / 资源库目录
+        keep = {'Script', 'GlobalGame', 'Component', 'GameUi', 'Utils',
+                'General', '_Template'}
+        try:
+            from module.config.config_model import EXTRA_GLOBAL
+            keep |= set(EXTRA_GLOBAL)
+        except Exception:
+            pass
+
+        for d in tasks_dir.iterdir():
+            if not d.is_dir() or d.name.startswith('_'):
+                continue
+            if d.name in keep:
+                continue                 # ★ 必需节点 -> 绝不是僵尸
+            if not (d / 'config.py').exists():
+                continue                 # 不是配置型任务目录
+            if (d / 'meta.py').exists():
+                continue                 # 有 meta -> 是正常任务
+            # ★ 双保险: 它必须**查不到**（真僵尸才会有这个特征）
+            if get_spec(d.name) is not None:
+                continue
+            out.add(d.name)
+    except Exception as exc:
+        logger.warning(f'zombie_task_keys 失败'
+                       f'（{type(exc).__name__}: {exc}）, 返回空集')
+    return out
+
+
+def is_zombie_config_key(key: str) -> bool:
+    """配置里的**下划线键**是否属于僵尸任务。
+
+    例: `'orochi_moans'` -> `True`（`OrochiMoans` 缺 `meta.py`）。
+    """
+    z = zombie_task_keys()
+    if not z:
+        return False
+    from module.config.config_model import convert_to_underscore
+    key = str(key or '')
+    for name in z:
+        if convert_to_underscore(name) == key:
+            return True
+    return False
 
 
 @lru_cache(maxsize=1)

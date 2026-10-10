@@ -446,6 +446,44 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # `migrate_windows_once()` **自身幂等**（`window_slots` 非空就跳过）
         # —— 不会覆盖用户后续在界面上的修改。
         self.migrate_windows_once()
+        # ★★ S1: 清理**僵尸配置节点**（用户要求）★★
+        #
+        # `tasks/<Name>/` 有 `config.py` 但**缺 `meta.py`** -> 没类别、没窗口、
+        # 也跑不了（`script_task.py` 同样缺）。它在配置里会显示成一个永远
+        # 跑不动的任务。实测: 4 个配置里各有一个 `orochi_moans`。
+        self.clean_zombie_nodes()
+
+    def clean_zombie_nodes(self) -> bool:
+        """把**僵尸任务**的配置节点从这份配置里**删掉**（用户要求）。
+
+        ★ 判定标准见 `task_catalog.zombie_task_keys()`（**不猜**:
+          只认"有目录但缺 `meta.py`"的, 资源库目录不算）。
+        ★ 幂等: 没有僵尸键时不做任何事、不写盘。
+        """
+        try:
+            from module.config import task_catalog as TC
+            zombies = TC.zombie_task_keys()
+            if not zombies:
+                return False
+            from module.config.config_model import convert_to_underscore
+            keys = {convert_to_underscore(z) for z in zombies}
+            raw = self.model.model_dump()
+            hit = sorted(k for k in raw if k in keys)
+            if not hit:
+                return False
+            for k in hit:
+                # 从模型里摘掉该字段（`ConfigModel` 是 pydantic 模型）
+                try:
+                    delattr(self.model, k)
+                except Exception:
+                    pass
+            self.save()
+            logger.info(f'{self.config_name}: 已清理僵尸配置节点 {hit}')
+            return True
+        except Exception as exc:
+            logger.warning(f'{self.config_name}: 清理僵尸节点失败'
+                           f'（{type(exc).__name__}: {exc}）, 跳过')
+            return False
 
     def __getattr__(self, name):
         """
@@ -709,9 +747,35 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                     kept.append(f)
                 pending_task = kept
             else:
-                # ★ 定时任务**内部**排序 + 定时优先时提到最前（见 docs §5.4.1）
-                pending_task = self._order_by_timed_priority(pending_task)
-                pending_task = self._order_by_timed_priority(pending_task)
+                # ★★ F3 修: **先按队列过滤, 再按规则排序** ★★
+                #
+                # 实测（2026-10-10）: `schedule_rule=Filter` 时
+                # `_order_by_timed_priority()` **只排序、不剔除** ->
+                # 队列外的任务（未加入队列的 `auto_queue=False` 任务）照样进
+                # pending 被执行。实测泄漏 8 个:
+                # `Orochi` / `FallenSun` / `EternitySea` / `Exploration` /
+                # `BondlingFairyland` / `GoryouRealm` / `Hyakkiyakou` / `Sougenbi`
+                # —— 全是 `enable=True` 但**用户没加进队列**的次数任务。
+                #
+                # 这与"**队列是唯一调度依据**"直接冲突（用户原话）。
+                # 所以这里**先**用 `_order_by_queue()` 剔除非队列任务（它同时
+                # 写入 `entry_id`）。
+                #
+                # ★★ 关于 `Filter` 模式还要不要 `_order_by_timed_priority()` ★★
+                #
+                # 用户的设计是"**队列顺序 = 执行顺序**"（F3, 见
+                # `tests/module/config/test_queue_is_authority.py` 的**不变量**:
+                # `pending == 队列剔除 waiting 后的保序子序列`）。
+                #
+                # 而 `_order_by_timed_priority()` 会**重排**（按
+                # `timed_sort_key`: 到点程度 / 窗口快关 / 耗时 / 优先级）——
+                # 那会让"保序子序列"不成立, 即**用户拖的顺序失效**。
+                # 所以这里**不再**调用它。
+                #
+                # ★ 需要"定时优先/固定优先"的**类别**偏序时, 由 `window`
+                #   与**类别分段**表达（见 S6 的设计）——
+                #   不在排序函数里偷偷重排。
+                pending_task = self._order_by_queue(pending_task)
             # ★ 「运行一次」: 手动请求的任务提到**最前**（按点击顺序）
             #
             # 这一条**保留**: 它是用户的**显式即时指令**（"现在就给我跑一次"）,

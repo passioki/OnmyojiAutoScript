@@ -160,38 +160,50 @@ class TestCrossGroupDragIsAccepted:
         assert 'entries' in res
 
 
-class TestRestIsNormalizedNotRejected:
-    """★★ 用户确认的唯一硬约束: rest **恒最后** —— 但是**归一化**, 不是拒绝。
+class TestRestKeepsItsPosition:
+    """★★★ P-2（用户裁定）: 休息**不再**被归一化到最后 ★★★
 
-    用户原话: "**任意拖**，但「休息」条目仍强制排最后"
+    ## 用户原话
 
-    ★ 这个区别很重要:
-      * **拒绝**（旧设计）-> 用户拖动失败、要自己再试
-      * **归一化**（新设计）-> 用户拖到哪都**接受**, 系统落库时归位
+    > "休息**也是任务**, 只不过可以选择插入定时任务。"
+    > "休息当然就是**挡住后边的**, 本质为了**防封**, **符合预期**。"
+    > "1 **全删**"（`'__rest__'` 特殊标记）
+
+    ## 曾经错在哪
+
+    本类原来叫 `TestRestIsNormalizedNotRejected`, docstring 引的是
+    "用户确认: 任意拖，但「休息」条目仍强制排最后" ——
+    ★ **那句话不是用户的裁定**，是误记成长期规则的临时约束。
+
+    ## 现在
+
+    * `PUT /run_list` / `POST /run_list/entry` **原样保存**用户给的顺序
+    * `rest` 仍在**任意位置** —— 拖到最前、中间、最后都**照原样落库**
+    * `rest` 仍**阻塞列表**（那是它的功能, 不是排序约束）
     """
 
-    def test_rest_dragged_to_front_is_accepted_and_moved_to_end(self):
+    def test_rest_dragged_to_front_stays_at_front(self):
         res = _put([
             {'kind': 'rest', 'minutes': 5, 'entry_id': 'r1'},
             {'kind': 'task', 'task': FIXED, 'entry_id': 'e-fixed'},
             {'kind': 'task', 'task': TIMED, 'entry_id': 'e-timed'},
         ])
         assert 'error' not in res, f'★ rest 被拖到最前竟然被拒了: {res}'
-        assert _disk() == [('task', FIXED), ('task', TIMED),
-                           ('rest', None)], _disk()
+        assert _disk() == [('rest', None), ('task', FIXED),
+                           ('task', TIMED)], _disk()
 
-    def test_rest_dragged_to_middle_is_moved_to_end(self):
+    def test_rest_dragged_to_middle_stays_in_middle(self):
         res = _put([
             {'kind': 'task', 'task': FIXED, 'entry_id': 'e-fixed'},
             {'kind': 'rest', 'minutes': 5, 'entry_id': 'r1'},
             {'kind': 'task', 'task': TIMED, 'entry_id': 'e-timed'},
         ])
         assert 'error' not in res, f'★ 被拒了: {res}'
-        assert _disk() == [('task', FIXED), ('task', TIMED),
-                           ('rest', None)], _disk()
+        assert _disk() == [('task', FIXED), ('rest', None),
+                           ('task', TIMED)], _disk()
 
     def test_multiple_rests_keep_their_relative_order(self):
-        """★ 多个 rest **之间**保序（稳定）—— 不能把 5 分钟和 7 分钟弄反。"""
+        """★ 多个 rest **之间**保序 —— 不能把 5 分钟和 7 分钟弄反。"""
         _put([
             {'kind': 'rest', 'minutes': 5, 'entry_id': 'r1'},
             {'kind': 'task', 'task': FIXED, 'entry_id': 'e-fixed'},
@@ -205,15 +217,17 @@ class TestRestIsNormalizedNotRejected:
         assert mins == [5, 7], f'★ rest 之间被弄乱了: {mins}'
 
     def test_same_contract_on_insert_endpoint(self):
-        """`POST /run_list/entry` 与 `PUT /run_list` **同一套契约**（都不拒绝）。"""
-        # 先塞一个 rest 到最前
+        """`POST /run_list/entry` 与 `PUT /run_list` **同一套契约**。
+
+        ★ P-2: 两边都**没有** rest 排序约束, 所以插入到最前就**留在最前**。
+        """
         res = _post({'kind': 'rest', 'minutes': 3}, 0)
         assert 'error' not in res, f'★ insert 被拒了: {res}'
         assert 'drag_blocked' not in res, (
             '★ insert 端点也**不该**返回 `drag_blocked`（曾经能绕过约束, '
             '现在两边都没有约束）')
         kinds = [k for k, _ in _disk()]
-        assert kinds[-1] == 'rest', f'★ rest 没被归位: {kinds}'
+        assert kinds[0] == 'rest', f'★ rest 没留在最前: {kinds}'
 
 
 class TestNoDragConstraintCodeLeft:

@@ -59,8 +59,13 @@ class TestEntryKind:
 class TestRunEntry:
     def test_task_entry(self):
         e = RunEntry(kind=EntryKind.TASK, task='FallenSun')
-        assert e.describe() == 'FallenSun'
-        assert e.to_dict() == {'kind': 'task', 'task': 'FallenSun'}
+        # ★ C: `describe()` 现在带"加入时间"（同一任务多条时用来区分）
+        assert 'FallenSun' in e.describe()
+        # ★ C: `to_dict()` 现在**带 `entry_id`**（条目身份）
+        d = e.to_dict()
+        assert d['kind'] == 'task' and d['task'] == 'FallenSun'
+        assert d['entry_id'] == e.entry_id and e.entry_id, \
+            'to_dict 必须带 entry_id（重复条目的身份）'
 
     def test_rest_entry_shows_unit(self):
         """界面显示要带单位 —— `30 分钟` / `2 小时`, 不是裸数字。"""

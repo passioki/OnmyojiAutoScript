@@ -163,6 +163,14 @@ class RunEntry:
     kind: EntryKind = EntryKind.TASK
     task: str = ''
     minutes: int = 0
+    # ★★ C: 条目身份（用户裁定: "entry_id 用当前时间 + task 来实现"）★★
+    #
+    # 为什么需要它: 队列里**同一任务可以出现多次**（用户用重复条目表达
+    # "重复跑整个任务"）。要按**条目**追踪"这条跑过没有",
+    # 就必须有一个**稳定**的身份 —— 任务名不够（重复条目会撞）。
+    #
+    # 为空时由 `__post_init__` 自动补（**旧配置没有这个字段**, 读进来就是空）。
+    entry_id: str = ''
 
     def __post_init__(self):
         if not isinstance(self.kind, EntryKind):
@@ -177,6 +185,10 @@ class RunEntry:
             if not self.task:
                 raise ValueError('kind=task 需要非空 task')
             object.__setattr__(self, 'minutes', 0)
+            # ★ C: 没给 `entry_id` 就现生成一个（旧配置 / 手工构造都会走这里）
+            if not self.entry_id:
+                object.__setattr__(
+                    self, 'entry_id', new_entry_id(self.task))
         else:
             try:
                 m = int(self.minutes)
@@ -188,11 +200,16 @@ class RunEntry:
                 raise ValueError(f'{self.kind.value} 的 minutes 必须 > 0, 实际 {m}')
             object.__setattr__(self, 'minutes', m)
             object.__setattr__(self, 'task', '')
+            object.__setattr__(self, 'entry_id', '')
 
     # ------------------------------------------------------------------ 显示
     def describe(self) -> str:
         """人类可读描述, 供界面与日志使用。"""
         if self.kind == EntryKind.TASK:
+            # ★ C: 同一任务有多条时, 显示"加入时间"才能区分它们
+            at = added_at_of_entry_id(self.entry_id)
+            if at is not None:
+                return f'{at:%m-%d %H:%M} · {self.task}'
             return self.task
         mins = self.minutes
         # ★ 带单位 —— 用户要求显示 `[30 分钟]` / `[2 小时]`, 不是裸数字
@@ -203,7 +220,9 @@ class RunEntry:
     # ------------------------------------------------------------------ 序列化
     def to_dict(self) -> dict:
         if self.kind == EntryKind.TASK:
-            return {'kind': self.kind.value, 'task': self.task}
+            # ★ C: 带上 `entry_id`（**重复条目的身份**）
+            return {'kind': self.kind.value, 'task': self.task,
+                    'entry_id': self.entry_id}
         return {'kind': self.kind.value, 'minutes': self.minutes}
 
     @classmethod
@@ -218,7 +237,11 @@ class RunEntry:
             raise ValueError(f'条目必须是对象, 实际 {type(data).__name__}')
         kind = data.get('kind')
         if kind == EntryKind.TASK.value or (kind is None and data.get('task')):
-            return cls(kind=EntryKind.TASK, task=str(data.get('task') or ''))
+            # ★ C: 旧配置**没有** `entry_id` -> 空字符串 -> `__post_init__`
+            #   会现生成一个（**向后兼容**）。
+            return cls(kind=EntryKind.TASK,
+                       task=str(data.get('task') or ''),
+                       entry_id=str(data.get('entry_id') or ''))
         if kind == EntryKind.REST.value:
             return cls(kind=EntryKind.REST, minutes=data.get('minutes'))
         raise ValueError(f'未知条目类型: {kind!r}')
@@ -456,3 +479,40 @@ class RunList:
                     'note': KIND_HELP[e.kind],
                 })
         return out
+
+
+def new_entry_id(task: str, when: datetime = None) -> str:
+    """生成条目 id: `时间 + task`（用户裁定 —— 可拆可合并）。
+
+    格式: `20261010T143005-RealmRaid`
+    """
+    when = when or datetime.now()
+    return f'{when:%Y%m%dT%H%M%S}-{task}'
+
+
+def task_of_entry_id(entry_id: str) -> str:
+    """从 `entry_id` **拆出** task（可拆 —— 用户要求）。
+
+    `20261010T143005-RealmRaid` -> `RealmRaid`
+    认不出格式时**原样返回**（不静默丢东西）。
+    """
+    s = str(entry_id or '')
+    if '-' not in s:
+        return s
+    head, _, tail = s.partition('-')
+    # 形如 20261010T143005 才当前缀剥掉
+    if len(head) == 15 and head[8] == 'T' and head.replace('T', '').isdigit():
+        return tail
+    return s
+
+
+def added_at_of_entry_id(entry_id: str):
+    """从 `entry_id` 拆出加入时间; 认不出返回 `None`。"""
+    s = str(entry_id or '')
+    head = s.split('-', 1)[0]
+    if len(head) == 15 and head[8] == 'T':
+        try:
+            return datetime.strptime(head, '%Y%m%dT%H%M%S')
+        except ValueError:
+            return None
+    return None

@@ -305,8 +305,42 @@ class RunList:
                    if e.kind == EntryKind.REST)
 
     # ------------------------------------------------------------------ 写
+    def unique_entry_id(self, entry: RunEntry) -> str:
+        """给条目一个**在本列表内唯一**的 `entry_id`。
+
+        ## 为什么需要
+
+        `entry_id = 时间 + task`（用户裁定）精确到**秒**。同一秒内加入**两次
+        同一任务**时, 两条的 id **完全相同** —— 按条目追踪会失效
+        （实测踩过: 两条 `RealmRaid` 都是 `20261010T091229-RealmRaid`）。
+
+        ## 做法
+
+        重复时**追加序号**（不改变前缀格式, 仍然可拆可合并）:
+
+            20261010T091229-RealmRaid
+            20261010T091229-RealmRaid-2
+            20261010T091229-RealmRaid-3
+        """
+        base = entry.entry_id or new_entry_id(entry.task)
+        used = {e.entry_id for e in self.entries if e.entry_id}
+        if base not in used:
+            return base
+        n = 2
+        while f'{base}-{n}' in used:
+            n += 1
+        return f'{base}-{n}'
+
     def add(self, entry: RunEntry, index: int = None) -> None:
-        """插入条目。`index=None` 或越界时追加到末尾。"""
+        """插入条目。`index=None` 或越界时追加到末尾。
+
+        ★ C: 插入前**唯一化** `entry_id`
+          （同一秒加两次同一任务时, `时间+task` 会撞 -> 追加序号区分）。
+        """
+        if entry.kind == EntryKind.TASK:
+            eid = self.unique_entry_id(entry)
+            if eid != entry.entry_id:
+                object.__setattr__(entry, 'entry_id', eid)
         if index is None or index < 0 or index > len(self.entries):
             self.entries.append(entry)
         else:
@@ -493,7 +527,9 @@ def new_entry_id(task: str, when: datetime = None) -> str:
 def task_of_entry_id(entry_id: str) -> str:
     """从 `entry_id` **拆出** task（可拆 —— 用户要求）。
 
-    `20261010T143005-RealmRaid` -> `RealmRaid`
+    `20261010T143005-RealmRaid`   -> `RealmRaid`
+    `20261010T143005-RealmRaid-2` -> `RealmRaid`（去掉**唯一化序号**）
+
     认不出格式时**原样返回**（不静默丢东西）。
     """
     s = str(entry_id or '')
@@ -501,9 +537,14 @@ def task_of_entry_id(entry_id: str) -> str:
         return s
     head, _, tail = s.partition('-')
     # 形如 20261010T143005 才当前缀剥掉
-    if len(head) == 15 and head[8] == 'T' and head.replace('T', '').isdigit():
-        return tail
-    return s
+    if not (len(head) == 15 and head[8] == 'T'
+            and head.replace('T', '').isdigit()):
+        return s
+    # `tail` 可能是 `RealmRaid` 或 `RealmRaid-2` -> 去掉末尾的纯数字序号
+    parts = tail.rsplit('-', 1)
+    if len(parts) == 2 and parts[1].isdigit():
+        return parts[0]
+    return tail
 
 
 def added_at_of_entry_id(entry_id: str):

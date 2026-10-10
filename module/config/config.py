@@ -43,6 +43,7 @@ class Function:
             self.next_run = DEFAULT_TIME
             self.windows = ()
             self.window = None
+            self.entry_id = None
             return
         if data.get("scheduler") is None:
             self.enable = False
@@ -50,6 +51,7 @@ class Function:
             self.next_run = DEFAULT_TIME
             self.windows = ()
             self.window = None
+            self.entry_id = None
             return
 
         self.enable: bool = data['scheduler']['enable']
@@ -73,10 +75,19 @@ class Function:
         #
         # 解析失败时退化为"不限时段", 不让配置错误把任务卡死。
         #
-        # ★★ #7: 现在是**一串**（可能多段, 如 Hunt 的早/晚两段）★★
+        # ★★ C: 现在是**一串**（可能多段, 如 Hunt 的早/晚两段）★★
         #   `in_window()` 逐段取或; `self.window` 保留为**第一段**（兼容旧调用方）。
         self.windows = self._build_windows(data.get('scheduler') or {})
         self.window = self.windows[0] if self.windows else None
+
+        # ★★ C(选项 2 · 显式): **条目身份** ★★
+        #
+        # 队列里同一任务可以出现**多次**（用户用重复条目表达"重复跑整个任务"）。
+        # 要按**条目**追踪"这条跑过没有", `Function` 必须带上它是**哪一条**。
+        #
+        # 由 `_order_by_queue()` 在排完序后逐条写入（见那里的说明）;
+        # 不在队列里的任务保持 `None`。
+        self.entry_id = None
 
         # self.enable = deep_get(data, keys="Scheduler.Enable", default=False)
         # self.command = deep_get(data, keys="Scheduler.Command", default="Unknown")
@@ -490,6 +501,19 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
     def _order_by_queue(self, pending):
         """把 `pending` 按**执行队列顺序**排好, 并**剔除队列外的任务**。
 
+        ★★ C(选项 2 · 显式): 同时把**条目身份**写回 `Function.entry_id` ★★
+
+        队列里同一任务可以出现多次（用户用重复条目表达"重复跑整个任务"）。
+        这里按队列**条目**逐条分配:
+
+        * 第 1 条 -> `Function.entry_id = <第 1 条的 id>`
+        * 同一任务的第 2 条 -> **一个副本** `Function`（`copy.deepcopy`）,
+          `entry_id` = 第 2 条的 id
+
+        为什么要副本: `pending` 里同一任务的多个 `Function` 必须**各自独立**
+        （否则一个是同一个对象, `entry_id` 会被覆盖, 而且
+        `_skip_by_period` 按条目判断时两条会互相影响）。
+
         ## 依据
 
         ＊ 顺序: `Config.build_queue()`（用户拖的 `run_list` + 自动补齐）
@@ -515,14 +539,51 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         队列里查不到的（理论上被剔除了）排最后, 保证不吞任务。
         """
         try:
+            import copy as _copy
+
             queue = self.build_queue()
-            order = {}
+            # ★★ C(选项 2 · 显式): 按**条目**收集 ★★
+            #   任务名 -> 该任务所有条目的 (队列序号, entry_id)
+            #   （**不去重** —— 重复条目就是"重复跑整个任务"）
+            entries_of = {}
             for idx, entry in enumerate(queue):
                 cmd = getattr(entry, 'task', None)
-                if cmd and cmd not in order:
-                    order[cmd] = idx
-            if not order:
+                if not cmd:
+                    continue
+                entries_of.setdefault(cmd, []).append(
+                    (idx, getattr(entry, 'entry_id', None) or ''))
+            if not entries_of:
                 return pending
+
+            by_cmd = {}
+            for f in pending:
+                by_cmd.setdefault(getattr(f, 'command', None), []).append(f)
+
+            kept = []
+            dropped = []
+            for cmd, items in entries_of.items():
+                sources = by_cmd.get(cmd) or []
+                if not sources:
+                    continue
+                for n, (idx, eid) in enumerate(items):
+                    # 第 1 条用原对象; 第 2 条起用**副本**
+                    # （各自独立的 entry_id —— 否则会互相覆盖）
+                    f = sources[0] if n == 0 else _copy.deepcopy(sources[0])
+                    f.entry_id = eid or None
+                    kept.append((idx, f))
+            for cmd, sources in by_cmd.items():
+                if cmd not in entries_of:
+                    dropped.extend(getattr(s, 'command', None) for s in sources)
+
+            if dropped:
+                logger.info(
+                    f'F3: 这些任务不在执行队列里, 本次不参与调度: {dropped}')
+            kept.sort(key=lambda x: x[0])
+            return [f for _, f in kept]
+        except Exception as exc:
+            logger.warning(f'_order_by_queue 失败({type(exc).__name__}: {exc}), '
+                           f'保持原顺序')
+            return pending
             kept = [f for f in pending
                     if getattr(f, 'command', None) in order]
             dropped = [getattr(f, 'command', None) for f in pending
@@ -647,6 +708,13 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         rl = RunList.from_list(raw, on_bad=_on_bad)
 
+        # ★★ C: 兜底唯一化 `entry_id`（所有构造路径都会经过这里）★★
+        #
+        # `RunList.add()` 会唯一化, 但 `from_list` / `from_dict` /
+        # `RunList([...])` 这些路径**绕过**它 —— 实测同一秒构造两条同任务
+        # 会得到**相同**的 id, 而按条目追踪（选项 2）依赖 id 唯一。
+        self._ensure_unique_entry_ids(rl)
+
         # 护栏: 数量对不上就是有东西被丢了 —— 这不是"正常解析"
         if len(rl) != len(raw):
             logger.error(
@@ -690,6 +758,45 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 out.add(task)
         out.update(self.auto_queue_tasks())
         return out
+
+    @staticmethod
+    def _ensure_unique_entry_ids(rl) -> None:
+        """兜底: 保证 `RunList` 里**每个 task 条目**的 `entry_id` 唯一。
+
+        ## 为什么需要
+
+        `RunList.add()` 会唯一化, 但 **`from_dict` / `from_list` /
+        `RunList([...])`** 这些路径**绕过**它 —— 实测:
+
+            RunList([RunEntry(kind='task', task='RealmRaid'),
+                     RunEntry(kind='task', task='RealmRaid')])
+            -> 两条 entry_id **完全相同**（同一秒构造）
+
+        而按条目追踪（C 选项 2）**依赖 id 唯一**。所以在"读配置"这一处
+        统一兜底（重复的**追加序号**, 如 `...-RealmRaid-2`）。
+
+        ★ 已经是唯一的 id **不动**（保持上游/用户给的身份）。
+        """
+        try:
+            from module.config.run_list import EntryKind, new_entry_id
+            used = set()
+            for e in (getattr(rl, 'entries', None) or []):
+                if getattr(e, 'kind', None) != EntryKind.TASK:
+                    continue
+                eid = getattr(e, 'entry_id', None) or ''
+                if not eid:
+                    eid = new_entry_id(e.task)
+                if eid in used:
+                    n = 2
+                    while f'{eid}-{n}' in used:
+                        n += 1
+                    eid = f'{eid}-{n}'
+                used.add(eid)
+                if eid != getattr(e, 'entry_id', None):
+                    object.__setattr__(e, 'entry_id', eid)
+        except Exception as exc:
+            logger.warning(f'_ensure_unique_entry_ids 失败'
+                           f'({type(exc).__name__}: {exc}), 跳过')
 
     def build_queue(self):
         """**执行队列** = 用户编排 + 自动补齐。

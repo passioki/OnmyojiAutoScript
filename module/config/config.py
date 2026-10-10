@@ -366,18 +366,23 @@ class Function:
             return False
 
 
-def name_to_function(name):
-    """
-    Args:
-        name (str):
-
-    Returns:
-        Function:
-    """
-    function = Function({})
-    function.command = name
-    function.enable = True
-    return function
+# ★★ T5（审计修复）: `name_to_function()` **已删除** ★★
+#
+# 它是模块级函数:
+#     def name_to_function(name):
+#         function = Function({})        # ✗ `Function.__init__` 需要 data 参数
+#         function.command = name
+#         function.enable = True
+#         return function
+#
+# 两个问题:
+#   1. **一调就崩**: `Function({})` 缺 `data` -> `TypeError:
+#      Function.__init__() missing 1 required positional argument: 'data'`
+#   2. **生产代码 0 调用**（只有定义, 没有任何引用点）
+#
+# ★ 而且它要构造的那种"只有 command/enable 的空 Function" 现在已经不需要:
+#   队列顺序的唯一权威是 `Config.build_queue()` + `_order_by_queue()`,
+#   它们都从**真实配置**构造 `Function`。
 
 
 class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):

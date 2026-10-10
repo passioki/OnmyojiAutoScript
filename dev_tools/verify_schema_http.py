@@ -75,8 +75,12 @@ try:
     chk('状态码 200', st == 200, str(st))
     data = json.loads(body)
     chk('返回 54 个任务', data.get('count') == 54, str(data.get('count')))
-    chk('含 categories', len(data.get('categories') or []) == 5)
-    chk('含 window_fields', len(data.get('window_fields') or []) == 4)
+    chk('含 categories', len(data.get('categories') or []) == 4)
+    # ★★ T4: 原来断言"含 window_fields 且长度 4" —— 那个 schema 指向
+    #   **已删除**的单值 `window_*` 字段（S3 已改为 `windows` 列表）,
+    #   且前端不用它。现在断言它**不存在**（反向守卫）。
+    chk('window_fields 已删除', 'window_fields' not in data,
+        repr(list(data.keys()))[:120])
     fs = (data.get('tasks') or {}).get('FallenSun') or {}
     chk('FallenSun 中文名正确', fs.get('name_zh') == '日轮之陨',
         repr(fs.get('name_zh')))

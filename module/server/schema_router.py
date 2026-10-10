@@ -79,17 +79,27 @@ def build_schema(config_name: str = '') -> dict:
         ],
         # 次数字段的统一名(界面只需认这一个)
         'unified_count_field': TC.UNIFIED_COUNT_FIELD,
-        # 开放时段的可配字段(界面据此渲染表单, 不必硬编码字段名)
-        'window_fields': [
-            {'name': 'window_enable', 'type': 'bool', 'default': False,
-             'label': '启用开放时段'},
-            {'name': 'window_start', 'type': 'time', 'default': '17:00',
-             'label': '开放开始'},
-            {'name': 'window_end', 'type': 'time', 'default': '23:00',
-             'label': '开放结束'},
-            {'name': 'window_days', 'type': 'str', 'default': '0,1,2,3,4,5,6',
-             'label': '开放星期(周一=0)'},
-        ],
+        # ★★ T4（审计修复）: **删掉 `window_fields`** ★★
+        #
+        # ## 为什么删
+        #
+        # 它返回 4 个**已删除**的单值字段（`window_enable` / `window_start` /
+        # `window_end` / `window_days`）, 注释还写着"界面据此渲染表单" ——
+        # 但:
+        #   1. S3 已改成 **`windows` 列表**（`List[TaskWindow]`）,
+        #      这 4 个字段在 `Scheduler.model_fields` 里**已经不存在**
+        #      （`tests/module/config/test_multi_window_storage.py` 反向断言）
+        #   2. 前端**根本不用它** —— 窗口编辑器走
+        #      `GET/PUT /{script}/tasks/{task}/windows`（5 个按 `id` 的端点）
+        #   3. 更糟: **有一个测试断言这 4 个字段必须存在**
+        #      （`test_schema_router.py::test_...window_fields...`）——
+        #      于是"死代码 + 锁死它的断言"**互相印证地一起过时**
+        #
+        # ★ 这是审计里最有解释力的一条: 文档与死代码互相印证, 看着自洽、
+        #   实则全失效。**删掉它, 漂移就少一个来源。**
+        #
+        # ★ 窗口的正确契约: 见 `docs/scheduler-architecture.md`
+        #   （`TaskWindow` 的 7 个字段 + 5 个按 id 的 CRUD 端点）。
         # 任务列表: 列表就是**调度器的一种模式**, 不是新子系统
         # (见 docs/architecture.md §5)。
         'list': _list_meta(config_name),

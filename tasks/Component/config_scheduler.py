@@ -412,53 +412,16 @@ class Scheduler(ConfigBase):
         le=24 * 60)
 
     # ------------------------------------------------------------ 开放时段: 便捷访问
-    def build_window(self) -> 'AvailabilityWindow':
-        """
-        把本配置转成 `AvailabilityWindow`。
-
-        解析失败(如 `window_days` 写成乱码)时**退化为不限时段**并记 warning ——
-        时段配置错误不该让任务跑不起来。
-        """
-        from module.config.availability import ALL_DAYS, AvailabilityWindow
-
-        if not self.window_enable:
-            return AvailabilityWindow()      # enabled=False -> 不限时段
-
-        days = []
-        bad = []
-        for part in str(self.window_days or '').split(','):
-            part = part.strip()
-            if part == '':
-                continue
-            try:
-                d = int(part)
-            except (TypeError, ValueError):
-                bad.append(part)
-                continue
-            if 0 <= d <= 6:
-                days.append(d)
-            else:
-                bad.append(part)
-
-        if bad:
-            # 逐项跳过而不是整体丢弃 —— 用户写了 '4,abc,6' 时, 4 和 6 仍是有效的意图。
-            logger.warning(
-                f'window_days 中的无效项已忽略: {bad}（应为 0-6, 周一=0）')
-
-        if not days:
-            logger.warning(f'window_days 无有效项({self.window_days!r}), 退化为每天')
-            days = list(ALL_DAYS)
-
-        try:
-            return AvailabilityWindow(
-                enabled=True,
-                start=self.window_start,
-                end=self.window_end,
-                days=tuple(sorted(set(days))),
-            )
-        except ValueError as exc:
-            logger.warning(f'开放时段配置非法({exc}), 退化为不限时段')
-            return AvailabilityWindow()
+    # ★★ T5（审计修复）: uild_window() **已删除** ★★
+    #
+    # 它是 S3 之前的遗留: 读 window_enable / window_start /
+    # window_end / window_days —— 这 4 个字段**已删除**
+    # （	ests/module/config/test_multi_window_storage.py 反向断言）,
+    # 所以它**一调就 AttributeError**, 而生产代码 0 调用。
+    #
+    # ★ 正确做法: 窗口现在是 **windows: List[TaskWindow]**, 由
+    #   module/config/config.py 的 Function._build_windows() 转成
+    #   AvailabilityWindow 元组。这里不再需要。
 
 
 if __name__ == "__main__":

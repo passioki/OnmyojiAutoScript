@@ -78,11 +78,24 @@ class TestSchema:
             else:
                 assert item['count_field'] is None
 
-    def test_window_fields_exposed(self, schema):
-        """开放时段字段由接口给出, 前端不必硬编码字段名。"""
-        names = {f['name'] for f in schema['window_fields']}
-        assert names == {'window_enable', 'window_start',
-                         'window_end', 'window_days'}
+    # ★★ T4（审计修复）: `test_window_fields_exposed` **已删除** ★★
+    #
+    # 它断言 `/schema` 的 `window_fields` 必须含 4 个**已删除**的单值字段
+    # （`window_enable` / `window_start` / `window_end` / `window_days`）。
+    #
+    # 而 S3 已把窗口改成 **`windows` 列表**（`List[TaskWindow]`）,
+    # 那 4 个字段在 `Scheduler.model_fields` 里**已经不存在**。
+    # ★ 于是"死 schema + 锁死它的断言"**互相印证地一起过时** ——
+    #   这是审计里最有解释力的一条。删掉它, 漂移就少一个来源。
+    #
+    # 窗口的正确契约: 5 个**按 `id`** 的端点
+    # （`GET/PUT/POST/PUT{id}/DELETE{id} /{s}/tasks/{task}/windows`）,
+    # 见 `docs/scheduler-architecture.md` 与 `test_window_crud_api.py`。
+    def test_window_fields_removed(self, schema):
+        """★ T4 回归守卫: `/schema` **不得**再有 `window_fields`。"""
+        assert 'window_fields' not in schema, (
+            '`window_fields` 指向已删除的单值字段, 且前端不用它 —— '
+            '应已删除（窗口走 /tasks/{task}/windows 的 5 个按 id 端点）')
 
     def test_source_is_declared(self, schema):
         assert 'meta.py' in schema['source']

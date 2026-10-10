@@ -111,14 +111,35 @@ class TestFrontendCategoryVisuals:
             'Container 同时给了 color 与 decoration -> 会 assert 崩'
 
 
-class TestTimedPriorityHint:
-    """③: 说清「定时任务优先级」**只在列表优先时生效**（用户曾困惑）。"""
+class TestPriorityModeHint:
+    """③: 说清「调度优先级」的**拖动范围**（用户 2026-10-10 反馈的 ③）。
 
-    def test_hint_present(self):
+    ★★ S6 变化 ★★
+
+    原来这里断言「需选『列表优先』才生效」—— 那是**两个重叠下拉**时代的
+    提示（用户抱怨"两个下拉语义重叠"）。
+
+    用户裁定（S6）: "**三个选项: 定时任务优先、固定任务优先、自定义**" ——
+    两个下拉已合并成 `priority_mode`, 提示也改成**拖动范围**的说明。
+    """
+
+    def test_drag_scope_hint_present(self):
         src = (OASX / 'lib/views/tasks/task_list_view.dart').read_text(
             encoding='utf-8')
-        assert '需选「列表优先」才生效' in src, \
-            '③ 缺"何时生效"的提示（两个下拉语义重叠）'
+        # ★ 说清"当前模式下能怎么拖" —— 正是用户 ③ 的诉求
+        assert '只能同类别内拖动' in src, \
+            '缺"只能同类别内拖动"的提示（用户 ③ 的诉求）'
+        assert '可自由拖动' in src, \
+            '缺"可自由拖动"的提示（自定义模式）'
+        assert 'priority_mode' in src, \
+            '前端应读后端给的 `priority_mode`（不硬编码）'
+
+    def test_backend_returns_drag_flag(self):
+        """★ 后端要给出 `drag_within_group_only` —— 前端据此决定拖动范围。"""
+        src = (REPO / 'module' / 'server' / 'schema_router.py').read_text(
+            encoding='utf-8')
+        assert 'drag_within_group_only' in src, \
+            '后端未给出拖动范围标记'
 
     def test_legacy_fields_no_longer_read_for_ordering(self):
         """★★ S6: 旧的 `timed_priority` **不再参与排序** ★★

@@ -3675,3 +3675,133 @@ deep_set 返回: False        <- ★ **静默返回 False, 不抛异常**
 | **S6-6** | **前端**: 下拉三选项 + 拖动约束 + 类别分隔视觉 |
 | **S6-7** | 删死代码 `_order_by_timed_priority()` |
 
+---
+
+# 46. ★★ S6 完成: 前端三选项 + 拖动约束 + 类别分段视觉 ★★
+
+## 46.1 用户裁定（S6 全部依据）
+
+> "拖动只在同类别内生效是在选了**定时优先**或者**固定任务优先**时, 如果选了
+>  **列表自定义**, 那么全都可以拖动次序。你理解下, 也就是**三个选项:
+>  定时任务优先、固定任务优先、自定义**"
+> "**给 run_list 加类别分段**"
+> "OASX 里你选的那个下拉, 是中文名, 写的**定时优先（打完当前这场就让位）**"
+
+## 46.2 前端改了什么
+
+| 位置 | 改动 |
+|---|---|
+| `task_list_controller.dart` | `priorityMode` / `priorityModeChoices` / `priorityModeLabel` / **`dragWithinGroupOnly`** / `setPriorityMode` |
+| 同上 | **`priorityGroupOf(cmd)`** —— 前端按**与后端同一判据**算段名 |
+| 同上 | `queuedTaskRows` 里给每行**打 `group`**（原来没有）|
+| 同上 | `reorderQueue` 里**拖动约束拦截** + `Snackbar` 提示; 重建 entries 时**保留 `group`** |
+| `task_list_view.dart` | 「定时任务优先级」下拉 -> **「调度优先级」三选项**; 加"**只能同类别内拖动**/**可自由拖动**"chip |
+| `queue_panel.dart` | **`_segmentBar()`** —— 队列上方显示 `定时任务 N 条` ｜ `固定任务 N 条`（**前段高亮**）|
+
+## 46.3 ★★ 我踩的 3 个坑 ★★
+
+### 坑 1: 误删了 `schedule_rule` 下拉的**收尾括号**
+
+我的 `edit` 把 `],
+),
+],
+),` 少了一对 -> `Expected to find ']'`。
+**我把那个下拉保留是对的**（用户还要选调度规则）, 只是括号算错了。
+
+### 坑 2: ★ `_segmentRail` 里用**无 tag 的 `Get.find`**
+
+```dart
+final c = Get.find<TaskListController>();   // ✗ 多账号场景下抛异常
+```
+队列面板是**按 tag** 注册的（`tasks:恋鸟树`）。无 tag 的 `find` -> **抛异常**
+-> **2 个 widget 测试失败**。
+**修**: 用面板自己的控制器（`c` getter -> `widget.controller`）。
+
+### 坑 3: ★★ 布局崩 —— `Row(crossAxisAlignment: stretch)` 在**无界高度**下非法 ★★
+
+我第一版把分段栏放在列表**左侧**:
+```dart
+Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [_segmentRail, ...])
+```
+外层是 `SingleChildScrollView`（**垂直无界**）, 而 `stretch` 要求**纵向填满**
+-> 约束非法:
+```
+assertion was thrown during performLayout():
+These invalid constraints were provided to RenderClipRect's layout() ...
+```
+
+★★ **教训**: 在**可滚动区域**里用 `stretch` 之前, 先想清"纵向约束从哪来"。
+  改用**不用 `Row`**、放在列表**上方**的 `_segmentBar()`。
+
+★ 另外: 分段条**不能**作为 `ReorderableListView` 的 item —— 会**打乱拖拽下标**
+  （`reorderQueue` 收到的 index 就含它了）。放在**列表外面**才安全。
+
+## 46.4 ★ `reorderQueue` 的拖动约束判据
+
+不是"判断下标", 而是**"移动后该条目在自己段内相对其它同段条目的次序是否改变"**:
+
+* 变了 -> 跨段拖动 -> **拒绝** + `Snackbar` 说明原因
+* 没变 -> 同段内拖动 -> 允许
+
+★ 与后端 `_check_drag_allowed` **同一判据**（段内相对次序）。
+★ `rest` 条目**不参与**（与后端一致）。
+
+## 46.5 后端 `group` 与前端的关系
+
+★ 实测: `/run_list` 端点**不返回** `group` —— 它是 `build_queue()` 的**派生**结果
+  （后端 `_segment_queue()` 刻意**不回写**配置）。
+
+而前端 `queuedTaskRows` 还要合并"**自动进队列**"的任务 —— 它们**不在** `entries`
+里, 后端那个端点根本看不到。
+
+**所以前端自己算**（`priorityGroupOf`）, 判据与后端 `TaskSpec.priority_group` **一致**:
+
+| `category` | 段 |
+|---|---|
+| `timed` / `limited` | `timed` |
+| `fixed` / `toppa` | `fixed` |
+
+★ **实测后端 `build_queue()`**: `RealmRaid=fixed`、`AbyssShadows/TrueOrochi=timed` ✓
+
+## 46.6 修掉的测试
+
+| 测试 | 改动 |
+|---|---|
+| `test_queue_membership_and_category.py::TestTimedPriorityHint` | 改名 `TestPriorityModeHint`; 断言新的"拖动范围"提示 + 后端 `drag_within_group_only` |
+| `task_list_panel_test.dart` 全局设置守卫 | `timed_priority` -> **`priority_mode`** |
+
+## 46.7 本轮验证
+
+| 项 | 结果 |
+|---|---|
+| 后端 pytest | **1604 passed, 3 skipped**（0 失败）|
+| 前端 flutter test | **85 passed** |
+| `flutter analyze`（我改的 3 文件）| **No issues found!** |
+| 全仓 analyze | **无 error** |
+
+## 46.8 ★★ S6 全阶段回顾（6 个子步全完成）★★
+
+| 子步 | 内容 | 结果 |
+|---|---|---|
+| **S6-1** | `PriorityMode` 三模式枚举 + `Optimization.priority_mode` + `RunEntry.group` | ✅ |
+| **S6-2** | 迁移（读旧两字段, 用**显式标记**幂等）| ✅ |
+| **S6-3** | **队列层**分段排序（保住 `pending` 保序子序列不变量）| ✅ |
+| **S6-4** | **拖动约束**（`custom` 自由; 另两模式同段内）| ✅ 5 例实测 |
+| **S6-5** | `priority_mode` 端点 + `global_fields` 改三模式 | ✅ |
+| **S6-6** | **前端**: 三选项下拉 + 拖动约束 + 类别分段视觉 | ✅ |
+| **S6-7** | 删死代码 `_order_by_timed_priority()`（74 行）| ✅ |
+
+## 46.9 ★ 9 条反馈的最终状态
+
+| # | 反馈 | 状态 |
+|---|---|---|
+| ① | 任务汇报 -> 可收纳抽屉 | ✅ S2（`_reportOpen` + `_reportDrawer`）|
+| ② | 队列显示未启用任务 + 移除不生效 | ✅ S2/S3 |
+| ③ | 拖动只在同类别内 + 颜色区分 + 顺序锚定设置 | ✅ **S6**（三模式 + 分段 + `_segmentBar`）|
+| ④ | 每行任务设置入口 | ✅ S2（`Icons.tune` 「设置」）|
+| ⑤ | 次数类移除不弹确认 | ✅ S2（`isAutoQueue` 分支）|
+| ⑥ | `period=不限` -> 固定 | ✅ S3（`category_effective`）|
+| ⑦ | 一键清空队列 + 确认 | ✅ S2（`post_queue_clear`）|
+| ⑧ | 无法重复添加任务 | ✅ S2（`appendToQueue` 不再拒绝）|
+| ⑨ | 移除一条重复条目导致两条都没了 | ✅ S2（`entry_id` 身份）|
+

@@ -876,6 +876,24 @@ class Script:
             self.device.click_record_clear()
             logger.hr(task, level=0)
             self.config.model.running_task = task
+            # ★★★ P-1: 同时记下**正在跑那一条的 `entry_id`**（用户裁定）★★★
+            #
+            # > "点击暂停调度, 正在运行的任务**自动回退到队列首位, 视作等待执行**"
+            #
+            # ★ `running_task` 只有任务名 —— 队列里同一任务可以有**多条条目**
+            #   （用户用重复条目表达"重复跑整个任务"）。
+            #   ⇒ 只按任务名找会**退错那一条**。
+            #
+            # ⚠ 为什么必须**落盘**: 脚本跑在独立进程, HTTP 端（`put_pause`）
+            #   拿不到内存里的 `self.config.task`。
+            # ⚠ 为什么记 `entry_id` 而不是下标: 下标会随用户拖动而变
+            #   （"**身份，不是位置**" —— `docs/scheduler-architecture.md` §1.5）。
+            try:
+                self.config.model.running_entry_id = str(
+                    getattr(self.config.task, 'entry_id', '') or '')
+            except Exception as exc:
+                logger.debug(f'记 running_entry_id 失败({type(exc).__name__}: {exc})')
+                self.config.model.running_entry_id = ''
             _task_start = datetime.now()
             self._task_failed = False
             success = self.run(inflection.camelize(task))
@@ -884,6 +902,8 @@ class Script:
             if self._task_failed:
                 success = False
             self.config.model.running_task = ''
+            # ★ P-1: 身份一起清掉（不留"上一次跑的是哪条"的错觉）
+            self.config.model.running_entry_id = ''
             logger.info(f'Scheduler: End task `{task}`')
             self.is_first_task = False
             self.anti_ban_guard.record_active((datetime.now() - _task_start).total_seconds())

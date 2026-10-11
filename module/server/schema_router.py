@@ -2753,11 +2753,50 @@ async def put_pause(script_name: str, mode: str = 'battle', reason: str = ''):
         try:
             config = mm.config_cache(script_name)
             task = str(getattr(config.model, 'running_task', '') or '').strip()
+            # ★★★ P-1: **优先按 `entry_id` 精确匹配**（用户裁定）★★★
+            #
+            # > "点击暂停调度, 正在运行的任务**自动回退到队列首位, 视作等待执行**"
+            #
+            # ## 为什么不能只按任务名找（实测踩到）
+            #
+            # 队列里同一任务可以有**多条条目**（用户用重复条目表达
+            # "重复跑整个任务"）。实测:
+            #   队列 = [Exploration(e1), Orochi(e2), Exploration(e3)]
+            #   正在跑 e3（第 2 条 Exploration）
+            #   ★ 只按任务名 -> `next(...)` 命中 **e1** -> **退错那一条**。
+            #
+            # ## 身份从哪来
+            #
+            # `script.py` 在任务开始运行时把 `self.config.task.entry_id`
+            # 落盘到 `model.running_entry_id`（脚本在独立进程, HTTP 端
+            # 拿不到内存 -> **必须落盘**）。
+            #
+            # ⚠ **向后兼容**: 老配置 / 拿不到 `entry_id` 时 -> 退回按任务名找
+            #   （那时的行为与改动前**完全一致**, 不会更糟）。
             if task:
                 rl = config.build_run_list()
                 entries = list(rl)
-                idx = next((i for i, e in enumerate(entries)
-                            if getattr(e, 'task', None) == task), None)
+                # ★ 内存里的 `config.task` 最权威（与脚本同进程时可用）;
+                #   跨进程时用落盘的 `running_entry_id`。
+                eid = str(getattr(config.model, 'running_entry_id', '') or '').strip()
+                if not eid:
+                    try:
+                        eid = str(getattr(config.task, 'entry_id', '') or '').strip()
+                    except Exception:
+                        eid = ''
+
+                idx = None
+                if eid:
+                    idx = next((i for i, e in enumerate(entries)
+                                if str(getattr(e, 'entry_id', '') or '') == eid
+                                and getattr(e, 'task', None) == task), None)
+                    if idx is None:
+                        logger.info(f'按 entry_id={eid!r} 没找到条目 -> '
+                                    f'退回按任务名 {task!r} 找（向后兼容）')
+                if idx is None:
+                    idx = next((i for i, e in enumerate(entries)
+                                if getattr(e, 'task', None) == task), None)
+
                 if idx is None:
                     entries.insert(0, RunEntry(task=task))
                     created = True
@@ -2767,6 +2806,16 @@ async def put_pause(script_name: str, mode: str = 'battle', reason: str = ''):
                     if not config.save_run_list(RunList(entries)):
                         requeue_err = 'save_run_list 返回 False（见日志）'
                 requeued = task
+                # ★ P-1: "退回队首"= 视作**等待执行** —— 显式把 `next_run`
+                #   拉回现在, 不依赖"别处顺手修"（见 P-1 记录:
+                #   `Config.__init__` 的修坏值机制**恰好**也会做这件事,
+                #   但那是**巧合**, 不该由它承担语义）。
+                try:
+                    if config.scheduler_next_run_now(task):
+                        logger.info(f'「{task}」的 next_run 已拉回现在'
+                                    f'（视作等待执行）')
+                except Exception as exc:
+                    logger.debug(f'拉回 next_run 失败({type(exc).__name__}: {exc})')
         except Exception as exc:
             requeue_err = f'{type(exc).__name__}: {exc}'
             logger.exception(exc)

@@ -153,6 +153,25 @@ _FIELDS = {name: (cls, Field(default_factory=_factory(cls)))
            for name, cls in _CONFIG_CLASSES.items()}
 _FIELDS['config_name'] = (str, 'oas')
 _FIELDS['running_task'] = (str, '')
+# ★★★ P-1: **正在运行的条目身份**（用户裁定）★★★
+#
+# ## 为什么要单独记它
+#
+# 用户原话:
+# > "点击暂停调度, 正在运行的任务**自动回退到队列首位, 视作等待执行**"
+#
+# ★ 而 `running_task` 只有**任务名** —— 队列里同一任务可以有**多条条目**
+#   （用户用重复条目表达"重复跑整个任务", 见 `run_list` 的 C 选项）。
+#   ⇒ 只按任务名找 -> **退错那一条**（实测: 正在跑第 2 条 `Exploration`,
+#     却把第 1 条退到队首）。
+#
+# ★ 所以把**正在跑那一条的 `entry_id`** 也落盘, `put_pause` 按它精确匹配。
+#   ⚠ 为什么不记"下标": 下标会随用户拖动而变（"**身份，不是位置**" ——
+#     见 `docs/scheduler-architecture.md` §1.5）。
+#
+# ⚠ 脚本跑在**独立进程**（`ScriptProcess`）, HTTP 端**拿不到**内存里的
+#   `self.config.task` —— 所以**必须落盘**才能跨进程读到。
+_FIELDS['running_entry_id'] = (str, '')
 
 
 class _ConfigModelBase(ConfigBase):

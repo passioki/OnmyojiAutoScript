@@ -328,6 +328,16 @@ class Script:
         获取下一个任务的名字, 大驼峰。
         :return:
         """
+        # ★★ P-3: 队列循环的**节流时间戳**（见下面 `when_task_queue_empty == 'loop'`）★★
+        #
+        # ⚠ 为什么需要它: 循环把 `next_run` 拉回现在 -> 立刻又有任务可跑 ->
+        #   若某个任务**瞬间完成**（如"检查签到"几秒），会变成**热循环**。
+        # ★ 用户裁定**不加最小间隔**（"用户自己可以选择添加休息时间来避免狂刷"），
+        #   ★ 但**防热循环**是两回事 —— 那是**实现缺陷**，不是用户策略。
+        #   所以这里给一个**很轻**的节流（默认 5 秒），只保证"不把 CPU 打满"。
+        _loop_throttle_s = 5
+        _loop_reset_at = None
+
         while True:
             # ---- 运行列表的「休息」条目 ----
             #
@@ -361,6 +371,34 @@ class Script:
             if task.next_run <= now:
                 return task.command
             # 根据策略执行等待逻辑
+            #
+            # ★★★ P-3: **队列循环**（用户裁定）★★★
+            #
+            # > "循环任务是指**队列整体循环：跑完最后一条后从头再来**
+            # >  （而不是停下 / 回庭院）"
+            #
+            # ★ 为什么在这里拦: 走到这一步 = "队首任务还没到点" =
+            #   **没有可立即派发的任务**（= 用户说的"跑空"）。
+            #   此时若策略是 `loop`，就把"该再来一轮"的任务 `next_run`
+            #   拉回现在，然后 `continue` 让循环重新取任务。
+            #
+            # ⚠ 节流: `_loop_throttle_s` 秒内**只重置一次** ——
+            #   防"瞬间完成的任务"造成热循环（那是**实现缺陷**, 不是用户策略）。
+            try:
+                if (str(self.config.script.optimization.when_task_queue_empty)
+                        == 'loop'):
+                    _now_loop = datetime.now()
+                    if (_loop_reset_at is None
+                            or (_now_loop - _loop_reset_at).total_seconds()
+                            >= _loop_throttle_s):
+                        reset = self.config.reset_loop_next_run(_now_loop)
+                        _loop_reset_at = _now_loop
+                        if reset:
+                            del_cached_property(self, "config")
+                            continue
+            except Exception as exc:
+                logger.warning(f'队列循环重排失败({type(exc).__name__}: {exc}), '
+                               f'按原策略等待')
             if not self._handle_wait_during_idle(task.next_run):
                 # 若等待被打断, 则刷新配置
                 del_cached_property(self, "config")

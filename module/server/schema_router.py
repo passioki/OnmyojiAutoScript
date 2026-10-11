@@ -301,6 +301,8 @@ def _global_fields(config_name: str = '') -> dict:
     queue_labels = {
         WhenTaskQueueEmpty.GOTO_MAIN.value: '回庭院待命',
         WhenTaskQueueEmpty.CLOSE_GAME.value: '关闭游戏',
+        # ★ P-3（用户裁定）: 队列整体循环 —— "跑完最后一条后从头再来"
+        WhenTaskQueueEmpty.LOOP.value: '队列循环',
     }
 
     return {

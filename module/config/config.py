@@ -16,6 +16,10 @@ from module.config.config_manual import ConfigManual
 from module.config.config_watcher import ConfigWatcher
 from module.config.config_menu import ConfigMenu
 from module.config.config_model import ConfigModel
+# ★ 模块级导入（`reset_loop_next_run()` 要用）——
+#   各方法里也各自 `from ... import` 过一次, 那是既有风格;
+#   这里是**新代码**用的, 放在模块级避免"只在函数内可见"的困惑。
+from module.config.config_model import convert_to_underscore
 from module.config.config_state import ConfigState
 from module.config.utils import *
 from module.notify.notify import Notifier
@@ -2103,6 +2107,104 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
     # 休息的默认分钟数 —— 任务节点的 `target` 为 0 时用它
     REST_DEFAULT_MINUTES = 30
+
+    def reset_loop_next_run(self, now=None) -> list:
+        """★★ P-3: 队列循环 —— 把"该再来一轮"的任务 `next_run` 拉回现在 ★★
+
+        ## ★★★ 用户裁定 ★★★
+
+        > "**循环任务是指队列整体循环：跑完最后一条后从头再来**
+        >  （而不是停下 / 回庭院）"
+
+        > "**循环只循环临时任务和周期内未执行过的周期任务**，这样是不是没有遗漏了"
+
+        > "**临时任务本来就要循环啊，这个问题是用户使用策略问题，不应该被咱们考虑，
+        >  用户自己可以选择添加休息时间来避免狂刷**"
+
+        ## 为什么必须**主动重排**
+
+        `get_next()` 选的是**全局最近 `next_run`**（不一定是队首）。
+        所以"跑完最后一条"之后**没有任何机制会"从头开始"** ——
+        调度器只会**等**最早到点的那个。
+        ★ 要实现循环，只能**主动把 `next_run` 拉回现在**。
+
+        ## 重置范围（★ 用户给的两条，其余一律不动）
+
+        | 任务 | 重置? | 判据 |
+        |---|---|---|
+        | ★ **临时任务**（`period=none`）| ✅ **是** | 没有"本周期"概念 -> 每轮都该跑 |
+        | ★ **周期任务，本周期还没做过** | ✅ **是** | `is_completed_in_period()` == False |
+        | 周期任务，本周期**已做** | ❌ 否 | ★ 这正是"没有遗漏"的关键 |
+        | 未启用 | ❌ 否 | `_task_enabled()` |
+        | 不在执行队列 | ❌ 否 | 队列是唯一调度依据（§2.2）|
+        | 有窗口且**当前不在窗口内** | ❌ 否 | 重排了也跑不了（会立刻又入 waiting）|
+
+        ## ★ 为什么天然不空转
+
+        "本周期已做"的周期任务**不会被重排** -> 只有"还没做"的才会。
+        所以不会出现"整队反复重跑"。
+        ⚠ 剩下的"快速任务连跑"风险，★ 用户明确裁定**不加最小间隔**:
+          > "用户自己可以选择**添加休息时间**来避免狂刷"
+
+        :return: 被重置的任务名列表（空 = 没有要循环的 -> 调用方按原策略等待）
+        """
+        from datetime import datetime
+
+        from module.config import task_catalog as TC
+        now = now or datetime.now()
+        reset = []
+        try:
+            queued = set(self.queued_commands() or [])
+        except Exception:
+            return reset
+
+        try:
+            for name in _all_task_names():
+                if name not in queued:
+                    continue                      # ★ 队列是唯一调度依据
+                if not self._task_enabled(name):
+                    continue                      # ★ 未启用 -> 不循环
+                key = convert_to_underscore(name)
+                sch = getattr(getattr(self.model, key, None), 'scheduler', None)
+                if sch is None:
+                    continue
+
+                period = self.task_period(name)
+                if period and str(period).lower() != 'none':
+                    # ★ 周期任务: 只在本周期**还没做过**时重排
+                    from module.config.task_state import is_completed_in_period
+                    reset_at = getattr(sch, 'reset_at', None)
+                    try:
+                        if is_completed_in_period(self.config_name, key,
+                                                  str(period),
+                                                  reset_at):
+                            continue          # 本周期已做 -> ★ 不重排
+                    except Exception:
+                        continue              # 判不了 -> 保守不重排
+
+                # ★ 有窗口且当前不在窗口内 -> 重排没用（会立刻入 waiting）
+                try:
+                    spec = TC.get_spec(name)
+                    if spec is not None:
+                        wins = tuple(spec.windows_effective or ())
+                        if wins and not any(w.contains(now) for w in wins):
+                            continue
+                except Exception:
+                    pass
+
+                self.model.deep_set(
+                    self.model, keys=f'{key}.scheduler.next_run', value=now)
+                reset.append(name)
+
+            if reset:
+                self.save()
+                logger.info(f'队列循环: 已把 {len(reset)} 个任务的 `next_run` '
+                            f'拉回现在（临时任务 + 本周期未做的周期任务）: '
+                            f'{sorted(reset)}')
+        except Exception as exc:
+            logger.warning(f'队列循环重排失败({type(exc).__name__}: {exc}), '
+                           f'保持原样')
+        return reset
 
     def rest_is_open(self, now=None) -> bool:
         """★★ 休息的**门禁**: 现在该不该休息？（用户裁定）★★

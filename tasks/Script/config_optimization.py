@@ -117,6 +117,28 @@ class Optimization(BaseModel):
                                           description='task_hoarding_duration_help')
     when_task_queue_empty: WhenTaskQueueEmpty = Field(default=WhenTaskQueueEmpty.GOTO_MAIN,
                                                       description='when_task_queue_empty_help')
+    # ★★★ P-3b: 队列循环**跑几轮**（用户裁定）★★★
+    #
+    # 用户原话:
+    # > "我觉得选中后应该加一个**跑几次**的额外输入框, **0代表一直跑**,
+    # >   **1、2……代表跑几次**。"
+    #
+    # | 值 | 含义 |
+    # |---|---|
+    # | `0` | ★ **一直跑**（不限轮数）—— **默认**，与 P-3 原有行为一致 |
+    # | `1/2/3…` | ★ **循环几轮**后停下（回庭院待命）|
+    #
+    # ★ 这里是**用户设置**（进配置 JSON）。
+    #   "已经跑了几轮"在**运行状态**里（`module/config/task_state.py` 的
+    #   `loop_rounds`）—— ★ 两者分开，因为一个是意图、一个是进度。
+    #
+    # ⚠ 到轮数后**只停止"主动重排"** -> 退化成 `goto_main` 的行为，
+    #   所以**到点的周期任务照常跑**（用户裁定: "照常跑"）。
+    loop_times: int = Field(default=0,
+                            description='loop_times_help',
+                            title='循环轮数',
+                            ge=0,
+                            le=9999)
     close_game_wait_duration: Time = Field(default=Time(minute=0),
                                           description='close_game_wait_duration_help')
     close_emulator_wait_duration: Time = Field(default=Time(minute=0),

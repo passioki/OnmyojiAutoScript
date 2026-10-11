@@ -354,14 +354,27 @@ class TestRunListSection:
 
         ★ 所以 `global_fields` 现在**只有 4 个键**, 且**没有**"模式"这个概念。
           排序改成一个**动作**: `PUT /{script}/queue/sort` body `{"by": ...}`。
+
+        ★★ P-3b 新增 **2 个**（用户裁定）★★:
+        > "我觉得选中后应该加一个**跑几次**的额外输入框, **0代表一直跑**,
+        >   **1、2……代表跑几次**。"
+
+        * `loop_times`       —— 用户设置（循环几轮, 0 = 一直跑）
+        * `loop_rounds_done` —— ★ **只读**进度（已跑几轮; 用户点「重置循环计数」看它）
+
+        ★ 它们**不是"模式"** —— 它们不改变"执行顺序"的语义,
+          只是给「队列循环」加一个**轮数上限**。所以下面那条
+          "`priority_mode` 不该回来"的守卫**仍然成立**。
         """
         gf = schema['list'].get('global_fields') or {}
         assert 'priority_mode' not in gf, (
             f'`priority_mode` 应已删除（它定义了一个"状态", 而用户要的是'
             f'"一次性快捷排序"）—— 实际: {sorted(gf)}')
         assert set(gf) == {'enable_fixed', 'enable_timed', 'rest_interleave',
-                           'when_task_queue_empty'}, (
-            f'`global_fields` 应**恰好**只有这 4 个键, 实际: {sorted(gf)}')
+                           'when_task_queue_empty',
+                           # ★ P-3b: 队列循环的轮数（设置 + 只读进度）
+                           'loop_times', 'loop_rounds_done'}, (
+            f'`global_fields` 应**恰好**只有这 6 个键, 实际: {sorted(gf)}')
         # ★ 反向守卫: 旧的拖动范围标记也不该回来
         for key in ('drag_within_group_only', 'timed_priority',
                     'schedule_rule'):
@@ -411,11 +424,14 @@ class TestRunListSection:
         """
         gf = lst.get('global_fields') or {}
         for key in ('enable_fixed', 'enable_timed',
-                    'rest_interleave', 'when_task_queue_empty'):
+                    'rest_interleave', 'when_task_queue_empty',
+                    # ★ P-3b: 队列循环的轮数（设置 + 只读进度）
+                    'loop_times', 'loop_rounds_done'):
             assert key in gf, f'list.global_fields 缺 {key}'
             assert gf[key].get('label'), f'{key} 缺 label'
         assert set(gf) == {'enable_fixed', 'enable_timed', 'rest_interleave',
-                           'when_task_queue_empty'}, sorted(gf)
+                           'when_task_queue_empty',
+                           'loop_times', 'loop_rounds_done'}, sorted(gf)
         assert 'timed_priority' not in gf, \
             '旧字段 `timed_priority` 不该再出现在全局设置里'
         assert 'priority_mode' not in gf, \

@@ -384,6 +384,22 @@ class Script:
             #
             # ⚠ 节流: `_loop_throttle_s` 秒内**只重置一次** ——
             #   防"瞬间完成的任务"造成热循环（那是**实现缺陷**, 不是用户策略）。
+            #
+            # ★★★ P-3b: **跑几轮**（用户裁定）★★★
+            #
+            # > "我觉得选中后应该加一个**跑几次**的额外输入框, **0代表一直跑**,
+            # >   **1、2……代表跑几次**。"
+            # > "如果要重跑这几次循环要怎么设置呢 …… 是不是得有个**手动重置
+            # >  计数**的按钮" -> ★ 用户选 **乙**: 加「重置循环计数」按钮
+            #
+            # | 值 | 行为 |
+            # |---|---|
+            # | `loop_times = 0` | ★ **一直跑** |
+            # | `loop_times = N` | ★ 跑 **N 轮**后**不再主动重排** -> 退化成
+            #   `goto_main` 的行为（★ **到点的周期任务照常跑** —— 用户裁定"照常跑"）|
+            #
+            # ★ "已经跑了几轮" **存盘**（`task_state`）—— 重启后端不丢（用户选 B）。
+            # ★ 只有用户点「重置循环计数」才清 0（用户选 乙）。
             try:
                 if (str(self.config.script.optimization.when_task_queue_empty)
                         == 'loop'):
@@ -391,11 +407,29 @@ class Script:
                     if (_loop_reset_at is None
                             or (_now_loop - _loop_reset_at).total_seconds()
                             >= _loop_throttle_s):
-                        reset = self.config.reset_loop_next_run(_now_loop)
-                        _loop_reset_at = _now_loop
-                        if reset:
-                            del_cached_property(self, "config")
-                            continue
+                        from module.config import task_state as _ts
+                        _times = int(getattr(self.config.script.optimization,
+                                             'loop_times', 0) or 0)
+                        _done = _ts.get_loop_rounds(self.config_name)
+                        # ★ 0 = 一直跑；否则到轮数就**不再重排**（退化成回庭院待命）
+                        if _times > 0 and _done >= _times:
+                            _loop_reset_at = _now_loop
+                            logger.info(
+                                f'队列循环: 已跑满 {_done}/{_times} 轮 -> '
+                                f'**停止循环**（回庭院待命; 到点的周期任务照常跑）。'
+                                f'★ 想再跑 {_times} 轮请点「重置循环计数」')
+                        else:
+                            reset = self.config.reset_loop_next_run(_now_loop)
+                            _loop_reset_at = _now_loop
+                            if reset:
+                                # ★ 一轮 = "把所有该跑的都跑了一遍" -> 记一轮
+                                _n = _ts.bump_loop_rounds(self.config_name)
+                                logger.info(
+                                    f'队列循环: 第 {_n} 轮开始'
+                                    + (f'（目标 {_times} 轮）' if _times > 0
+                                       else '（不限轮数）'))
+                                del_cached_property(self, "config")
+                                continue
             except Exception as exc:
                 logger.warning(f'队列循环重排失败({type(exc).__name__}: {exc}), '
                                f'按原策略等待')

@@ -347,6 +347,102 @@ def reset_count(config_name: str, task: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# P-3b: 队列循环的**已跑轮数**
+#
+# ★★ 用户裁定 ★★
+# > "我觉得选中后应该加一个**跑几次**的额外输入框, **0代表一直跑**,
+# >   **1、2……代表跑几次**。"
+# > "如果要重跑这几次循环要怎么设置呢 …… 是不是得有个**手动重置计数**的按钮"
+# > -> 用户选 **乙**: ★ **加一个「重置循环计数」按钮**
+#
+# ## 两个东西必须分开
+#
+# | 名字 | 性质 | 存哪 |
+# |---|---|---|
+# | `script.optimization.loop_times` | ★ **用户设置**（我的意图）| 配置 JSON |
+# | `loop_rounds`（本模块）| ★ **运行进度**（已经跑了几轮）| **状态文件**（存盘）|
+#
+# ★ 分开的好处: "跑 N 轮"是**确定**的（改设置不改变已跑的进度），
+#   且**重启后端不丢**（用户选 B: 存盘）。
+#
+# ⚠ 与 `__heartbeat__` 同一做法: 在**配置名那一桶**里放一个 `__` 前缀的键,
+#   不会与任务名冲突（任务键都是小写字母/下划线, 不以 `__` 开头）。
+# ---------------------------------------------------------------------------
+LOOP_KEY = '__loop__'
+
+
+def _loop_item(data: dict, config_name: str):
+    """取（必要时建）该配置的 `__loop__` 项。"""
+    bucket = data.setdefault(config_name, {})
+    item = bucket.get(LOOP_KEY)
+    if not isinstance(item, dict):
+        item = {}
+        bucket[LOOP_KEY] = item
+    return item
+
+
+def get_loop_rounds(config_name: str) -> int:
+    """★ 队列循环**已经跑了几轮**（0 = 还没跑过）。
+
+    ★ 这是**运行进度**，不是用户设置（用户设置是
+      `script.optimization.loop_times`）。任何异常返回 0（不阻断调度）。
+    """
+    try:
+        with _lock():
+            data = _read_all()
+            item = (data.get(config_name) or {}).get(LOOP_KEY)
+            if isinstance(item, dict):
+                return int(item.get('rounds', 0) or 0)
+        return 0
+    except Exception as exc:
+        logger.warning(f'[TaskState] 读循环轮数失败({type(exc).__name__}: {exc}), 按 0')
+        return 0
+
+
+def bump_loop_rounds(config_name: str, delta: int = 1) -> int:
+    """★ 队列循环**跑完一轮** -> 轮数 +1，返回新值（**写盘**）。"""
+    try:
+        with _lock():
+            data = _read_all()
+            item = _loop_item(data, config_name)
+            n = int(item.get('rounds', 0) or 0) + int(delta)
+            item['rounds'] = n
+            item['updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            _write_all(data)
+            return n
+    except Exception as exc:
+        logger.warning(f'[TaskState] 累加循环轮数失败({type(exc).__name__}: {exc}), 忽略')
+        return 0
+
+
+def reset_loop_rounds(config_name: str) -> int:
+    """★★ 用户点「重置循环计数」-> 把已跑轮数清 0（**写盘**）★★
+
+    ★ 用户选 **乙**（手动按钮）的理由:
+    > "如果要重跑这几次循环要怎么设置呢，我没想好，
+    >  是不是得有个手动重置计数到设定值的按钮"
+
+    ★ 为什么"清 0"而不是"设成 `loop_times`":
+      语义是"**已经跑了几轮**" —— 清 0 = "一轮都还没跑" = 可以再跑 N 轮。
+      （"设成 N" 会让计数**超过** target，`已跑 >= 目标` 仍然成立 ->
+        还是不会跑，是**反的**。）
+
+    :return: 重置后的值（恒 0）
+    """
+    try:
+        with _lock():
+            data = _read_all()
+            item = _loop_item(data, config_name)
+            item['rounds'] = 0
+            item['reset_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            _write_all(data)
+        logger.info(f'[TaskState] 循环轮数已重置（{config_name}）—— 可以重新跑 N 轮')
+    except Exception as exc:
+        logger.warning(f'[TaskState] 重置循环轮数失败({type(exc).__name__}: {exc}), 忽略')
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # 跨账号协同支撑: 心跳 / 可用配置发现 / 读取对方次数
 #
 # 说明: 各账号的"剩余次数"本来就按配置名分桶存在同一个状态文件里

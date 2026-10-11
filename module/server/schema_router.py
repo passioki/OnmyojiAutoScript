@@ -361,7 +361,51 @@ def _global_fields(config_name: str = '') -> dict:
                 for k in WhenTaskQueueEmpty
             ],
         },
+        # ★★★ P-3b: 循环**跑几轮**（用户裁定）★★★
+        #
+        # 用户原话:
+        # > "我觉得选中后应该加一个**跑几次**的额外输入框, **0代表一直跑**,
+        # >   **1、2……代表跑几次**。"
+        #
+        # ★ 这是**用户设置**（进配置 JSON）;
+        #   "已经跑了几轮"是**运行进度**（`task_state` 里, 存盘）——
+        #   ★ 两个都暴露给界面: 用户要能看到"还剩几轮"才会想点重置。
+        'loop_times': {
+            'group': 'script.optimization',
+            'field': 'loop_times',
+            'type': 'integer',
+            'label': '循环轮数',
+            'current': int(_opt_value(config_name, 'loop_times', 0) or 0),
+            'min': 0,
+            'max': 9999,
+            'help': '0 = 一直跑；1、2…… = 循环几轮后停下（回庭院待命）。'
+                    '★ 「跑空后」选「队列循环」时才生效。',
+        },
+        # ★ 只读进度 —— 用户点「重置循环计数」看的就是它
+        'loop_rounds_done': {
+            'group': 'script.optimization',
+            'field': 'loop_rounds_done',
+            'type': 'integer',
+            'label': '已跑轮数',
+            'readonly': True,
+            'current': _loop_rounds_of(config_name),
+            'help': '本次已经跑了几轮（存盘，重启不丢）。'
+                    '点「重置循环计数」可清 0 -> 又能跑满「循环轮数」。',
+        },
     }
+
+
+def _loop_rounds_of(config_name: str) -> int:
+    """★ 队列循环**已跑轮数**（运行进度，见 `task_state.get_loop_rounds`）。
+
+    任何异常返回 0 —— 进度读不到不该让整个 schema 失败。
+    """
+    try:
+        from module.config import task_state
+        return int(task_state.get_loop_rounds(config_name) or 0)
+    except Exception as exc:
+        logger.debug(f'读循环轮数失败({type(exc).__name__}: {exc}), 按 0')
+        return 0
 
 
 def _current_run_list(config_name: str = '') -> list:
@@ -2751,6 +2795,46 @@ async def put_resume(script_name: str):
     try:
         from module.config import run_control
         return run_control.resume()
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+# ★★★ P-3b: 「重置循环计数」按钮（用户裁定 乙）★★★
+#
+# 用户原话:
+# > "如果要重跑这几次循环要怎么设置呢，我没想好，
+# >  是不是得有个**手动重置计数到设定值的按钮**"
+# > -> 用户选 **乙**: ★ 加一个「重置循环计数」按钮
+#
+# ★ 语义: 把"**已经跑了几轮**"清 0 -> 于是又能跑满 `loop_times` 轮。
+#
+# ⚠ 为什么是"清 0"而不是"设成 `loop_times`":
+#   计数是"已经跑了几轮" —— 清 0 = "一轮都还没跑" = 可以再跑 N 轮。
+#   "设成 N" 会让 `已跑 >= 目标` 仍然成立 -> **还是不会跑**（是反的）。
+@schema_app.put('/{script_name}/run_control/loop_reset')
+async def put_loop_reset(script_name: str):
+    """★ **重置队列循环计数** —— 让"跑 N 轮"可以再来一次。
+
+    配合 `script.optimization.when_task_queue_empty == 'loop'` 使用:
+      * `loop_times = 0` -> 一直跑（本端点无影响）
+      * `loop_times = N` -> 跑满 N 轮后停止循环；★ 点这里清 0 后可再跑 N 轮
+    """
+    try:
+        from module.config import task_state
+        from module.server.main_manager import mm
+        # ★ 先确保配置存在（拿不到也不致命 —— 计数是全局状态）
+        try:
+            mm.config_cache(script_name)
+        except Exception:
+            pass
+        before = task_state.get_loop_rounds(script_name)
+        task_state.reset_loop_rounds(script_name)
+        after = task_state.get_loop_rounds(script_name)
+        return {'script': script_name, 'reset': True,
+                'before': before, 'rounds': after,
+                'message': f'循环计数已重置（{before} -> {after}）—— '
+                           f'可以重新跑设定的轮数'}
     except Exception as exc:
         logger.exception(exc)
         return {'error': str(exc)}

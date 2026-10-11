@@ -54,6 +54,8 @@ class Function:
             self.windows = ()
             self.window = None
             self.entry_id = None
+            # ★ 条目级次数（见 `_order_by_queue()`）—— `None` = 用任务级默认值
+            self.target = None
             self.node = None
             return
         if data.get("scheduler") is None:
@@ -63,6 +65,7 @@ class Function:
             self.windows = ()
             self.window = None
             self.entry_id = None
+            self.target = None
             self.node = None
             return
 
@@ -108,6 +111,14 @@ class Function:
         # 由 `_order_by_queue()` 在排完序后逐条写入（见那里的说明）;
         # 不在队列里的任务保持 `None`。
         self.entry_id = None
+
+        # ★★★ 条目级次数（用户裁定 —— 修"改一条全变"的 bug）★★★
+        #
+        # `None` = **用任务级 `scheduler.target`**（默认值）。
+        # 由 `_order_by_queue()` 按条目写入（该条目的 `RunEntry.target > 0` 时）。
+        # ★ 与 `entry_id` 同一模式: 都按**条目**独立, 所以同任务的
+        #   多条条目可以各有各的次数。
+        self.target = None
 
         # self.enable = deep_get(data, keys="Scheduler.Enable", default=False)
         # self.command = deep_get(data, keys="Scheduler.Command", default="Unknown")
@@ -1492,7 +1503,25 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 if not cmd:
                     continue
                 entries_of.setdefault(cmd, []).append(
-                    (idx, getattr(entry, 'entry_id', None) or ''))
+                    (idx, getattr(entry, 'entry_id', None) or '',
+                     # ★★★ 条目级次数（用户裁定 —— 修"改一条全变"的 bug）★★★
+                     #
+                     # ## 用户报的 bug
+                     #
+                     # > "当前临时任务**重复添加**后，修改**次数/时间会
+                     # >  同步到所有的同种任务**，而不是分开"
+                     #
+                     # ## 根因
+                     #
+                     # "次数"原来只存在**任务级** `scheduler.target` ——
+                     # 改一条 = 改任务级字段 = **所有同任务条目一起变**。
+                     #
+                     # ## 修法（用户裁定 **甲**）
+                     #
+                     # * 条目级 `target > 0` -> "**这一条**跑几次"
+                     # * 否则回落任务级 `scheduler.target`（**保留为默认值**）
+                     # ★ 与 `entry_id` 走**同一条路**（都按条目独立）
+                     int(getattr(entry, 'target', 0) or 0)))
             if not entries_of:
                 return pending
 
@@ -1506,11 +1535,13 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 sources = by_cmd.get(cmd) or []
                 if not sources:
                     continue
-                for n, (idx, eid) in enumerate(items):
+                for n, (idx, eid, tgt) in enumerate(items):
                     # 第 1 条用原对象; 第 2 条起用**副本**
-                    # （各自独立的 entry_id —— 否则会互相覆盖）
+                    # （各自独立的 entry_id 与 target —— 否则会互相覆盖）
                     f = sources[0] if n == 0 else _copy.deepcopy(sources[0])
                     f.entry_id = eid or None
+                    # ★ 条目级次数: 0 = 用任务级默认值（f.target 保持 None）
+                    f.target = (tgt if tgt > 0 else None)
                     kept.append((idx, f))
             for cmd, sources in by_cmd.items():
                 if cmd not in entries_of:

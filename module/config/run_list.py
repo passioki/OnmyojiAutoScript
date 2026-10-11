@@ -163,6 +163,32 @@ class RunEntry:
     kind: EntryKind = EntryKind.TASK
     task: str = ''
     minutes: int = 0
+    # ★★★ 条目级「次数」（用户裁定 —— 修 bug）★★★
+    #
+    # ## 用户报的 bug
+    #
+    # > "当前临时任务**重复添加**后，修改**次数/时间会同步到所有的同种任务**，
+    # >  而不是分开"
+    #
+    # ## 根因
+    #
+    # "次数"原来只存在**任务级** `scheduler.target` ——
+    # 而队列里同一任务可以有**多条条目**（用户用重复条目表达
+    # "重复跑整个任务"）。
+    # ⇒ 改一条的次数 = 改**任务级**字段 = **所有同任务条目一起变**。
+    #
+    # ## 修法（用户裁定 **甲**）
+    #
+    # * ★ 本字段 = "**这一条**跑几次"（`0` = 用任务级默认值）
+    # * ★ 任务级 `scheduler.target` **保留为默认值** ——
+    #   老配置不变、等价于"给每条条目加一个**覆盖值**"
+    #
+    # ⚠ 只有能被**重复添加**的条目才需要它。实测: 候选池
+    #   （`GET /queue/candidates`）**排除 `auto_queue`** ——
+    #   所以**周期任务不在候选池里、无法被重复添加**
+    #   （用户指出: "定时任务是启用后自动添加进队列的，不在添加任务池里"）。
+    #   ★ 但本字段对所有条目通用 —— 周期任务只有一条, 用不到而已。
+    target: int = 0
     # ★★ C: 条目身份（用户裁定: "entry_id 用当前时间 + task 来实现"）★★
     #
     # 为什么需要它: 队列里**同一任务可以出现多次**（用户用重复条目表达
@@ -250,7 +276,11 @@ class RunEntry:
             # ★ 我第一版让它"非空才写" —— 但 `_assign_groups()` 会把它算成
             #   非空, 于是**照样落盘**（实测抓到）。所以改成**永不写**。
             return {'kind': self.kind.value, 'task': self.task,
-                    'entry_id': self.entry_id}
+                    'entry_id': self.entry_id,
+                    # ★ 条目级次数（`0` = 用任务级默认值）——
+                    #   ★ **非零才写**: 老配置里没有这个键, 写 0 只会让
+                    #     配置文件多出一堆"用户没写过"的字段。
+                    **({'target': self.target} if self.target else {})}
         return {'kind': self.kind.value, 'minutes': self.minutes}
 
     @classmethod
@@ -271,6 +301,8 @@ class RunEntry:
             return cls(kind=EntryKind.TASK,
                        task=str(data.get('task') or ''),
                        entry_id=str(data.get('entry_id') or ''),
+                       # ★ 条目级次数: 旧配置没有这个键 -> `0` = 用任务级默认值
+                       target=int(data.get('target') or 0),
                        group=str(data.get('group') or ''))
         if kind == EntryKind.REST.value:
             return cls(kind=EntryKind.REST, minutes=data.get('minutes'))

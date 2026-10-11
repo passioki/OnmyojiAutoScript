@@ -124,9 +124,32 @@ class BaseTask(GlobalGameAssets, CostumeBase):
 
             # 1) 用户编排的 target
             #
+            # ★★★ 优先用【条目级】target（用户裁定 —— 修 bug）★★★
+            #
+            # ## 用户报的 bug
+            #
+            # > "当前临时任务**重复添加**后，修改**次数/时间会同步到所有的
+            # >  同种任务**，而不是分开"
+            #
+            # ## 根因与修法
+            #
+            # 次数原来只存在**任务级** `scheduler.target` -> 改一条 =
+            # 所有同任务条目一起变。
+            # ★ 现在: **条目级**（`Function.target`, 由 `_order_by_queue()`
+            #   按条目写入）优先; 为 0/None 才回落任务级
+            #   （任务级**保留为默认值** —— 用户裁定 **甲**）。
+            #
             # ★ 这里**不能**写 `except Exception: pass` —— 那会把真正的 bug
             #   (比如漏 import 导致的 NameError)吞掉, 表现成"次数设置没生效",
-            #   极难排查。改为一律记 warning。
+            #   极难排查。改为一律记日志。
+            try:
+                # ★ 条目级: 正在跑**那一条**自己的次数
+                t = int(getattr(self.config.task, 'target', 0) or 0)
+                if t > 0:
+                    return t
+            except Exception as exc:
+                logger.debug(f'{name}: 读取条目级 target 失败'
+                             f'({type(exc).__name__}: {exc}), 回落任务级')
             try:
                 sub = getattr(self.config, convert_to_underscore(name), None)
                 sch = getattr(sub, 'scheduler', None) if sub is not None else None

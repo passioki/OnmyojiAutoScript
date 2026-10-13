@@ -1,0 +1,86 @@
+# This Python file uses the following encoding: utf-8
+# @author runhey
+# github https://github.com/runhey
+from pydantic import BaseModel, Field
+from enum import Enum
+
+# ★ 统一次数字段: `limit_count` 的旧键迁移别名（见 `RaidConfig` 里的说明）
+#   ⚠ `AliasChoices` **不在** `config_base` 传递的命名空间里（`BaseModel`/`Field`
+#     在, 但它不在）—— 所以必须自己 import。
+from pydantic import AliasChoices
+
+from tasks.Component.config_scheduler import Scheduler
+from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
+from tasks.Component.config_base import ConfigBase
+from tasks.Component.SwitchSoul.switch_soul_config import SwitchSoulConfig
+
+class RaidMode(str, Enum):
+    NORMAL = 'retreat_four_attack_nine'
+    ATTACK_ALL = 'attack_all'
+
+class AttackNumber(str, Enum):
+    NINE = 'nine'
+    ALL = 'all'
+
+class WhenAttackFail(str, Enum):
+    EXIT: str = 'Exit'
+    CONTINUE: str = 'Continue'
+    REFRESH: str = 'Refresh'
+
+class RaidConfig(BaseModel):
+    # raid_mode: RaidMode = Field(title='Raid Mode', default=RaidMode.NORMAL,
+    #                             description='raid_mode_help')
+    # attack_number: AttackNumber = Field(title='Attack Number', default=AttackNumber.ALL,
+    #                                     description='')
+
+    # ★★★ 统一次数字段: `number_attack` -> `limit_count` ★★★
+    #
+    # ## 为什么改（子代理审计 + 我复核确认）
+    #
+    # `number_attack` **全仓 0 处"读配置值"** —— 它是个**死字段**:
+    #   * `tasks/RealmRaid/script_task.py:175` 判断"打够了"用的是 `self.limit_count`
+    #   * `self.limit_count` 由 `tasks/base_task.py` 的 `effective_target()` 赋值
+    #   * `effective_target()` 第 3 级找的是 **`limit_count`** ——
+    #     而 `RaidConfig` 里**没有**这个字段（实测 `hasattr(rc,'limit_count')==False`）
+    #     ⇒ 直接掉到第 4 级 `meta.count_default`（= 30 的**静态**默认值）
+    #
+    # ★ 后果: **用户在界面上改 `number_attack` 对行为零影响**
+    #   （改 10 仍然跑 30；想改 40 也不行 —— `le=30`）。
+    # ★ 而界面"显示"的 `count` 又确实读的是 `number_attack`
+    #   （`module/server/schema_router.py` 的 `_count_from_value`）——
+    #   ★ **显示与实际生效是两个数**, 默认值恰好都是 30 把断链盖住了。
+    #
+    # ## 为什么带 `validation_alias`
+    #
+    # ★ 老配置里存的是键名 `number_attack`。pydantic 默认 `extra='ignore'`
+    #   -> 改名后那个键会被**静默丢弃** -> **用户设过的值丢失**。
+    # `validation_alias` 让**读**时接受旧名（不用迁移任何配置文件）,
+    # 写回时用**新名**（旧配置在第一次 save 后自然迁移）。
+    # ★ 与 `tasks/Component/config_scheduler.py:324` 的
+    #   `retry_interval` <- `failure_interval` **同一手法**。
+    limit_count: int = Field(
+        title='战斗次数',
+        default=30,
+        le=30,
+        ge=1,
+        description='limit_count_help',
+        validation_alias=AliasChoices('limit_count', 'number_attack'),
+    )
+    number_base: int = Field(title='Number Base', default=0, le=20, ge=0, description='number_base_help')
+    exit_four: bool = Field(title='Exit Four', default=True, description='exit_four_help')
+    order_attack: str = Field(title='Order Attack', default='5 > 4 > 3 > 2 > 1 > 0', description='order_attack_help')
+    three_refresh: bool = Field(title='Three Refresh', default=False, description='three_refresh_help')
+    when_attack_fail: WhenAttackFail = Field(title='WhenAttackFail', default=WhenAttackFail.REFRESH, description='when_attack_fail_help')
+
+class RealmRaid(ConfigBase):
+    scheduler: Scheduler = Field(default_factory=Scheduler)
+    raid_config: RaidConfig = Field(default_factory=RaidConfig)
+    general_battle_config: GeneralBattleConfig = Field(default_factory=GeneralBattleConfig)
+    switch_soul_config: SwitchSoulConfig = Field(default_factory=SwitchSoulConfig)
+
+
+
+
+
+
+

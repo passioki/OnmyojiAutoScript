@@ -44,8 +44,8 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         #   改造前这里是 `self.current_count = 0` + 直接读配置 ——
         #   既毁掉磁盘恢复, 又让界面上的"次数"输入框(scheduler.target)完全无效。
         self.bind_counter()
-        limit_time = self.config.orochi.orochi_config.limit_time
-        self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute, seconds=limit_time.second)
+        # ★ 片 2: 统一到 `scheduler.expected_minutes`
+        self.limit_time: timedelta = self.time_limit
 
         config: Orochi = self.config.orochi
         if not self.is_in_battle(True):

@@ -21,6 +21,14 @@ SPEC = TaskSpec(
     task='GuildBanquet',
     name_zh='寮宴会',
     category=Category.TIMED,
+    # ★★★ 废弃（片 4 / W-a，用户裁定）★★★
+    #
+    # 寮宴会的 `run_time_1` / `run_time_2` 无法用 window start 表达：
+    #   ★ 它们**被 `meta.py` 的 `times_from_config=(...)` 引用** ——
+    #     是**窗口时刻的真实来源**（不是死字段）；
+    #     且 `script_task.py:176/178` 会**反向写回**配置（供界面显示）。
+    #   ★ 用户裁定: 标为废弃不可启用，留待删除或适配。
+    deprecated=("GuildBanquet 因字段语义冲突被标记为废弃，留待删除或适配。详见本文件上方的说明与 DEV-SCHEDULER-UNIFY-PLAN.md 的 W-a 审计。"),
     # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
     auto_queue=True,
     # ★★ (b) 动态窗口: 宴会日与时刻都**引用用户配置** ★★

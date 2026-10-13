@@ -426,6 +426,13 @@ class TestQueueEndpoints:
                 continue
             if _auto_queue_of(meta, cfg):
                 continue
+            # ★★★ 2026-10-12 用户裁定「D9」：★ 候选**排除 `Rest`** ★★★
+            #   ★ 「添加任务」弹窗里已有**专用**的「休息」入口（能选分钟数）
+            #     ⇒ ★ 若候选里再返回一次 `Rest` ⇒ ★ 弹窗里出现**两个**"休息"
+            #       （★ 用户原话："里边有一个**休息**和一个**添加休息**"）。
+            #   ⇒ ★ 端点在源码里 `continue` 掉 `Rest` ⇒ 本测试按同一规则算。
+            if str(meta.task) == 'Rest' or str(key) == 'rest':
+                continue
             expected.add(meta.task)
 
         assert names == expected, (
@@ -448,11 +455,19 @@ class TestQueueEndpoints:
             '用户要求可以重复添加相同的任务')
 
         # 自动进队列的**永远**不该出现
+        #
+        # ⚠ **必须传 `cfg`**！`_auto_queue_of(meta, config=None)` 在
+        #   `config` 为 `None` 时**拿不到 `period`** ⇒ 判断失效
+        #   （实测: `TalismanPass`(period=none) 被判成"自动进队列"
+        #     ⇒ 假失败 "自动进队列的 TalismanPass 不该在候选里"）。
+        #   ★ 本轮签名已改为 `_auto_queue_of(meta, config)`
+        #     （见下面 `test_auto_queue_falls_back_to_countable` 的注释），
+        #     这里漏跟了。
         for key, value in model.items():
             if not isinstance(value, dict):
                 continue
             meta = _meta_of_key(key)
-            if meta is not None and _auto_queue_of(meta) \
+            if meta is not None and _auto_queue_of(meta, cfg) \
                     and value.get('scheduler', {}).get('enable'):
                 assert meta.task not in names, \
                     f'自动进队列的 {meta.task} 不该在候选里'

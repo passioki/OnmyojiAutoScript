@@ -3,6 +3,10 @@
 # github https://github.com/runhey
 import time
 import re
+# ★ 片 4: 本任务补上"时间上限"判断（用户裁定 **丙**）——
+#   其它 14 个任务都用 `datetime.now() - self.start_time >= self.limit_time`
+#   来判断超时，本任务**从来没有**这段代码（不是被删了，是没实现过）。
+from datetime import datetime, timedelta
 from cached_property import cached_property
 
 from tasks.base_task import BaseTask
@@ -123,6 +127,14 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
         # ★ 次数走统一入口 `bind_counter()`(恢复磁盘计数 + 设定本行目标次数)。
         #   改造前本任务从不 bind -> 计数既不落盘也不恢复, 重启后从头再打。
         self.bind_counter()
+        # ★★ 片 4: 时间上限（用户裁定 **丙**）★★
+        #
+        # ⚠ 本任务**原先从不设置** `self.limit_time`
+        #   （它没有超时判断, 所以一直不需要）⇒ 若直接去比较,
+        #   会拿 `None` 和 `timedelta` 比 ⇒ ★ `TypeError`。
+        # ⇒ 这里补上赋值。`self.time_limit` 由 `BaseTask` 从
+        #   `scheduler.expected_minutes` 派生（0 ⇒ 24 小时 ⇒ 实际不中止）。
+        self.limit_time: timedelta = self.time_limit
         if con.switch_soul_config.enable:
             self.goto_page(page_shikigami_records)
             self.run_switch_soul(con.switch_soul_config.switch_group_team)
@@ -166,6 +178,47 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
                 continue
             # 检查票数
             if not self.check_ticket(con.raid_config.number_base):
+                # ★★★ 2026-10-11: **"没票" = 这轮【正常结束】（成功）** ★★★
+                #
+                # ## ★★ 用户裁定 ★★
+                #
+                # > "**没票了应该算这轮结束啊，也算成功结束了啊**"
+                # > "门票耗尽**不上报**，**只上报任务完成**！"
+                # > "**C 好的，清零重来。**"
+                #
+                # ★ 所以这里：
+                #   * **不改 `success`**（保持 True，= 本轮正常结束）
+                #   * ★ **上报"本条目本轮已完成"** —— 由调度层
+                #     `_skip_by_completed()` 剔出 pending
+                #     ⇒ ★ 不会再被反复派发（不再 40 秒一轮）
+                #   * ★ **不标"资源耗尽"**（项目里没有监控门票的机制，
+                #     标了永远没人解除 ⇒ 突破任务会再也跑不了）
+                #   * 新一轮（队列循环到末尾）⇒ `clear_entry_completed()` 清零
+                #     ⇒ 它又能跑（重新探券）
+                self.mark_entry_completed('没券了（本轮结束）')
+                logger.info('没票了 —— 本轮正常结束，已上报"本轮完成"')
+                break
+            # ★★ 片 4: 时间上限（用户裁定 **丙** —— 补上能力, 但**不改变现有行为**）★★
+            #
+            # ## 用户裁定
+            #
+            # > "Limit Time 应该统一为**预期完成时间**" + 本轮选 **丙**:
+            # >   补上, 但**默认 0 = 不按时间中止**。
+            #
+            # ## 为什么加在这里
+            #
+            # ★ 与"次数够了"的判断**同一处**（循环头部）——
+            #   这里**还没有开始新的一场战斗**, 所以中止是**干净**的
+            #   （不必像 `Orochi` 那样再判 `is_in_room()`：那时它已进战斗）。
+            #
+            # ## ★ 默认 0 的行为（**与改动前完全一致**）
+            #
+            # `scheduler.expected_minutes == 0` ⇒ `BaseTask.time_limit`
+            # 返回 **24 小时** ⇒ 实际**永远不会**因时间中止
+            # ⇒ ★ **老用户行为不变**；想设上限的用户自己在界面填分钟数即可。
+            if datetime.now() - self.start_time >= self.limit_time:
+                logger.info(f'RealmRaid time limit out '
+                            f'({self.limit_time}), stop')
                 break
             # 挑战次数
             #

@@ -73,10 +73,16 @@ class TestEntryIdUniqueness:
             rl.add(RunEntry(kind='task', task='RealmRaid'))
         ids = [e.entry_id for e in rl.entries]
         assert len(set(ids)) == 3, f'entry_id 撞了: {ids}'
-        # 前缀仍可读
-        assert ids[0].endswith('-RealmRaid')
-        assert ids[1].endswith('-2')
-        assert ids[2].endswith('-3')
+        # ★★★ 2026-10-12：**毫秒精度**之后，前缀已到 18 位
+        #   （`%Y%m%dT%H%M%S` + 3 位毫秒）★★★
+        # ★ 同一毫秒内加 3 次仍会撞 ⇒ ★ **兜底后缀 `-2`/`-3` 仍会被用到**
+        #   （★ 那是**保险**，不是主路径）。
+        # ★ 断言改为：★ 前缀到毫秒 + **三个 id 互不相同**（上面已断言）。
+        for i in ids:
+            head = i.split('-')[0]
+            assert len(head) == 18, f'前缀应到毫秒（18 位）: {i!r}'
+            assert head[8] == 'T', i
+        assert ids[0].endswith('-RealmRaid'), ids
 
     def test_unique_ids_still_splittable(self):
         from module.config.run_list import RunList, RunEntry, task_of_entry_id

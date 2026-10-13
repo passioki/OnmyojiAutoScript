@@ -140,10 +140,21 @@ def validate_requires(requires, task: str = '') -> tuple:
 
 def disabled_tasks(specs: dict = None) -> dict:
     """
-    找出**因平台能力不足而应禁用**的任务。
+    找出**应禁用**的任务。
+
+    ## 两类禁用（片 4 / W-a 之后）
+
+    | 类别 | 判据 | 返回的"原因" |
+    |---|---|---|
+    | **平台能力不足** | `TaskSpec.requires` 里有一项当前平台没有 | 缺少的能力名元组 |
+    | ★ **功能废弃** | `TaskSpec.deprecated` 非空 | `('废弃: <原因>',)` |
+
+    ★ 用户裁定（W-a）: "**涉及冲突的任务标为废弃不可启用，留待删除或适配**"
+      —— 那些任务的字段无法用统一字段表达（详见 `TaskSpec.deprecated` 的说明），
+      所以在这里**并入禁用结果** ⇒ 它们**不会出现在可启用列表**。
 
     :param specs: {任务名: TaskSpec}; 留空则从 task_catalog 取
-    :return: {任务名: (缺少的能力名...)}
+    :return: {任务名: (原因字符串...)}
     """
     if specs is None:
         try:
@@ -156,6 +167,12 @@ def disabled_tasks(specs: dict = None) -> dict:
 
     out = {}
     for task, spec in (specs or {}).items():
+        # ① ★ 功能废弃（优先报这个 —— 它是"设计决策", 比平台限制更根本）
+        dep = (getattr(spec, 'deprecated', '') or '').strip()
+        if dep:
+            out[task] = (f'废弃: {dep}',)
+            continue
+        # ② 平台能力不足
         requires = getattr(spec, 'requires', ()) or ()
         if not requires:
             continue

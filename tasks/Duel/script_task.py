@@ -37,9 +37,9 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             self.set_next_run(task='Duel', success=True, finish=False)
             raise TaskEnd('Duel')
         self.conf = self.config.duel
-        limit_time = self.conf.duel_config.limit_time
-        self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute,
-                                               seconds=limit_time.second)
+        # ★ 片 2: 时间上限统一到 `scheduler.expected_minutes`
+        #   （原配置字段 `duel_config.limit_time` 已删除）
+        self.limit_time: timedelta = self.time_limit
         self.prepare_duel()
         while True:
             self.screenshot()

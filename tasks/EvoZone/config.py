@@ -44,10 +44,6 @@ class EvoZoneConfig(ConfigBase):
     kirin_type: KirinType = Field(default=KirinType.LIGHTNINGKIRIN, description='kirin_type_help')
     # 层数
     layer: Layer = Field(default=Layer.TEN, description='layer_help')
-    # 限制时间
-    limit_time: Time = Field(default=Time(minute=30), description='limit_time_help')
-    # 限制次数
-    limit_count: int = Field(default=30, description='limit_count_help')
     # 是否开启觉醒加成
     soul_buff_enable: bool = Field(default=False, description='是否开启觉醒加成')
 

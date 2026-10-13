@@ -430,6 +430,43 @@ class Scheduler(ConfigBase):
         ge=0,
         le=24 * 60)
 
+    # ---------------------------------------------------------------- ★ 门票（预留）
+    #
+    # ★★★ 用户裁定（2026-10-11）: **预留"门票"字段与逻辑** ★★★
+    #
+    # > "其它的临时任务目前可能**没有门票这个字段**，但是**最好预留一下**，
+    # >  因为**后期可能会加上**"
+    #
+    # ## 语义（与 `target` 正交，别混）
+    #
+    # | 字段 | 含义 | 谁管 |
+    # |---|---|---|
+    # | `target` | ★ **目标次数**（"我要打几次"）| 用户设 |
+    # | ★ `resource` | ★ **本任务要检查的资源名**（如 `'ticket'` / `'scroll'`）| 游戏机制 |
+    # | ★ `resource_enable` | ★ 是否启用"资源耗尽 ⇒ 本轮完成"的判定 | 用户/默认关 |
+    #
+    # ## 为什么现在只是"预留"
+    #
+    # ★ 目前**没有**监控各类门票资源的任务（RealmRaid 是自己 OCR 券数），
+    #   所以这两个字段**先存着、先不参与判定**。
+    # ★ 等以后有任务要上报资源时：
+    #   1. 任务里设 `scheduler.resource = 'xxx'` + `resource_enable = True`
+    #   2. 任务在"资源没了"时调 `self.mark_entry_completed('资源耗尽')`
+    #   ★ **不需要再改 schema**（字段已就位、已落盘）。
+    #
+    # ⚠ **不要**把它做成"持久化的耗尽标记"：
+    #   用户明确否决 —— "门票耗尽**不上报**，**只上报任务完成**"
+    #   （项目里没有监控机制，标了永远没人解除 ⇒ 任务再也跑不了）。
+    resource: str = Field(
+        default='',
+        description='resource_help',
+        json_schema_extra={'internal': True})
+
+    resource_enable: bool = Field(
+        default=False,
+        description='resource_enable_help',
+        json_schema_extra={'internal': True})
+
     # ------------------------------------------------------------ 开放时段: 便捷访问
     # ★★ T5（审计修复）: uild_window() **已删除** ★★
     #

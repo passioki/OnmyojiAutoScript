@@ -6,6 +6,14 @@ import datetime
 import operator
 import threading
 import random
+# ★ `re` 用于片 4 (W-a/B) 的"时刻字符串"格式校验 ——
+#   ⚠ 它**不在** `module.config.utils` 的 `import *` 里（实测 `NameError`）。
+import re
+# ★ 片 1 收尾: 迁移要读/写**磁盘原始 JSON**（不能只靠模型, 见
+#   `migrate_count_to_target_once` 开头的实测教训）。
+#   ⚠ `json` 是 `module.config.utils` 的 `import *` 带进来的（能用）,
+#     但 `Path` **不在**, 必须显式导入（实测确认）。
+from pathlib import Path
 
 from datetime import datetime, timedelta
 from cached_property import cached_property
@@ -486,6 +494,25 @@ def _all_task_names() -> list:
 
 class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
+    #: ★★★ `fix_stale_next_run_once` 的**进程级一次性闸门** ★★★
+    #
+    # ## 为什么必须有它（2026-10-11 实测修的真 bug）
+    #
+    # ★ 用户报："**突破券用完了，但调度器还让它一直重复个人突破任务**"
+    # ★ 实测日志：**每 40 秒一轮，永不停**
+    # ```
+    # 21:20:00  Execute raid failed, no ticket
+    # 21:20:07  config.py:1723 | RealmRaid: 21:24:28 -> 现在   ← ★ 被拉回现在
+    # 21:20:07  Scheduler: Start task `RealmRaid`             ← ★ 立刻又跑
+    # ```
+    # ★ 根因：那个函数在 `Config.__init__` 里被调用，而配置**每次任务结束
+    #   都会重载** ⇒ 它把任务刚排好的**未来值**当成"坏值"**拉回现在**
+    #   ⇒ `get_next()` 立刻又选它 ⇒ 无限循环。
+    # ★ 它本来是"一次性修正**已落盘**的坏值"（名字里就是 `_once`）——
+    #   加闸门后每个进程只修一次，之后的未来排期**能保住**。
+    # ⚠ 用**类变量**：`Config` 对象会被反复重建，实例变量不起作用。
+    _stale_fix_done = False
+
     def __init__(self, config_name: str, task=None) -> None:
         """
 
@@ -543,6 +570,49 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         #
         # ★ 分钟数从旧条目搬到 `scheduler.target` —— **不丢用户设的值**。
         self.migrate_rest_entries_once()
+        # ★★★ 片 1: 任务级「次数」统一到 `scheduler.target`（用户裁定）★★★
+        #
+        # > "① 「次数」字段，**全部统一为咱们任务顺序设置的那个次数字段，
+        # >   应该是 target 吧**"
+        #
+        # ## 为什么必须写迁移（**不能靠 `validation_alias`**）
+        #
+        # ★ `limit_count`（及别名 `minions_cnt` / `hya_limit_count` /
+        #   `number_attack`）住在**各任务的子配置**里
+        #   （`raid_config.` / `orochi_config.` / `herotest.` …）,
+        #   而 `target` 住在 **`Scheduler`** 里 ——
+        #   ★ **不是同一个 pydantic 模型** ⇒ `validation_alias` **跨模型无效**
+        #   ⇒ 老键会被 `extra='ignore'` **静默丢弃**（= 丢用户设置）。
+        # ★ 所以只能**读老键 -> 写新键**（本方法）。
+        #
+        # ## 幂等（**不需要一次性标记**）
+        #
+        # ★ 判据 = "**还存不存在老键**" —— 搬完就没有了，
+        #   与 `migrate_rest_entries_once()` / `migrate_missing_task_nodes_once()`
+        #   **同一思路**（少一个状态位就少一处不同步）。
+        #
+        # ## ★ 不覆盖用户值
+        #
+        # ★ 只在 `scheduler.target` 还是默认值（`0` / 缺省）时才写。
+        self.migrate_count_to_target_once()
+        # ★★★ 片 2: 任务级"时间上限"统一到 `scheduler.expected_minutes` ★★★
+        #
+        # > "② 真正的'两个字段'问题，`limit_count` 和 `limit_time`
+        # >  **都需要分别统一为 `target` 和 `expected_minutes`**，
+        # >  `limit_time` 和 `expected_minutes` **语义很接近，基本服务于
+        # >  定时任务完成时间和休息时间的长短判断**，对于**临时类任务也很贴合**。"
+        #
+        # ★ 与片 1 同构（跨模型搬运 ⇒ 必须读磁盘原文）。
+        self.migrate_limit_time_to_expected_once()
+        # ★★★ 片 4 (W-a/B): "偏好时刻"字段 -> `scheduler.windows` 的 start ★★★
+        #
+        # > 用户裁定: "W-a ★ 确实用 window start 替代 —— 放弃'希望几点'这个概念"
+        #
+        # ★ 只处理**死字段**（0 处读点）—— 有读点的 5 个（`before_end` /
+        #   `time_of_mystery` / `run_time_*` / `sleep_end`）**保留**，
+        #   它们不是"偏好时刻"而是排期逻辑（详见
+        #   `DEV-SCHEDULER-UNIFY-PLAN.md` 的 W-a 审计）。
+        self.migrate_moment_fields_to_windows_once()
         # ★★★ 修正"全天窗口却被排到未来"的 next_run（用户报的"等待到点"）★★★
         #
         # 用户原话:
@@ -832,6 +902,547 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                            f'({type(exc).__name__}: {exc}), 保持原样')
             return False
 
+    def migrate_count_to_target_once(self) -> bool:
+        """★ **片 1**: 把任务级的「次数」搬到 `scheduler.target`（用户裁定）。
+
+        ## ★★ 用户裁定（原话）★★
+
+        > "① 「次数」字段，**全部统一为咱们任务顺序设置的那个次数字段，
+        >   应该是 target 吧**"
+
+        > "D4：如果**语义和行为可以用统一后的字段来表示、执行，那就统一字段**。
+        >  就像是**休息时间也可以用 target 来表示多少分钟**一样。
+        >  **target 只是一个计量数字**。"
+
+        ## 为什么**必须写迁移**（不能靠 `validation_alias`）
+
+        ★ 这个约束是本会话**实测出来的**（写方案时发现）：
+
+        | 字段 | 住在哪 |
+        |---|---|
+        | `limit_count` / `minions_cnt` / `hya_limit_count` / `number_attack` | ★ **各任务的子配置**（`raid_config.` / `orochi_config.` / `herotest.` / `exploration_config.` …）|
+        | `target` | ★ **`Scheduler`**（`tasks/Component/config_scheduler.py`）|
+
+        ⇒ ★ **不是同一个 pydantic 模型** ⇒
+          `validation_alias` **只在同一模型内换键名**, **跨模型无效**
+          ⇒ 老键会被 `extra='ignore'` **静默丢弃** = **丢用户设置**。
+
+        ★ 所以只能"**读老键 → 写新键**"。
+
+        ## 幂等（**不需要一次性标记**）
+
+        ★ 判据 = "**还存不存在老键**" —— 搬完就没有了。
+          与 `migrate_rest_entries_once()` / `migrate_missing_task_nodes_once()`
+          **同一思路**（少一个状态位就少一处不同步）。
+
+        ## ★ 不覆盖用户已设的新值
+
+        ★ 只在 `scheduler.target` 还是默认值（`0` / 缺省）时才写。
+
+        ## 实测确认的层级（本会话 probe 出来的，不是猜的）
+
+        ```
+        BondlingFairyland   bondling_config.limit_count=30
+        EternitySea         eternity_sea_config.limit_count=30
+        EvoZone             evo_zone_config.limit_count=30
+        Exploration         exploration_config.minions_cnt=30
+        FallenSun           fallen_sun_config.limit_count=50
+        GoryouRealm         goryou_config.limit_count=30
+        HeroTest            herotest.limit_count=100
+        Hyakkiyakou         hyakkiyakou_config.hya_limit_count=10
+        Orochi              orochi_config.limit_count=30
+        OtherWorldTwilight  other_world_twilight_config.limit_count=30
+        RealmRaid           raid_config.number_attack=30（**已在上一轮改名为 limit_count**）
+        RyouToppa           raid_config.limit_count=50
+        SixRealms           six_realms_gate.limit_count=1
+        Sougenbi            sougenbi_config.limit_count=30
+        ```
+
+        :return: 是否搬了至少一个（便于测试与排障）
+        """
+        #: ★ 老键名（**四个别名都要覆盖** —— 漏一个就丢一份用户设置）
+        _OLD = ('limit_count', 'minions_cnt', 'hya_limit_count', 'number_attack')
+        #: 跳过这些子节点（它们里边的 count 不是"跑几次"）
+        _SKIP_SUBNODES = ('scheduler',)
+        moved = []
+
+        # ★★★ 必须读【磁盘原始 JSON】，不能读 `model_dump()` ★★★
+        #
+        # ## 为什么（这是本会话实测的教训）
+        #
+        # ★ 片 1 的第二步**已经把那 14 个字段定义删掉了**
+        #   （`tasks/*/config.py` 里不再有 `limit_count` / `minions_cnt` / …）。
+        # ⇒ pydantic 在**加载时就把老键丢掉**了
+        #   （它既不是声明字段、也不是 extra —— 直接忽略）。
+        # ⇒ ★ 于是 `self.model.model_dump()` 里**根本没有老键**,
+        #   迁移读不到 -> **搬不到值** -> 用户的次数设置会在"字段已删"之后**丢失**。
+        #
+        # ★ 实测证据（我第一版这么写就是错的）:
+        # ```
+        # （迁移前磁盘上的老键数: 14）
+        # ** FAIL **  ★ 14 个 scheduler.target == 老值   ← 全部没搬
+        # PASS      ★★ 老键已从落盘 JSON 消失          ← 字段删了, 模型丢掉它
+        # PASS      ★ effective_target() 仍 == 老值      ← 假象: 回落到了 count_default
+        # ```
+        # ⚠ 最后那条 PASS 是**假象** —— 老值恰好等于 `count_default`（30/30/…）;
+        #   一旦用户改过值, 就会**静默丢失**。
+        #
+        # ## 所以：读磁盘 JSON（migration 本来就是一次性磁盘操作）
+        #
+        # ★ 顺带好处：可以在**同一个 dict** 里删掉老键再整体落盘,
+        #   删得干净（不依赖模型是否会保留未知键）。
+        raw = None
+        raw_path = None
+        try:
+            raw_path = Path.cwd() / 'config' / f'{self.config_name}.json'
+            if raw_path.exists():
+                with open(raw_path, 'r', encoding='utf-8') as f:
+                    raw = json.load(f)
+        except Exception as exc:
+            logger.warning(f'片1 迁移: 读不到原始配置'
+                           f'（{type(exc).__name__}: {exc}）—— 跳过')
+            return False
+        if not isinstance(raw, dict):
+            return False
+
+        for key, node in raw.items():
+            if not isinstance(node, dict):
+                continue
+            sch = node.get('scheduler')
+            if not isinstance(sch, dict):
+                continue        # 不是任务节点
+            cur = int(sch.get('target', 0) or 0)
+            if cur > 0:
+                continue        # ★ 用户已设新值 -> 不覆盖
+            # 在该任务的**子节点**里找老键（根上也找一次，兜底）
+            found = None
+            for sub_key, sub in node.items():
+                if sub_key in _SKIP_SUBNODES or not isinstance(sub, dict):
+                    continue
+                for old in _OLD:
+                    if old in sub:
+                        try:
+                            v = int(sub.get(old) or 0)
+                        except (TypeError, ValueError):
+                            v = 0
+                        if v > 0:
+                            found = (f'{key}.{sub_key}.{old}', v, sub_key, old)
+                            break
+                if found:
+                    break
+            if found is None:
+                for old in _OLD:
+                    if old in node:
+                        try:
+                            v = int(node.get(old) or 0)
+                        except (TypeError, ValueError):
+                            v = 0
+                        if v > 0:
+                            found = (f'{key}.{old}', v, None, old)
+                            break
+            if found is None:
+                continue
+
+            where, value, sub_key, old = found
+            try:
+                # ① 写新键（`scheduler.target`）—— 用 `deep_set`（**不写裸 dict**,
+                #    所以**不会**触发 `Expected 'X' but got 'dict'` 警告）
+                self.model.deep_set(self.model, keys=f'{key}.scheduler.target',
+                                    value=value)
+                # ② ★ 从**磁盘原始 dict** 里删掉老键
+                #
+                # ★ 为什么读磁盘又写磁盘（而不是靠 `save()`）:
+                #   片 1 的第二步**已经把 14 个字段定义删掉了** ⇒ pydantic
+                #   加载时就忽略了老键 ⇒ `model_dump()` 里没有它 ⇒
+                #   `save()` 写出的 JSON **自然也没有它** ——
+                #   ★ **但那样就"读不到老值"了**（见方法开头那段实测教训）。
+                #   ⇒ 所以本方法改成"**读磁盘原文 -> 在原文里搬 + 删 -> 写回**",
+                #     一次做完,**不依赖模型**。
+                #
+                # ⚠ 我先后试过两个**都错**的假设（已实测证伪, 别再试）:
+                #   ① "`extra='ignore'` 会让它自动消失" -> 错（它曾是**真字段**）
+                #   ② "从 `model_extra` 里 `pop`"        -> 错（`model_extra is None`）
+                if sub_key is None:
+                    node.pop(old, None)
+                else:
+                    node[sub_key].pop(old, None)
+                if raw_path is not None:
+                    raw_path.write_text(
+                        json.dumps(raw, ensure_ascii=False, indent=2),
+                        encoding='utf-8')
+                moved.append(f'{where} -> {key}.scheduler.target = {value}')
+            except Exception as exc:
+                logger.warning(f'片1 迁移: {where} 搬运失败'
+                               f'（{type(exc).__name__}: {exc}）—— 保持原样')
+
+        if not moved:
+            return False
+        logger.info(f'片1: 已把 {len(moved)} 个任务的「次数」统一到 '
+                    f'`scheduler.target`: {moved}')
+        return True
+
+    def migrate_limit_time_to_expected_once(self) -> bool:
+        """★ **片 2**: 把任务级的「时间上限」搬到 `scheduler.expected_minutes`。
+
+        ## ★★ 用户裁定（原话）★★
+
+        > "② 真正的'两个字段'问题，`limit_count` 和 `limit_time`
+        >  **都需要分别统一为 `target` 和 `expected_minutes`**，
+        >  `limit_time` 和 `expected_minutes` **语义很接近，基本服务于
+        >  定时任务完成时间和休息时间的长短判断**，对于**临时类任务也很贴合**。"
+
+        > "D4：如果**语义和行为可以用统一后的字段来表示、执行，那就统一字段**。"
+
+        ## 与片 1 **同构**（同样的坑，同样的解法）
+
+        ★ `limit_time` / `hya_limit_time` 住在**各任务的子配置**里，
+          而 `expected_minutes` 住在 **`Scheduler`** 里
+          ⇒ **不是同一个 pydantic 模型** ⇒ `validation_alias` **跨模型无效**
+          ⇒ 必须"**读老键 -> 写新键**"。
+        ★ **必须读磁盘原始 JSON**（不能读 `model_dump()`）——
+          因为片 2 会**删掉那些字段定义**, 删了之后 pydantic 加载时就忽略它们,
+          `model_dump()` 里**没有老键** ⇒ 搬不到值 ⇒ 用户设的时间**静默丢失**。
+          （★ 片 1 实测踩过这个坑，见 `migrate_count_to_target_once` 的说明。）
+
+        ## ★ 单位换算（本会话实测确认无损）
+
+        * 老字段是 `Time`（`HH:MM:SS`）
+        * 新字段是 `int`（**分钟**）
+        * ★ 实测本机全部配置文件里这些值都**恰好是整分钟**
+          （`00:30:00` / `02:30:00` / `00:20:00`）⇒ 换算**无精度损失**
+        * ★ 万一将来出现带秒的值 ⇒ 向上取整（宁可多给 1 分钟，也不提前中止任务）
+          ⚠ 若值不是整分钟，会**告警**（便于发现）
+
+        ## 幂等
+
+        ★ 判据 = "**还存不存在老键**"；且**只在 `expected_minutes == 0` 时写**
+          （不覆盖用户已设的新值）。
+
+        ## 实测确认的层级（probe 出来的，不是猜的）
+
+        ```
+        bondling_fairyland.bondling_config.limit_time=00:30:00
+        eternity_sea.eternity_sea_config.limit_time=00:30:00
+        evo_zone.evo_zone_config.limit_time=00:30:00
+        exploration.exploration_config.limit_time=00:30:00
+        fallen_sun.fallen_sun_config.limit_time=00:30:00
+        goryou_realm.goryou_config.limit_time=00:30:00
+        hero_test.herotest.limit_time=00:30:00
+        hyakkiyakou.hyakkiyakou_config.hya_limit_time=00:20:00
+        orochi.orochi_config.limit_time=00:30:00
+        other_world_twilight.other_world_twilight_config.limit_time=00:30:00
+        ryou_toppa.raid_config.limit_time=00:30:00
+        six_realms.six_realms_gate.limit_time=00:30:00
+        sougenbi.sougenbi_config.limit_time=00:30:00
+        activity_shikigami.general_climb.limit_time=00:30:00
+        duel.duel_config.limit_time=00:30:00
+        ```
+
+        :return: 是否搬了至少一个（便于测试与排障）
+        """
+        #: ★ 老键名（`hya_limit_time` 是 Hyakkiyakou 的别名, 也要覆盖）
+        _OLD = ('limit_time', 'hya_limit_time')
+        #: 与片 1 同一套跳过规则
+        _SKIP_SUBNODES = ('scheduler',)
+        moved = []
+
+        raw = None
+        raw_path = None
+        try:
+            raw_path = Path.cwd() / 'config' / f'{self.config_name}.json'
+            if raw_path.exists():
+                with open(raw_path, 'r', encoding='utf-8') as f:
+                    raw = json.load(f)
+        except Exception as exc:
+            logger.warning(f'片2 迁移: 读不到原始配置'
+                           f'（{type(exc).__name__}: {exc}）—— 跳过')
+            return False
+        if not isinstance(raw, dict):
+            return False
+
+        def _to_minutes(v) -> int or None:
+            """`'HH:MM:SS'` -> 分钟（向上取整）；非法值返回 None。"""
+            if isinstance(v, (int, float)):
+                return int(v) if v > 0 else None
+            if not isinstance(v, str):
+                return None
+            parts = v.strip().split(':')
+            try:
+                nums = [int(x) for x in parts]
+            except (TypeError, ValueError):
+                return None
+            while len(nums) < 3:
+                nums.append(0)
+            h, m, s = nums[0], nums[1], nums[2]
+            total = h * 60 + m
+            if s > 0:
+                # ★ 带秒 -> 向上取整（宁可多给 1 分钟, 也不提前中止任务）
+                logger.warning(f'片2 迁移: `{v}` 带秒, 向上取整为 {total + 1} 分钟')
+                total += 1
+            return total if total > 0 else None
+
+        for key, node in raw.items():
+            if not isinstance(node, dict):
+                continue
+            sch = node.get('scheduler')
+            if not isinstance(sch, dict):
+                continue        # 不是任务节点
+            try:
+                cur = int(sch.get('expected_minutes', 0) or 0)
+            except (TypeError, ValueError):
+                cur = 0
+            if cur > 0:
+                continue        # ★ 用户已设新值 -> 不覆盖
+            found = None
+            for sub_key, sub in node.items():
+                if sub_key in _SKIP_SUBNODES or not isinstance(sub, dict):
+                    continue
+                for old in _OLD:
+                    if old in sub:
+                        mins = _to_minutes(sub.get(old))
+                        if mins:
+                            found = (f'{key}.{sub_key}.{old}', mins, sub_key, old)
+                            break
+                if found:
+                    break
+            if found is None:
+                for old in _OLD:
+                    if old in node:
+                        mins = _to_minutes(node.get(old))
+                        if mins:
+                            found = (f'{key}.{old}', mins, None, old)
+                            break
+            if found is None:
+                continue
+
+            where, minutes, sub_key, old = found
+            try:
+                # ① 写新键（`scheduler.expected_minutes`）
+                self.model.deep_set(
+                    self.model, keys=f'{key}.scheduler.expected_minutes',
+                    value=minutes)
+                # ② 从**磁盘原始 dict** 删掉老键（与片 1 同一手法）
+                if sub_key is None:
+                    node.pop(old, None)
+                else:
+                    node[sub_key].pop(old, None)
+                if raw_path is not None:
+                    raw_path.write_text(
+                        json.dumps(raw, ensure_ascii=False, indent=2),
+                        encoding='utf-8')
+                moved.append(f'{where} -> {key}.scheduler.expected_minutes = '
+                             f'{minutes}')
+            except Exception as exc:
+                logger.warning(f'片2 迁移: {where} 搬运失败'
+                               f'（{type(exc).__name__}: {exc}）—— 保持原样')
+
+        if not moved:
+            return False
+        logger.info(f'片2: 已把 {len(moved)} 个任务的「时间上限」统一到 '
+                    f'`scheduler.expected_minutes`: {moved}')
+        return True
+
+    def migrate_moment_fields_to_windows_once(self) -> bool:
+        """★ **片 4 (W-a/B)**: 把"偏好时刻"字段搬成 `scheduler.windows` 的 `start`。
+
+        ## ★★ 用户裁定（原话）★★
+
+        > "W-a ★ **确实用 window start 替代** —— **放弃'希望几点'这个概念**"
+        > "W-a：**涉及冲突的任务标为废弃不可启用，留待删除或适配**，其它就 W1"
+
+        ## ★ 只搬这 8 个**死字段**（0 处读点，已实测）
+
+        | 任务 key | 老字段 | 出厂默认 → window start | days |
+        |---|---|---|---|
+        | `abyss_shadows` | `custom_run_time_friday` | 19:00 | (4,) 周五 |
+        | `abyss_shadows` | `custom_run_time_saturday` | 19:00 | (5,) 周六 |
+        | `abyss_shadows` | `custom_run_time_sunday` | 19:00 | (6,) 周日 |
+        | `demon_retreat` | `custom_run_time` | 10:00 | 全周 |
+        | `hunt` | `kirin_time` | 19:00 | 全周 |
+        | `hunt` | `netherworld_time` | 19:00 | 全周 |
+        | `memory_scrolls` | `next_exploration_time` | 07:00 | 全周 |
+        | `ryou_toppa` | `next_ryoutoppa_time` | 07:00 | 全周 |
+
+        ★ 为什么 AbyssShadows 要带 days：它的 `meta.py` 已声明
+          `window=AvailabilityWindow(True, 19:00, 20:00, days=(4,5,6))`
+          —— 即"周五六日"，所以三段分别落在对应那天。
+
+        ## ⚠ 有读点的 5 个字段**不动**（它们不是"偏好时刻"）
+
+        `before_end`（结束前偏移）· `time_of_mystery`（`00:00` = 结束任务）·
+        `run_time_1/2`（主程序**反向写回**）· `sleep_end`（晚安唤醒时刻）
+        ⇒ ★ 其所在任务按用户裁定**标记为废弃**（见 `TaskSpec.deprecated`）。
+
+        ## ★ 窗口的形状（我的取舍，理由在下面）
+
+        * `start` = **老值**（保留用户设过的时刻）
+        * `end` = **23:59** —— ★ 为什么不用"老值 + 30 分钟"：
+          老字段的语义是"**从这时起可以跑**"，给一个**宽**窗口才不会
+          把合法时刻挡掉（`meta.py` 里就有过"窗口写太窄导致合法时刻被推走"的教训）。
+        * `days` = 见上表（只有 AbyssShadows 需要）
+        * `enabled=True` ⇒ ★ **真正生效**（空 `windows` 列表 = 不限时段，
+          不设 `enabled` 就没有意义）
+
+        ## 幂等
+
+        ★ 判据 = "**还存不存在老键**"；且**只在 `windows` 为空时**才写
+          （不覆盖用户已配的窗口）。
+
+        :return: 是否搬了至少一个
+        """
+        #: (任务 key, 老字段, window id, days)
+        #
+        # ★★★ 为什么 `hunt` / `ryou_toppa` **不在**这张表里（实测踩过）★★★
+        #
+        # 这两个任务的 **`meta.py` 已经声明了权威窗口** ——
+        # `Function.window` 的优先级是 **配置 > meta**，所以往配置里塞窗口会
+        # **永久压住 meta 的声明**：
+        #
+        # | 任务 | meta 声明 | 若往配置塞窗口的后果 |
+        # |---|---|---|
+        # | `Hunt` | ★ **2 段**（周一~四 06:00-23:00 + 周五~日 17:00-23:00）| 变成 4 段 ⇒ `len(Function.windows) == 2` 的契约被破坏 |
+        # | `RyouToppa` | ★ **全天**（用户裁定 A: "寮突破 window 设置混乱、不生效而且不再开放时间段" ⇒ 跟 meta 全天）| 每天只剩我塞的那几小时能跑 |
+        #
+        # ★ 这两个契约都有**回归测试**盯着：
+        #   `tests/module/config/test_multi_segment_window.py`（"必须 2 段"）
+        #   `tests/module/config/test_multi_window_storage.py::test_ryou_toppa_has_no_config_window`
+        #   `tests/module/config/test_window_single_source.py::TestRyouToppaIsFullDay`
+        # ⇒ ★ **不动它们**（它们本来就有正确的窗口；偏好时刻字段是死字段，
+        #   删掉不会丢任何行为）。
+        _MAP = (
+            ('abyss_shadows', 'custom_run_time_friday', 'mom_fri', '4'),
+            ('abyss_shadows', 'custom_run_time_saturday', 'mom_sat', '5'),
+            ('abyss_shadows', 'custom_run_time_sunday', 'mom_sun', '6'),
+            ('demon_retreat', 'custom_run_time', 'mom_custom', ''),
+            ('memory_scrolls', 'next_exploration_time', 'mom_next', ''),
+        )
+        _SKIP = ('scheduler',)
+        moved = []
+
+        raw = None
+        raw_path = None
+        try:
+            raw_path = Path.cwd() / 'config' / f'{self.config_name}.json'
+            if raw_path.exists():
+                with open(raw_path, 'r', encoding='utf-8') as f:
+                    raw = json.load(f)
+        except Exception as exc:
+            logger.warning(f'片4 迁移: 读不到原始配置'
+                           f'（{type(exc).__name__}: {exc}）—— 跳过')
+            return False
+        if not isinstance(raw, dict):
+            return False
+
+        # ★ 按任务聚合（一个任务可能有多个老字段 -> 多个窗口）
+        want = {}
+        for key, old, wid, days in _MAP:
+            node = raw.get(key)
+            if not isinstance(node, dict):
+                continue
+            if node.get('scheduler', {}).get('windows'):
+                continue            # ★ 用户已配窗口 -> 不覆盖
+            # ★★ 找老键 —— 顺序很关键（实测踩过坑）★★
+            #
+            # ⚠ `scheduler` 子节点里**也有同名键**（如 `kirin_time`），
+            #   它是 `Scheduler` 自己的字段（类型 `Time`，加载后是 `datetime.time`
+            #   **对象**而非字符串）。我第一版"先遍历子节点"就命中了它 ⇒
+            #   `isinstance(tm, str)` 失败 ⇒ **整条记录被跳过**，
+            #   而窗口却是别处补的默认值 ⇒ 表现成"搬了但值是默认的"。
+            # ⇒ 所以: **① 先看根上（这才是配置字段所在）② 子节点里只认字符串**。
+            holder = None
+            sub_key = None
+            if old in node and not isinstance(node[old], dict):
+                holder, sub_key = node, None
+            if holder is None:
+                for sk, sv in node.items():
+                    if sk in _SKIP or not isinstance(sv, dict):
+                        continue
+                    if isinstance(sv.get(old), str):
+                        holder, sub_key = sv, sk
+                        break
+            if holder is None:
+                continue
+            tm = holder.get(old)
+            if not isinstance(tm, str) or not re.match(r'^\d{1,2}:\d{2}(:\d{2})?$', tm.strip()):
+                continue
+            parts = (tm.strip().split(':') + ['00', '00'])[:3]
+            win = {
+                'id': wid,
+                'enabled': True,
+                'period': 'daily',
+                'start': f'{int(parts[0]):02d}:{int(parts[1]):02d}:{int(parts[2]):02d}',
+                'end': '23:59:00',
+                'days': days,
+                'days_of_month': '',
+            }
+            want.setdefault(key, {'sub': sub_key, 'wins': [], 'olds': []})
+            want[key]['wins'].append(win)
+            want[key]['olds'].append((sub_key, old))
+
+        # ★★★ 必须【同时改内存模型】—— 这是本会话踩到的关键坑 ★★★
+        #
+        # ## 为什么只改磁盘**不够**（实测）
+        #
+        # `Config.__init__` 的顺序是:
+        # ```
+        # L596  self.migrate_moment_fields_to_windows_once()   ← 本方法
+        # L654  self.save()                                    ← ★ 用【内存模型】写盘
+        # ```
+        # ★ 那个内存模型是**加载时**建的（`windows` 还是 `[]`）⇒
+        #   `self.save()` = `write_json(model_dump())` ⇒
+        #   ★ **把本方法刚写进磁盘的窗口覆盖掉了**。
+        # 实测现象: 老键**确实被删了**（磁盘被重写成"没有老键"），
+        #   但 `windows` **仍是 `[]`** ⇒ "删了但没搬"。
+        #
+        # ★ 对比: 片 1 / 片 2 的迁移能成功，是因为它们走 `self.model.deep_set(...)`
+        #   **改了内存模型**，所以最后那次 `save()` 写出的就是新值。
+        # ⇒ 所以本方法也必须改模型。**用真正的 `TaskWindow` 对象**,
+        #   让 pydantic 把 `'19:00:00'` 字符串转成 `Time`（别塞裸 dict,
+        #   那样类型不对, 下游 `AvailabilityWindow` 会读不到）。
+        try:
+            from tasks.Component.config_scheduler import TaskWindow
+        except Exception:  # pragma: no cover - 只防御
+            TaskWindow = None
+
+        for key, info in want.items():
+            try:
+                sub_key = info['sub']
+                # ① 改**内存模型**（这样最后的 `save()` 不会覆盖）
+                if TaskWindow is not None:
+                    wins = [TaskWindow(**w) for w in info['wins']]
+                    self.model.deep_set(self.model,
+                                        keys=f'{key}.scheduler.windows',
+                                        value=wins)
+                # ② 改**磁盘原文**（在 `save()` 之前保持一致, 也让删键确实落盘）
+                raw[key].setdefault('scheduler', {})['windows'] = info['wins']
+                for sk, old in info['olds']:
+                    if sk is None:
+                        raw[key].pop(old, None)
+                    else:
+                        raw[key][sk].pop(old, None)
+                moved.append(f'{key}: {len(info["wins"])} 个窗口 '
+                             f'(start={[w["start"] for w in info["wins"]]})')
+            except Exception as exc:
+                logger.warning(f'片4 迁移: {key} 搬运失败'
+                               f'（{type(exc).__name__}: {exc}）—— 保持原样')
+
+        if not moved:
+            return False
+        try:
+            if raw_path is not None:
+                raw_path.write_text(
+                    json.dumps(raw, ensure_ascii=False, indent=2),
+                    encoding='utf-8')
+            # ③ ★ 同步落盘模型（避免后续 `save()` 或异常退出造成不一致）
+            self.save()
+        except Exception as exc:
+            logger.warning(f'片4 迁移: 保存失败（{type(exc).__name__}: {exc}）')
+            return False
+        logger.info(f'片4: 已把 {len(moved)} 个任务的「偏好时刻」搬成 '
+                    f'`scheduler.windows`: {moved}')
+        # ★ 磁盘已改 -> 让内存模型重读（下次 `config_cache` 会拿到新值）
+        return True
+
     def migrate_rest_entries_once(self) -> bool:
         """把 `run_list` 里旧的 `kind='rest'` 条目改成 `Rest` **任务条目**。
 
@@ -1090,7 +1701,55 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
           `next_run` 落在未来是**正确**的（明天 17:00 才开放）
           —— 那些**绝不能**动（实测: 修完后 `DemonEncounter` 仍是明天 17:00 ✓）。
         ⚠ 幂等: 修正后 `next_run == now`, 不再是"未来" -> 第二次跑无改动。
+        ⚠⚠ **那个幂等假设【不成立】**（2026-10-11 实测修掉）——
+          见下面的 `_stale_fix_done` 说明。
+
+        ## ★★★ 2026-10-11 修："没票还一直重复个人突破"的**真根因** ★★★
+
+        ### ★★ 用户报的现象 ★★
+
+        > "为什么现在**突破券用完了，但是调度器还让它一直重复个人突破任务**。
+        >  需要修复这个调度器 bug"
+
+        ### 实测日志（40 秒一轮，永不停）
+
+        ```
+        21:19:27  Scheduler: Start task `RealmRaid`
+        21:20:00  WARNING | Execute raid failed, no ticket      ← 没票
+        21:20:07  条目运行计数: …RealmRaid -> 已运行 4 次
+        21:20:07  config.py:1723 | RealmRaid: 21:24:28 -> 现在   ← ★ 被拉回现在
+        21:20:07  Scheduler: Start task `RealmRaid`             ← ★ 立刻又跑
+        21:20:40  Execute raid failed, no ticket
+        21:20:47  config.py:1723 | RealmRaid: 21:25:05 -> 现在
+        21:20:47  Scheduler: Start task `RealmRaid`
+        ```
+
+        ### 根因：这个"修坏值"在**每次重载配置时**都把未来排期抹掉
+
+        ★ `Config.__init__` 里调它（`config.py:607`），而配置**每次任务结束都会重载**
+          （`script.py` 靠 `should_reload()` + `Config` 重载来读新状态）。
+        ★ 于是：任务跑完 -> `set_next_run` 给了**未来**值（21:24:28）
+          -> 下一轮 `Config` 重载 -> ★ **本函数把它拉回"现在"**
+          -> `get_next()` 立刻又选它 -> **无限循环**。
+        ★ 而那份 docstring 说的"幂等"**只对"坏值只出现一次"成立** ——
+          可这里**每次都产生一个新的未来值**（因为任务真的在跑），
+          所以"第二次无改动"**永远不会发生**。
+
+        ### 修法：给它一个**一次性**闸门
+
+        ★ 它本来就是"**一次性**修正已落盘的坏值"（名字里就是 `_once`）。
+        ★ 用**进程级**的类变量做闸门 —— 每个进程只修一次，
+          之后**再也不碰** `next_run`
+          ⇒ 任务排的未来值**能保住** ⇒ 不再 40 秒一轮。
         """
+        # ★★★ 一次性闸门（进程级）★★★
+        #
+        # ⚠ 为什么用类变量而不是实例变量：`Config` 对象会被**反复重建**
+        #   （每次重载一个新实例），实例变量起不到"只跑一次"的作用。
+        # ⚠ 为什么进程级就够：坏值是"上一次进程留下的"，
+        #   本进程第一次加载时修掉即可；本进程后续排的未来值**都是对的**。
+        if Config._stale_fix_done:
+            return False
         try:
             from module.config import task_catalog as TC
 
@@ -1123,8 +1782,11 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 changed.append((name, str(nr)))
 
             if not changed:
+                # ★ 即使"这次没改动"也要**置位闸门** —— 它本来就该只修一次
+                Config._stale_fix_done = True
                 return False
             self.save()
+            Config._stale_fix_done = True
             logger.info(f'已修正 {len(changed)} 个"全天窗口却被排到未来"的 '
                         f'next_run（见 fix_stale_next_run_once）')
             for n, old in changed:
@@ -1198,7 +1860,71 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             # ⚠ 行为安全性: 这个分支只在 `next_run < now` **之后**才可能命中,
             #   所以**不会**让"刚跑完、还没到点"的任务提前重跑;
             #   它只影响那些"被错误推远"的任务。
-            if isinstance(func.next_run, datetime) \
+            # ★★★ 2026-10-12 用户裁定「甲 / A」：**临时任务【退出时间排期】** ★★★
+            #
+            # > "**临时任务没有什么全天窗口之分**！只看设置的**次数和门票**这两个字段。"
+            # > "`next_run` 除了确实是**时间类**的排期，其他的都用**次数和门票**来约束
+            # >  完成与否，**这本来就是临时任务，怎么能用时间来排期**。"
+            # > "对于临时任务，**只能通过执行顺序调度**。"
+            # > "**不允许被执行顺序以外的机制调动**"
+            #
+            # ## ★★ 为什么必须在这里分流（这是"记录驱动调度"的唯一阻塞点）
+            #
+            # ★ 原实现：**所有**任务都先过 `next_run` 门 ⇒ 候选由**时间**决定，
+            #   队列顺序只在 `_order_by_queue()`（L1980）**之后**起作用
+            #   ⇒ ★ **"顺序"不是候选产生的依据** ⇒ ★ **记录也没驱动调度**。
+            # ★ 这正是用户 [10-12 14:45:53] 指出的：
+            #   "**这说明目前的调度实现和记录没有关系啊！和前边的设计要求不一样**"
+            #
+            # ## ★ 改法（一句话）
+            #
+            # ★ `period == 'none'`（临时任务）⇒ ★ **无条件进 pending**
+            #   ⇒ 后面由
+            #     * `_order_by_queue()`（按**队列顺序**排）
+            #     * `_skip_by_completed()`（**记录**：本轮已完成 ⇒ 剔到 waiting）
+            #   决定它**跑还是不跑** —— ★ 这就是"**顺序 + 记录**驱动"。
+            #
+            # ## ⚠ 边界（已验证，不会误伤）
+            #
+            # * ★ **周期任务**（`period != none`）★ **完全不动** —— 仍走
+            #   `next_run` + `in_window()`（时间排期是它们的正确语义）。
+            # * ★ **临时任务不会"消失"** —— 已完成的会被 `_skip_by_completed()`
+            #   `append` 到 `waiting_task`（★ 用户裁定："**临时任务在队列里就按
+            #   具体顺序进 waiting**"）⇒ 界面「等待中」仍能看到它们，按队列顺序排。
+            # * ★ 临时任务**不看** `in_window()` —— 它没有全天窗口之分
+            #   （★ 用户："有 period 才有窗口；道馆那种是**还没配置好**"）。
+            _is_temp = False
+            try:
+                _p = self.task_period(func.command)
+                _is_temp = (not _p) or str(_p).lower() == 'none'
+            except Exception:
+                _is_temp = False
+            if _is_temp:
+                # ★★★ 2026-10-12（★ 已知最优状态）★★★
+                #
+                # ★ 临时任务**不受 `next_run` 影响** ⇒ 直接进候选。
+                # ★ 并**补上 `entry_id`**（★ 条目身份：`@<任务名小写>`）——
+                #   ★ 否则记录/界面按条目追踪时会缺身份。
+                #
+                # ⚠ **已知偏差**（★ 台账 S3b，待修）：
+                #   ★ 这样写会**绕过后文的 `_order_by_queue()`** ⇒
+                #   ★ **不在队列的临时任务也会留在 `pending_task`**
+                #     （★ 违反 §1.1-R1"队列是唯一依据"）。
+                #   ⚠ 我试过两种修法，**都让测试更差**：
+                #     * ★ 后置补 `entry_id` ⇒ 队列权威测试回归（41 failed）
+                #     * ★ 让流程落到末尾 append ⇒ 顺序测试红（40 failed）
+                #   ⇒ ★ 暂保留此写法（★ 35 failed / 1696 passed，**优于基线**），
+                #     ★ S3b 单独排期修（★ 需要同时处理队列过滤与顺序）。
+                pending_task.append(func)
+                try:
+                    if not getattr(func, 'entry_id', None):
+                        _c = str(getattr(func, 'command', '') or '').lower()
+                        if _c:
+                            func.entry_id = f'@{_c}'
+                except Exception:
+                    pass
+                continue
+            elif isinstance(func.next_run, datetime) \
                     and func.next_run < self.scheduler_update_dt \
                     and func.in_window():
                 pending_task.append(func)
@@ -1334,8 +2060,149 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                         entry_id=getattr(f, 'entry_id', None)):
                     waiting_task.append(f)
                     continue
+                # ★★★ 第三道门（片 7 / 问题 C）: **次数用完 -> 本轮已完成** ★★★
+                #
+                # ## ★★ 用户裁定 ★★
+                #
+                # > "C 没票时，**本行任务跳过，执行下一个任务**。"
+                # > "C，如果在添加到任务顺序页以后，就创建一个**磁盘记忆**呢？
+                # >  这个应该就是你说的**乙**吧，**记录数据，用完后表示已完成本行任务**。"
+                #
+                # ## 为什么必须有这道门（实测根因）
+                #
+                # 调度原来只有**两道门**:
+                #   ① `next_run < now` 且 `in_window()`   -> pending
+                #   ② `_skip_by_period()`（"本周期已完成"）-> 剔出
+                # ★ **门② 对 `period='none'` 永远返回 False**（见 `_skip_by_period`）
+                #   ⇒ ★ 临时任务**没有任何东西让它退出** ⇒
+                #     它每次跑完 `next_run` 又被排到"现在"（`next_run_after` 对
+                #     全天窗口返回 `now`）⇒ ★ **被反复选中 —— 热循环**。
+                #
+                # ★ 实测（恋鸟树 / RealmRaid）:
+                # ```
+                # next_run_after('RealmRaid') = now + 0.0 秒
+                # 没票 -> check_ticket False -> break -> set_next_run(success=True)
+                # -> next_run=now -> 立刻又被选中  (不到一秒一轮)
+                # ```
+                #
+                # ## 判据：条目【磁盘】运行次数 >= 该条目的目标次数
+                #
+                # ★ "磁盘记忆"用**已有的** `task_state.get_entry_runs()` ——
+                #   它在任务成功后 `+1`（`script.py`），**按 `entry_id`** 记
+                #   （"**身份，不是位置**"）⇒ 同一任务的多条条目各记各的。
+                # ★ 目标次数按 `BaseTask.effective_target()` 的三级回落取:
+                #   ① 条目级 `RunEntry.target`
+                #   ② 任务级 `scheduler.target`
+                #   ③ 出厂默认 `meta.count_default`
+                # ★ ⚠ 只对 **`period='none'`（临时任务）** 生效 ——
+                #   周期任务仍用门② 的"本周期完成记忆"（行为**不变**）。
+                # ★ 恢复方式: 循环模式下 `reset_entry_runs()` 清 0；
+                #   或用户从队列移除再加回（新 `entry_id`）。
+                # ★★★ 2026-10-12 用户裁定「甲」：**调度层不再判次数** ★★★
+                #
+                # > "既然你用 `runs`，那就把他**取代 `current_count`**，
+                # >  这两个**不是一个东西吗**。" -> "**1 甲**"
+                #
+                # ## ★★ 为什么必须停用（否则和任务自己打架）★★
+                #
+                # ★ 统一之后 `runs` = **本条已打几场**（不再是"被派发几次"）。
+                # ★ "次数用完没有"由**任务自己**判 —— `e` 核查结论：
+                #   ★ **11/11 个任务都判了** `current_count >= limit_count`：
+                #     * 打满 `limit_count`（= `effective_target()`）后**自己 break**
+                #     * 另有 `limit_time` / `expected_minutes` **时间兜底**
+                # ⇒ ★ 若这里**再**判 `runs >= target`：
+                #   * `runs` 到 target 时任务**本来就已经停了** ⇒ **死代码**；
+                #   * ★ 更糟：万一它先成立（target 被改小等），
+                #     会在任务**还没跑完**时把它剔出 pending ⇒ **行为错乱**。
+                #
+                # ⚠ **不删 `_skip_by_count` 方法本身** —— 保留便于排障 /
+                #   将来要把"派发次数"重新作为判据时复用。★ 本轮只**不调用**。
+                #
+                # ★ 旧逻辑（保留备查）：条目级 `RunEntry.target` ->
+                #   任务级 `scheduler.target` -> 出厂 `meta.count_default`
+                # if self._skip_by_count(tk, tv,
+                #                        entry_id=getattr(f, 'entry_id', None)):
+                #     waiting_task.append(f)
+                #     continue
+                # ★★★ 片 12（用户裁定 丙）: **本轮已完成 -> 剔出 pending** ★★★
+                #
+                # ## ★★ 这修的是"券用完了还一直重复个人突破"的真根因 ★★
+                #
+                # ★ 临时任务（`period=none`）**没有**周期完成记忆
+                #   （`_skip_by_period` 对它永远返回 False）
+                #   ⇒ ★ 跑完之后**没有任何东西让它退出** ⇒ 被反复派发
+                #   （实测 RealmRaid 每 40 秒一轮，永不停）。
+                # ★ `completed` 标记就是那个"退出条件"：
+                #   * 跑满 `target` ⇒ 调度层自动标（`script.py` 收尾）
+                #   * 任务提前做完（如 RealmRaid 券打完）⇒ 任务自己
+                #     `mark_entry_completed()` 上报
+                # ★ 新一轮（队列循环）由 `clear_entry_completed()` 清空 ⇒ 可再跑。
+                # ⚠ 只对 `period='none'` 生效（周期任务仍走门② 的周期记忆）。
+                if self._skip_by_completed(tk, tv,
+                                           entry_id=getattr(f, 'entry_id', None)):
+                    # ★★★ 2026-10-12 用户报的 bug：**"个人突破被标成【等待到点】"** ★★★
+                    #
+                    # > "还发现了**个人突破被标记为了【等待到点】**，也就是
+                    # >  **无法被再次运行了**，这个问题我之前有反应过"
+                    #
+                    # ## ★ 根因（语义错位，不是逻辑错）
+                    #
+                    # ★ "本轮已完成"原来和"未到开放时间"**都塞进 `waiting_task`**
+                    #   ⇒ ★ 前端把 `slot != 'pending'` 统统显示为
+                    #     **"未到开放时间"**（`queue_panel.dart:268`）
+                    #   ⇒ ★ **"本轮已完成"被显示成"未到开放时间"**（等待到点）。
+                    #
+                    # ## ★ 修法：**分成三个桶**
+                    #
+                    # | 桶 | 含义 | 前端显示 |
+                    # |---|---|---|
+                    # | `pending` | 现在能跑 | 待执行 |
+                    # | ★ **`done`** | ★ **本轮已完成**（次数用满/门票耗尽）| ★ **已完成（本轮）** |
+                    # | `waiting` | ★ **未到开放时间**（真·时间原因）| 未到开放时间 |
+                    #
+                    # ★ `done` **仍留在 `pending_task` 里**（只是被标了 slot）
+                    #   —— ★ 这样前端能按**队列顺序**把它排出来
+                    #     （★ 用户裁定："临时任务在队列里就按具体顺序进 waiting"）。
+                    try:
+                        f.slot = 'done'
+                    except Exception:
+                        pass
+                    kept.append(f)
+                    continue
                 kept.append(f)
             pending_task = kept
+            # ★★★ 片 8 / A: **播放头（立即生效）** ★★★
+            #
+            # > 用户: "语义**不是顺序排到最前边，而是从这个任务开始跑**，
+            # >  如果是顺序和循环，那么跑完这个任务就会**接着跑他下边的任务**"
+            #
+            # ★ 由队列行的「▶ 播放」写入（`force_next_entry_id`）。
+            # ★ 这里把**该条目**提到 pending **最前** ⇒ **下一个一定是它**。
+            # ★ **用一次就清空** —— 否则会"每次都插队"，那就不是"播放头"
+            #   而是"永久最优先"了。
+            # ★ B 的"跑完接着往下"**不需要额外状态**：
+            #   临时任务的顺序权威是队列顺序，而跑过的条目会因
+            #   **次数用完**被 `_skip_by_count` 剔出 ⇒ 自然轮到下一条。
+            try:
+                _force = str(getattr(self.model, 'force_next_entry_id', '') or '')
+                if _force:
+                    _hit = [f for f in pending_task
+                            if str(getattr(f, 'entry_id', '') or '') == _force]
+                    if _hit:
+                        _rest = [f for f in pending_task
+                                 if str(getattr(f, 'entry_id', '') or '') != _force]
+                        pending_task = _hit + _rest
+                        logger.info(f'播放头: 把条目 {_force} 提到最前 '
+                                    f'（{_hit[0].command}）')
+                    else:
+                        logger.info(f'播放头: 条目 {_force} 当前不可跑 '
+                                    f'（不在 pending）—— 已清除请求')
+                    # ★ 无论命中与否都清空（避免残留导致一直插队）
+                    self.model.deep_set(self.model,
+                                        keys='force_next_entry_id', value='')
+            except Exception as exc:
+                logger.warning(f'处理播放头失败({type(exc).__name__}: {exc}), 忽略')
+
             # ★ 「运行一次」: 手动请求的任务提到**最前**（按点击顺序）
             #
             # 这一条**保留**: 它是用户的**显式即时指令**（"现在就给我跑一次"）,
@@ -1349,8 +2216,34 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                         logger.info(f'{self.model.running_task} is running')
                         break
         if waiting_task:
-            # waiting_task = f.apply(waiting_task)
-            waiting_task = sorted(waiting_task, key=operator.attrgetter("next_run"))
+            # ★★★ 2026-10-12 用户裁定：**waiting 也按【队列顺序】排** ★★★
+            #
+            # > "**临时任务在队列里就按具体顺序进 waiting**"
+            #
+            # ## ★ 为什么原来不对
+            #
+            # ★ 原来按 `next_run` 排 —— 而**临时任务**（`period=none`）的
+            #   `next_run` 对全天窗口恒等于 `now` ⇒ ★ **谁先谁后是随机的**
+            #   ⇒ 界面「等待中」的次序与**队列顺序无关**。
+            #
+            # ## 改法
+            #
+            # ★ 用 `_order_by_queue()` 把 waiting 也按**队列次序**排好
+            #   （它顺带写 `entry_id`、剔除队列外 —— 与 pending 同一套判据）。
+            # ★ `_order_by_queue` 内部有 try/except，失败时**原样返回**
+            #   ⇒ 不会把 waiting 清空（保守）。
+            try:
+                _w_ordered = self._order_by_queue(list(waiting_task))
+                if _w_ordered:
+                    waiting_task = _w_ordered
+                else:
+                    waiting_task = sorted(
+                        waiting_task, key=operator.attrgetter("next_run"))
+            except Exception as exc:
+                logger.warning(f'waiting 按队列排序失败'
+                               f'({type(exc).__name__}: {exc}), 退回 next_run 排序')
+                waiting_task = sorted(
+                    waiting_task, key=operator.attrgetter("next_run"))
         if error:
             pending_task = error + pending_task
 
@@ -2139,6 +3032,145 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
     # 休息的默认分钟数 —— 任务节点的 `target` 为 0 时用它
     REST_DEFAULT_MINUTES = 30
 
+    def _loop_candidates(self, now=None) -> list:
+        """★ **共享判据**: "这一轮该跑"的任务 -> `[(任务名, key), ...]`。
+
+        从 `reset_loop_next_run()` 里抽出来，供**两种播放模式**共用：
+
+        | 模式 | 怎么用这批候选 |
+        |---|---|
+        | **循环**（`LOOP`）| ★ **全部**拉回现在（= 从头再来一轮）|
+        | ★ **乱序**（`SHUFFLE`）| ★ **随机挑一个**拉回现在 |
+
+        ## 判据（★ 用户给的两条，其余一律不动）
+
+        | 任务 | 算候选? | 判据 |
+        |---|---|---|
+        | ★ **临时任务**（`period=none`）| ✅ | 没有"本周期"概念 -> 每轮都该跑 |
+        | ★ **周期任务，本周期还没做过** | ✅ | `is_completed_in_period()` == False |
+        | 周期任务，本周期**已做** | ❌ | ★ 这正是"没有遗漏"的关键 |
+        | 未启用 | ❌ | `_task_enabled()` |
+        | 不在执行队列 | ❌ | 队列是唯一调度依据（§2.2）|
+        | 有窗口且**当前不在窗口内** | ❌ | 重排了也跑不了（会立刻又入 waiting）|
+
+        :return: `[(任务名, 配置 key), ...]`
+        """
+        from datetime import datetime
+        from module.config import task_catalog as TC
+        now = now or datetime.now()
+        out = []
+        try:
+            queued = set(self.queued_commands() or [])
+        except Exception:
+            return out
+        for name in _all_task_names():
+            if name not in queued:
+                continue                      # ★ 队列是唯一调度依据
+            if not self._task_enabled(name):
+                continue                      # ★ 未启用 -> 不参与
+            key = convert_to_underscore(name)
+            sch = getattr(getattr(self.model, key, None), 'scheduler', None)
+            if sch is None:
+                continue
+
+            period = self.task_period(name)
+            if period and str(period).lower() != 'none':
+                # ★ 周期任务: 只在本周期**还没做过**时算候选
+                from module.config.task_state import is_completed_in_period
+                reset_at = getattr(sch, 'reset_at', None)
+                try:
+                    if is_completed_in_period(self.config_name, key,
+                                              str(period), reset_at):
+                        continue          # 本周期已做 -> ★ 不算
+                except Exception:
+                    continue              # 判不了 -> 保守不算
+
+            # ★ 有窗口且当前不在窗口内 -> 重排没用（会立刻入 waiting）
+            try:
+                spec = TC.get_spec(name)
+                if spec is not None:
+                    wins = tuple(spec.windows_effective or ())
+                    if wins and not any(w.contains(now) for w in wins):
+                        continue
+            except Exception:
+                pass
+            # ★★★ 2026-10-12 用户裁定「F / G / I」：**候选必须排除"本轮已完成"** ★★★
+            #
+            # > "**循环第二次时结界突破没有触发**"（用户报的 bug）
+            # > "**临时任务在队列里就按具体顺序进 waiting**"
+            # > "**把运行过的序号剔除掉**，确保不会被重复随机到"
+            #
+            # ## ★ 原来漏了什么
+            #
+            # ★ 原候选判据里**没有**看 `completed` ⇒
+            #   * ★ **循环**（`reset_loop_next_run`）：会把"本轮已完成"的条目
+            #     也一起拉回现在 ⇒ ★ 重跑它（★ 违背"本轮已完成不再派发"）
+            #   * ★ **乱序**（`shuffle_next_run`）：可能**重复随机到**跑过的
+            #   * ★ **新一轮判定**：没有明确的"全部做完了"的判据
+            #
+            # ## ★ 现在的判据（一条判据同时修好 F/G/I）
+            #
+            # ★ 对【临时任务】：★ `completed` 为真 ⇒ **不算候选**
+            #   （★ `get_entry_completed()` 内部按**轮次号**自动过期 ⇒
+            #     ★ 进入新一轮后它自然又算候选 —— 这就是"能不能再跑"的判据）
+            # ★ 对【周期任务】：★ 沿用 `is_completed_in_period()`（上方已判）
+            #
+            # ⇒ ★ 于是：
+            #   * ★ 循环：只把"还没做完"的拉回现在（已完成的**不动**）
+            #   * ★ 乱序：只在"还没做完"里随机（★ 不会重复随机到跑过的）
+            #   * ★ 新一轮：★ 由 `completed` 的**轮次过期**体现
+            if str(period or '').lower() in ('none', ''):
+                try:
+                    from module.config.task_state import get_entry_completed
+                    # ★ 该任务在队列里的**所有条目**都已完成 ⇒ 不算候选
+                    _queue = self.build_queue()
+                    _eids = [getattr(e, 'entry_id', '') or ''
+                             for e in _queue
+                             if getattr(e, 'task', None) == name]
+                    if _eids and all(get_entry_completed(self.config_name, x)
+                                     for x in _eids if x):
+                        continue
+                except Exception:
+                    pass          # 判不了 -> 保守算候选（不误杀）
+            out.append((name, key))
+        return out
+
+    def shuffle_next_run(self, now=None) -> str:
+        """★★ 片 5 (P2): **乱序** —— 随机挑一个可跑的，把它的 `next_run` 拉回现在 ★★
+
+        ## ★★ 用户裁定（原话）★★
+
+        > "**P2 乱序就是随机挑一个可跑的**。"
+
+        ★ 注意：**不是**"打乱整个队列"（那会改变用户的编排顺序）；
+          而是**随机挑一个**当前可跑的任务**立刻跑**。
+
+        ## 实现
+
+        1. 用 `_loop_candidates()` 拿到"这一轮该跑"的任务
+        2. `random.choice` 挑一个（★ 用全局 `random`，与项目其它地方一致）
+        3. 把它的 `next_run` 拉回 `now` 并保存
+
+        :return: 被挑中的任务名；`''` = 没有可跑的
+        """
+        import random as _random
+        from datetime import datetime
+        now = now or datetime.now()
+        cands = self._loop_candidates(now)
+        if not cands:
+            return ''
+        name, key = _random.choice(cands)
+        try:
+            self.model.deep_set(
+                self.model, keys=f'{key}.scheduler.next_run', value=now)
+            self.save()
+        except Exception as exc:
+            logger.warning(f'乱序: 重排 {name} 失败'
+                           f'（{type(exc).__name__}: {exc}）')
+            return ''
+        logger.info(f'队列乱序: 随机挑中 {name}（候选 {len(cands)} 个）-> 立刻跑')
+        return name
+
     def reset_loop_next_run(self, now=None) -> list:
         """★★ P-3: 队列循环 —— 把"该再来一轮"的任务 `next_run` 拉回现在 ★★
 
@@ -2190,39 +3222,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             return reset
 
         try:
-            for name in _all_task_names():
-                if name not in queued:
-                    continue                      # ★ 队列是唯一调度依据
-                if not self._task_enabled(name):
-                    continue                      # ★ 未启用 -> 不循环
-                key = convert_to_underscore(name)
-                sch = getattr(getattr(self.model, key, None), 'scheduler', None)
-                if sch is None:
-                    continue
-
-                period = self.task_period(name)
-                if period and str(period).lower() != 'none':
-                    # ★ 周期任务: 只在本周期**还没做过**时重排
-                    from module.config.task_state import is_completed_in_period
-                    reset_at = getattr(sch, 'reset_at', None)
-                    try:
-                        if is_completed_in_period(self.config_name, key,
-                                                  str(period),
-                                                  reset_at):
-                            continue          # 本周期已做 -> ★ 不重排
-                    except Exception:
-                        continue              # 判不了 -> 保守不重排
-
-                # ★ 有窗口且当前不在窗口内 -> 重排没用（会立刻入 waiting）
-                try:
-                    spec = TC.get_spec(name)
-                    if spec is not None:
-                        wins = tuple(spec.windows_effective or ())
-                        if wins and not any(w.contains(now) for w in wins):
-                            continue
-                except Exception:
-                    pass
-
+            for name, key in self._loop_candidates(now):
                 self.model.deep_set(
                     self.model, keys=f'{key}.scheduler.next_run', value=now)
                 reset.append(name)
@@ -2232,6 +3232,27 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                 logger.info(f'队列循环: 已把 {len(reset)} 个任务的 `next_run` '
                             f'拉回现在（临时任务 + 本周期未做的周期任务）: '
                             f'{sorted(reset)}')
+                # ★★★ 片 12（用户裁定 丙）: **新一轮 -> 清掉"本轮已完成"** ★★★
+                #
+                # ## ★★ 用户原话 ★★
+                #
+                # > "**C 好的，清零重来。**"
+                #
+                # ★ 循环模式跑到末尾 ⇒ **新一轮开始** ⇒
+                #   ★ 所有条目的 `completed` 与**真实计数(runs)** 一起清零
+                #   ⇒ 每条又能跑（重新探券 / 重新打满 target）。
+                # ⚠ 必须**同时清 runs**：若只清 completed 而 runs 还留着，
+                #   `_skip_by_count`（`runs >= target`）会立刻又把它们剔出
+                #   ⇒ ★ 表现为"循环第二轮啥也不跑"。
+                try:
+                    from module.config import task_state as _ts3
+                    _n1 = _ts3.reset_entry_runs(self.config_name)
+                    _n2 = _ts3.clear_entry_completed(self.config_name)
+                    logger.info(f'队列循环: 新一轮 -> 已清 {_n1} 个条目的计数、'
+                                f'{_n2} 个条目的"本轮已完成"标记')
+                except Exception as _exc3:
+                    logger.warning(f'清"本轮已完成"失败'
+                                   f'({type(_exc3).__name__}: {_exc3}), 忽略')
         except Exception as exc:
             logger.warning(f'队列循环重排失败({type(exc).__name__}: {exc}), '
                            f'保持原样')
@@ -2332,7 +3353,55 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         :return: 分钟数（>= 1）
         """
-        # ① 任务节点（权威）
+        # ★★★ 2026-10-12 用户裁定「D7.3」：**条目级次数优先** ★★★
+        #
+        # ## ★★ 用户原话
+        #
+        # > "**休息的次数设置是虚设**，设置的 **1**，但是实际上**休息 5 分钟**，
+        # >  请修复或者重构旧的休息代码逻辑和前端逻辑。"
+        #
+        # ## ★ 根因（解析顺序错了）
+        #
+        # ★ 原来顺序是：★ ① `rest.scheduler.target`（**任务级**，权威）
+        #   → ② 条目 `minutes` → ③ 默认。
+        # ★ ⇒ ★ 用户在**那一行**设的"1"（= 条目级次数 `target`）
+        #   ★ **根本没被读** ⇒ ★ 永远读到任务级的值（如 5）⇒ **虚设**。
+        #
+        # ## ★ 正确顺序（★ 就近者优先 —— 与"条目级次数"同一套原则）
+        #
+        # | # | 来源 | 说明 |
+        # |---|---|---|
+        # | **0** | ★★ **条目级 `target`** | ★ **用户在那一行设的值 = 最优先** |
+        # | 1 | 条目 `minutes` | 向后兼容（旧的裸条目）|
+        # | 2 | `rest.scheduler.target` | 任务级**默认值**（用户没在那行设过）|
+        # | 3 | `REST_DEFAULT_MINUTES` | 都没给 ⇒ 可见的默认 |
+        #
+        # ⚠ 前置：★ 先把"条目级 `target`"读出来（两路：对象 / dict）。
+        # ★★ 修正（★ 我上一次改漏了）★★
+        # ★ 我上次只加了"条目 `target` 优先" —— ★ 但 `_order_by_queue` 会把
+        #   `target` 覆盖成**任务级默认值**（`f.target = tgt if tgt>0 else None`），
+        #   ★ 所以运行时读到的 `blocker.target` 可能是 **0**
+        #   ⇒ ★ 必须**同时**读"条目 `minutes`"（★ 那是用户设的"休息 N 分钟"）。
+        # ★ 正确顺序：★ ① 条目 `target` → ② 条目 `minutes`
+        #   → ③ 任务级 `rest.scheduler.target`（默认值）
+        #   → ④ `REST_DEFAULT_MINUTES`。
+        _entry_target = 0
+        _entry_minutes = 0
+        try:
+            if isinstance(blocker, dict):
+                _entry_target = int(blocker.get('target', 0) or 0)
+                _entry_minutes = int(blocker.get('minutes', 0) or 0)
+            else:
+                _entry_target = int(getattr(blocker, 'target', 0) or 0)
+                _entry_minutes = int(getattr(blocker, 'minutes', 0) or 0)
+        except Exception:
+            pass
+        if _entry_target > 0:
+            return _entry_target
+        if _entry_minutes > 0:
+            return _entry_minutes
+
+        # ① 任务节点（**默认值** —— 用户没在那一行设过才用它）
         try:
             node = getattr(self.model, 'rest', None)
             sch = getattr(node, 'scheduler', None) if node is not None else None
@@ -2350,6 +3419,8 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         #   * 迁移时用的**裸 dict**（`{'kind': 'rest', 'minutes': 30}`）
         #     -> `['minutes']`
         # ★ 两条路都走通, 迁移与运行时就不会出现"读到 0"的静默差异。
+        # ★ 2026-10-12：★ 这一段已被上面的"条目 `minutes`"提前处理 ⇒
+        #   ★ 保留作为**双保险**（★ 两处读的是同一个值）。
         try:
             if isinstance(blocker, dict):
                 m = int(blocker.get('minutes', 0) or 0)
@@ -2727,6 +3798,298 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
                            f'({type(exc).__name__}: {exc}), 按未完成处理')
             return False
 
+    def _skip_by_count(self, task_key: str, task_value: dict,
+                       entry_id: str = None) -> bool:
+        """★ **第三道门（片 7 / 问题 C）**: 条目**次数用完** -> 视为"本轮已完成"。
+
+        ## ★★ 用户裁定（原话）★★
+
+        > "C 没票时，**本行任务跳过，执行下一个任务**。"
+        > "C，如果在**添加到任务顺序页以后，就创建一个磁盘记忆**呢？
+        >  这个应该就是你说的**乙**吧，**记录数据，用完后表示已完成本行任务**。"
+
+        ## 解决什么（实测根因）
+
+        ★ 调度原来只有两道门（`next_run` + `_skip_by_period`），
+          而 `_skip_by_period` 对 **`period='none'` 永远返回 False**
+          ⇒ 临时任务**没有"已完成"的概念** ⇒
+          跑完 `next_run` 又被排到"现在"（`next_run_after` 对全天窗口返回 `now`）
+          ⇒ ★ **被反复选中，热循环**（实测 RealmRaid 不到一秒一轮）。
+
+        ## 判据（只对 `period='none'` 生效）
+
+        ```
+        ★ 条目磁盘运行次数（`task_state.get_entry_runs`）
+          >=
+        ★ 该条目的目标次数（三级回落: 条目级 target > 任务级 scheduler.target
+                              > 出厂默认 meta.count_default）
+        ```
+
+        ★ **按 `entry_id`** 记（"**身份，不是位置**"）——
+          同一任务的多条条目各记各的。
+        ★ 目标次数为 `0` / 取不到 ⇒ **不算用完**（保守，不会让任务跑不了）。
+        ★ **周期任务不受影响**（它们仍走 `_skip_by_period` 的完成记忆）。
+
+        ## 怎么恢复
+
+        * ★ 循环模式（`when_task_queue_empty == 'loop'`）:
+          `reset_loop_rounds()` 会**同时**清条目计数（见 `reset_loop_next_run`）
+        * ★ 用户把条目**移除再加回** -> 新的 `entry_id` -> 计数从 0 开始
+        * ★ 用户改大该条目的**次数** -> 目标变大 -> 重新可跑
+
+        :return: True = 次数已用完（调用方应剔出 pending）
+        """
+        try:
+            if not isinstance(task_value, dict):
+                return False
+            scheduler = task_value.get('scheduler')
+            if not isinstance(scheduler, dict):
+                return False
+            period = scheduler.get('period')
+            period_str = getattr(period, 'value', period)
+            # ★ 只对"临时任务"生效（周期任务有 `_skip_by_period` 的完成记忆）
+            if period and str(period_str).lower() not in ('none', ''):
+                return False
+            if not entry_id:
+                return False            # 没有身份 -> 不敢判（保守）
+
+            # ---- 目标次数: ① 条目级 > ② 任务级 > ③ 出厂默认 ----
+            target = 0
+            try:
+                for e in (self.build_run_list().to_list() or []):
+                    if str(e.get('entry_id') or '') == str(entry_id):
+                        target = int(e.get('target') or 0)
+                        break
+            except Exception:
+                target = 0
+            if target <= 0:
+                try:
+                    target = int(scheduler.get('target') or 0)
+                except (TypeError, ValueError):
+                    target = 0
+            if target <= 0:
+                try:
+                    # ★ `task_key` 是**配置键**（下划线形式，如 `realm_raid`），
+                    #   而 `TC.get()` 要**任务名**（驼峰，如 `RealmRaid`）
+                    #   ⇒ 用项目既有的转换函数（`config.py` 顶部已 import `*`）
+                    from module.config import task_catalog as _TC
+                    nm = convert_to_underscore(task_key)
+                    meta = None
+                    for cand in (task_key, nm,
+                                 ''.join(p.capitalize()
+                                         for p in nm.split('_'))):
+                        meta = _TC.get(cand)
+                        if meta is not None:
+                            break
+                    target = int(getattr(meta, 'count_default', 0) or 0) \
+                        if meta is not None else 0
+                except Exception:
+                    target = 0
+            if target <= 0:
+                return False            # ★ 判不了 -> 保守放行
+
+            # ---- 磁盘运行次数 ----
+            from module.config.task_state import get_entry_runs
+            done = int(get_entry_runs(self.config_name, entry_id) or 0)
+            if done >= target:
+                # ★ 顺手把 `next_run` 推到未来, 免得它在 pending 里"看起来可跑"
+                #   （纯粹为界面一致性; 真正的剔除由本方法返回 True 完成）
+                try:
+                    self.model.deep_set(
+                        self.model,
+                        keys=f'{task_key}.scheduler.next_run',
+                        value=datetime.now() + timedelta(days=3650))
+                except Exception:
+                    pass
+                logger.info(f'条目次数用完: {task_key}/{entry_id} '
+                            f'({done}/{target}) -> 本轮已完成，跳过')
+                return True
+            return False
+        except Exception as exc:
+            logger.warning(f'_skip_by_count({task_key}) 异常 '
+                           f'({type(exc).__name__}: {exc}), 按未完成处理')
+            return False
+
+    def _skip_by_completed(self, task_key: str, task_value: dict,
+                           entry_id: str = None) -> bool:
+        """★ **本轮已完成**（用户裁定 丙）-> 剔出 pending。
+
+        ## ★★ 用户原话 ★★
+
+        > "两套计数不行，需要用让他**严格跑派发次数**，而不是自己用一套计数。"
+        > "`target` 是**目标次数**，再来个**真实计数**。"
+        > "**丙**"（调度层默认"跑满 target 才算完成"；个别任务可提前上报）
+
+        ## 它修的是什么（实测）
+
+        ★ 临时任务（`period=none`）**没有**周期完成记忆 ⇒ 跑完之后
+          **没有任何东西让它退出** ⇒ 被反复派发
+          （★ 实测 RealmRaid 每 40 秒一轮，永不停）。
+
+        ## 判据
+
+        ```
+        ★ task_state.__entries__[entry_id].completed == True  -> 剔出
+        ★ 只对 `period='none'`（临时任务）生效
+          （周期任务仍走 `_skip_by_period()` 的周期记忆，行为不变）
+        ★ 没有 entry_id -> 保守放行（不误杀）
+        ```
+
+        ## 怎么恢复
+
+        * ★ 队列循环到末尾 -> `clear_entry_completed()` 清空（新一轮）
+        * ★ 用户从队列移除再加回（新 `entry_id`）
+
+        :return: True = 本轮已完成（调用方应剔出 pending）
+        """
+        try:
+            if not isinstance(task_value, dict):
+                return False
+            scheduler = task_value.get('scheduler')
+            if not isinstance(scheduler, dict):
+                return False
+            period = scheduler.get('period')
+            period_str = getattr(period, 'value', period)
+            # ★ 只对"临时任务"生效（周期任务有 `_skip_by_period` 的记忆）
+            if period and str(period_str).lower() not in ('none', ''):
+                return False
+            if not entry_id:
+                return False        # 没有身份 -> 不误杀
+
+            from module.config.task_state import get_entry_completed
+            if get_entry_completed(self.config_name, entry_id):
+                logger.info(f'条目 {entry_id}（{task_key}）本轮已完成 -> 跳过')
+                return True
+            return False
+        except Exception as exc:
+            logger.warning(f'_skip_by_completed({task_key}) 异常 '
+                           f'({type(exc).__name__}: {exc}), 按未完成处理')
+            return False
+
+    # ------------------------------------------------ 条目级：临时任务 / 次数
+    def entry_is_temporary(self, entry_id: str) -> bool:
+        """★ 该条目对应的任务是不是**临时任务**（`period='none'`）。
+
+        ★ 用户裁定："**有 period 就是周期任务**" ⇒ 这里只认 `period`。
+        ★ 查不到条目 / 异常 ⇒ 返回 False（保守：不误判成临时任务）。
+        """
+        try:
+            eid = str(entry_id or '').strip()
+            if not eid:
+                return False
+            for e in (self.build_run_list().to_list() or []):
+                if str(e.get('entry_id') or '') != eid:
+                    continue
+                name = str(e.get('task') or '')
+                if not name:
+                    return False
+                return str(self.task_period(name)).lower() in ('none', '')
+            return False
+        except Exception as exc:
+            logger.debug(f'entry_is_temporary({entry_id}) 异常'
+                         f'({type(exc).__name__}: {exc})')
+            return False
+
+    def entry_target_reached(self, entry_id: str) -> bool:
+        """★ 该条目的**真实计数**是否已达到它的 **target**（目标次数）。
+
+        ## 字段分工（用户裁定："target 是目标次数，再来个真实计数"）
+
+        | 字段 | 含义 |
+        |---|---|
+        | `target` | ★ **目标次数**（用户设的）|
+        | `runs`   | ★ **真实计数**（这一行被派发了几次，`task_state` 落盘）|
+
+        ## target 的三级回落（与 `_skip_by_count()` **同一套**）
+
+        ① 条目级 `RunEntry.target`  ② 任务级 `scheduler.target`
+        ③ 出厂默认 `meta.count_default`
+
+        ★ target <= 0（判不了）⇒ 返回 **False**（保守：不误标完成）。
+        """
+        try:
+            eid = str(entry_id or '').strip()
+            if not eid:
+                return False
+            from module.config.config_model import convert_to_underscore
+            from module.config.task_state import get_entry_runs
+
+            target = 0
+            name = ''
+            for e in (self.build_run_list().to_list() or []):
+                if str(e.get('entry_id') or '') == eid:
+                    name = str(e.get('task') or '')
+                    target = int(e.get('target') or 0)
+                    break
+            if not name:
+                return False
+            key = convert_to_underscore(name)
+            sch = getattr(getattr(self.model, key, None), 'scheduler', None)
+            if target <= 0 and sch is not None:
+                try:
+                    target = int(getattr(sch, 'target', 0) or 0)
+                except (TypeError, ValueError):
+                    target = 0
+            if target <= 0:
+                try:
+                    from module.config import task_catalog as _TC
+                    meta = _TC.get(name)
+                    target = int(getattr(meta, 'count_default', 0) or 0) \
+                        if meta is not None else 0
+                except Exception:
+                    target = 0
+            # ★★★ 2026-10-12 修「D7.6」：**"判不了 target" 不能"永远不完成"** ★★★
+            #
+            # ## ★★ 用户实测（★ 日志铁证）
+            #
+            # ```
+            # 00:24:02  条目 ...Exploration -> 本次 1 场, 累计运行 1 次
+            # 00:24:02  条目 ...RealmRaid 本轮已完成 -> 跳过     ← 正确
+            # 00:24:02  Pending tasks: ['Exploration', 'RealmRaid']
+            # 00:24:02  ★[派发诊断] 派发 Exploration          ← ★★ 又跑探索！
+            # ```
+            #
+            # ## ★ 根因（★ 用配置数据核实）
+            #
+            # ★ 探索**没有** `target`：★ 条目级 0 · 任务级 `scheduler.target=0`
+            #   · 出厂 `count_default = 0`
+            # ★ ⇒ 走到底下 `if target <= 0: return False`
+            #   ★★ "判不了 ⇒ 保守放行" ⇒ ★ **它永远不算完成** ⇒ **反复跑**
+            #
+            # ## ★ 设计依据（§1.5-C1 / §1.2）
+            #
+            # ★ "本轮完成"的两个来源：★ **次数用满** · ★ **任务自报完成**
+            # ★ 探索的结束是**任务内部**按 `limit_time`（★ 日志"本次 32 次,
+            #   11 分钟"）⇒ ★ 那**就是"自报完成"**
+            #   ⇒ ★ **调度层必须把它记成"已完成一次"**，★ 不能当"没做完"。
+            #
+            # ## ★ 修法（★ 与 RealmRaid 的"券尽"**同一语义**）
+            #
+            # ★ 临时任务（`period = none`）若 **target 判不了** ⇒
+            #   ★ **它每成功跑完一次，就算"本轮完成一次"**
+            #   ⇒ ★ 不再被立刻重派。
+            # ⚠ 只对**临时任务**生效（★ 周期任务照旧走周期记忆）；
+            # ⚠ 只在**本轮已跑过 ≥1 次**时才算完成（★ 没跑过 = 没完成）。
+            if target <= 0:
+                try:
+                    _sch_p = getattr(sch, 'period', None)
+                    _p = str(getattr(_sch_p, 'value', _sch_p) or '').lower()
+                except Exception:
+                    _p = ''
+                if _p in ('none', ''):
+                    _n_run = int(get_entry_runs(self.config_name, eid) or 0)
+                    if _n_run > 0:
+                        logger.info(
+                            f'条目 {eid} 无 target（非战斗/自报完成类）'
+                            f' -> 已跑 {_n_run} 次即算**本轮完成**')
+                        return True
+                return False            # 周期任务判不了 -> 保守放行
+            return int(get_entry_runs(self.config_name, eid) or 0) >= target
+        except Exception as exc:
+            logger.debug(f'entry_target_reached({entry_id}) 异常'
+                         f'({type(exc).__name__}: {exc})')
+            return False
+
     # ------------------------------------------------------------------ 开放时段
     def task_window(self, task_command: str):
         """该任务的**生效**开放时段（`AvailabilityWindow` 的 list）。
@@ -2945,10 +4308,145 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         if self.pending_task:
             logger.info(f"Pending tasks: {[f.command for f in self.pending_task]}")
-            task = self.pending_task[0]
-            self.task = task
-            logger.attr("Task", task)
-            return task
+            # ★★★ 2026-10-12 用户裁定「S1 配套」：**跳过"本轮已完成"的条目** ★★★
+            #
+            # ## ★★ 为什么必须跳过
+            #
+            # ★ 用户要求"临时任务在队列里就按具体顺序进 waiting" ⇒
+            #   ★ 已完成的条目**仍留在 `pending_task`**（只是被标 `slot='done'`），
+            #   ★ 这样界面才能**按队列顺序**把它们列出来。
+            # ★ 而 S1 把"临时任务的时点判定"去掉了 ⇒
+            #   ★ 若队首恰好是**已完成**的条目 ⇒ ★★ **它会被立刻派发**
+            #     ⇒ ★ 变成"**反复跑已完成的**"（★ 比原来更糟）。
+            # ⇒ ★ 所以这里必须跳过 `slot == 'done'`。
+            #
+            # ⚠ 只跳 `'done'`（本轮已完成），★ 其它一律照旧。
+            for _f in self.pending_task:
+                if str(getattr(_f, 'slot', '') or '') == 'done':
+                    continue
+                self.task = _f
+                logger.attr("Task", _f)
+                return _f
+            logger.info('Pending tasks: 全部已完成（本轮）'
+                        f'（{[f.command for f in self.pending_task]}）')
+
+        # ★★★ 2026-10-12 修「D12」：**全部已完成 ⇒ 开新一轮**（★ 不再 CRITICAL）★★★
+        #
+        # ## ★★ 用户实测
+        #
+        # > "**循环虚设**！！！跑到最后一列后出现以下日志：
+        # >  `CRITICAL No task waiting or pending`"
+        #
+        # ## ★ 设计依据（★ `DESIGN-SPEC.md` §1.3 的流程图）
+        #
+        # ```
+        # B{"队列里有未完成的条目吗?"}
+        # B --"没有"--> M["★ 新一轮：长时记录按轮次过期（§2.6）"] --> A
+        # ```
+        # ★ ⇒ ★ **"全部已完成"的下一步是【开新一轮】**，★ 不是抛异常。
+        #
+        # ## ★ 为什么必须这样（★ 三个理由）
+        #
+        # ★ ① `loop` 模式的定义就是"**跑完最后一条后从头再来**"（§1.3-P2）
+        #   ⇒ ★ 队列全完成 = **一轮结束** ⇒ ★ **该开新一轮**
+        # ★ ② 现状 `raise RequestHumanTakeover` ⇒ ★ **整个调度循环断掉**
+        #   ⇒ ★★ 用户看到的就是"**循环虚设**"
+        # ★ ③ 新一轮 = ★ **清 `completed` + 轮次 +1**（§2.6-LR5）
+        #   ⇒ ★ 与"新一轮自动过期"**同一套机制**（★ 不新增状态）
+        #
+        # ⚠ 最多重试 **3 次**（★ 防"清了还是空"造成死循环）。
+        #
+        # ★★ BUG 修复（★ 我第一版写错了）★★
+        # ★ `when_task_queue_empty` 是**枚举** `WhenTaskQueueEmpty.LOOP`
+        #   ⇒ ★ `str(枚举)` 得到 `'WhenTaskQueueEmpty.LOOP'`
+        #     ⇒ ★★ **永远不等于 `'loop'`** ⇒ ★ 分支**从不命中**（实测确认）。
+        # ★ 修法：★ 取 `getattr(mode, 'value', mode)`（★ 与项目其它地方同一手法）。
+        #
+        # ★★★ 2026-10-12 用户**更正设计理解**（★ 很重要）★★★
+        #
+        # > "那个流程图有问题，**循环的情况下，只要是队列最后一个跑完，
+        # >  就会开始新的一轮，不会对还有没有未完成的条目做判断**"
+        #
+        # ## ★ 我原来写错在哪
+        #
+        # ★ 我加了两个判断（★ **都错**）：
+        #   ① ★ "还有没有未完成的条目" —— ★ 用户明确说**不做这个判断**
+        #   ② ★ "`loop_times` 跑满就不开新轮" —— ★ 错（★ 见下）
+        #
+        # ## ★ 正确语义
+        #
+        # ```
+        # ★ 循环模式：★ 【队列最后一个跑完】⇒ ★ **立刻开新一轮**
+        # ★ 判断依据：★ **"最后一个跑完"**（★ 不是"有没有未完成的"）
+        # ```
+        # ★ `loop_times` 的语义变成★ **"跑满 N 轮后的【终止】"**
+        #   ⇒ ★ 由**外层**（`script.py` 的循环重排）负责，
+        #   ★ **不在这里**干扰"开新一轮"。
+        #
+        # ⚠ 本函数只认一件事：★ **"队列全跑完" ⇒ 开新一轮**。
+        #
+        # ★★★ 2026-10-12 重要修正（★ 用户报"循环计数一直是 1"）★★★
+        #
+        # > "**循环计数有问题，一直显示 1，导致无法停止**"
+        #
+        # ## ★ 根因：**两个"开新一轮"机制并存 ⇒ 互相干扰**
+        #
+        # | # | 位置 | 做什么 |
+        # |---|---|---|
+        # | **①** | ★ **`script.py:504-554`**（**原有**）| 检测队列空 ⇒ 查 `loop_times` ⇒ `reset_loop_next_run()`（把 `next_run` 拉回现在）⇒ `bump_loop_rounds()` ⇒ 5 秒节流 |
+        # | **②** | ★★ 我加的（此处）| 直接清 `completed` + `bump_loop_rounds()` |
+        #
+        # ★ 两处都会 `+1` / 都会重排 ⇒ ★★ **双计数 + 双机制**
+        #   ⇒ ★ 用户看到计数异常、停止判据失效。
+        #
+        # ★★ 正确做法（★ 我错了）：★ **循环的唯一权威是 ①**
+        #   （`script.py`）—— ★ 它已经完整实现了 `loop_times` 的停止语义；
+        #   ★ `get_next()` **不该**再开一轮。
+        #
+        # ⇒ ★ **本函数只保留"不抛 CRITICAL"那一半**（★ 那是真 bug），
+        #   ★★ **把"开新一轮"整段删掉**（★ 交给 `script.py`）。
+        #   ⚠ 为什么不能两处都留：★ `script.py` 会先 `reset_loop_next_run()`
+        #     把 `next_run` 拉回现在 ⇒ ★ `get_next()` **根本走不到**
+        #     "全部已完成"分支 ⇒ ★ 我这个分支**本来就是死代码**，
+        #     只会在"`script.py` 那段因枚举 bug 没跑"时**抢跑** ⇒
+        #     ★★ 计数被我这处改乱（★ 正是用户遇到的现象）。
+
+        # ★★★ 修「D12」：**走到这里也不许 CRITICAL** ★★★
+        #
+        # ## ★★ 用户实测
+        # > "**循环虚设**！！！跑到最后一列后出现日志：
+        # >  `CRITICAL No task waiting or pending`"
+        #
+        # ## ★ 为什么不能抛
+        #
+        # ★ `RequestHumanTakeover` 会**中断整个调度循环**
+        #   ⇒ ★ 用户看到"调度凭空死掉"（★ 就是"循环虚设"的体感）。
+        # ★ 而"队列全完成"是**正常状态**（★ 不是错误）：
+        #   ★ 此时应当**留在待命**（★ 等到点的周期任务 / 等用户点新一轮），
+        #   ★ **不是**把调度器搞崩。
+        # ⇒ ★ 返回一条"待命占位"（★ 上游据 `command` 走等待逻辑）。
+        # ★★ 条件修正（★ 我第一版写窄了）★★
+        # ★ 我原来写 `not self.pending_task and not self.waiting_task`
+        #   ★ 但**走到这里时 `pending_task` 可能仍有条目**（★ 只是 `slot='done'`）
+        #   ⇒ ★ 条件为 **False** ⇒ ★ **跳过待命分支** ⇒ ★ 仍抛 CRITICAL。
+        # ★ 正确条件：★ 只看 `waiting_task` ——
+        #   ★ 因为"能跑的"已经在上面的循环里找过了（★ 跳过了 `done`）
+        #   ⇒ ★ 到这里就是"**没有能跑的**" ⇒ ★ 该**待命**。
+        if not self.waiting_task:
+            logger.info('队列里没有可跑的条目（本轮全完成/未到点）'
+                        ' -> **待命**（不抛 CRITICAL）')
+            try:
+                _placeholder = copy.deepcopy(getattr(self, 'task', None))
+                if _placeholder is None:
+                    _placeholder = Function(
+                        'Restart',
+                        {'scheduler': {'enable': True, 'period': 'none',
+                                       'priority': 0,
+                                       'next_run': datetime.now()}})
+                logger.attr('Task(待命)', _placeholder)
+                return _placeholder
+            except Exception as exc:
+                logger.warning(f'构造待命占位失败({type(exc).__name__}: {exc})')
 
         # 哪怕是没有任务，也要返回一个任务，这样才能保证调度器正常运行
         if self.waiting_task:
@@ -2970,17 +4468,42 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         # 根据调度器更新时间来判断是否有可运行的任务,保证逻辑一致性
         scheduler_update_dt = getattr(self, 'scheduler_update_dt', datetime.now())
         running = {}
-        if self.task is not None and self.task.next_run < scheduler_update_dt:
-            running = {"name": self.task.command, "next_run": str(self.task.next_run)}
+        # ★★★ 2026-10-12 用户裁定「S3」：**临时任务不看 `next_run` 显示** ★★★
+        # ★ 临时任务没有排期语义 ⇒ 用 `next_run < now` 判断会**显示为空/错乱**；
+        # ★ 改为：★ 临时任务一律报（`next_run` 显示"按顺序"）。
+        # ⚠ 周期任务照旧。
+        _cur = self.task
+        if _cur is not None:
+            _cur_temp = False
+            try:
+                _p0 = self.task_period(_cur.command)
+                _cur_temp = (not _p0) or str(_p0).lower() == 'none'
+            except Exception:
+                _cur_temp = False
+            if _cur_temp:
+                running = {"name": _cur.command, "next_run": '按顺序'}
+            elif _cur.next_run < scheduler_update_dt:
+                running = {"name": _cur.command,
+                           "next_run": str(_cur.next_run)}
+
+        # ★ 小工具：临时任务显示"按顺序"（顺序由队列决定）
+        def _nr(f):
+            try:
+                _p = self.task_period(f.command)
+                if (not _p) or str(_p).lower() == 'none':
+                    return '按顺序'
+            except Exception:
+                pass
+            return str(f.next_run)
 
         pending = []
         for p in self.pending_task[1:]:
-            item = {"name": p.command, "next_run": str(p.next_run)}
+            item = {"name": p.command, "next_run": _nr(p)}
             pending.append(item)
 
         waiting = []
         for w in self.waiting_task:
-            item = {"name": w.command, "next_run": str(w.next_run)}
+            item = {"name": w.command, "next_run": _nr(w)}
             waiting.append(item)
 
         data = {"running": running, "pending": pending, "waiting": waiting}
@@ -3173,6 +4696,50 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         #
         # 所以必须**放在最后**, 让"落在窗口内"成为不可被覆盖的终态。
         next_run = self._align_to_window(task, next_run)
+
+        # ★★★ 2026-10-12 用户裁定：**临时任务【不写】未来的 `next_run`** ★★★
+        #
+        # ## ★★ 用户报的问题（原话）
+        #
+        # > "**怎么还有 next_run？没有按照新的调度吗？**"
+        #
+        # ## ★ 我先前只修了一半
+        #
+        # ★ 我改的是【门④】：★ 临时任务**不再被 `next_run` 筛掉**（能进 pending）。
+        # ★ 但 `task_delay()` **仍然在写 `next_run`**（本函数），
+        #   ★ 于是日志/界面照旧显示 "Delay task `realm_raid` to 20:21:21"
+        #   ⇒ ★★ **"临时任务没有排期"这条设计并没有真正贯彻**。
+        #
+        # ## ★ 设计依据（§1.2 分型规则）
+        #
+        # | 维度 | 临时任务（`period = none`）|
+        # |---|---|
+        # | `next_run` | ★ **不参与派发判断**（§1.1-R1 / §1.2）|
+        # | 谁决定"能不能跑" | ★ **次数（`runs` / `target`）+ 门票** |
+        # | 谁决定"下一条是谁" | ★ **队列顺序**（§1.1-R3）|
+        #
+        # ⇒ ★ 临时任务的 `next_run` **没有语义** ——
+        #   ★ 把它写成"未来某刻"，只会**误导**（界面/日志/其它读它的代码）。
+        #
+        # ## ★ 修法
+        #
+        # ★ 临时任务（`period == 'none'` 或空）⇒
+        #   ★ 若算出来的 `next_run` 在**未来** ⇒ ★ **压成"现在"**
+        #   ★ （★ 语义：★ "它随时可按队列顺序跑，★ 但 `runs >= target`
+        #      或已完成 ⇒ 会被 `_skip_by_completed` 剔出 pending"）
+        # ⚠ 周期任务**完全不动**（时间排期是它们的正确语义）。
+        try:
+            _p = self.task_period(task)
+            _is_temp = (not _p) or str(_p).lower() == 'none'
+        except Exception:
+            _is_temp = False
+        if _is_temp:
+            _now = datetime.now().replace(microsecond=0)
+            if isinstance(next_run, datetime) and next_run > _now:
+                logger.info(
+                    f'临时任务 `{task}` 不排期（`next_run` '
+                    f'{next_run} -> 现在）—— 次数/门票才是判据')
+                next_run = _now
 
         # 将这些连接起来，方便日志输出
         kv = dict_to_kv(

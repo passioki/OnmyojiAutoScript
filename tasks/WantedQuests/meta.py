@@ -21,6 +21,13 @@ SPEC = TaskSpec(
     task='WantedQuests',
     name_zh='悬赏封印',
     category=Category.FIXED,
+    # ★★★ 废弃（片 4 / W-a，用户裁定）★★★
+    #
+    # 悬赏封印的 `before_end` 无法用 window start 表达：
+    #   `script_task.py:101-112` 用它算「**活动结束前 N 分钟**」的下次运行时刻 ——
+    #   它是**相对偏移量**，塞进 window start 会**语义反转**。
+    #   ★ 用户裁定: 标为废弃不可启用，留待删除或适配。
+    deprecated=("WantedQuests 因字段语义冲突被标记为废弃，留待删除或适配。详见本文件上方的说明与 DEV-SCHEDULER-UNIFY-PLAN.md 的 W-a 审计。"),
     # 定时类自动进队列 / 次数类需【添加任务】（见 architecture.md §3.5）
     auto_queue=True,
     # ★ F2c: 显式声明开放时段（用户: "所有的定时都有着 window 属性"）。

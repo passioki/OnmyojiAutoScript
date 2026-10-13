@@ -645,17 +645,63 @@ class RunList:
 def new_entry_id(task: str, when: datetime = None) -> str:
     """生成条目 id: `时间 + task`（用户裁定 —— 可拆可合并）。
 
-    格式: `20261010T143005-RealmRaid`
+    ## ★★★ 2026-10-12 用户裁定：时间戳精度**秒 → 毫秒** ★★★
+
+    > "可以考虑把**时间戳拉到最细颗粒度**"（[10-12 13:29:29]）
+
+    | 版本 | 格式 | 长度 |
+    |---|---|---|
+    | 旧（秒）| `20261010T143005-RealmRaid` | 前缀 **15** 字符 |
+    | ★ 新（毫秒）| `20261010T143005123-RealmRaid` | 前缀 **18** 字符 |
+
+    ## ★ 为什么要提精度
+
+    ★ 原来只到**秒** ⇒ ★ **同一秒内加两条**会重名
+      ⇒ ★ 只能靠 `unique_entry_id()` 加 `-2` / `-3` 兜底
+      ⇒ ★ 那让"`entry_id` 是**时间 + task**"这句话**不严谨**。
+    ★ 到毫秒后，实际使用中**基本不会撞**（兜底逻辑仍保留，作为保险）。
+
+    ## ⚠ 向后兼容
+
+    ★ `task_of_entry_id()` / `added_at_of_entry_id()` **两种长度都认**
+      （15 = 旧秒 / 18 = 新毫秒）⇒ ★ **老配置里的 `entry_id` 不会被破坏**。
     """
     when = when or datetime.now()
-    return f'{when:%Y%m%dT%H%M%S}-{task}'
+    # ★ 毫秒 = 微秒截断到 3 位（`%f` 是 6 位微秒）
+    return f'{when:%Y%m%dT%H%M%S}{when.microsecond // 1000:03d}-{task}'
+
+
+def _parse_entry_id_head(head: str):
+    """把 `entry_id` 的时间前缀解析成 `datetime`；★ 兼容秒/毫秒两种长度。
+
+    :return: (datetime, 前缀长度) 或 (None, 0)
+    """
+    for n, fmt in ((18, '%Y%m%dT%H%M%S%f'), (15, '%Y%m%dT%H%M%S')):
+        if len(head) != n or head[8] != 'T':
+            continue
+        body = head[:8] + head[9:]          # 去掉 'T'
+        if not body.isdigit():
+            continue
+        try:
+            if n == 18:
+                # 毫秒 -> 补齐成微秒再解析
+                return datetime.strptime(head + '000', fmt), n
+            return datetime.strptime(head, fmt), n
+        except ValueError:
+            continue
+    return None, 0
 
 
 def task_of_entry_id(entry_id: str) -> str:
     """从 `entry_id` **拆出** task（可拆 —— 用户要求）。
 
-    `20261010T143005-RealmRaid`   -> `RealmRaid`
-    `20261010T143005-RealmRaid-2` -> `RealmRaid`（去掉**唯一化序号**）
+    ```
+    20261010T143005-RealmRaid        -> RealmRaid        （旧·秒）
+    20261010T143005123-RealmRaid     -> RealmRaid        （★ 新·毫秒）
+    20261010T143005-RealmRaid-2      -> RealmRaid        （去掉唯一化序号）
+    ```
+
+    ★ **兼容两种前缀长度**（15 = 秒 / 18 = 毫秒）。
 
     认不出格式时**原样返回**（不静默丢东西）。
     """
@@ -663,9 +709,8 @@ def task_of_entry_id(entry_id: str) -> str:
     if '-' not in s:
         return s
     head, _, tail = s.partition('-')
-    # 形如 20261010T143005 才当前缀剥掉
-    if not (len(head) == 15 and head[8] == 'T'
-            and head.replace('T', '').isdigit()):
+    # ★ 形如 20261010T143005（15）或 20261010T143005123（18）才当前缀剥掉
+    if _parse_entry_id_head(head)[0] is None:
         return s
     # `tail` 可能是 `RealmRaid` 或 `RealmRaid-2` -> 去掉末尾的纯数字序号
     parts = tail.rsplit('-', 1)
@@ -675,12 +720,10 @@ def task_of_entry_id(entry_id: str) -> str:
 
 
 def added_at_of_entry_id(entry_id: str):
-    """从 `entry_id` 拆出加入时间; 认不出返回 `None`。"""
+    """从 `entry_id` 拆出加入时间; 认不出返回 `None`。
+
+    ★ **兼容秒（15）与毫秒（18）两种前缀长度**。
+    """
     s = str(entry_id or '')
     head = s.split('-', 1)[0]
-    if len(head) == 15 and head[8] == 'T':
-        try:
-            return datetime.strptime(head, '%Y%m%dT%H%M%S')
-        except ValueError:
-            return None
-    return None
+    return _parse_entry_id_head(head)[0]

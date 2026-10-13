@@ -14,17 +14,9 @@ from tasks.Orochi.config import UserStatus
 class OtherWorldTwilightConfig(ConfigBase):
     # 身份
     user_status: UserStatus = Field(default=UserStatus.LEADER, description='user_status_help')
-    # 限制时间
-    limit_time: Time = Field(default=Time(minute=30), description='limit_time_help')
-    # 限制次数
-    limit_count: int = Field(default=30, description='limit_count_help')
-
-    @property
-    def limit_time_v(self) -> timedelta:
-        if isinstance(self.limit_time, time):
-            return timedelta(hours=self.limit_time.hour, minutes=self.limit_time.minute,
-                             seconds=self.limit_time.second)
-        return self.limit_time
+    # ★ 片 2: 原 `limit_time_v` 把配置里的 `Time` 转成 `timedelta` ——
+    #   配置字段已删除, 时间上限统一到 `scheduler.expected_minutes`
+    #   （任务侧用 `BaseTask.time_limit`）。
 
 
 class OWTBattleConfig(GeneralBattleConfig):

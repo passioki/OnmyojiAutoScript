@@ -53,6 +53,15 @@ _ALLOW_DEAD_PATHS = {
     #   若还有漏的, 守卫会**真的红**。
     'team-coordination.md',      # 引用了已删的 team_coordinator（待重设计）
     'oasx-task-list-ui.patch',   # 历史 patch
+    # ★★ 2026-10-12: 新增两份"会话整理"文档 ★★
+    #
+    # 它们与 `SESSION-LEDGER.md` **同类** —— ★ **记的是"当时说了什么"**，
+    # 属于**历史记录**，必然会出现"已删的符号"（因为对话里就说过）。
+    # * `SESSION-INDEX.md`   每条对话的**分类索引**（含首行原话）
+    # * `DESIGN-SPEC-PROGRESS.md` 覆盖台账（含"已读发现"的原始措辞）
+    # ⚠ `DESIGN-SPEC.md` **不豁免** —— 它是**现行规格**，所以已就地标注。
+    'SESSION-INDEX.md',
+    'DESIGN-SPEC-PROGRESS.md',
 }
 
 #: 同行出现这些字样 -> 视为"就地标注了已删", 豁免该行

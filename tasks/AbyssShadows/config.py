@@ -14,11 +14,15 @@ from tasks.Component.config_base import ConfigBase, Time
 from tasks.Component.config_scheduler import Scheduler
 
 class AbyssShadowsTime(ConfigBase):
-    # 自定义运行时间
-    custom_run_time_friday: Time = Field(default=Time(hour=19, minute=0, second=0))
-    custom_run_time_saturday: Time = Field(default=Time(hour=19, minute=0, second=0))
-    custom_run_time_sunday: Time = Field(default=Time(hour=19, minute=0, second=0))
-
+    # ★ 片 4 (W-a/B): 本类原有的「偏好时刻」字段**已删除** ——
+    #   用户裁定「放弃'希望几点'这个概念」，改用 `scheduler.windows`
+    #   的 `start` 表达（迁移见 `Config.migrate_moment_fields_to_windows_once`）。
+    # ⚠ 删完全部字段后类体为空 ⇒ 必须留一个语句,
+    #   否则 `IndentationError: expected an indented block`
+    #   （★ 本会话在 `SixRealmsGate` 上踩过一次）。
+    # ★ 保留空类而不删掉它, 是因为配置树里仍有
+    #   `<任务>.<本类对应字段名>` 这个节点 —— 删了会改变配置结构。
+    pass
 class AbyssShadowsCombatTime(BaseModel):
     # 设置战斗时间
     CombatTime_enable: bool = Field(default=False, description="开启智能伤害")

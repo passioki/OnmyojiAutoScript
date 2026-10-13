@@ -272,78 +272,33 @@ def _coerce_period(period) -> str:
     return str(getattr(period, 'value', period)).lower()
 
 
-def get_count(config_name: str, task: str, period='none',
-              reset_at: dt_time = DEFAULT_RESET_AT,
-              now: datetime = None) -> int:
-    """
-    读取某任务在当前周期内已累计的战斗次数。
+# ---------------------------------------------------------------------------
+# ★★★ 2026-10-12 用户裁定「2 废弃」：**任务级计数机制已删** ★★★
+#
+# > "既然你用 `runs`，那就把他**取代 `current_count`**，这两个不是一个东西吗"
+# > "**不能存在两套机制**" -> "**2 废弃**"
+#
+# ★ 这里原来有 **3 个函数**（已删）：
+#   * `get_count(config, task, ...)`     读**任务级**计数
+#   * `add_count(config, task, ...)`     写**任务级**计数
+#   * `reset_count(config, task)`        清**任务级**计数
+#
+# ★ 为什么删：★ 它们与【条目级 `runs`】（`get_entry_runs` /
+#   `bump_entry_runs` / `reset_entry_runs`）**表达同一件事**
+#   （"这条任务打了几场"）⇒ ★ **两套机制**。
+#
+# ★ 现行唯一一套（**条目级**）：
+#   | 用途 | 函数 |
+#   |---|---|
+#   | 读（判据）| `get_entry_runs(config, entry_id)` |
+#   | 写（每场 +1）| `bump_entry_runs(config, entry_id, delta)` |
+#   | 清零 | `reset_entry_runs(config, entry_id)` |
+#   | 总记录（展示，永不清零）| `record_entry_run` / `get_entry_total_runs` |
+#
+# ⚠ 保留 `period_key()` / `is_completed_in_period()` —— ★ 它们服务
+#   **周期完成记忆**（周期任务），与"战斗计数"**不是一回事**。
+# ---------------------------------------------------------------------------
 
-    周期变了(或从未记录过)则返回 0。任何异常也返回 0 —— 计数失败不应影响任务。
-    """
-    now = now or datetime.now()
-    pkey = period_key(_coerce_period(period), reset_at, now)
-    try:
-        with _lock():
-            data = _read_all()
-    except Exception:
-        return 0
-    item = (data.get(config_name) or {}).get(str(task).lower()) or {}
-    if pkey and item.get('count_key') != pkey:
-        return 0            # 换了周期, 旧计数作废
-    try:
-        return max(0, int(item.get('count', 0) or 0))
-    except (TypeError, ValueError):
-        return 0
-
-
-def add_count(config_name: str, task: str, delta: int = 1, period='none',
-              reset_at: dt_time = DEFAULT_RESET_AT,
-              now: datetime = None) -> int:
-    """
-    累加战斗次数并写盘, 返回累加后的值。
-
-    跨周期时先归零再加。写盘失败只记 warning —— 计数不应成为任务失败的原因。
-    """
-    now = now or datetime.now()
-    pkey = period_key(_coerce_period(period), reset_at, now)
-    key = str(task).lower()
-    try:
-        with _lock():
-            data = _read_all()
-            item = data.setdefault(config_name, {}).setdefault(key, {})
-            if pkey and item.get('count_key') != pkey:
-                item['count'] = 0
-                item['count_key'] = pkey
-            try:
-                cur = max(0, int(item.get('count', 0) or 0))
-            except (TypeError, ValueError):
-                cur = 0
-            # 夹到 >= 0: 负数会让状态文件里留下脏值(虽然读取时会再夹一次),
-            # 也会让"已打次数"看起来倒退。
-            cur = max(0, cur + int(delta))
-            item['count'] = cur
-            item['count_updated'] = now.replace(microsecond=0).isoformat()
-            _write_all(data)
-        return cur
-    except Exception as exc:
-        logger.warning(f'[TaskState] 记录战斗次数失败({type(exc).__name__}: {exc}), 忽略')
-        return get_count(config_name, task, period, reset_at, now)
-
-
-def reset_count(config_name: str, task: str) -> None:
-    """清零某任务的累计次数(例: 用户手动要求重新计数)。"""
-    key = str(task).lower()
-    try:
-        with _lock():
-            data = _read_all()
-            item = (data.get(config_name) or {}).get(key)
-            if isinstance(item, dict):
-                item.pop('count', None)
-                item.pop('count_key', None)
-                item.pop('count_updated', None)
-                _write_all(data)
-    except Exception as exc:
-        logger.warning(f'[TaskState] 重置战斗次数失败({type(exc).__name__}: {exc}), 忽略')
 
 
 # ---------------------------------------------------------------------------
@@ -369,6 +324,545 @@ def reset_count(config_name: str, task: str) -> None:
 #   不会与任务名冲突（任务键都是小写字母/下划线, 不以 `__` 开头）。
 # ---------------------------------------------------------------------------
 LOOP_KEY = '__loop__'
+
+# ★★★ 条目级运行计数（片 5 / F2「已运行 N 次」）★★★
+#
+# ## ★★ 用户裁定（原话）★★
+#
+# > "由于现在是流转的运行，那么就会出现**运行过，状态标记为已运行X次**"
+# > 并选定：**按条目**计（甲）—— 与"条目级次数"（`RunEntry.target`）一致。
+#
+# ## 为什么**必须按条目**而不是按任务
+#
+# ★ 队列里**同一任务可以有多条条目**（用户用重复条目表达"重复跑整个任务"）。
+#   按任务计会**把两条混在一起** —— 与 `running_entry_id`（P-1）同一理由：
+#   "**身份，不是位置**"（`docs/scheduler-architecture.md` §1.5）。
+#
+# ## 存法（与 `__loop__` 同一套）
+#
+# ```json
+# {
+#   "恋鸟树": {
+#     "__loop__":  {"rounds": 2},
+#     "__entries__": {"<entry_id>": {"runs": 3, "updated": "..."}}
+#   }
+# }
+# ```
+ENTRIES_KEY = '__entries__'
+
+
+def _entries_bucket(data: dict, config_name: str) -> dict:
+    """取（必要时建）该配置的 `__entries__` 容器。"""
+    bucket = data.setdefault(config_name, {})
+    item = bucket.get(ENTRIES_KEY)
+    if not isinstance(item, dict):
+        item = {}
+        bucket[ENTRIES_KEY] = item
+    return item
+
+
+def get_entry_runs(config_name: str, entry_id: str) -> int:
+    """★ 某**条目**已经跑了几次（0 = 没跑过 / 查不到）。
+
+    ★ 这是**运行进度**（`task_state` 落盘），不是用户设置。
+      任何异常返回 0（不阻断调度）。
+    """
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return 0
+    try:
+        with _lock():
+            data = _read_all()
+            item = (data.get(config_name) or {}).get(ENTRIES_KEY)
+            if isinstance(item, dict):
+                one = item.get(eid)
+                if isinstance(one, dict):
+                    return int(one.get('runs', 0) or 0)
+        return 0
+    except Exception as exc:
+        logger.warning(f'[TaskState] 读条目运行次数失败'
+                       f'({type(exc).__name__}: {exc}), 按 0')
+        return 0
+
+
+def bump_entry_runs(config_name: str, entry_id: str, delta: int = 1) -> int:
+    """★ 本条**又打了一场** -> `runs` += delta（**判据用的那份**）。
+
+    ## ★★★ 用户裁定「甲」之后，本函数的语义（2026-10-12）★★★
+
+    > "既然你用 `runs`，那就把他**取代 `current_count`**，
+    >  这两个**不是一个东西吗**。" -> "**1 甲**"
+
+    ★ 所以 `runs` = **本条已打几场**（= 原来的 `current_count`），
+      由**任务内部**每打一场经 `commit_count()` 调用本函数写入。
+
+    ## 与 `record_entry_run()` 的分工（★ 颗粒度不同，别混）
+
+    | 函数 | 写什么 | 颗粒度 | 谁调 |
+    |---|---|---|---|
+    | ★ **本函数** | `runs`（判据）| ★ **场**（打一场 +1）| `commit_count()`（任务内）|
+    | `record_entry_run()` | `total_runs` / `total_log`（展示/分析）| ★ **次**（跑完一遍 +1）| `script.py` 收尾 |
+
+    ★ 早先两者合在一个函数里 —— ★ 那会导致 `commit_count` 每场调一次时
+      把"运行**次数**"也加上去（打 2 场 ⇒ 次数 +2，实际只跑了 1 次）。
+
+    :param entry_id: `RunEntry.entry_id`（空 = 不记，返回 0）
+    :return: 累加后的 **`runs`**
+    """
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return 0
+    try:
+        with _lock():
+            data = _read_all()
+            bucket = _entries_bucket(data, config_name)
+            one = bucket.get(eid)
+            if not isinstance(one, dict):
+                one = {}
+                bucket[eid] = one
+            n = int(one.get('runs', 0) or 0) + int(delta)
+            one['runs'] = n
+            one['updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            _write_all(data)
+            return n
+    except Exception as exc:
+        logger.warning(f'[TaskState] 累加条目运行次数失败'
+                       f'({type(exc).__name__}: {exc}), 忽略')
+        return 0
+
+
+def set_entry_runs(config_name: str, entry_id: str, value: int) -> int:
+    """★★ **直接设定**本条的 `runs`（★ 不是累加）★★
+
+    ## ★ 为什么需要它（2026-10-12 · D7.6 第二层真因）
+
+    ★ 用户实测：★ 探索内部打了 **32 场**，★ 但收尾只写 `runs += 1`
+      ★ 而 `target`（出厂 `count_default`）= **30**
+      ⇒ ★ `1 >= 30` 不成立 ⇒ ★ **永远"没做完"** ⇒ ★ **反复跑探索**。
+
+    ★ 修法：★ 把**任务内部真实计数**（`current_count` / `battle_count`）
+      ★ **直接写进** `runs` ⇒ ★ 这样 `runs >= target` 能成立。
+
+    ## ⚠ 为什么用 `set` 而不是 `bump`（关键）
+
+    ★ 收尾时拿到的是**本轮的总场次**（32），★ **不是增量**
+      ⇒ ★ 用 `bump` 会**重复累加**（★ 每次收尾再加 32）
+      ⇒ ★ **必须 set**（★ 幂等：同一轮重复调用结果相同）。
+
+    :param value: 本条**已打几场**（绝对值）
+    :return: 写入后的 `runs`
+    """
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return 0
+    try:
+        with _lock():
+            data = _read_all()
+            bucket = _entries_bucket(data, config_name)
+            one = bucket.get(eid)
+            if not isinstance(one, dict):
+                one = {}
+                bucket[eid] = one
+            n = max(0, int(value))
+            one['runs'] = n
+            one['updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            _write_all(data)
+            return n
+    except Exception as exc:
+        logger.warning(f'[TaskState] 设定条目运行场次失败'
+                       f'({type(exc).__name__}: {exc}), 忽略')
+        return 0
+
+
+def get_entry_target(config_name: str, entry_id: str) -> int:
+    """★ 取**本条**的目标次数（`target`）。
+
+    ⚠ **不在状态文件里** —— `target` 是**配置**（`RunEntry.target`），
+      所以本函数**只做占位**，真正的回落由 `Config.entry_target_reached()`
+      负责（★ 那儿有 ① 条目 → ② 任务级 → ③ 出厂默认 三级回落）。
+
+    ★ 为什么放在这里：★ `script.py` 收尾时要"**把 runs 设到 target**"
+      （★ 让非战斗任务"跑完一次即达标"），★ 需要一个**统一入口**；
+      ★ 有了它，将来若 target 也要落盘，**改这一处**即可。
+
+    :return: `target`（**取不到时返回 0** ⇒ 调用方退化为 `+1`）
+    """
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return 0
+    try:
+        from module.server.main_manager import mm
+        cfg = mm.config_cache(config_name)
+        # ★ 复用 `Config` 的三级回落（★ 唯一权威）
+        for e in (cfg.build_run_list().to_list() or []):
+            if str(e.get('entry_id') or '') == eid:
+                t = int(e.get('target') or 0)
+                if t > 0:
+                    return t
+                name = str(e.get('task') or '')
+                break
+        else:
+            return 0
+        from module.config.config_model import convert_to_underscore
+        key = convert_to_underscore(name)
+        sch = getattr(getattr(cfg.model, key, None), 'scheduler', None)
+        if sch is not None:
+            t = int(getattr(sch, 'target', 0) or 0)
+            if t > 0:
+                return t
+        from module.config import task_catalog as _TC
+        meta = _TC.get(name)
+        return int(getattr(meta, 'count_default', 0) or 0) if meta else 0
+    except Exception as exc:
+        logger.debug(f'[TaskState] 取条目 target 失败'
+                     f'({type(exc).__name__}: {exc})')
+        return 0
+
+
+def record_entry_run(config_name: str, entry_id: str,
+                     runs_this_time: int = 1) -> int:
+    """★ 某**条目跑完一次** -> 记**总记录**（`total_runs` / `total_log`）。
+
+    ## ★★★ 为什么和 `bump_entry_runs` 分开（用户裁定「甲」之后必须分）★★★
+
+    ★ 统一之后 **`runs` = 本条已打几场**，它由**任务自己**每场经
+      `commit_count()` 写（`bump_entry_runs`）。
+    ★ 而 **`total_runs` = 本条被【运行】了几次**（"跑了 3 遍"），
+      是**每次运行**记一笔 ⇒ ★ 两者**颗粒度不同**：
+      * `runs`：**场**（打一场 +1）
+      * `total_runs`：**次**（跑完一遍 +1）
+    ⇒ ★ 若混在一个函数里：`commit_count` 每场调一次会**把"次数"也加一遍**
+      （RealmRaid 打 2 场 ⇒ total_runs +2，实际只跑了 **1 次**）。
+
+    ## 记什么
+
+    * `total_runs` += 1（**每次运行**一次）
+    * `total_log` 追加 `{'at': 到秒, 'runs': 本次打了几场}`
+      —— ★ 用户要求"**包含时间信息到秒**，供后期统计分析"
+    * ★ **永不清零**（`reset_entry_runs` 只清 `runs`）
+
+    :param runs_this_time: 本次运行打了几场（写进 `total_log` 明细，便于统计）
+    :return: 累加后的 `total_runs`
+    """
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return 0
+    try:
+        with _lock():
+            data = _read_all()
+            bucket = _entries_bucket(data, config_name)
+            one = bucket.get(eid)
+            if not isinstance(one, dict):
+                one = {}
+                bucket[eid] = one
+            total = int(one.get('total_runs', 0) or 0) + 1
+            one['total_runs'] = total
+            now_s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            one['updated'] = now_s
+            log = one.get('total_log')
+            if not isinstance(log, list):
+                log = []
+            log.append({'at': now_s, 'runs': int(runs_this_time or 0)})
+            if len(log) > 500:
+                del log[:len(log) - 500]
+            one['total_log'] = log
+            _write_all(data)
+            return total
+    except Exception as exc:
+        logger.warning(f'[TaskState] 记条目总记录失败'
+                       f'({type(exc).__name__}: {exc}), 忽略')
+        return 0
+
+
+def get_entry_total_runs(config_name: str, entry_id: str) -> int:
+    """★ 该条目的**累计**运行次数（跨轮，**不清零**）—— 给**展示**用。
+
+    ★ 与 `get_entry_runs()`（本轮计数，会清零）区分开：
+      见 `bump_entry_runs()` 的"两份记录"说明。
+    ★ 向后兼容：老数据只有 `runs`、没有 `total_runs` ⇒ 退化为读 `runs`。
+    """
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return 0
+    try:
+        with _lock():
+            data = _read_all()
+            item = (data.get(config_name) or {}).get(ENTRIES_KEY)
+            if isinstance(item, dict):
+                one = item.get(eid)
+                if isinstance(one, dict):
+                    if 'total_runs' in one:
+                        return int(one.get('total_runs', 0) or 0)
+                    return int(one.get('runs', 0) or 0)   # ★ 老数据兜底
+        return 0
+    except Exception as exc:
+        logger.warning(f'[TaskState] 读条目累计次数失败'
+                       f'({type(exc).__name__}: {exc}), 按 0')
+        return 0
+
+
+def reset_entry_runs(config_name: str, entry_id: str = '') -> int:
+    """★ **重置**：把本轮的 `runs` **归档**，然后开新一轮（返回处理的条目数）。
+
+    ## ★★★ 用户裁定：**"重置" = 归档 + 开新记录（★ 不是清除）** ★★★
+
+    > **[10-09 12:57:14]** ★★ "以上的记录，**点击重置选中后不是清除记录，
+    >  而是【归档记录后开始新的记录】**。这样后续可以**分析运行记录和展示运行
+    >  结果**，如御魂战斗多少次，消耗多少体力，花了多少时间等等。"
+    >
+    > **[10-12 13:29:29]** ★ "**取消临时任务，改为不同任务的【长时记录】**"
+    >
+    > **[10-12 13:34:45]** ★ "把**每次启动的时间记录下并每次启动做比对**就行"
+
+    ## ★★ 归档到哪里
+
+    | 键 | 含义 | 本函数 |
+    |---|---|---|
+    | `runs` | 本轮已打几场（**判据**）| ★ **归档后清掉** |
+    | `completed` / `completed_*` | 本轮完成标记 | ★ **清掉**（新一轮）|
+    | ★ **`runs_history`** | ★ **每轮的归档**：`[{at, runs}]` | ★ **追加一条** |
+    | `total_runs` / `total_log` | 累计总记录（展示 / 分析）| ★ **保留**（见 `record_entry_run`）|
+
+    ## ★ 为什么"归档"而不是"清除"（用户的用途）
+
+    ★ 用户明确要**后期统计分析**（"御魂战斗多少次，消耗多少体力，花了多少时间"）
+      ⇒ ★ 若直接清掉，★ **过去的每轮成绩就永久丢了**。
+
+    ## ⚠ 我踩过的坑（记下来）
+
+    ★ 本函数原来用 `bucket.pop(entry_id)` / `pop(ENTRIES_KEY)`
+      —— ★ **把整条记录删掉** ⇒ `total_runs` **一起没了**
+      ⇒ ★ 与"总记录永不清零"**自相矛盾**。
+    ★ 之后改成"只删 `runs`/`completed`" —— ★ 但**没有归档**
+      ⇒ ★ 与"重置 = 归档 + 开新记录"**仍不符**（★ 本轮补上）。
+    """
+    try:
+        def _archive_and_clear(one: dict) -> bool:
+            """归档本轮 `runs` 后清掉"本轮"相关的键；返回是否真有动作。"""
+            if not isinstance(one, dict):
+                return False
+            touched = False
+            # ★ ① 先归档（只在真有 runs 时记）
+            try:
+                cur = int(one.get('runs') or 0)
+            except (TypeError, ValueError):
+                cur = 0
+            if cur > 0:
+                hist = one.get('runs_history')
+                if not isinstance(hist, list):
+                    hist = []
+                hist.append({
+                    'at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'runs': cur,
+                })
+                if len(hist) > 200:
+                    del hist[:len(hist) - 200]
+                one['runs_history'] = hist
+                touched = True
+            # ★ ② 再清本轮
+            for k in ('runs', 'completed', 'completed_at',
+                      'completed_reason', 'completed_round'):
+                if k in one:
+                    one.pop(k, None)
+                    touched = True
+            return touched
+
+        with _lock():
+            data = _read_all()
+            bucket = (data.get(config_name) or {}).get(ENTRIES_KEY)
+            if not isinstance(bucket, dict):
+                return 0
+            n = 0
+            if not entry_id:
+                for one in bucket.values():
+                    if _archive_and_clear(one):
+                        n += 1
+            else:
+                if _archive_and_clear(bucket.get(str(entry_id))):
+                    n = 1
+            if n:
+                _write_all(data)
+            return n
+    except Exception as exc:
+        logger.warning(f'[TaskState] 清条目运行次数失败'
+                       f'({type(exc).__name__}: {exc}), 忽略')
+        return 0
+
+
+# ---------------------------------------------------------------- 本轮已完成
+#
+# ★★★ "本轮已完成"（用户裁定 丙）★★★
+#
+# ## ★★ 用户原话 ★★
+#
+# > "两套计数不行，需要用让他**严格跑派发次数**，而不是自己用一套计数。"
+# > "`target` 是**目标次数**，再来个**真实计数**。"
+# > "**丙**"（= 调度层默认"跑满 target 才算完成"；个别任务可提前上报完成）
+#
+# ## 它解决什么
+#
+# ★ **临时任务（`period=none`）** 没有"周期完成记忆"（`_skip_by_period` 对
+#   `period=none` 永远返回 False）⇒ ★ 它**没有任何东西让它在"本轮做完了"之后退出**
+#   ⇒ 会被反复派发（实测 RealmRaid 每 40 秒一轮，永不停）。
+# ★ 本标记就是那个"退出条件"：
+#   * **跑满 `target`** ⇒ 调度层自动标（`script.py`）
+#   * **任务提前做完了**（如 RealmRaid 券打完）⇒ 任务自己调
+#     `mark_entry_completed`（★ 只需那一个任务改，其它靠 target）
+#
+# ## ★ 与"次数(runs)"的关系（两个都必要，别混）
+#
+# | 字段 | 数什么 | 谁判 |
+# |---|---|---|
+# | `runs`         | ★ 这一行被**派发**了几次 | `_skip_by_count`：`runs >= target` |
+# | `completed`    | ★ **本轮已完成**（含提前完成）| 本模块 + 调度层 |
+#
+# ★ 新一轮（队列循环到末尾）由 `clear_entry_completed()` 清空 ⇒ 可以再跑。
+
+def get_entry_completed(config_name: str, entry_id: str) -> bool:
+    """★ 该条目**本轮是否已完成**（查不到 = False）。
+
+    ## ★★★ 2026-10-12 修：**按轮次号自动过期**（用户报的真 bug）★★★
+
+    > "调度有问题：**循环第二次时结界突破没有触发**。"
+
+    ## ★ 原实现的致命缺陷（实测复现）
+
+    ★ `completed` 只有在 `reset_loop_next_run()` 里才被清，而它
+      ★ **只在【队列完全为空】时**才被调用（`script.py:429-447`，还要过节流）。
+    ★ 而真实队列里**总有别的条目在跑**（Exploration / Rest 反复）
+      ⇒ ★ **队列从不"空"** ⇒ 那个钩子**几乎不触发**
+      ⇒ ★ `completed` **永久残留** ⇒ ★ 该条**再也不跑**。
+    ★ 数据印证：`20261012T141032-RealmRaid  runs=2 completed=True` 一直挂着。
+
+    ## ★ 现在的判据（自愈，不依赖任何钩子）
+
+    ★ 标记时写一个"轮次号" `completed_round = get_loop_rounds()`；
+    ★ 读取时比对**当前轮次号**：
+      * 相同 -> 仍是本轮 -> **算已完成**
+      * ★ 不同 -> **已经进入下一轮** -> ★ **自动过期**（并顺手清掉字段）
+
+    ⇒ ★ 于是"新一轮开始"不需要任何地方主动清 —— **周期一到自然失效**。
+      （用户裁定："**总记录的颗粒度**"要留，而"本轮临时记录"只保留到本轮结束
+        —— 这正是那个"临时记录"该有的生命周期。）
+    """
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return False
+    try:
+        with _lock():
+            data = _read_all()
+            item = (data.get(config_name) or {}).get(ENTRIES_KEY)
+            if not isinstance(item, dict):
+                return False
+            one = item.get(eid)
+            if not isinstance(one, dict):
+                return False
+            if not one.get('completed', False):
+                return False
+            marked = one.get('completed_round')
+            if marked is None:
+                # ★ 老数据（没有轮次号）-> 兼容：沿用旧行为（视为本轮完成）
+                return True
+            try:
+                cur = int(_loop_item(data, config_name).get('rounds', 0) or 0)
+            except Exception:
+                cur = 0
+            if int(marked) != cur:
+                # ★ 已进入新一轮 -> 自动过期（就地清掉，别留脏）
+                one.pop('completed', None)
+                one.pop('completed_at', None)
+                one.pop('completed_reason', None)
+                one.pop('completed_round', None)
+                try:
+                    _write_all(data)
+                except Exception:
+                    pass
+                logger.info(f'条目 {eid} 的"本轮已完成"已过期'
+                            f'（标记于第 {marked} 轮，现为第 {cur} 轮）-> 可再跑')
+                return False
+            return True
+    except Exception as exc:
+        logger.warning(f'[TaskState] 读"本轮已完成"失败'
+                       f'({type(exc).__name__}: {exc}), 按未完成')
+        return False
+
+
+def mark_entry_completed(config_name: str, entry_id: str,
+                         reason: str = '') -> bool:
+    """★ 标记某条目**本轮已完成**（写盘）。返回是否成功。
+
+    ## ★ 必须同时写"轮次号"（否则会永久残留 —— 实测 bug）
+
+    ★ `completed_round = get_loop_rounds()` ⇒ `get_entry_completed()`
+      在**轮次号变化时自动过期**。
+    ★ 详见 `get_entry_completed()` 的说明（用户报的"循环第二次不触发"）。
+
+    :param reason: 可选说明（写日志用，如 `'没券了'`）
+    """
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return False
+    try:
+        with _lock():
+            data = _read_all()
+            bucket = _entries_bucket(data, config_name)
+            one = bucket.get(eid)
+            if not isinstance(one, dict):
+                one = {}
+                bucket[eid] = one
+            one['completed'] = True
+            one['completed_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # ★★★ 关键：记下"第几轮标的" —— 供 `get_entry_completed()` 判过期
+            try:
+                one['completed_round'] = int(
+                    _loop_item(data, config_name).get('rounds', 0) or 0)
+            except Exception:
+                one['completed_round'] = 0
+            if reason:
+                one['completed_reason'] = str(reason)[:80]
+            _write_all(data)
+            logger.info(f'[TaskState] 条目 {eid} 标记为【本轮已完成】'
+                        f'（第 {one.get("completed_round")} 轮，'
+                        f'进入下一轮会自动失效）'
+                        f'{("；" + str(reason)) if reason else ""}')
+            return True
+    except Exception as exc:
+        logger.warning(f'[TaskState] 标记"本轮已完成"失败'
+                       f'({type(exc).__name__}: {exc}), 忽略')
+        return False
+
+
+def clear_entry_completed(config_name: str, entry_id: str = '') -> int:
+    """★ 清掉"本轮已完成"标记（`entry_id` 空 = 清**全部**），返回清掉的条目数。
+
+    ★ 用于**新一轮开始**（队列循环到末尾）—— 让所有条目重新可跑。
+    """
+    try:
+        with _lock():
+            data = _read_all()
+            bucket = (data.get(config_name) or {}).get(ENTRIES_KEY)
+            if not isinstance(bucket, dict):
+                return 0
+            n = 0
+            if not entry_id:
+                for one in bucket.values():
+                    if isinstance(one, dict) and one.pop('completed', None):
+                        one.pop('completed_at', None)
+                        one.pop('completed_reason', None)
+                        n += 1
+            else:
+                one = bucket.get(str(entry_id))
+                if isinstance(one, dict) and one.pop('completed', None):
+                    one.pop('completed_at', None)
+                    one.pop('completed_reason', None)
+                    n = 1
+            if n:
+                _write_all(data)
+            return n
+    except Exception as exc:
+        logger.warning(f'[TaskState] 清"本轮已完成"失败'
+                       f'({type(exc).__name__}: {exc}), 忽略')
+        return 0
 
 
 def _loop_item(data: dict, config_name: str):

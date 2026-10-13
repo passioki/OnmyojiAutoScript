@@ -125,9 +125,8 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
         #   改造前这里只读配置, 界面上的"次数"输入框完全无效。
         self.bind_counter()
         self.limit_count = int(self.limit_count or 0)
-        limit_time = self._config.hyakkiyakou_config.hya_limit_time
-        self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute,
-                                               seconds=limit_time.second)
+        # ★ 片 2: 统一到 `scheduler.expected_minutes`
+        self.limit_time: timedelta = self.time_limit
         self.goto_page(page_onmyodo)
         self.switch_onmyoji(self._config.hyakkiyakou_config.hya_onmyoji)
         self.goto_page(page_hyakkiyakou)

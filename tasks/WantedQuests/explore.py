@@ -85,14 +85,14 @@ class WQExplore(BaseExploration, HighLight):
                 # boss
                 if self.appear(self.I_BOSS_BATTLE_BUTTON):
                     if self.fire(self.I_BOSS_BATTLE_BUTTON):
-                        logger.info(f'Boss battle, minions cnt {self.minions_cnt}')
+                        logger.info(f'Boss battle, minions cnt {self.battle_count}')
                         _cnt_exploration += 1
                         explore_only_boss = False
                     continue
                 # 小怪
                 if self.appear(self.TEMPLATE_GIF) and self.fire(self.TEMPLATE_GIF):
                     explore_only_boss = False
-                    logger.info(f'Fight, minions cnt {self.minions_cnt}')
+                    logger.info(f'Fight, minions cnt {self.battle_count}')
                     continue
                 # 向后拉,寻找怪
                 if search_fail_timer.reached():

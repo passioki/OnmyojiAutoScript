@@ -103,13 +103,13 @@ class SoloExploration(BaseExploration):
                 # boss
                 if self.appear(self.I_BOSS_BATTLE_BUTTON):
                     if self.fire(self.I_BOSS_BATTLE_BUTTON):
-                        logger.info(f'Boss battle, minions cnt {self.minions_cnt}')
+                        logger.info(f'Boss battle, minions cnt {self.battle_count}')
                     continue
                 # 小怪
                 fight_button = self.search_up_fight()
                 if fight_button is not None:
                     if self.fire(fight_button):
-                        logger.info(f'Fight, minions cnt {self.minions_cnt}')
+                        logger.info(f'Fight, minions cnt {self.battle_count}')
                     continue
                 # 向后拉,寻找怪
                 if search_fail_timer.reached():
@@ -209,13 +209,13 @@ class SoloExploration(BaseExploration):
                 # boss
                 if self.appear(self.I_BOSS_BATTLE_BUTTON):
                     if self.fire(self.I_BOSS_BATTLE_BUTTON):
-                        logger.info(f'Boss battle, minions cnt {self.minions_cnt}')
+                        logger.info(f'Boss battle, minions cnt {self.battle_count}')
                     continue
                 # 小怪
                 fight_button = self.search_up_fight()
                 if fight_button is not None:
                     if self.fire(fight_button):
-                        logger.info(f'Fight, minions cnt {self.minions_cnt}')
+                        logger.info(f'Fight, minions cnt {self.battle_count}')
                     continue
                 # 向后拉,寻找怪
                 if search_fail_timer.reached():

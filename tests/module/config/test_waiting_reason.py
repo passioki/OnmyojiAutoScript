@@ -84,8 +84,18 @@ class TestStaleNextRunIsRepaired:
         """★★ 实测: `/overview` 里**不该**再出现「等待到点」。"""
         from module.server import schema_router as SR
         rows = SR.build_overview('恋鸟树').get('tasks') or []
+        # ★★★ 2026-10-12：**`slot == 'done'`（本轮已完成）不算"等待到点"** ★★★
+        #
+        # > 用户报的 bug："**个人突破被标记为了【等待到点】**，
+        # >  也就是**无法被再次运行了**"
+        #
+        # ★ 修法：★ `update_scheduler()` 把"本轮已完成"的条目标 `slot='done'`，
+        #   `schema_router` 单独成桶 ⇒ ★ **它不再混进 `waiting`**。
+        # ⇒ ★ 本测试要排除它们（★ 它们的 `reason` 是"已完成（本轮）"，
+        #   不是"未到开放时间"）。
         bad = [(r['command'], r.get('period'))
-               for r in rows if r.get('reason') == '等待到点']
+               for r in rows
+               if r.get('reason') == '等待到点' and r.get('slot') != 'done']
         assert not bad, (
             '★ 仍有任务显示「等待到点」: ' + str(bad) + '\n'
             '  （它们的窗口此刻应当是开放的, 却因为坏 next_run 被归入 waiting）')
@@ -102,6 +112,10 @@ class TestStaleNextRunIsRepaired:
             if r.get('enable') is not True:
                 continue
             assert r.get('in_window') is True, r
+            # ★ 2026-10-12：`slot == 'done'`（本轮已完成）允许有 reason
+            #   —— ★ 那是"已完成（本轮）"，不是"未到开放时间"。
+            if r.get('slot') == 'done':
+                continue
             assert not r.get('reason'), (
                 f'★ {task}: 全天窗口开着, reason 不该是 {r.get("reason")!r}')
 

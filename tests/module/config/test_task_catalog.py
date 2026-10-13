@@ -95,9 +95,15 @@ class TestCountFieldAdaptation:
 
     @pytest.mark.parametrize('task,native,unified', [
         ('FallenSun', 'limit_count', 'limit_count'),
-        ('Exploration', 'minions_cnt', 'limit_count'),
-        ('Hyakkiyakou', 'hya_limit_count', 'limit_count'),
-        ('RealmRaid', 'number_attack', 'limit_count'),
+        # ★★ 片 1: 这两个别名也**已统一**（次数只在 `scheduler.target`,
+        #   原配置字段 `minions_cnt` / `hya_limit_count` **已删除**）★★
+        ('Exploration', 'limit_count', 'limit_count'),
+        ('Hyakkiyakou', 'limit_count', 'limit_count'),
+        # ★★ RealmRaid **已统一**（本次改动）★★
+        # 原 `('RealmRaid', 'number_attack', 'limit_count')` ——
+        #   审计证实 `number_attack` 是**死字段**（全仓 0 处读配置值），
+        #   已改名为 `limit_count`（带 `validation_alias` 接受旧键）。
+        ('RealmRaid', 'limit_count', 'limit_count'),
     ])
     def test_native_and_unified_field(self, task, native, unified):
         m = TC.get(task)
@@ -117,8 +123,11 @@ class TestCountFieldAdaptation:
         assert m.countable is False
 
     def test_needs_unify_list(self):
-        assert sorted(m.task for m in TC.needs_unify_tasks()) == [
-            'Exploration', 'Hyakkiyakou', 'RealmRaid']
+        # ★★ 片 1 收尾: **全部统一，列表应为空** ★★
+        # 14 个任务配置里的次数字段（`limit_count` / `minions_cnt` /
+        # `hya_limit_count` / `number_attack`）**已全部删除**,
+        # 次数只住在 `scheduler.target` / `RunEntry.target`。
+        assert sorted(m.task for m in TC.needs_unify_tasks()) == []
 
 
 class TestCountable:

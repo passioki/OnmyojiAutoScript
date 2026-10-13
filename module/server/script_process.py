@@ -55,11 +55,66 @@ class ScriptProcess(ScriptWSManager):
         #
         #   读端是**同一个属性对象**, 所以已经跑着的协程会自动用上新管道。
         self._renew_log_pipe()
+        # ★★★ 片 11: **启动脚本【不碰】调度状态**（用户裁定 —— 纠正我的设计）★★★
+        #
+        # ## ★★ 用户原话 ★★
+        #
+        # > "我改变主意了，这个**暂停调度/恢复调度**不是集成到**任务运行行里的
+        # >  按钮**上了吗，**这应该是 bug，不应该给别的按钮添加该功能造成混淆**。"
+        # > "**不要加手动重置**，这个重置功能**本来就应该在已有的按钮中**啊"
+        #
+        # ## 我原来错在哪
+        #
+        # ★ 我在 `start()` 里加了 `run_control.clear_all()`（清掉暂停/休息/延后）
+        #   ⇒ ★ 让**「启动脚本」按钮**也承担了"恢复调度"的职责
+        #   ⇒ 与"暂停/恢复只能由**队列行那个按钮**干"**冲突**，造成混淆。
+        #
+        # ## 现在（正确职责划分）
+        #
+        # | 按钮 | 唯一职责 | **不碰** |
+        # |---|---|---|
+        # | ★ `[▶]/[⏸]`（**队列行**）| 暂停 / 恢复调度 + 播放头 | — |
+        # | `[▶ 启动脚本]`（顶部）| ★ **只启停脚本进程** | ✗ 暂停状态 |
+        # | 添加 / 清空 / 播放模式 | 只改队列 / 模式 | ✗ 暂停状态 |
+        #
+        # ⇒ ★ **暂停标记是落盘的、跨进程存活的** —— 这**是正确行为**：
+        #   用户点「启动脚本」后仍是暂停态，要靠**队列行那个 `[▶]`** 恢复。
+        # ★★★ 子进程**不弹黑色命令行窗口**（用户报的 bug）★★★
+        #
+        # ## ★★ 用户原话 ★★
+        #
+        # > "另外启动脚本后，出现了**一个黑色的命令行窗口**，检查一下，
+        # >  把他**隐藏掉**。"
+        #
+        # ## 为什么会弹
+        #
+        # ★ Windows 上 `multiprocessing` 用 `spawn` 启动子进程时，
+        #   会**新建一个控制台窗口**（除非父进程已经是"无控制台"的
+        #   GUI 程序 —— 而本服务常常是从控制台 / IDE 启动的）。
+        # ★ 子进程本身**不需要**控制台（日志走 `log_pipe`，
+        #   状态走 `state_queue`）⇒ 直接给它 `CREATE_NO_WINDOW`。
+        #
+        # ## 实现
+        #
+        # ★ `subprocess.CREATE_NO_WINDOW` 在 Windows 上会被
+        #   `multiprocessing` 透传给 `CreateProcess`。
+        # ★ 非 Windows 平台**没有**这个常量 ⇒ 用 `getattr` 兜底，
+        #   保证跨平台不报错（本项目主要跑 Windows，但别写死）。
+        _flags = 0
+        try:
+            import subprocess as _sp
+            _flags = getattr(_sp, 'CREATE_NO_WINDOW', 0)
+        except Exception:
+            _flags = 0
+
         self._process = multiprocessing.Process(
             target=func,
             args=(self.config_name, self.state_queue, self.log_pipe_in,),
             name=self.config_name,
             daemon=True)
+        # ⚠ `creationflags` 只能在**启动前**设（它是进程属性，不是 start() 参数）
+        if _flags:
+            self._process.creationflags = _flags
         self._process.start()
         # 子进程起来之后再置 RUNNING, 并广播
         self.state = ScriptState.RUNNING

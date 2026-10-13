@@ -27,13 +27,8 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
 
     def run(self) -> None:
         self.conf = self.config.hero_test
-        self.limit_time: timedelta = self.conf.herotest.limit_time
-        if isinstance(self.limit_time, time):
-            self.limit_time = timedelta(
-                hours=self.limit_time.hour,
-                minutes=self.limit_time.minute,
-                seconds=self.limit_time.second,
-            )
+        # ★ 片 2: 统一到 `scheduler.expected_minutes`
+        self.limit_time: timedelta = self.time_limit
         # ★ 次数走统一入口 `bind_counter()`:
         #   恢复磁盘计数 + 设定 `self.limit_count`
         #   (= `scheduler.target` 或任务配置默认值)。

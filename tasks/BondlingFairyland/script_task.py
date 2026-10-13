@@ -629,12 +629,10 @@ class ScriptTask(GameUi, GeneralInvite, GeneralRoom, BondlingBattle, SwitchSoul,
             return BondlingClass.AZURE_BASAN
         return None
 
-    @cached_property
-    def limit_time(self) -> timedelta:
-        if not self.config.bondling_fairyland.bondling_config.limit_time:
-            return timedelta(minutes=20)
-        limit_time = self.config.bondling_fairyland.bondling_config.limit_time
-        return timedelta(hours=limit_time.hour, minutes=limit_time.minute, seconds=limit_time.second)
+    # ★ 片 2: 原本这里是个 `cached_property limit_time`, 把配置里的
+    #   `Time` 转成 `timedelta`（默认 20 分钟）。
+    #   ★ 已删除 —— 时间上限统一到 `scheduler.expected_minutes`,
+    #     由 `BaseTask.time_limit` 提供（15 个任务共用一处逻辑）。
 
     def run_alone(self):
         """

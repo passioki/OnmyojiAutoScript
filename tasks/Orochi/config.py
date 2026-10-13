@@ -39,10 +39,6 @@ class OrochiConfig(ConfigBase):
     user_status: UserStatus = Field(default=UserStatus.LEADER, description='user_status_help')
     # 层数
     layer: Layer = Field(default=Layer.ELEVEN, description='layer_help')
-    # 限制时间
-    limit_time: Time = Field(default=Time(minute=30), description='limit_time_help')
-    # 限制次数
-    limit_count: int = Field(default=30, description='limit_count_help')
     # 是否开启御魂加成
     soul_buff_enable: bool = Field(default=False, description='soul_buff_enable_help')
     # 是否御魂结束检测是否出现真蛇

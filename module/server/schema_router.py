@@ -298,12 +298,64 @@ def _global_fields(config_name: str = '') -> dict:
     #
     # ★ 所以这里**不再暴露 `priority_mode` / `drag_within_group_only`**。
     #   排序改成**一个动作**（`PUT /{script}/queue/sort`）, 见下面的端点。
+    # ★★★ 片 5（P1-P3）: 这套字段现在表达的是「**播放模式**」（歌单）★★★
+    #
+    # ## ★★ 用户裁定（原话）★★
+    #
+    # > "甚至可以直接**照抄音乐播放列表的方式**：**顺序、循环、乱序**等等"
+    # > "**P1 取代**，**顺序**意味着**跑一次就会停，停的默认动作就是返回庭院**。
+    # >  **循环**就是刚刚实现的循环，**P2 乱序就是随机挑一个可跑的**。"
+    #
+    # ⇒ ★ 三个模式**语义映射**（老值保留 -> 老配置仍合法）:
+    #
+    # | 模式（界面名）| 存的值 | 行为 |
+    # |---|---|---|
+    # | ★ **顺序** | `goto_main` | 跑一次就停；**停的默认动作 = 返回庭院** |
+    # | ★ **循环** | `loop` | 跑完最后一条**从头再来**（可配轮数）|
+    # | ★ **乱序** | `shuffle` | ★ **随机挑一个可跑的** |
+    #
+    # ⚠ `close_game`（关闭游戏）**不在新界面暴露**（用户裁定 P1 = 取代），
+    #   但**仍是合法值** —— 老配置里若有它，`Function` 侧照旧工作，不会报错。
+    # ★★★ ⑥: **下拉只留短词**（用户裁定 2026-10-11）★★★
+    #
+    # ## ★★ 用户原话 ★★
+    #
+    # > "现在:  播放模式  [顺序（跑一次就停，回庭院） ▾]
+    # >  改成:            [顺序 ▾]     ← **只留下拉，去掉括号内的解释说明**，
+    # >  即使要说明也应该是**指针悬停说明**"
+    #
+    # ⇒ ★ 选项文字**只留两三个字的短词**；解释**移到悬停**。
+    # ★ 悬停文案由后端单独给（`queue_hints`），前端把它挂成 `Tooltip` ——
+    #   这样"改解释"不用动前端（与"数据驱动"的既定做法一致）。
     queue_labels = {
-        WhenTaskQueueEmpty.GOTO_MAIN.value: '回庭院待命',
+        # ★ 顺序 = 跑一次就停（停 = 回庭院）
+        WhenTaskQueueEmpty.GOTO_MAIN.value: '顺序',
+        # ★ 保留但**不暴露给新界面**（老配置兼容）
         WhenTaskQueueEmpty.CLOSE_GAME.value: '关闭游戏',
-        # ★ P-3（用户裁定）: 队列整体循环 —— "跑完最后一条后从头再来"
-        WhenTaskQueueEmpty.LOOP.value: '队列循环',
+        # ★ 循环 = 跑完从头再来
+        WhenTaskQueueEmpty.LOOP.value: '循环',
+        # ★ 乱序 = 随机挑一个可跑的
+        WhenTaskQueueEmpty.SHUFFLE.value: '乱序',
     }
+    # ★ 每个模式的**悬停说明**（用户: "即使要说明也应该是指针悬停说明"）
+    queue_hints = {
+        WhenTaskQueueEmpty.GOTO_MAIN.value:
+            '**顺序** —— 队列跑一遍就停（停 = 回庭院）。\n'
+            '★ 想再跑要手动启动。',
+        WhenTaskQueueEmpty.LOOP.value:
+            '**循环** —— 队列跑完最后一条，**从头再来**一遍。',
+        WhenTaskQueueEmpty.SHUFFLE.value:
+            '**乱序** —— 每轮从**当前可跑**的任务里**随机挑一个**，\n'
+            '★ 不是固定顺序（适合"随便跑哪个都行"的场景）。',
+        WhenTaskQueueEmpty.CLOSE_GAME.value:
+            '**关闭游戏**（旧配置兼容，新界面不暴露）',
+    }
+    # ★ 新界面**只暴露三种播放模式**（P1 = 取代"跑空后"）
+    _playlist_modes = (
+        WhenTaskQueueEmpty.GOTO_MAIN,
+        WhenTaskQueueEmpty.LOOP,
+        WhenTaskQueueEmpty.SHUFFLE,
+    )
 
     return {
         # ---- 两个总开关 ----
@@ -318,16 +370,21 @@ def _global_fields(config_name: str = '') -> dict:
         #   新名直接说清判据: **有没有周期记忆**。
         'enable_fixed': {
             'group': 'script.optimization', 'field': 'enable_fixed',
-            'type': 'boolean', 'label': '启用临时任务',
+            'type': 'boolean',
+            # ★ L2 开关文字**简洁化**（用户: "节省UI空间"）
+            'label': '临时',
             'current': bool(_opt_value(config_name, 'enable_fixed', True)),
-            'help': '临时任务 = **没有周期记忆**（`period=none`）的任务, '
+            'help': '**启用临时任务**\n'
+                    '临时任务 = **没有周期记忆**（`period=none`）的任务, '
                     '想跑就跑, 不按周期重置',
         },
         'enable_timed': {
             'group': 'script.optimization', 'field': 'enable_timed',
-            'type': 'boolean', 'label': '启用周期任务',
+            'type': 'boolean',
+            'label': '周期',
             'current': bool(_opt_value(config_name, 'enable_timed', True)),
-            'help': '周期任务 = **有周期记忆**（`period` = 每天/每周）的任务, '
+            'help': '**启用周期任务**\n'
+                    '周期任务 = **有周期记忆**（`period` = 每天/每周）的任务, '
                     '到周期才该再做一次',
         },
         # ★★ S6: 调度优先级三模式 **已删除**（用户裁定）★★
@@ -342,23 +399,51 @@ def _global_fields(config_name: str = '') -> dict:
         #   （它们原来被并进 `priority_mode`, 现在整簇都没了）。
         'rest_interleave': {
             'group': 'script.optimization', 'field': 'rest_interleave',
-            'type': 'boolean', 'label': '休息时可穿插定时任务',
+            'type': 'boolean',
+            # ★★★ L2 第三个开关：**文字简洁化**（用户裁定）★★★
+            #
+            # ## ★★ 用户原话 ★★
+            #
+            # > "其它功能按钮的文字也要像我上条发你那样**简洁**哈，**节省UI空间**"
+            # > "解释说明用 **tooltip** 来展示"
+            # > "L2 **休息时可穿插**"
+            #
+            # ★ 原来 label 是"休息时可穿插**定时任务**"（长了 4 个字）
+            #   ⇒ ★ 改为 **`休息时可穿插`**（与 L2 另两个开关同长）；
+            #   ★ "穿插什么、判据是什么"**全部移进 `help`（悬停显示）**。
+            'label': '休息时可穿插',
             'current': bool(_opt_value(config_name, 'rest_interleave', False)),
-            'help': '判据: 定时任务的预期完成时间 < 休息剩余时间。'
-                    '用于保护组队任务（避免在庭院干等）。'
-                    '默认关 —— 因为"预期完成时间"没配(为 0)时不能瞎比。',
+            # ★ 悬停说明（把原来的判据 + 解释都放这里）
+            'help': '**休息**条目执行时，是否允许**周期任务插进来先跑**。\n'
+                    '★ 判据: 周期任务的**预期完成时间 < 休息剩余时间**\n'
+                    '（只让"能在休息结束前跑完"的任务插队 —— 保护组队任务，'
+                    '避免在庭院干等）。\n'
+                    '★ 默认**关** —— 因为"预期完成时间"没配（为 0）时不能瞎比。',
         },
         # ---- 杂项 ----
         'when_task_queue_empty': {
             'group': 'script.optimization',
             'field': 'when_task_queue_empty',
-            'type': 'string',
-            'label': '队列跑空后',
+            # ★ 片 5 (P1): 改名 + 只暴露三种播放模式
+            'label': '播放模式',
+            # ★★★ ⑥: 字段级 `help` = 下拉**整体**的悬停说明 ★★★
+            #   （用户: "去掉括号内的解释说明，即使要说明也应该是指针悬停说明"）
+            'help': '队列怎么循环播放（歌单）。\n'
+                    '★ 每个模式的具体含义见**选项上的悬停**。',
             'current': str(_opt_value(config_name, 'when_task_queue_empty',
                                       WhenTaskQueueEmpty.GOTO_MAIN.value)),
+            # ★ 只给三种模式（`close_game` 仍是合法值, 只是**不在新界面**）
+            #
+            # ★★★ ⑥: 选项**只给短词 label**；解释放 `hint`
+            #   ⇒ 前端把 `hint` 挂成该选项的 `Tooltip`（**指针悬停说明**）。
             'choices': [
-                {'value': k.value, 'label': queue_labels.get(k.value, k.value)}
-                for k in WhenTaskQueueEmpty
+                {
+                    'value': k.value,
+                    'label': queue_labels.get(k.value, k.value),
+                    # ★ 悬停说明（后端给 —— 改文案不用动前端）
+                    'hint': queue_hints.get(k.value, ''),
+                }
+                for k in _playlist_modes
             ],
         },
         # ★★★ P-3b: 循环**跑几轮**（用户裁定）★★★
@@ -459,13 +544,30 @@ def build_overview(config_name: str) -> dict:
     except Exception as exc:
         logger.warning(f'overview: update_scheduler 失败: {exc}')
 
-    # 当前在哪个桶里(pending=可跑 / waiting=等待)
+    # 当前在哪个桶里(pending=可跑 / done=本轮已完成 / waiting=未到开放时间)
+    #
+    # ★★★ 2026-10-12 用户报的 bug：**"个人突破被标成【等待到点】"** ★★★
+    #
+    # > "还发现了**个人突破被标记为了【等待到点】**，也就是**无法被再次运行了**"
+    #
+    # ★ 根因：★ 原来只有两个桶 ⇒ ★ **"本轮已完成"和"未到开放时间"混在一起**
+    #   ⇒ ★ 前端把 `slot != 'pending'` 统统显示为"未到开放时间"。
+    # ★ 修法：★ 第三个桶 **`done`** —— ★ "本轮已完成"（次数用满 / 门票耗尽）。
+    #   ★ 条目**仍留在 `pending_task`** 里（只是 `slot='done'`，
+    #     见 `update_scheduler` 的 `_skip_by_completed` 分支）
+    #   ⇒ ★ 这样它**不占 `waiting`**，界面能正确显示"已完成（本轮）"。
     slot_of = {}
-    for bucket, attr in (('pending', 'pending_task'), ('waiting', 'waiting_task')):
+    for bucket, attr in (('pending', 'pending_task'),
+                         ('waiting', 'waiting_task')):
         for f in getattr(config, attr, None) or []:
             cmd = getattr(f, 'command', None)
             if cmd:
                 slot_of[cmd] = bucket
+    # ★ 已完成（本轮）—— 覆盖掉"它在 pending 桶里"的判断
+    for f in getattr(config, 'pending_task', None) or []:
+        cmd = getattr(f, 'command', None)
+        if cmd and str(getattr(f, 'slot', '') or '') == 'done':
+            slot_of[cmd] = 'done'
 
     model_dump = config.model.model_dump()
     rows = []
@@ -654,11 +756,37 @@ def build_overview(config_name: str) -> dict:
             # ★ 修法: 补上**第四态** `不在执行队列`（并说清怎么办）。
             #   ⚠ 顺序很重要: "不在队列"要排在"等待到点"**之前**判断 ——
             #     否则队列外的任务永远命中不了这一态。
+            # ★★★ 2026-10-12 用户裁定：**临时任务不能有"等待到点"这种状态** ★★★
+            #
+            # ## ★★ 用户实测
+            #
+            # > "**个人突破运行过后被标为了[等待到点]，这个状态不对。**
+            # >  **所有的临时任务都不能有这种状态**。请排查原因给我答复。"
+            #
+            # ## ★★ 根因（★ 我用真实 API 数据定位到）
+            #
+            # ```
+            # RealmRaid: slot=done  reason='等待到点'  can_run=False
+            #          ↑ 桶【对的】        ↑ 文案【错的】
+            # ```
+            # ★ `slot='done'`（本轮已完成）**没有分支** ⇒ ★ 落到最后的
+            #   `else '等待到点'` ⇒ ★★ **"本轮已完成"被说成"未到开放时间"**。
+            #
+            # ## ★ 设计依据（§1.5-C3 / §1.2）
+            #
+            # ★ "本轮完成"= ★ **次数用满 / 门票耗尽 / 任务自报**
+            #   ⇒ ★ **不是"时间没到"** ⇒ ★ **临时任务不该出现"等待到点"**。
+            #
+            # ## ★ 修法
+            #
+            # ★ 补 **`done` 分支**（★ 排在最后判断，★ 但它**优先于**"等待到点"）。
             'reason': window_reason or (
                 '' if can_run
-                else ('未启用' if not enabled
-                      else ('不在执行队列' if command not in queued_commands
-                            else '等待到点'))),
+                else ('已完成（本轮）' if slot == 'done'
+                      else ('未启用' if not enabled
+                            else ('不在执行队列'
+                                  if command not in queued_commands
+                                  else '等待到点')))),
             'in_window': in_window,
             'countable': bool(meta.countable) if meta else False,
             # ★★ **用户编排的次数**（`scheduler.target`）★★
@@ -679,7 +807,9 @@ def build_overview(config_name: str) -> dict:
             #   曾经这里写 `value.get('limit_count')`, 于是**所有任务都返回 None**
             #   （因为值嵌套在子 dict 里）—— 界面上就看不到默认次数。
             #   现在用与 `effective_target` 同一套遍历。
-            'count': _count_from_value(meta, value),
+            # ★ 片 1: 传 `sch` —— 次数统一到 `scheduler.target` 后,
+            #   配置树里已没有次数字段; 只按字段名找会**全变 None**。
+            'count': _count_from_value(meta, value, sch),
             # ★ **实际生效的次数**: 三级回落（`scheduler.target` > 任务配置 > 默认）。
             #
             #   界面上该显示的是**真正会用的那个** —— 否则用户改了 `target`
@@ -746,15 +876,34 @@ def _spec_of(meta):
         return None
 
 
-def _count_from_value(meta, value: dict):
+def _count_from_value(meta, value: dict, sch: dict = None):
     """
-    任务配置里的次数（**按字段名遍历嵌套 dict**）。
+    任务**默认/实际**次数（供界面显示）。
 
-    ★ 这里曾经是 `value.get('limit_count')` —— 于是**所有任务都返回 None**,
-      因为值嵌套在子 dict 里（`orochi_config.limit_count` /
-      `bondling_config.limit_count` / …）。界面上就看不到默认次数。
+    ★★ 片 1 收尾: 优先返回**调度器实际会用的次数** ★★
 
-    ★★ 两个字段名都要试 ★★
+    用户裁定"次数全部统一为 `target`" ⇒ 片 1 **删掉了 14 个任务配置里的
+    次数字段**（`limit_count` / `minions_cnt` / `hya_limit_count` /
+    `number_attack`）⇒ 那些字段**在配置树里已不存在**。
+
+    ⇒ 若还只按字段名去找, `count` 会**全部变成 `None`**
+      （★ 实测: 界面上所有可计数任务的次数都空了 —— 被
+       `tests/module/server/test_schema_router.py` 抓到）。
+    ⇒ 现在的取值顺序:
+      1. ★ `scheduler.target > 0`（用户设的 = **实际会用**的值）
+      2. 任务配置里**遗留**的字段（兼容极少数仍自带字段的任务）
+      3. ★ `meta.count_default`（**出厂默认**，来自
+         `dev_tools/gen_task_catalog.py` 的 `FACTORY_COUNT_DEFAULT`）
+
+    ★ 语义: `count` = "任务默认/实际次数"（界面参考值）,
+      `effective_target` = "本次真正会用"。片 1 之后两者在
+      "用户设了 target"时**相同** —— 这是**预期**的（次数只有一个真源）。
+
+    ## 历史（保留，说明为什么以前要遍历嵌套）
+
+    这里曾经是 `value.get('limit_count')` —— 于是**所有任务都返回 None**,
+    因为值嵌套在子 dict 里（`orochi_config.limit_count` /
+    `bondling_config.limit_count` / …）。界面上就看不到默认次数。
 
     各任务的字段名不统一, 而且 `meta` 上正好有**两个**:
 
@@ -762,13 +911,18 @@ def _count_from_value(meta, value: dict):
     |---|---|---|
     | `count_field` | 任务**实际用的**字段名 | `number_attack` / `minions_cnt` / `hya_limit_count` |
     | `count_field_effective` | **归一化后**的名字 | `limit_count` |
-
-    只查归一化名会漏掉那三个用别名的任务
-    （`RealmRaid` / `Exploration` / `Hyakkiyakou` —— 实测 `count` 全为 `None`）。
-    所以**先查实际名, 再查归一化名**。
     """
     if meta is None or not meta.countable:
         return None
+    # ① ★ 调度器里用户设的（= 实际会用）
+    if isinstance(sch, dict):
+        try:
+            t = int(sch.get('target', 0) or 0)
+        except (TypeError, ValueError):
+            t = 0
+        if t > 0:
+            return t
+    # ② 任务配置里**遗留**的字段（先查实际名, 再查归一化名）
     for field in (getattr(meta, 'count_field', None),
                   getattr(meta, 'count_field_effective', None)):
         if not field:
@@ -776,7 +930,12 @@ def _count_from_value(meta, value: dict):
         v = _find_in_mapping(value, field)
         if isinstance(v, int):
             return v
-    return None
+    # ③ ★ 出厂默认值（源字段已删 -> 这是"任务默认"仅剩的来源）
+    d = getattr(meta, 'count_default', None)
+    try:
+        return int(d) if d is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _failure_fields(config_name: str, command: str, now=None) -> dict:
@@ -1058,15 +1217,71 @@ async def get_run_list(script_name: str):
     """
     try:
         from module.server.main_manager import mm
+        from module.config import task_state as _ts
         config = mm.config_cache(script_name)
         rl = config.build_run_list()
         b = rl.blocking_entry()
+        # ★★★ 片 5 (F2): 给每条条目带上**已运行次数**与**是否正在运行** ★★★
+        #
+        # ## ★★ 用户裁定 ★★
+        #
+        # > "由于现在是**流转的运行**，那么就会出现**运行过，状态标记为已运行X次**"
+        # > "这种正在运行的状态**不是在[队首]**，而是在当前'正在播放'的'音乐'上"
+        #
+        # ★ 所以界面需要两个东西（**都在这里给**，前端不必自己拼）:
+        #   * `runs`      —— ★ 该条目**已经跑了几次**（条目级, `task_state` 落盘）
+        #   * `running`   —— ★ 这一条**此刻是不是正在运行**
+        #
+        # ★ "是不是正在运行"的判据 = `running_entry_id`（P-1 落盘的**条目身份**）
+        #   优先；拿不到就退回按任务名比（老的 `running_task`）。
+        #   "**身份，不是位置**"（`docs/scheduler-architecture.md` §1.5）。
+        try:
+            running_eid = str(
+                getattr(config.model, 'running_entry_id', '') or '').strip()
+            running_task = str(
+                getattr(config.model, 'running_task', '') or '').strip()
+        except Exception:
+            running_eid, running_task = '', ''
+        entries = []
+        for e in (rl.to_list() or []):
+            if not isinstance(e, dict):
+                continue
+            e = dict(e)
+            eid = str(e.get('entry_id') or '')
+            # ★★★ 两份记录（用户裁定 2026-10-11）★★★
+            #
+            # > "一份**临时记录**只保留到当前（任务/周期）结束，
+            # >  **另一份共用的总记录**用于**结果展示**。"
+            #
+            # | 字段 | 内容 | 生命周期 | 谁用 |
+            # |---|---|---|---|
+            # | `runs` | **本轮/本周期**已跑几次 | 新一轮/新周期**清零** | 判据（`_skip_by_count`）|
+            # | ★ `total_runs` | **累计**跑过几次 | ★ **永不清零** | ★ 界面展示 / 归档 |
+            #
+            # ⚠ 界面必须读 **`total_runs`** —— 若读 `runs`，
+            #   新一轮清零时"已运行 N 次"会**跟着归零**（用户要的是历史）。
+            try:
+                e['runs'] = _ts.get_entry_runs(script_name, eid) if eid else 0
+                e['total_runs'] = (
+                    _ts.get_entry_total_runs(script_name, eid) if eid else 0)
+            except Exception:
+                e['runs'] = 0
+                e['total_runs'] = 0
+            if running_eid:
+                e['running'] = bool(eid) and eid == running_eid
+            else:
+                e['running'] = (str(e.get('kind')) == 'task'
+                                and str(e.get('task') or '') == running_task)
+            entries.append(e)
         return {
             'script': script_name,
-            'entries': rl.to_list(),
+            'entries': entries,
             'task_order': rl.task_order(),
             'blocking': b.to_dict() if b is not None else None,
             'count': len(rl),
+            # ★ 也直接给一份"正在跑的条目身份"，便于前端做整行高亮
+            'running_entry_id': running_eid,
+            'running_task': running_task,
         }
     except Exception as exc:
         logger.exception(exc)
@@ -1445,6 +1660,56 @@ async def post_queue_remove(script_name: str, data: dict = Body(...)):
             new_rl = RunList(kept)
             if not config.save_run_list(new_rl):
                 return {'error': '保存运行列表失败(见日志)'}
+
+        # ★★★ 2026-10-12 用户裁定「D7.4 乙」：**移除正在运行的那条 ⇒ 真的停掉** ★★★
+        #
+        # ## ★★ 用户原话
+        #
+        # > "在我把**正在运行的任务移除队列**时，**后台没有变化**，
+        # >  仍然在运行先前的任务。"
+        # > 裁定：★ **乙**（★ 真的停掉它并推进到下一条）
+        #
+        # ## ★ 机制（复用 `should_stop_battle_loop` 的安全点）
+        #
+        # ★ 移除的那条**正是** `running_entry_id` ⇒
+        #   ★ 把**播放头**指向"队列里剩下的第一条"（★ 若没有则指向空）
+        #   ⇒ ★ 正在跑的那条会在**本场跑完**时停下（★ `base_task` 的安全点）
+        #   ⇒ ★ 调度器下一轮就派发播放头那条 ⇒ ★ **推进到下一条**。
+        #
+        # ⚠ 只在"移除的是正在运行的那一条"时才动播放头 ——
+        #   ★ 移除别的条目**不该**打断当前任务。
+        _running_eid = ''
+        try:
+            _running_eid = str(
+                getattr(config.model, 'running_entry_id', '') or '')
+        except Exception:
+            _running_eid = ''
+        _hit_running = bool(
+            _running_eid and
+            ((entry_id and entry_id == _running_eid) or
+             (not entry_id and _running_eid in
+              [str(getattr(e, 'entry_id', '') or '') for e in rl
+               if getattr(e, 'task', None) == task])))
+        if _hit_running:
+            _next_eid = ''
+            for _e in kept:
+                if str(getattr(_e, 'kind', '') or '') in (
+                        'EntryKind.TASK', 'task'):
+                    _next_eid = str(getattr(_e, 'entry_id', '') or '')
+                    if _next_eid:
+                        break
+            try:
+                config.model.deep_set(config.model,
+                                      keys='force_next_entry_id',
+                                      value=_next_eid)
+                config.save()
+                logger.info(
+                    f'移除正在运行的条目 {_running_eid} -> '
+                    f'播放头指向 {_next_eid or "（空，跑完即停）"}'
+                    f'（本场跑完后切换）')
+            except Exception as exc:
+                logger.warning(f'移除运行中条目时设置播放头失败'
+                               f'({type(exc).__name__}: {exc}), 忽略')
 
         # ③ 判据见 docstring: **周期任务**才停用（否则会被自动补齐）
         key = convert_to_underscore(task)
@@ -1834,7 +2099,17 @@ async def get_queue_profiles(script_name: str):
 async def post_queue_profile(script_name: str, data: dict = Body(default={})):
     """**新建一页** —— 把**当前** `run_list` 存为新页并切过去。
 
-    :param data: {"name": "可选名字"}；不传则自动编号（1/2/3/…）
+    ## ★★ 片 5 (F3): 也支持「**复制**」某页（歌单）★★
+
+    ★ 用户要求（原话）：
+    > "目前对任务顺序配置页（歌单）的操作**少了一个复制**，后续需要添加这个功能"
+
+    ⇒ 传 `copy_from` = **源配置页的 id** 时，新页用**源页的快照**做模板
+      （而不是"当前状态"）—— 这就是"**复制歌单**"。
+
+    :param data: `{"name": "可选名字", "copy_from": "可选源页 id"}`
+                 * 都不传 = 把**当前**状态存为新页（原行为）
+                 * `copy_from` = 以**那一页**为模板复制
     """
     try:
         from module.server.main_manager import mm
@@ -1844,30 +2119,51 @@ async def post_queue_profile(script_name: str, data: dict = Body(default={})):
             return {'error': '配置里没有 optimization'}
 
         items = store['items']
+        copy_from = str((data or {}).get('copy_from') or '').strip()
+        # ★★★ 复制模式: 找源页, 用它的快照当模板 ★★★
+        src = None
+        if copy_from:
+            src = next((it for it in items
+                        if isinstance(it, dict)
+                        and str(it.get('id')) == copy_from), None)
+            if src is None:
+                return {'error': f'要复制的配置页不存在: {copy_from}'}
+
         # ★ 自动编号: 找第一个没被占用的正整数
         used = {str(it.get('name')) for it in items if isinstance(it, dict)}
         n = 1
         while str(n) in used:
             n += 1
-        name = str((data or {}).get('name') or n)
+        # ★ 复制时的默认名 = "源名 副本"（更像"复制歌单"）
+        default_name = (f'{src.get("name")} 副本' if src is not None else str(n))
+        name = str((data or {}).get('name') or default_name)
         pid = f'p{n}' + ('' if all(
             str(it.get('id')) != f'p{n}' for it in items) else f'_{len(items)}')
 
         # ★★★ 整页快照（用户裁定 1甲: "包含所有的功能"）★★★
         #
         # = 队列 + 每任务调度（启停/次数/优先级/预期耗时）+ 全局开关
-        snap = _make_snapshot(config)
+        # ★ 复制模式: 直接**深拷贝源页的快照**（不读"当前状态"）
+        if src is not None:
+            import copy as _copy
+            snap = _copy.deepcopy(src.get('snapshot') or {})
+            if not snap:
+                return {'error': f'源配置页「{src.get("name")}」没有快照, 无法复制'}
+        else:
+            snap = _make_snapshot(config)
         items.append({'id': pid, 'name': name, 'snapshot': snap})
         store['active_id'] = pid
 
         config.model.deep_set(
             config.model, keys='script.optimization.profiles', value=store)
         config.save()
-        n = len(snap['queue'])
+        n = len(snap.get('queue') or [])
+        verb = f'已复制「{src.get("name")}」为「{name}」' if src is not None \
+            else f'已新建配置页「{name}」'
         return {'ok': True, 'created': pid, 'name': name,
                 'count': n,
                 'profiles': _profiles_view(config),
-                'message': (f'已新建配置页「{name}」'
+                'message': (f'{verb}'
                             f'（{n} 条队列 · 含启停/次数/全局开关）')}
     except Exception as exc:
         logger.exception(exc)
@@ -2378,6 +2674,33 @@ async def get_queue_candidates(script_name: str):
             if _auto_queue_of(meta, config):
                 continue            # 自动进队列的 -> 不该出现在这里
 
+            # ★★★ 2026-10-12 用户裁定「D9」：**候选列表排除 `Rest`** ★★★
+            #
+            # ## ★★ 用户原话
+            #
+            # > "**我不是让你去掉底部的添加任务入口**！是**添加任务中有两个
+            # >  添加休息的方式**！点击添加任务后，出现窗口，里边有一个
+            # >  **休息**和一个**添加休息**！"
+            #
+            # ## ★ 根因
+            #
+            # ★ 「添加任务」弹窗里**已有**一个**专用**的「休息」入口
+            #   （★ 前端写死的 Card：「休息（去庭院待着）」⇒ 点了会**让用户
+            #     选分钟数**）。
+            # ★ 而本端点又把 `Rest` **当作普通任务**返回了一遍
+            #   （★ 它 `enable=True` + 非 `auto_queue`）
+            #   ⇒ ★★ 弹窗里出现**两个**"休息"：
+            #     * 专用入口（★ 能选分钟）
+            #     * 普通任务条目（★ **直接加进队列，不能选分钟**）
+            #
+            # ## ★ 修法
+            #
+            # ★ 候选列表**排除 `Rest`** —— ★ 它只走那个**专用入口**
+            #   （★ 否则用户从普通条目加进去，★ 分钟数只能落到任务级默认值，
+            #     正是"休息 5 分钟改不了"的来源之一）。
+            if str(command) == 'Rest' or str(key) == 'rest':
+                continue
+
             out.append({
                 'command': command,
                 'name': key,
@@ -2710,30 +3033,23 @@ async def put_pause(script_name: str, mode: str = 'battle', reason: str = ''):
     ⚠ 语义: 立即置位, 但脚本会在**安全点**(战斗 + 结算 + 领奖完成)才停 ——
     这样不会卡在半途(战斗中 / 组队房间中)。**不提供"立即停"**: 不安全。
 
-    ## ★★★ 暂停时会把**正在运行的任务退回队列首位**（用户裁定）★★★
+    ## ★★★ 暂停**不动队列顺序**（用户裁定 2026-10-11）★★★
 
-    用户原话:
-    > "**就把这个功能聚合到暂停调度按钮上好了**, 点击暂停调度,
-    >  正在运行的任务**自动回退到队列首位, 视作等待执行**, 这样是不是更优雅。"
+    > "这个**执行顺序就是个播放列表**，
+    >  **退回队首不应该是软件来操作的**。"
 
-    ★ 是更优雅 —— 它让"暂停"成为一个**完整的动作**:
-      停手（不派发新任务）+ 手头这个**退回队首待命**。
-    于是界面上**不再需要**单独的「取消任务」按钮（那个语义与暂停重复）。
-
-    ## 为什么"退回队首"是安全的（不会又跑起来）
-
-    ★ 顺序: **先置暂停** -> `is_paused()` 立刻为真。
-    正在跑的任务在安全点停下（`TaskPaused`）后, 调度循环回到
-    `_handle_run_control()`, 那里 `while is_paused(): sleep` **阻塞等待**
-    -> **不会**把队首刚退回的这个任务又派发一遍。
-    ★ 用户点「继续」后, 它在**队首**第一个跑（"视作等待执行"）。
+    ★ 旧的 P-1 设计会把正在跑的条目**插到 `run_list` 第 1 位** ——
+      那等于**软件擅自改动用户编排的顺序** ⇒ **已删除**。
+    ★ 现在：暂停 = **单纯的"停手"**（跑完当前这一场就不开新的了）；
+      条目**留在原位**、`enable` 不动、`next_run` 不动、**次数也留着**
+      ⇒ 点「继续」后**接着往下跑**。
 
     ## 不停用
 
-    ★ **不动 `enable`** —— 它不是移出队列, 只是"退回去等着"。
+    ★ **不动 `enable`** —— 它不是移出队列, 只是"停手了"。
       想让它以后都不跑, 用队列里的「移除」（周期任务会被停用）。
 
-    :return: 暂停状态 + `requeued`（退回了哪个任务, 没在跑则空）
+    :return: 暂停状态 + `requeued`（★ **恒为空字符串** —— 向后兼容旧调用方）
     """
     try:
         from module.config import run_control
@@ -2743,95 +3059,52 @@ async def put_pause(script_name: str, mode: str = 'battle', reason: str = ''):
         if mode not in (run_control.PAUSE_BATTLE, run_control.PAUSE_ROUND):
             return {'error': f'非法 mode: {mode!r}; 应为 battle / round'}
 
-        # ① 先置暂停（顺序关键 —— 见 docstring）
+        # ① 先置暂停
         st = run_control.request_pause(mode=mode, reason=reason)
 
-        # ② 把正在运行的任务退回 `run_list` 首位
-        requeued = ''
-        created = False
-        requeue_err = ''
-        try:
-            config = mm.config_cache(script_name)
-            task = str(getattr(config.model, 'running_task', '') or '').strip()
-            # ★★★ P-1: **优先按 `entry_id` 精确匹配**（用户裁定）★★★
-            #
-            # > "点击暂停调度, 正在运行的任务**自动回退到队列首位, 视作等待执行**"
-            #
-            # ## 为什么不能只按任务名找（实测踩到）
-            #
-            # 队列里同一任务可以有**多条条目**（用户用重复条目表达
-            # "重复跑整个任务"）。实测:
-            #   队列 = [Exploration(e1), Orochi(e2), Exploration(e3)]
-            #   正在跑 e3（第 2 条 Exploration）
-            #   ★ 只按任务名 -> `next(...)` 命中 **e1** -> **退错那一条**。
-            #
-            # ## 身份从哪来
-            #
-            # `script.py` 在任务开始运行时把 `self.config.task.entry_id`
-            # 落盘到 `model.running_entry_id`（脚本在独立进程, HTTP 端
-            # 拿不到内存 -> **必须落盘**）。
-            #
-            # ⚠ **向后兼容**: 老配置 / 拿不到 `entry_id` 时 -> 退回按任务名找
-            #   （那时的行为与改动前**完全一致**, 不会更糟）。
-            if task:
-                rl = config.build_run_list()
-                entries = list(rl)
-                # ★ 内存里的 `config.task` 最权威（与脚本同进程时可用）;
-                #   跨进程时用落盘的 `running_entry_id`。
-                eid = str(getattr(config.model, 'running_entry_id', '') or '').strip()
-                if not eid:
-                    try:
-                        eid = str(getattr(config.task, 'entry_id', '') or '').strip()
-                    except Exception:
-                        eid = ''
-
-                idx = None
-                if eid:
-                    idx = next((i for i, e in enumerate(entries)
-                                if str(getattr(e, 'entry_id', '') or '') == eid
-                                and getattr(e, 'task', None) == task), None)
-                    if idx is None:
-                        logger.info(f'按 entry_id={eid!r} 没找到条目 -> '
-                                    f'退回按任务名 {task!r} 找（向后兼容）')
-                if idx is None:
-                    idx = next((i for i, e in enumerate(entries)
-                                if getattr(e, 'task', None) == task), None)
-
-                if idx is None:
-                    entries.insert(0, RunEntry(task=task))
-                    created = True
-                elif idx != 0:
-                    entries.insert(0, entries.pop(idx))
-                if idx != 0:
-                    if not config.save_run_list(RunList(entries)):
-                        requeue_err = 'save_run_list 返回 False（见日志）'
-                requeued = task
-                # ★ P-1: "退回队首"= 视作**等待执行** —— 显式把 `next_run`
-                #   拉回现在, 不依赖"别处顺手修"（见 P-1 记录:
-                #   `Config.__init__` 的修坏值机制**恰好**也会做这件事,
-                #   但那是**巧合**, 不该由它承担语义）。
-                try:
-                    if config.scheduler_next_run_now(task):
-                        logger.info(f'「{task}」的 next_run 已拉回现在'
-                                    f'（视作等待执行）')
-                except Exception as exc:
-                    logger.debug(f'拉回 next_run 失败({type(exc).__name__}: {exc})')
-        except Exception as exc:
-            requeue_err = f'{type(exc).__name__}: {exc}'
-            logger.exception(exc)
+        # ★★★ 「退回队首」**已删除**（用户裁定 2026-10-11）★★★
+        #
+        # ## ★★ 用户原话 ★★
+        #
+        # > "这里的**退回队首是什么意思**，感觉咱们哪里沟通错了。
+        # >  这个**执行顺序就是个播放列表**，
+        # >  **退回队首不应该是软件来操作的**。"
+        #
+        # ## 原来错在哪（P-1 的旧设计）
+        #
+        # 旧实现（用户当时说"更优雅"）：
+        # ```
+        # 点暂停 -> 停手 + 把正在跑的条目【插到 run_list 第 1 位】
+        #        -> 点继续时它第一个跑
+        # ```
+        # ★ 代价：**软件擅自改动了用户编排的队列顺序** ——
+        #   而顺序是**用户的编排成果**（"执行顺序就是个播放列表"）。
+        #
+        # ## 现在（用户选 **甲**）
+        #
+        # > "甲：★ **原地不动**（还在第 2 条），只是'停手了'
+        # >   恢复时从它**接着**跑"
+        #
+        # ⇒ ★ **暂停 = 单纯的"停手"**：
+        #   * 不动 `run_list` 顺序
+        #   * 不动 `enable`
+        #   * 不动 `next_run`
+        #   * 正在跑的那一条**留在原位**，它的**次数也留着**
+        #     ⇒ 点「继续」后**接着它跑**（或按"次数用完即跳"的既有规则走）
+        #
+        # ★ 想换任务：用户自己**拖顺序**，或用行内的 `[▶]` 把**播放头**挪过去。
 
         out = dict(st) if isinstance(st, dict) else {'paused': True}
         out.update({
-            'requeued': requeued,
-            'requeued_created_entry': created,
-            'requeue_error': requeue_err,
+            # ★ 保留这几个键（**向后兼容**旧前端/旧调用方）—— 但**恒为空**
+            'requeued': '',
+            'requeued_created_entry': False,
+            'requeue_error': '',
         })
-        if requeued and not requeue_err:
-            out['message'] = (
-                f'已暂停调度。「{requeued}」已**退回队列首位**, 视作等待执行 —— '
-                f'它会**跑完当前这场战斗后**停下。\n'
-                f'★ **未停用**: 点「继续」后它第一个跑。\n'
-                f'（想让它以后都不跑, 请用队列里的「移除」）')
+        out['message'] = (
+            '已暂停调度 —— 跑完**当前这一场**就停手。\n'
+            '★ **队列顺序没有被改动**（执行顺序是你编排的播放列表）。\n'
+            '★ 点「继续」后会**接着往下跑**。')
         return out
     except Exception as exc:
         logger.exception(exc)
@@ -2849,6 +3122,14 @@ async def put_resume(script_name: str):
         return {'error': str(exc)}
 
 
+# ★ **不加**「手动重置运行控制状态」端点（用户裁定）★
+#
+# > "**不要加手动重置**，这个重置功能**本来就应该在已有的按钮中**啊"
+#
+# ★ 重置发生在 **`ScriptProcess.start()`** —— 也就是
+#   ★ **「启动脚本」按钮**里（用户点的那个）= "已有的按钮"。
+# ⇒ 不需要额外的入口/按钮。
+
 # ★★★ P-3b: 「重置循环计数」按钮（用户裁定 乙）★★★
 #
 # 用户原话:
@@ -2861,6 +3142,170 @@ async def put_resume(script_name: str):
 # ⚠ 为什么是"清 0"而不是"设成 `loop_times`":
 #   计数是"已经跑了几轮" —— 清 0 = "一轮都还没跑" = 可以再跑 N 轮。
 #   "设成 N" 会让 `已跑 >= 目标` 仍然成立 -> **还是不会跑**（是反的）。
+@schema_app.put('/{script_name}/run_control/entry_play')
+async def put_entry_play(script_name: str, data: dict = Body(default={})):
+    """★★ 片 5 (F2): **队列行上的「▶ 播放」** —— 让**这一条**立刻成为正在运行 ★★
+
+    ## ★★ 用户裁定（原话）★★
+
+    > "我还想添加一个按钮，**每个队列里的任务都有一个播放按钮**，
+    >  点一下就可以**切换成正在运行**。"
+
+    ## 做法（★ 与"乱序"同一手法，**不改调度核心**）
+
+    ★ "正在运行"由脚本的 `get_next()` 选出，选择依据是**全局最近的 `next_run`**。
+    ⇒ 想让某一条跑，**把它的 `next_run` 拉到现在**即可 ——
+      调度器下一轮自然选它（同一任务的多条条目按 `entry_id` 精确定位，
+      "**身份，不是位置**"）。
+
+    ## ⚠ 只对"**当前可跑**"的条目生效
+
+    ★ 复用了 `Config._loop_candidates()` 的判据（已启用 / 在队列 / 在窗口内）
+      ⇒ 点一个**不可跑**的（未启用、不在窗口内）会**明确报错**，
+      而不是"静默什么都没发生"。
+
+    :param data: `{"entry_id": "..."}` —— 必填
+    """
+    try:
+        from module.config.config_model import convert_to_underscore
+        from module.server.main_manager import mm
+        config = mm.config_cache(script_name)
+        eid = str((data or {}).get('entry_id') or '').strip()
+        if not eid:
+            return {'error': '缺少 entry_id'}
+
+        # ① 在 run_list 里按 entry_id 找那一条（身份定位, 不按下标）
+        rl = config.build_run_list()
+        target = None
+        for e in (rl.to_list() if hasattr(rl, 'to_list') else []):
+            if str(e.get('entry_id') or '') == eid:
+                target = e
+                break
+        if target is None:
+            return {'error': f'队列里没有这条条目: {eid}'}
+        if str(target.get('kind')) != 'task':
+            return {'error': '只有任务条目可以「播放」（休息条目不行）'}
+        name = str(target.get('task') or '')
+        if not name:
+            return {'error': '这条条目没有任务名'}
+
+        # ② ★ 判"当前可跑"（复用与循环/乱序同一套判据）
+        cands = {n for n, _k in config._loop_candidates()}
+        # ★★★ 2026-10-12 修（★ 验收 6：点 `[▶]` 没反应）★★★
+        #
+        # ## ★★ 症状
+        #
+        # > "运行中点别条 `[▶]` —— **没有生效**，★ **完全没有日志出现**"
+        #
+        # ## ★ 根因
+        #
+        # ★ `_loop_candidates()` **排除了"本轮已完成"** 的条目（★ S1 的改动）
+        # ★ ⇒ 点一条**本轮已完成**的任务 ⇒ ★ **这里直接 return 报错**
+        #   ⇒ ★ **走不到** `deep_set('force_next_entry_id')`
+        #   ⇒ ★★ 没有日志、没有切换（★ 用户看到的就是"没反应"）。
+        #
+        # ## ★ 语义修正（★ 用户点 `[▶]` 的意图）
+        #
+        # ★ 点 `[▶]` = "**让这一条跑**" ⇒ ★ **"本轮已完成"不该拦它**：
+        #   ★ 用户要它再跑一次 ⇒ ★ 顺带**清掉它的"本轮已完成"标记**
+        #     （★ 与"新一轮会自动失效"同一套语义，★ 见 §2.6-LR5）。
+        #
+        # ⚠ 仍然拦"**未启用 / 不在执行队列**"（★ 那是真的不可跑）。
+        _forceable = False
+        if name in cands:
+            _forceable = True
+        else:
+            # ★ 再看：★ 它在队列里、已启用，只是"本轮已完成"？
+            try:
+                from module.config.task_state import get_entry_completed
+                from module.config.task_catalog import get_spec as _gs
+                _spec = _gs(convert_to_underscore(name))
+                _en = bool(getattr(_spec, 'enable', True))
+            except Exception:
+                _en = True
+            _in_queue = name in {
+                str(getattr(e, 'task', '') or '') for e in config.build_run_list()}
+            if _en and _in_queue and get_entry_completed(script_name, eid):
+                # ★ 用户点名要它跑 ⇒ ★ 清掉"本轮已完成"，★ 允许播放
+                try:
+                    from module.config.task_state import clear_entry_completed
+                    clear_entry_completed(script_name, eid)
+                    logger.info(f'队列播放: 条目 {eid} 本轮已完成 -> '
+                                f'按用户要求【清除完成标记】并允许播放')
+                    _forceable = True
+                except Exception as exc:
+                    logger.warning(f'清除条目完成标记失败'
+                                   f'({type(exc).__name__}: {exc})')
+        if not _forceable:
+            return {'error': f'「{name}」当前不可跑'
+                             f'（未启用 / 不在执行队列 / 不在开放时段）'}
+
+        # ③ ★★★ **若调度被暂停 -> 先恢复**（用户裁定）★★★
+        #
+        # ## ★★ 用户原话 ★★
+        #
+        # > "这个**暂停调度/恢复调度**不是集成到**任务运行行里的按钮**上了吗，
+        # >  **这应该是 bug**，**不应该给别的按钮添加该功能造成混淆**。"
+        #
+        # ★ 所以"恢复调度"**只由这个按钮**（队列行的 `[▶]`）承担 ——
+        #   ★ **不是**「启动脚本」按钮（那一处已回退）。
+        # ★ 用户报的现象："点击启动脚本后，队列行显示 `[▶]`，**点击没反应**"
+        #   —— 根因就是：调度在**暂停**态时，光把 `next_run` 拉到现在
+        #   **没有用**（`is_paused()` 会挡住派发）。
+        resumed = False
+        try:
+            from module.config import run_control
+            if run_control.is_paused():
+                run_control.resume()
+                resumed = True
+                logger.info('队列播放: 调度原为暂停 -> 已恢复')
+        except Exception as exc:
+            logger.warning(f'恢复调度失败({type(exc).__name__}: {exc})，继续')
+
+        # ④ ★ 把它拉到现在 -> 调度器会选它
+        from datetime import datetime
+        now = datetime.now()
+        key = convert_to_underscore(name)
+        config.model.deep_set(config.model,
+                              keys=f'{key}.scheduler.next_run', value=now)
+        # ★★★ 片 8 / A+B: **播放头（立即生效）** ★★★
+        #
+        # > 用户: "语义**不是顺序排到最前边，而是从这个任务开始跑**，
+        # >  如果是顺序和循环，那么跑完这个任务就会**接着跑他下边的任务**"
+        #
+        # ★ 写**落盘的覆盖位** `force_next_entry_id` ——
+        #   脚本跑在独立进程，必须落盘它才看得见（与 `running_entry_id` 同理）。
+        # ★ 调度器（`update_scheduler`）读到就把**这一条**提到 pending 最前，
+        #   然后**清空**（用一次），所以是"**播放头**"而不是"永久最优先"。
+        config.model.deep_set(config.model,
+                              keys='force_next_entry_id', value=eid)
+        config.save()
+        # ★★★ 诊断（[10-12] 排查验收 5/6）★★★
+        # ★ 记下**设置时**正在运行的是谁 —— 用来判断"能不能切过去"。
+        _run_now = ''
+        try:
+            _run_now = str(
+                getattr(config.model, 'running_entry_id', '') or '')
+        except Exception:
+            pass
+        logger.info(f'★★[切换诊断] 设置播放头: 目标={eid}'
+                    f' 当前运行={_run_now or "（无）"}'
+                    f' 同一条={_run_now == eid}')
+        # ★ 必须打日志 —— 用户报"点击没反应、日志窗口没有任何输出"，
+        #   有了这条才能从日志确认请求真的到了、写了什么。
+        logger.info(f'队列播放: entry_id={eid} task={name} '
+                    f'next_run={now.strftime("%H:%M:%S")} '
+                    f'force_next_entry_id={eid} 恢复调度={resumed}')
+        return {'ok': True, 'entry_id': eid, 'task': name,
+                'resumed': resumed,
+                'next_run': now.strftime('%Y-%m-%d %H:%M:%S'),
+                'message': (f'「{name}」已排到最前，马上就会跑'
+                            + ('（并已**恢复调度**）' if resumed else ''))}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
 @schema_app.put('/{script_name}/run_control/loop_reset')
 async def put_loop_reset(script_name: str):
     """★ **重置队列循环计数** —— 让"跑 N 轮"可以再来一次。

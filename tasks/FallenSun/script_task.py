@@ -34,7 +34,8 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             self.run_switch_soul_by_name(self.config.fallen_sun.switch_soul.group_name,
                                          self.config.fallen_sun.switch_soul.team_name)
 
-        limit_time = self.config.fallen_sun.fallen_sun_config.limit_time
+        # ★ 片 2: 时间上限统一到 `scheduler.expected_minutes`
+        #   （原 `limit_time` 配置字段已删除）
         # 计数从状态文件恢复, 而不是每次运行都归零。
         # 原因: current_count 原本只存在内存里, 进程重启 / 任务被中断 / 崩溃后
         # restart 都会让它归零, 于是"今天要打 N 次"的固定任务会从头再打, 永远打不满。
@@ -51,7 +52,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             logger.info(f'本周期战斗次数已达标({self.current_count}/{limit_count}), 跳过本次运行')
             self.set_next_run(task='FallenSun', finish=True, success=True)
             raise TaskEnd('FallenSun count limit reached')
-        self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute, seconds=limit_time.second)
+        self.limit_time: timedelta = self.time_limit
 
         config: FallenSun = self.config.fallen_sun
 

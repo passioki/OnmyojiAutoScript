@@ -98,12 +98,70 @@ COUNT_FIELD = {
     'GoryouRealm': 'limit_count', 'OtherWorldTwilight': 'limit_count',
     'RyouToppa': 'limit_count', 'HeroTest': 'limit_count',
     'SixRealms': 'limit_count',
-    'Exploration': 'minions_cnt',       # 待统一
-    'Hyakkiyakou': 'hya_limit_count',   # 待统一
-    'RealmRaid': 'number_attack',       # 待统一
+    'Exploration': 'limit_count',        # ★ 片1 已统一(原 minions_cnt)
+    'Hyakkiyakou': 'limit_count',        # ★ 片1 已统一(原 hya_limit_count)
+    'RealmRaid': 'limit_count',         # ★ 已统一（原 number_attack 是死字段）
     'WantedQuests': None,               # 脚本里硬编码 30, 需新增字段
 }
+# ★ 片 1 收尾: 统一字段是 	arget（用户裁定）, 不再是 limit_count。
+#   14 个任务配置里的次数字段已删除, 次数只住在 scheduler.target。
 UNIFIED_COUNT_FIELD = 'limit_count'
+
+# --------------------------------------------------------------------------- 出厂默认值
+# ★★★ 「出厂次数默认值」显式表（**片 1 收尾**）★★★
+#
+# ## 为什么需要它
+#
+# `count_default` 原来是从**任务 `config.py` 里的字段**抓来的:
+# ```python
+# 'count_default': (fields.get(count_field, {}) or {}).get('default')
+# ```
+# ★ 而字段定义**即将被删除**（用户裁定: 次数统一到 `scheduler.target`,
+#   见 `tasks/RealmRaid/config.py` 的说明与 OAS `docs/scheduler-architecture.md`）。
+# ⇒ 删掉字段后 `fields.get('limit_count')` 取不到
+#   -> `count_default` 变 `None`
+#   -> ★ `BaseTask.effective_target()` 的**第 ④ 级回落失效**。
+#
+# ## 所以：把出厂默认值**显式记下来**，与"字段还在不在"**解耦**
+#
+# ★ 取值 = 各任务 `limit_count` / 别名 字段原本的 `default`
+#   （本会话实测出来的，不是猜的）:
+#
+#   | 任务 | 字段 | 出厂默认 |
+#   |---|---|---|
+#   | BondlingFairyland | `limit_count` | 30 |
+#   | EternitySea | `limit_count` | 30 |
+#   | EvoZone | `limit_count` | 30 |
+#   | Exploration | `minions_cnt` | 30 |
+#   | FallenSun | `limit_count` | 50 |
+#   | GoryouRealm | `limit_count` | 30 |
+#   | HeroTest | `limit_count` | 100 |
+#   | Hyakkiyakou | `hya_limit_count` | 10 |
+#   | Orochi | `limit_count` | 30 |
+#   | OtherWorldTwilight | `limit_count` | 30 |
+#   | RealmRaid | `number_attack` | 30 |
+#   | RyouToppa | `limit_count` | 50 |
+#   | SixRealms | `limit_count` | 1 |
+#   | Sougenbi | `limit_count` | 30 |
+#
+# ⚠ 这张表是**唯一权威**（源字段删了之后，它就是这个值的家）。
+#   改它 = 改"用户没设次数时的出厂值"。
+FACTORY_COUNT_DEFAULT = {
+    'BondlingFairyland': 30,
+    'EternitySea': 30,
+    'EvoZone': 30,
+    'Exploration': 30,
+    'FallenSun': 50,
+    'GoryouRealm': 30,
+    'HeroTest': 100,
+    'Hyakkiyakou': 10,
+    'Orochi': 30,
+    'OtherWorldTwilight': 30,
+    'RealmRaid': 30,
+    'RyouToppa': 50,
+    'SixRealms': 1,
+    'Sougenbi': 30,
+}
 
 # 用于把任务目录名转成 i18n key
 def snake(n: str) -> str:
@@ -251,7 +309,13 @@ def main() -> int:
             'count_field': count_field,
             'count_field_detected': detected,
             'count_field_mismatch': bool(mismatch),
-            'count_default': (fields.get(count_field, {}) or {}).get('default')
+            # ★ 出厂默认值: **先取显式表**（与"字段还在不在"解耦）；
+            #   表里没有的才回落到从 `config.py` 文本抓的 default。
+            #   ⚠ 源字段删掉后, 回落分支会取到 None —— 所以新任务**必须**
+            #     同时登记 FACTORY_COUNT_DEFAULT。
+            'count_default': (FACTORY_COUNT_DEFAULT.get(task)
+                              if task in FACTORY_COUNT_DEFAULT
+                              else (fields.get(count_field, {}) or {}).get('default'))
                              if count_field else None,
             'needs_unify': bool(count_field and count_field != UNIFIED_COUNT_FIELD),
             'has_limit_time': 'limit_time' in fields,

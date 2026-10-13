@@ -30,9 +30,6 @@ class MemoryScrollsConfig(ConfigBase):
 
 class MemoryScrollsFinish(ConfigBase):
     auto_finish_exploration: bool = Field(default=False, description='小绘卷满50后自动结束当日探索任务')
-    # 当日小绘卷满50后指定下次运行时间
-    next_exploration_time: Time = Field(default=Time(hour=7, minute=0, second=0))
-
 class MemoryScrolls(ConfigBase):
     scheduler: Scheduler = Field(default_factory=Scheduler)
     memory_scrolls_config: MemoryScrollsConfig = Field(default_factory=MemoryScrollsConfig)

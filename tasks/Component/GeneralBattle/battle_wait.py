@@ -1724,6 +1724,19 @@ class BattleWait(BaseTask, GeneralBattleAssets):
         try:
             while True:
                 self.screenshot()
+                # ★★★ 片 8 / D: **刷新"在战斗中"的心跳**（用户裁定 丙）★★★
+                #
+                # > "`_in_battle` 判据（识别到这个就是在战斗中，识别到则刷新为
+                # >  **5s 内处于战斗状态**，`gb_action_bar_queue`）"
+                #
+                # ★ 这是**战斗主循环**（`battle_wait_with_strategy`），
+                #   一处就覆盖**所有任务**的所有战斗 —— 不必改 54 个任务。
+                # ★ `note_battle_frame()` 内部用 `I_ACTION_BAR_QUEUE` 判定，
+                #   只在**真的在战斗**时刷新心跳（见 `BaseTask` 的说明）。
+                # ⚠ 用 `getattr` 保护: 没继承 `BaseTask` 的调用方也不会崩。
+                _note = getattr(self, 'note_battle_frame', None)
+                if _note is not None:
+                    _note()
                 hook_enabled = runtime.hook_enabled()
                 # self.state_show()
                 for handler in handlers:

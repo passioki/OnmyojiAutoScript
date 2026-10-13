@@ -31,9 +31,8 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         #   改造前是 `self.current_count = 0` + 自己读配置 ——
         #   既毁掉磁盘恢复, 又让界面上的"次数"输入框(scheduler.target)完全无效。
         self.bind_counter()
-        limit_time = self.config.evo_zone.evo_zone_config.limit_time
-        self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute,
-                                               seconds=limit_time.second)
+        # ★ 片 2: 统一到 `scheduler.expected_minutes`
+        self.limit_time: timedelta = self.time_limit
         con = self.config.evo_zone
         if con.switch_soul_config.enable:
             self.goto_page(page_shikigami_records)

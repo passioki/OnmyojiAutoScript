@@ -38,8 +38,12 @@ class TestDiscoveryCompleteness:
         * 58 -> **59**: `Rest`（休息）任务节点（乙-A: 休息是真正的任务）
         * 59 -> **60**: `running_entry_id`（P-1: **正在运行的条目身份**,
           供 `put_pause` 精确退回队首 —— 队列里同一任务可以有多条条目）
+        * 60 -> **61**: `force_next_entry_id`（片 8 / A: **播放头**,
+          队列行「▶ 播放」写它 -> `update_scheduler` 把该条目提到最前,
+          **用一次就清空**。这是"立即生效"的落盘覆盖位 ——
+          脚本跑在独立进程, 不落盘它看不见, 与 `running_entry_id` 同理）
         """
-        assert len(ConfigModel.__annotations__) == 60
+        assert len(ConfigModel.__annotations__) == 61
 
     def test_contains_expected_globals(self):
         keys = set(ConfigModel.__annotations__)

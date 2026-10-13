@@ -1,6 +1,4 @@
 {
-  "config_name": "template",
-  "running_task": "",
   "abyss_shadows": {
     "scheduler": {
       "enable": false,
@@ -12,15 +10,41 @@
       "float_time": "00:00:00",
       "period": "daily",
       "reset_at": "00:00:00",
-      "windows": [],
+      "windows": [
+        {
+          "id": "mom_fri",
+          "enabled": true,
+          "period": "daily",
+          "start": "19:00:00",
+          "end": "23:59:00",
+          "days": "4",
+          "days_of_month": ""
+        },
+        {
+          "id": "mom_sat",
+          "enabled": true,
+          "period": "daily",
+          "start": "19:00:00",
+          "end": "23:59:00",
+          "days": "5",
+          "days_of_month": ""
+        },
+        {
+          "id": "mom_sun",
+          "enabled": true,
+          "period": "daily",
+          "start": "19:00:00",
+          "end": "23:59:00",
+          "days": "6",
+          "days_of_month": ""
+        }
+      ],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
-    "abyss_shadows_time": {
-      "custom_run_time_friday": "19:00:00",
-      "custom_run_time_saturday": "19:00:00",
-      "custom_run_time_sunday": "19:00:00"
-    },
+    "abyss_shadows_time": {},
     "abyss_shadows_combat_time": {
       "CombatTime_enable": false,
       "boss_combat_time": 60,
@@ -59,7 +83,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "general_climb": {
       "limit_time": "00:30:00",
@@ -121,7 +147,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "boss": {
       "boss_reward": false,
@@ -160,7 +188,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "checkin_config": {
       "usage": ""
@@ -178,14 +208,14 @@
       "period": "daily",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 30,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "bondling_config": {
       "user_status": "alone",
       "bondling_mode": "只刷探查(仅限单刷)",
-      "limit_time": "00:30:00",
-      "limit_count": 30,
       "bondling_stone_class": "镇墓兽",
       "bondling_stone_enable": false,
       "bondling_search_enable": false,
@@ -237,7 +267,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "daily_training": {
       "limit_daily_training": 200,
@@ -279,7 +311,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "missions_config": {
       "missions_rule": "契灵 > 觉醒三 > 觉醒二 > 觉醒一 > 御灵三 > 御灵二 > 御灵一 > 御魂二 > 御魂一 > 远远不够",
@@ -300,7 +334,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "trifles_config": {
       "one_summon": false,
@@ -326,7 +362,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "delegation_config": {
       "miyoshino_painting": false,
@@ -350,7 +388,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "box_buy_config": {
       "box_buy_sushi": false
@@ -424,13 +464,23 @@
       "float_time": "00:00:00",
       "period": "weekly",
       "reset_at": "00:00:00",
-      "windows": [],
+      "windows": [
+        {
+          "id": "mom_custom",
+          "enabled": true,
+          "period": "daily",
+          "start": "10:00:00",
+          "end": "23:59:00",
+          "days": "",
+          "days_of_month": ""
+        }
+      ],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
-    "demon_retreat_time": {
-      "custom_run_time": "10:00:00"
-    },
+    "demon_retreat_time": {},
     "general_battle": {
       "lock_team_enable": false,
       "preset_enable": false,
@@ -463,7 +513,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "dokan_config": {
       "dokan_attack_priority": 0,
@@ -519,13 +571,14 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "duel_config": {
       "switch_enabled": true,
       "switch_onmyoji": "源赖光",
       "switch_all_soul": false,
-      "limit_time": "00:30:00",
       "target_score": 2000,
       "honor_full_exit": false,
       "green_enable": false,
@@ -557,7 +610,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "switch_soul_config": {
       "enable": false,
@@ -579,14 +634,14 @@
       "period": "daily",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 30,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "eternity_sea_config": {
       "user_status": "leader",
-      "layer": "肆层",
-      "limit_time": "00:30:00",
-      "limit_count": 30
+      "layer": "肆层"
     },
     "general_battle_config": {
       "lock_team_enable": false,
@@ -634,15 +689,15 @@
       "period": "daily",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 30,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "evo_zone_config": {
       "user_status": "leader",
       "kirin_type": "雷麒麟",
       "layer": "拾层",
-      "limit_time": "00:30:00",
-      "limit_count": 30,
       "soul_buff_enable": false
     },
     "invite_config": {
@@ -685,7 +740,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "experience_youkai": {
       "user_status": "alone",
@@ -722,8 +779,10 @@
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 30,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "exploration_config": {
       "buff_gold_50_click": false,
@@ -731,8 +790,6 @@
       "buff_exp_50_click": false,
       "buff_exp_100_click": false,
       "user_status": "alone",
-      "limit_time": "00:30:00",
-      "minions_cnt": 30,
       "exploration_level": "第二十八章",
       "auto_rotate": "不",
       "choose_rarity": "N卡",
@@ -779,14 +836,14 @@
       "period": "daily",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 50,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "fallen_sun_config": {
       "user_status": "leader",
-      "layer": "叁层",
-      "limit_time": "00:30:00",
-      "limit_count": 50
+      "layer": "叁层"
     },
     "invite_config": {
       "invite_number": "one",
@@ -828,7 +885,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "find_jade_config": {
       "invite_info_count": 1,
@@ -864,7 +923,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "float_parade": {
       "level_reward1": "体力/樱饼",
@@ -884,7 +945,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "frog_boss_config": {
       "before_end_frog": "00:15:00",
@@ -931,7 +994,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "gold_youkai": {
       "user_status": "alone",
@@ -968,12 +1033,12 @@
       "period": "daily",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 30,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "goryou_config": {
-      "limit_time": "00:30:00",
-      "limit_count": 30,
       "goryou_class": "随机"
     },
     "general_battle_config": {
@@ -1008,7 +1073,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "guild_activity_monitor_combat_time": {
       "detection_interval": 30,
@@ -1037,7 +1104,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "guild_banquet_time": {
       "day_1": "星期三",
@@ -1058,14 +1127,14 @@
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 100,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "herotest": {
       "layer": "鬼兵演武",
       "skill_mode": "PVE",
-      "limit_time": "00:30:00",
-      "limit_count": 100,
       "exp_50_buff_enable_help": false,
       "exp_100_buff_enable_help": false
     },
@@ -1101,12 +1170,11 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
-    "hunt_time": {
-      "kirin_time": "19:00:00",
-      "netherworld_time": "19:00:00"
-    },
+    "hunt_time": {},
     "hunt_config": {
       "kirin_group_team": "-1,-1",
       "netherworld_group_team": "-1,-1"
@@ -1146,12 +1214,12 @@
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 10,
+      "expected_minutes": 20,
+      "resource": "",
+      "resource_enable": false
     },
     "hyakkiyakou_config": {
-      "hya_limit_time": "00:20:00",
-      "hya_limit_count": 10,
       "hya_invite_friend": false,
       "hya_onmyoji": "神乐",
       "hya_auto_bean": false,
@@ -1192,7 +1260,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "activation_config": {
       "card_type": "太鼓",
@@ -1217,7 +1287,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "utilize_config": {
       "utilize_rule": "default",
@@ -1247,7 +1319,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "kitty_shop_config": {
       "kitty_attempts": 1,
@@ -1265,9 +1339,21 @@
       "float_time": "00:00:00",
       "period": "daily",
       "reset_at": "00:00:00",
-      "windows": [],
+      "windows": [
+        {
+          "id": "mom_next",
+          "enabled": true,
+          "period": "daily",
+          "start": "07:00:00",
+          "end": "23:59:00",
+          "days": "",
+          "days_of_month": ""
+        }
+      ],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "memory_scrolls_config": {
       "auto_contribute_memoryscrolls": true,
@@ -1277,8 +1363,7 @@
       "notification_95": false
     },
     "memory_scrolls_finish": {
-      "auto_finish_exploration": false,
-      "next_exploration_time": "07:00:00"
+      "auto_finish_exploration": false
     }
   },
   "meta_demon": {
@@ -1294,7 +1379,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "switch_soul": {
       "enable": false,
@@ -1312,11 +1399,6 @@
     "md_default_strategy": {
       "md_preset_group_team_default_1": "1,1",
       "md_preset_group_team_default_2": "1,1"
-    },
-    "md_strategies_1": {
-      "md_match_names": "御撰津",
-      "md_preset_group_team_1": "1,1",
-      "md_preset_group_team_2": "1,1"
     }
   },
   "mystery_shop": {
@@ -1332,7 +1414,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "shop_config": {
       "time_of_mystery": "00:00:00",
@@ -1363,7 +1447,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "nian_config": {
       "buff_gold_50_click": false,
@@ -1382,14 +1468,14 @@
       "period": "daily",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 30,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "orochi_config": {
       "user_status": "leader",
       "layer": "悲鸣",
-      "limit_time": "00:30:00",
-      "limit_count": 30,
       "soul_buff_enable": false,
       "check_true_orochi_enable": false
     },
@@ -1425,22 +1511,6 @@
       "thirteen_switch": "-1,-1"
     }
   },
-  "orochi_moans": {
-    "scheduler": {
-      "enable": false,
-      "priority": 5,
-      "next_run": "2023-01-01 00:00:00",
-      "retry_interval": "01 00:00:00",
-      "server_update": "09:00:00",
-      "delay_date": 1,
-      "float_time": "00:00:00",
-      "period": "none",
-      "reset_at": "00:00:00",
-      "windows": [],
-      "target": 0,
-      "expected_minutes": 0
-    }
-  },
   "other_world_twilight": {
     "scheduler": {
       "enable": false,
@@ -1453,13 +1523,13 @@
       "period": "daily",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 30,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "other_world_twilight_config": {
-      "user_status": "leader",
-      "limit_time": "00:30:00",
-      "limit_count": 30
+      "user_status": "leader"
     },
     "invite_config": {
       "invite_number": "one",
@@ -1501,7 +1571,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "pets_config": {
       "pets_feast": true
@@ -1520,7 +1592,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "quiz_config": {
       "quiz_cnt": 1,
@@ -1539,11 +1613,12 @@
       "period": "none",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 30,
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "raid_config": {
-      "number_attack": 30,
       "number_base": 0,
       "exit_four": true,
       "order_attack": "5 > 4 > 3 > 2 > 1 > 0",
@@ -1582,7 +1657,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     }
   },
   "restart": {
@@ -1617,7 +1694,9 @@
         }
       ],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "tasks_config_reset": {
       "reset_task_datetime_enable": false,
@@ -1650,7 +1729,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "special_room": {
       "enable": false,
@@ -1748,13 +1829,12 @@
           "days_of_month": ""
         }
       ],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 50,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "raid_config": {
-      "limit_time": "00:30:00",
-      "limit_count": 50,
-      "next_ryoutoppa_time": "07:00:00",
       "skip_difficult": true,
       "ryou_access": false,
       "random_delay": false
@@ -1805,6 +1885,7 @@
       "combat_screenshot_interval": 1.0,
       "task_hoarding_duration": 0.0,
       "when_task_queue_empty": "goto_main",
+      "loop_times": 0,
       "close_game_wait_duration": "00:00:00",
       "close_emulator_wait_duration": "00:00:00",
       "emulator_startup_lead_time": "00:02:00",
@@ -1840,7 +1921,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "secret_config": {
       "secret_gold_50": false,
@@ -1879,8 +1962,10 @@
       "period": "daily",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 1,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "switch_soul_config": {
       "enable": false,
@@ -1889,10 +1974,7 @@
       "group_name": "",
       "team_name": ""
     },
-    "six_realms_gate": {
-      "limit_time": "00:30:00",
-      "limit_count": 1
-    }
+    "six_realms_gate": {}
   },
   "sougenbi": {
     "scheduler": {
@@ -1906,13 +1988,13 @@
       "period": "daily",
       "reset_at": "00:00:00",
       "windows": [],
-      "target": 0,
-      "expected_minutes": 0
+      "target": 30,
+      "expected_minutes": 30,
+      "resource": "",
+      "resource_enable": false
     },
     "sougenbi_config": {
       "sougenbi_class": "痴",
-      "limit_time": "00:30:00",
-      "limit_count": 30,
       "buff_enable": false,
       "buff_gold_50_click": false,
       "buff_gold_100_click": false,
@@ -1951,7 +2033,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "simple_tidy": {
       "enable_greed": true,
@@ -1971,7 +2055,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "tako_config": {
       "enable": false,
@@ -2011,7 +2097,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "talisman": {
       "level_reward": "金币/勾玉",
@@ -2031,7 +2119,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "true_orochi_config": {
       "find_true_orochi": true,
@@ -2058,7 +2148,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "wanted_quests_config": {
       "before_end": "00:00:00",
@@ -2090,7 +2182,9 @@
       "reset_at": "00:00:00",
       "windows": [],
       "target": 0,
-      "expected_minutes": 0
+      "expected_minutes": 0,
+      "resource": "",
+      "resource_enable": false
     },
     "trifles": {
       "share_collect": true,
@@ -2099,5 +2193,9 @@
       "save_touch_fish": false,
       "broken_amulet": 100
     }
-  }
+  },
+  "config_name": "template",
+  "running_task": "",
+  "running_entry_id": "",
+  "force_next_entry_id": ""
 }

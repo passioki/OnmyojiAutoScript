@@ -46,6 +46,29 @@ class GeneralBattle(BattleWait, GeneralBuff):
         logger.hr("General battle start", 2)
         if config is None:
             config = GeneralBattleConfig()
+        # ★★★ 片 8 / D: **准备阶段的安全点**（用户裁定 丙）★★★
+        #
+        # ## ★★ 用户原话 ★★
+        #
+        # > "应当对当前账号作一个**未在战斗中的判断**，如果处于该状态，
+        # >  那么遇到**暂停/停止调度时可以直接停止**而非**跑完当前一次完整战斗流程**
+        # >  （包括**换御魂、预设队伍、战斗**等）"
+        #
+        # > "D 丙：`_in_battle` 判据 … 不过在**别的过程加断点可以更稳定**。"
+        #
+        # ## 为什么放在这里（★ 是"最稳"的那个断点）
+        #
+        # ★ `run_general_battle()` 是**每一场战斗的唯一入口** ——
+        #   放在它开头 = **一处覆盖所有走 GeneralBattle 的任务**。
+        # ★ 此时**还没开始换御魂 / 换预设 / 进战斗** ⇒
+        #   命中暂停就**立刻中断**，正是用户要的"非战斗时直接停"。
+        # ⚠ 这一刻 `_in_battle` 必然是 `False`（上一场刚结束、心跳已过），
+        #   所以用 `raise_if_paused_outside_battle()`（战斗中不打断的语义）
+        #   在这里与 `raise_if_paused()` 等价，但**语义更清楚**。
+        # ⚠ 用 `getattr` 保护: 不继承 `BaseTask` 的调用方不崩。
+        _bp = getattr(self, 'raise_if_paused_outside_battle', None)
+        if _bp is not None:
+            _bp()
         # 本人选择的策略是只要进来了就算一次，不管是不是打完了
         # 战斗统计
         self.current_count += 1

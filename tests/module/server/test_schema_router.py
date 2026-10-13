@@ -741,8 +741,17 @@ class TestEffectiveTargetOverride:
             after = eff()
             assert after['effective_target'] == 7, \
                 f'target=7 应覆盖, 实际 {after["effective_target"]}'
-            assert after['count'] == before['count'], \
-                '任务配置里的值不该被 target 改动'
+            # ★★ 片 1 收尾: `count` 现在**也**跟着 `target` 走（**预期**）★★
+            #
+            # 用户裁定"次数全部统一为 `target`" ⇒ 14 个任务配置里的次数字段
+            # （含 `orochi_config.limit_count`）**已删除** ⇒
+            # `count` 不再有"任务配置里的值"可读 ⇒
+            # `_count_from_value()` 改成"**用户设的 target > 0 就返回它**,
+            # 否则返回出厂默认 `count_default`"。
+            # ⇒ 于是 `count == effective_target`（次数只有一个真源）——
+            #   这是统一后的**预期语义**, 不再是"两个独立的数"。
+            assert after['count'] == 7, \
+                f'统一后 count 应等于 target, 实际 {after["count"]}'
         finally:
             sch.target = old
             config.save()

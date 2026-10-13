@@ -21,9 +21,8 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, GoryouRealmAssets):
         #   改造前本任务只**读** `current_count` 而从不 bind,
         #   于是计数既不落盘也不恢复 -> 重启后从头再打。
         self.bind_counter()
-        limit_time = con.goryou_config.limit_time
-        self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute,
-                                               seconds=limit_time.second)
+        # ★ 片 2: 统一到 `scheduler.expected_minutes`
+        self.limit_time: timedelta = self.time_limit
         if con.switch_soul_config.enable:
             self.goto_page(page_shikigami_records)
             self.run_switch_soul(con.switch_soul_config.switch_group_team)

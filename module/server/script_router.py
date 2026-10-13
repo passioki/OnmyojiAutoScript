@@ -3,6 +3,8 @@
 # github https://github.com/runhey
 import asyncio
 from fastapi import APIRouter, HTTPException
+# ★ 跨配置转移配置页要用 `Body`（原来只导了 APIRouter/HTTPException）
+from fastapi import Body
 from fastapi.responses import StreamingResponse
 from fastapi import WebSocket, WebSocketDisconnect
 from datetime import datetime
@@ -42,6 +44,173 @@ async def config_new_name():
 @script_app.get('/config_all')
 async def config_all():
     return mm.all_json_file()
+
+
+# ---------------------------------------------------------------------------
+@script_app.post('/queue_profile/transfer')
+async def post_queue_profile_transfer(data: dict = Body(default={})):
+    """★★ **跨配置**转移配置页（歌单）★★
+
+    ## ★★ 用户要求（原话）★★
+
+    > "现在有的任务顺序**配置页只能在当前配置中实现复制**，
+    >  我想要可以**跨配置转移**。如**复制 test 配置页到[伴生树]中**这样的操作。"
+
+    ★ 即：把 **A 配置**里的某一页（歌单），复制到 **B 配置**里。
+
+    ## 为什么能做（结构上本来就支持）
+
+    ★ 配置页存的是**自包含的整页快照**：
+    ```
+    snapshot = {
+      'queue':     [...],   # 执行顺序（含条目级 target / entry_id）
+      'scheduler': {...},   # 每任务的 enable / target / expected_minutes / 优先级
+      'global':    {...},   # 全局开关（含播放模式）
+    }
+    ```
+    ⇒ ★ 它**不引用**任何"当前配置"的东西 ⇒ 深拷贝过去就能用。
+
+    ## 行为（★ 关键取舍：**不激活**新页，除非是同一配置）
+
+    | 情况 | 目标配置的当前页 |
+    |---|---|
+    | **跨配置**（A -> B）| ★ **不变** —— 否则会把目标配置**正在用的队列换掉** |
+    | **同配置**（复制到自己）| ★ **切到新页**（与原"复制"行为一致）|
+
+    ## 名字冲突
+
+    ★ 目标里已有同名页 -> 自动加后缀 `(2)` / `(3)`…（**不覆盖、不报错**）。
+
+    :param data: `{"from_config": "test", "to_config": "伴生树",
+                   "profile_id": "p1", "name": "可选新名"}`
+    """
+    try:
+        from module.config.config_model import convert_to_underscore  # noqa: F401
+
+        src_name = str((data or {}).get('from_config') or '').strip()
+        dst_name = str((data or {}).get('to_config') or '').strip()
+        pid = str((data or {}).get('profile_id') or '').strip()
+        if not src_name or not dst_name:
+            return {'error': '缺少 from_config / to_config'}
+        if not pid:
+            return {'error': '缺少 profile_id'}
+
+        all_cfgs = set(mm.all_script_files() or [])
+        # ⚠ `all_script_files()` 可能不含 `template`，但它也要能被当目标/源
+        all_cfgs.add('template')
+        for nm, tag in ((src_name, 'from_config'), (dst_name, 'to_config')):
+            if nm not in all_cfgs:
+                return {'error': f'{tag} 不存在: {nm}'}
+
+        src_cfg = mm.config_cache(src_name)
+        # ★ `_profiles_store` 住在 `schema_router`（配置页的实现都在那边）——
+        #   这里**复用**它，避免两套"页存储"逻辑打架。
+        from module.server.schema_router import _profiles_store
+        src_store = _profiles_store(src_cfg, auto_create=False)
+        if src_store is None:
+            return {'error': f'配置「{src_name}」里没有 optimization'}
+        src_item = next((it for it in (src_store.get('items') or [])
+                         if isinstance(it, dict)
+                         and str(it.get('id')) == pid), None)
+        if src_item is None:
+            return {'error': f'配置「{src_name}」里没有配置页: {pid}'}
+        snap = src_item.get('snapshot')
+        if not isinstance(snap, dict) or not snap:
+            return {'error': f'配置页「{src_item.get("name")}」没有快照, 无法转移'}
+
+        # ★ 深拷贝（绝不把源页的对象共享进目标配置 —— 改一边会连带另一边）
+        import copy as _copy
+        snap = _copy.deepcopy(snap)
+
+        dst_cfg = mm.config_cache(dst_name)
+        dst_store = _profiles_store(dst_cfg)          # ★ 允许自动建"页1"
+        if dst_store is None:
+            return {'error': f'配置「{dst_name}」里没有 optimization'}
+        items = dst_store['items']
+
+        # ---- 名字（同名 -> 加 (2)/(3)…）----
+        used_names = {str(it.get('name')) for it in items if isinstance(it, dict)}
+        want = str((data or {}).get('name') or '').strip() \
+            or str(src_item.get('name') or pid)
+        name = want
+        k = 2
+        while name in used_names:
+            name = f'{want} ({k})'
+            k += 1
+
+        # ---- 新页 id（在目标里唯一）----
+        used_ids = {str(it.get('id')) for it in items if isinstance(it, dict)}
+        n = 1
+        while f'p{n}' in used_ids:
+            n += 1
+        new_id = f'p{n}'
+
+        items.append({'id': new_id, 'name': name, 'snapshot': snap})
+        same_config = (src_name == dst_name)
+        if same_config:
+            dst_store['active_id'] = new_id       # ★ 同配置才切过去
+
+        dst_cfg.model.deep_set(
+            dst_cfg.model, keys='script.optimization.profiles', value=dst_store)
+        dst_cfg.save()
+
+        cnt = len(snap.get('queue') or [])
+        logger.info(f'跨配置转移: {src_name}/{pid} -> {dst_name}/{new_id}（{name}）')
+        return {
+            'ok': True,
+            'from_config': src_name,
+            'to_config': dst_name,
+            'from_profile': pid,
+            'created': new_id,
+            'name': name,
+            'count': cnt,
+            'activated': bool(same_config),
+            'message': (f'已把「{src_name}」的配置页「{src_item.get("name")}」'
+                        f'复制到「{dst_name}」为「{name}」'
+                        f'（{cnt} 条队列）'
+                        + ('，并已切过去' if same_config
+                           else '；★ 没有切换目标配置的当前页')),
+        }
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc)}
+
+
+@script_app.get('/queue_profile/transfer_sources')
+async def get_queue_profile_transfer_sources(exclude: str = ''):
+    """★ 供界面选"从哪个配置复制哪一页" —— 返回**所有配置的页列表**。
+
+    :param exclude: 排除某个配置（一般是"当前配置"，它由现有的"复制"覆盖）
+    """
+    try:
+        from module.server.schema_router import _profiles_store
+        out = []
+        for nm in (mm.all_script_files() or []):
+            if exclude and nm == exclude:
+                continue
+            try:
+                cfg = mm.config_cache(nm)
+                store = _profiles_store(cfg, auto_create=False)
+                if store is None:
+                    continue
+                items = store.get('items') or []
+                if not items:
+                    continue
+                out.append({
+                    'config': nm,
+                    'profiles': [{'id': str(it.get('id')),
+                                  'name': str(it.get('name') or it.get('id')),
+                                  'count': len(((it.get('snapshot') or {})
+                                                .get('queue')) or [])}
+                                 for it in items if isinstance(it, dict)],
+                })
+            except Exception as exc:
+                logger.debug(f'读 {nm} 的配置页失败({type(exc).__name__}: {exc})')
+                continue
+        return {'configs': out, 'count': len(out)}
+    except Exception as exc:
+        logger.exception(exc)
+        return {'error': str(exc), 'configs': []}
 
 
 @script_app.put('/config')

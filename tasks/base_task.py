@@ -42,9 +42,57 @@ class BaseTask(GlobalGameAssets, CostumeBase):
     name: str
     stage: str
 
-    limit_time: timedelta = None  # 限制运行的时间，是软时间，不是硬时间
+    # ⚠ `limit_time` 曾是"运行时间上限"的配置来源（各任务从 `config` 里的
+    #   `Time` 字段转换后赋给这里）。★ 片 2 已把那个配置字段**删除**，
+    #   上限统一到 `scheduler.expected_minutes` ⇒ 新代码应使用下面的
+    #   `time_limit` 属性（从 `scheduler.expected_minutes` 派生）。
+    limit_time: timedelta = None  # 【已废弃】请用 `time_limit`
     limit_count: int = None  # 限制运行的次数
     current_count: int = None  # 当前运行的次数
+
+    @property
+    def time_limit(self) -> timedelta:
+        """★ **统一的「运行时间上限」**（用户裁定：`limit_time` -> `expected_minutes`）。
+
+        ## ★★ 用户裁定（原话）★★
+
+        > "② 真正的'两个字段'问题，`limit_count` 和 `limit_time`
+        >  **都需要分别统一为 `target` 和 `expected_minutes`**，
+        >  `limit_time` 和 `expected_minutes` **语义很接近，基本服务于
+        >  定时任务完成时间和休息时间的长短判断**，对于**临时类任务也很贴合**。"
+
+        ## 为什么放在基类
+
+        ★ 片 2 调研发现：**15 个任务**各自把配置里的 `Time` 字段转成 `timedelta`
+          再赋给 `self.limit_time`（共 31 处赋值）—— 这是**同一段逻辑复制了 15 遍**。
+        ★ 统一到 `scheduler.expected_minutes` 后，**一个属性**就够了；
+          各任务只需 `self.time_limit`，不必再关心配置字段叫什么、住在哪。
+
+        ## 单位与默认
+
+        * `scheduler.expected_minutes` 是 **int 分钟**（`0` = 未知）
+        * ★ 本会话实测：老 `limit_time` 的值**全部是整分钟**
+          （`00:30:00` / `02:30:00` / `00:20:00`）⇒ 迁移**无精度损失**
+        * `0`（未设）⇒ ★ 返回一个**足够大的**上限（24 小时），
+          语义 = "**不因时间而中止**"（与老默认 30 分钟**不同** ——
+          老默认是"软时间 30 分钟后停"，现在"没设就不按时间停"）。
+          ⚠ 但迁移会把老的 30 分钟**搬进来**，所以**行为不变**；
+            只有"用户显式设成 0"才是"不按时间停"。
+        """
+        try:
+            from module.config.config_model import convert_to_underscore
+            sub = getattr(self.config, convert_to_underscore(self.get_task_name()),
+                          None)
+            sch = getattr(sub, 'scheduler', None) if sub is not None else None
+            minutes = int(getattr(sch, 'expected_minutes', 0) or 0)
+        except Exception as exc:
+            logger.debug(f'读取 expected_minutes 失败'
+                         f'({type(exc).__name__}: {exc}) —— 用 24 小时')
+            minutes = 0
+        if minutes <= 0:
+            # ★ 未设 -> 不按时间中止（见 docstring 的说明）
+            return timedelta(hours=24)
+        return timedelta(minutes=minutes)
 
     def __init__(self, config: Config, device: Device) -> None:
         """
@@ -72,6 +120,8 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         self._counter_period = 'none'
         self._counter_reset_at = None
         self._counter_persisted = 0
+        # ★ 「甲」统一：计数落盘到**条目级 `runs`**（见 commit_count 的说明）
+        self._counter_entry_id = ''
         # 运行控制: 战斗循环收到暂停请求后置位, 让任务循环自然收敛
         # (见 docs/architecture.md §6.1 与 should_stop_battle_loop)
         self._pause_requested = False
@@ -161,6 +211,23 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                                f'({type(exc).__name__}: {exc}), 回落到任务默认值')
 
             # 2) 任务配置里的默认值(按统一后的字段名取)
+            #
+            # ★★ 片 1 收尾: 这一级【现在总是落空】—— 这是**预期的** ★★
+            #
+            # 用户裁定"次数全部统一为 `target`" ⇒ 片 1 **删掉了 14 个任务
+            # 配置里的次数字段**（`limit_count` / `minions_cnt` /
+            # `hya_limit_count` / `number_attack`）⇒ 配置树里**不再有**
+            # 任务级次数字段 ⇒ `meta.count_field_effective`（= `limit_count`）
+            # **永远找不到** ⇒ 直接落到第 ③ 级 `meta.count_default`。
+            #
+            # ★ 这正是统一后的预期路径:
+            #   ① 条目级 `target` -> ② 任务级 `scheduler.target` -> ③ 出厂默认值
+            #   （`task_catalog_data.json` 的 `count_default`，由
+            #    `dev_tools/gen_task_catalog.py` 的 `FACTORY_COUNT_DEFAULT` 提供）
+            #
+            # ★ 为什么**保留**这一级: 万一将来某个任务又需要一个
+            #   **任务自带的**次数字段（不在 `scheduler` 里），这条路还通；
+            #   留着比删掉更安全（删掉要同时改 catalog 的语义）。
             field = meta.count_field_effective or self.LIMIT_COUNT
             found = self._find_count_field(field)
             if found is not None:
@@ -245,55 +312,188 @@ class BaseTask(GlobalGameAssets, CostumeBase):
             else task_state.DEFAULT_RESET_AT
 
         # 恢复磁盘计数
-        try:
-            self.current_count = task_state.get_count(
-                self.config.config_name, self._counter_task,
-                period=self._counter_period, reset_at=self._counter_reset_at)
-        except Exception as exc:
-            logger.warning(f'恢复战斗计数失败({type(exc).__name__}: {exc}), 从 0 开始')
-            self.current_count = 0
-        self._counter_persisted = self.current_count
-        if self.current_count:
-            logger.info(f'从状态恢复战斗计数: {self.current_count}')
+        #
+        # ★★★ 2026-10-11 用户裁定：**统一到一份计数** ★★★
+        #
+        # > "**1 统一**"
+        # > "既然你用 `runs`，那就把他**取代 `current_count`**，
+        # >  这两个**不是一个东西吗**。"
+        #
+        # ## ★★ 历史坑（我在这里改错过两次，记下来防再犯）★★
+        #
+        # * 我第一版让临时任务"每次运行从 0 开始 + 清盘上值"
+        #   ⇒ ★ 与调度层的 `runs` 判据**互相干扰**（两边都不对）。
+        # * 用户实测：`target=2` 却显示"已打 36 次"、且**跳过战斗** ——
+        #   ★ 根因是 `period='none'` 时 `add_count()` 的 `count_key` 是空串，
+        #     "上次那 36 次"被一直恢复 ⇒ `36 >= 2` ⇒ 一进任务就 break。
+        #
+        # ## ★ 现在的做法（保持原语义，把"清零"的责任交给正确的一层）
+        #
+        # ★ `current_count` 仍然是**任务内部**的"这次打了几场"，
+        #   由任务自己 `bind_counter()` 恢复 / `commit_count()` 落盘。
+        # ★ 而"新一轮该清零"由**调度层**做（`reset_entry_runs` 清 `runs`），
+        #   任务内部计数**不在这里**做特殊处理 —— 免得两套逻辑打架。
+        # ★ 界面上显示的"已运行 N 次"读的是**总记录**
+        #   （`task_state.get_entry_total_runs`），与这里的计数无关。
+        # ★★★ 2026-10-12 用户裁定「甲」：**`runs` 取代 `current_count`** ★★★
+        #
+        # > "既然你用 `runs`，那就把他**取代 `current_count`**，
+        # >  这两个**不是一个东西吗**。" -> "**1 甲**"
+        #
+        # ## 统一之后的三份数据（用户定的"两份记录"）
+        #
+        # | 键 | 含义 | 谁写 | 生命周期 |
+        # |---|---|---|---|
+        # | ★ `runs` | **本条已打几场**（= 原来的 `current_count`）| ★ 这里（`commit_count`）| 该行运行结束 / 本周期结束 |
+        # | ★ `total_runs` / `total_log` | **累计**（展示/分析）| `bump_entry_runs` | ★ 永不清零 |
+        #
+        # ★★★ 2026-10-13 改（★ 用户裁定「丙」）：★ **本轮进度不落盘、不读盘** ★★★
+        #
+        # ## ★★ 用户原话
+        # > "**痛点是，重新跑的时候，读取了上一轮跑的计数，导致无法运行**"
+        # > "**或者按照时间戳来判断**"
+        # > "**就按这个来**"
+        #
+        # ## ★ 为什么必须停读停写
+        # ★ 原来：`bind_counter()` 从盘恢复 `runs` ⇒ `current_count = 88`，
+        #   而 `limit_count = 30` ⇒ ★ `88 >= 30` ⇒ ★ **任务开跑即 break（跑不起来）**。
+        # ★ `runs` 只在"队列循环重排"时被清（`reset_loop_next_run`），
+        #   ★ 而那个钩子只在 **loop 模式 + 队列有候选** 时才触发
+        #   ⇒ ★ `goto_main` / `stay_there` / 乱序下 ★ **runs 只增不减**。
+        # ★ 而且收尾还会 `set_entry_runs(eid, target)` **直接覆写成 target**
+        #   ⇒ ★ "已打几场"语义失真。
+        #
+        # ## ★ 现行做法（★ 与规格书 §1.6-L500/L504 对齐）
+        # ★ **`current_count` 纯粹是本任务对象的内存工作变量** —— ★ 从 0 开始。
+        # ★ "本条本次跑没跑过"的跨轮判定 ⇒ ★ **由调度层的【时间戳比对】负责**
+        #   （`task_state.get_entry_completed()` 比对 `completed_session` ↔ `session_start`）。
+        # ★ 磁盘只留**长时记录**（`total_runs` / `total_log`），★ 不参与判定。
+        # ⚠ 副作用（用户已接受）：★ 重启后端 ⇒ 本轮**从 0 重打**，不续跑。
+        eid = str(getattr(self.config.model, 'running_entry_id', '') or '')
+        self._counter_entry_id = eid
+        self.current_count = 0          # ★ 本轮从 0 开始（★ 不再从磁盘恢复）
+        self._counter_persisted = 0
+        if eid:
+            logger.info(f'战斗计数: 本轮从 0 开始'
+                        f'（★ 不读磁盘计数 —— 见裁定「丙」；条目 {eid}）')
+        else:
+            logger.info('战斗计数: 本轮从 0 开始（★ 无 entry_id：单跑/排障场景）')
 
         # ★ 设定本次目标次数(统一入口)
         target = self.effective_target(name)
         if target is not None:
             self.limit_count = int(target)
             logger.info(f'本次目标次数: {self.limit_count} '
-                        f'(已跑 {self.current_count})')
+                        f'(本轮已打 {self.current_count})')
 
         return self.current_count
 
     def commit_count(self) -> None:
         """
-        把内存里的 `current_count` 同步到状态文件。
+        ★★★ 2026-10-13 改（★ 用户裁定「丙」）：★ **不再写盘 —— 空操作** ★★★
 
-        幂等: 内部记录"已写盘的值", 只把增量写下去, 因此重复调用不会重复累加。
-        未调用 bind_counter 时是空操作。
+        ## ★★ 用户原话
+        > "**痛点是，重新跑的时候，读取了上一轮跑的计数，导致无法运行**"
+        > "**或者按照时间戳来判断**"
+
+        ## ★ 为什么必须停写
+        ★ 只要**写盘** ⇒ ★ `runs` 就跨轮/跨重启存活 ⇒ ★ 迟早垒高到超过 `target`
+          ⇒ ★★ **下一次运行"跑不起来"**（★ 用户报的故障本体）。
+        ★ 而清 `runs` 的唯一生产钩子（`reset_loop_next_run`）只在
+          **loop 模式 + 队列有候选**时触发 ⇒ ★ 其它模式**只增不减**。
+        ★ 收尾还会 `set_entry_runs(eid, target)` 直接覆写成 `target`
+          ⇒ ★ "已打几场"语义也失真。
+
+        ## ★ 现在的行为（★ 与规格书 §1.6-L500 对齐）
+
+        ★ **只更新内存水位** `_counter_persisted` ⇒ ★ **不碰磁盘**。
+        ★ 跨轮的"跑没跑过"判定交给 ★ `task_state.get_entry_completed()`
+          的【时间戳比对】（`completed_session` ↔ `session_start`）。
+        ★ 长时统计仍由 `task_state.record_entry_run()` 负责（★ 那才是要留的记录）。
+
+        ## ⚠ 为什么保留这个方法而不是删掉
+        ★ 调用点在 `tasks/Component/GeneralBattle/general_battle.py` 等处，
+        ★ 保留成**空操作** ⇒ ★ 不用改调用点、不会 `AttributeError`。
+        """
+        # ★ 只同步内存水位，不写盘
+        if not self._counter_task:
+            return
+        self._counter_persisted = int(self.current_count)
+
+    def reset_persisted_count(self) -> None:
+        """清零本任务的持久化计数(供"重新计数"或排障使用)。
+
+        ## ★★★ 用户裁定「2 废弃」之后（2026-10-12）★★★
+
+        > "**不能存在两套机制**" -> "**2 废弃**"
+
+        ★ 只清 **条目级 `runs`**（唯一一套）。
+        ★ ~~任务级 `task_state.reset_count()`~~ ★ **已删**（第二套机制）。
         """
         if not self._counter_task:
             return
-        delta = int(self.current_count) - int(self._counter_persisted)
-        if delta <= 0:
-            return
         from module.config import task_state
-        try:
-            task_state.add_count(
-                self.config.config_name, self._counter_task, delta=delta,
-                period=self._counter_period, reset_at=self._counter_reset_at)
-            self._counter_persisted = int(self.current_count)
-        except Exception as exc:
-            logger.warning(f'写盘战斗计数失败({type(exc).__name__}: {exc}), 忽略')
-
-    def reset_persisted_count(self) -> None:
-        """清零本任务的持久化计数(供"重新计数"或排障使用)。"""
-        if not self._counter_task:
-            return
-        from module.config import task_state
-        task_state.reset_count(self.config.config_name, self._counter_task)
+        eid = str(getattr(self, '_counter_entry_id', '') or '')
+        if eid:
+            try:
+                task_state.reset_entry_runs(self.config.config_name, eid)
+            except Exception as exc:
+                logger.debug(f'清条目运行次数失败'
+                             f'({type(exc).__name__}: {exc})')
         self.current_count = 0
         self._counter_persisted = 0
+
+    # ------------------------------------------- 本轮已完成（临时任务的退出条件）
+    def mark_entry_completed(self, reason: str = '') -> bool:
+        """★★★ 上报"**本条目本轮已完成**"（用户裁定 丙）★★★
+
+        ## ★★ 用户原话 ★★
+
+        > "**丙**"（= 调度层默认"跑满 `target` 才算完成"；
+        >           **个别任务可提前上报完成**）
+        > "个人突破……没票了应该算这轮结束啊，也算成功结束了啊"
+        > "门票耗尽**不上报**，**只上报任务完成**！"
+
+        ## 什么时候该调它
+
+        ★ 当任务**提前把这一轮做完了**（不用再跑满 `target`）时调它：
+        * ★ `RealmRaid` 券打完（`check_ticket()` 返回 False）
+        * 其它"资源/条件用完 ⇒ 本轮没得做了"的任务同理
+
+        ⚠ **不要**把它当成"资源耗尽"的标记（用户明确否决）：
+          项目里**没有**监控门票资源的机制 ⇒ 标了"耗尽"就**永远没人解除**
+          ⇒ 那个任务**再也跑不了**。★ 所以上报的是"**本轮完成**"，
+          新一轮（队列循环）时由 `clear_entry_completed()` 自动清零。
+
+        ## 与 `target` 的关系
+
+        * `target` 未跑满 + 任务没提前做完 ⇒ **不标**（继续跑，由调度层判）
+        * 调了本方法 ⇒ ★ 立即标（**提前完成**，不再等 `target`）
+
+        :param reason: 说明（写日志 + 落盘，便于排障）
+        :return: 是否标记成功
+        """
+        try:
+            eid = str(getattr(self.config.model, 'running_entry_id', '') or '')
+            if not eid:
+                # 兜底：内存里的 `config.task`（与脚本同进程时可用）
+                eid = str(getattr(getattr(self.config, 'task', None),
+                                  'entry_id', '') or '')
+            if not eid:
+                logger.info(f'mark_entry_completed: 拿不到 entry_id，跳过'
+                            f'{("（" + reason + "）") if reason else ""}')
+                return False
+            from module.config import task_state
+            _ok = task_state.mark_entry_completed(
+                self.config.config_name, eid, reason=reason)
+            if _ok:
+                logger.info(f'「{self.get_task_name()}」上报本轮完成'
+                            f'{("（" + reason + "）") if reason else ""}'
+                            f' -> 调度器下次不会再派发这一条')
+            return _ok
+        except Exception as exc:
+            logger.warning(f'上报本轮完成失败({type(exc).__name__}: {exc}), 忽略')
+            return False
 
     # ------------------------------------------------------------------ 运行控制
     def requested_pause(self) -> bool:
@@ -344,6 +544,56 @@ class BaseTask(GlobalGameAssets, CostumeBase):
         **为什么不在这里 raise / sys.exit**: 那会跳过收尾逻辑, 正是要避免的"卡在半途"。
         """
         requested = getattr(self, '_pause_requested', False) or self.requested_pause()
+
+        # ★★★ 2026-10-12 用户裁定「D7.5 甲」：**播放头指向别条 ⇒ 本场跑完就停** ★★★
+        #
+        # ## ★★ 用户原话
+        #
+        # > "我点击了**别的任务的开始按钮**，虽然弹窗提示排到了最前，
+        # >  但是**并不会转而运行我点击的任务**。"
+        # > 裁定：★ **甲**（★ 尽快切换）
+        #
+        # ## ★ 为什么放在这里（这正是"安全点"）
+        #
+        # ★ 本函数的调用点都在**战斗循环体的开头**（★ 27 处）——
+        #   ★ 战斗中会阻塞在 `battle_wait()` 里，★ **不会**在这里 break
+        #   ⇒ ★ 天然保证"**只在两场战斗之间**退出"
+        #   ⇒ ★ 任务的收尾逻辑（退房间 / 回庭院 / 记录）**照常执行**
+        #     ⇒ ★ 不会卡在半途。
+        #
+        # ## ★ 判据
+        #
+        # ★ `model.force_next_entry_id` 有值（用户点了某条的 `[▶]`）
+        #   ★ **且**它 ≠ **本条**的 `entry_id`
+        #   ⇒ ★ 用户想让**别条**跑 ⇒ ★ 本条**本场跑完就停**，
+        #     ★ 调度器下一轮就会把播放头那条提到最前。
+        # ⚠ 播放头 == 本条 ⇒ **不停**（用户点的是自己，别自打断）。
+        try:
+            from module.config import run_control as _rc  # noqa: F401
+            _cfg = getattr(self, 'config', None)
+            _model = getattr(_cfg, 'model', None) if _cfg is not None else None
+            _force = str(getattr(_model, 'force_next_entry_id', '') or '')
+            # ★★ 判据修正（★ 我第一版读错字段）★★
+            # ★ 第一版读 `self._counter_entry_id` —— ★ 但它**只在
+            #   `bind_counter()` 里设置**，★ 而只有**战斗任务**才调它
+            #   ⇒ ★ `Rest` / `Exploration` 等读到**空** ⇒ 判据不准
+            #   ⇒ ★ 验收 5/6 都没过。
+            # ★ 改用 `config.model.running_entry_id` ——
+            #   ★ `script.py` 在**每个任务运行前**都会写它（★ 权威）。
+            # ⚠ 两个都读，取非空的（兼容单跑 / 排障）。
+            _mine = str(getattr(_model, 'running_entry_id', '') or '') or \
+                str(getattr(self, '_counter_entry_id', '') or '')
+            if _force and _force != _mine:
+                logger.info(f'★[切换诊断] 播放头={_force} ≠ 本条={_mine or "?"}'
+                            f' -> 本场跑完就停，交给下一条')
+                return True
+            elif _force:
+                logger.debug(f'★[切换诊断] 播放头 = 本条（{_force}）-> 不打断')
+            else:
+                logger.debug(f'★[切换诊断] 无播放头请求（本条={_mine or "?"}）')
+        except Exception as exc:
+            logger.debug(f'检查播放头切换失败({type(exc).__name__}: {exc}), 忽略')
+
         if not requested:
             return False
 
@@ -368,6 +618,71 @@ class BaseTask(GlobalGameAssets, CostumeBase):
                     pass
         return True
 
+    # ------------------------------------------------------------------ 是否在战斗中
+    # ★★★ 片 8 / D: `_in_battle` 判据（用户裁定 **丙**）★★★
+    #
+    # ## ★★ 用户原话 ★★
+    #
+    # > "应当对当前账号作一个**未在战斗中的判断**，如果处于该状态，
+    # >  那么遇到**暂停/停止调度时可以直接停止**而非**跑完当前一次完整战斗流程**
+    # >  （包括**换御魂、预设队伍、战斗**等）"
+    #
+    # > "D 丙：`_in_battle` 判据（识别到这个就是在战斗中，
+    # >  **识别到则刷新为 5s 内处于战斗状态**，
+    # >  `tasks\\Component\\GeneralBattle\\gb\\gb_action_bar_queue`），
+    # >  **其他任何时候都是非战斗状态**，怎么样。
+    # >  不过在**别的过程加断点可以更稳定**。"
+    #
+    # ## 设计（心跳超时，而不是"当前帧判定"）
+    #
+    # ★ `gb_action_bar_queue.png`（战斗界面的"行动条队列"）出现 ⇒ 在战斗中。
+    # ★ 但它**不必每帧都出现**（动画/遮罩会让它短暂消失）⇒
+    #   用**心跳 + 超时**：最近 `BATTLE_HEARTBEAT_S` 秒内见到过 ⇒ 算"仍在战斗"。
+    # ★ 超时未见到 ⇒ **非战斗** ⇒ 暂停可以**立刻**生效。
+    #
+    # ⚠ 这个判据**与 `DemonEncounter` 已有的做法同源**
+    #   （`tasks/DemonEncounter/script_task.py:669-703` 用同一张图重置兜底计时器）。
+    # ★ 心跳由 `battle_wait_with_strategy()` 的**主循环**每帧刷新
+    #   （`tasks/Component/GeneralBattle/battle_wait.py:1726`）——
+    #   ★ **一处覆盖所有任务**，不必改 54 个任务。
+
+    #: 心跳超时（秒）—— 用户指定 **5 秒**。
+    BATTLE_HEARTBEAT_S = 5
+
+    #: ★ "最近一次见到战斗图标"的**时间戳**（`time.time()`）。
+    #:   ★ `None` = 从没进入过战斗 ⇒ `_in_battle` 为 `False`（非战斗）。
+    _battle_seen_at = None
+
+    def note_battle_frame(self) -> None:
+        """★ 由战斗主循环每帧调用：**刷新"在战斗中"的心跳**。
+
+        ★ 只在**真的处于战斗**时刷新 —— 判定用 `gb_action_bar_queue`；
+          拿不到该资源的任务（不跑战斗的）**不会**刷新。
+        """
+        try:
+            img = getattr(self, 'I_ACTION_BAR_QUEUE', None)
+            if img is None:
+                return
+            if self.appear(img):
+                self._battle_seen_at = time()
+        except Exception as exc:
+            logger.debug(f'刷新战斗心跳失败({type(exc).__name__}: {exc})')
+
+    @property
+    def _in_battle(self) -> bool:
+        """★ 现在是不是**在战斗中**（最近 `BATTLE_HEARTBEAT_S` 秒内见过战斗图标）。
+
+        ★ **没有心跳记录** / **已超时** ⇒ `False` = **非战斗**
+          ⇒ 暂停/停止可以**立刻**生效（用户要的"未在战斗中就直接停"）。
+        """
+        seen = getattr(self, '_battle_seen_at', None)
+        if seen is None:
+            return False
+        try:
+            return (time() - float(seen)) < float(self.BATTLE_HEARTBEAT_S)
+        except Exception:
+            return False
+
     def raise_if_paused(self) -> None:
         """★★★ 在**安全点**中断当前任务（"暂停调度"真正生效的关键）★★★
 
@@ -385,11 +700,37 @@ class BaseTask(GlobalGameAssets, CostumeBase):
           吞不掉它（否则又会变成"点了没用"）。
         ⚠ 异常由 `script.py` 的 `run()` 接住, 那里任务收尾的 `finally` 照常
           执行 -> **不会卡在半途**。
+
+        ## ★★★ 片 8 / D 的放宽（用户裁定 丙）★★★
+
+        ★ **原来**这个方法的注释说"只在**本场战斗已结束**时中断" ——
+          即它**只在"一秒内不会卡"的地方停**。
+        ★ **用户要求放宽**：`没在战斗中` 时**也可以立刻停**
+          （不必等换御魂/预设/战斗这一整套跑完）。
+        ★ 所以现在抛不抛只取决于 `should_stop_battle_loop()`；
+          **"在不在战斗中"由调用方决定要不要在准备阶段也调它**
+          （见 `battle_before()` 里的断点）。
         """
         if self.should_stop_battle_loop():
             from module.exception import TaskPaused
             logger.info('收到暂停请求: 已在安全点(本场战斗已结束)中断当前任务')
             raise TaskPaused()
+
+    def raise_if_paused_outside_battle(self) -> None:
+        """★ **准备阶段**的安全点：**非战斗时**收到暂停就立刻中断。
+
+        ## 为什么单独一个方法
+
+        ★ 用户要求"**未在战斗中就直接停**"，但**战斗中不能中途打断**
+          （会卡在半途：战斗动画/结算界面没走完）。
+        ⇒ 所以准备阶段（换御魂 / 换预设 / 点准备）用这个：
+          `在战斗中` ⇒ **不抛**（照常跑完这一场）；`非战斗` ⇒ **抛**。
+
+        ★ 由 `battle_before()` 等准备步骤调用（片 8 / D 的"加断点"部分）。
+        """
+        if self._in_battle:
+            return                  # ★ 战斗中 -> 不打断（等结算）
+        self.raise_if_paused()
 
     # ------------------------------------------------------------------ 暂停护栏
     #

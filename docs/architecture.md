@@ -1661,7 +1661,30 @@ https://<wiki>/api.php?action=parse&format=json&page=<urlencoded>&prop=text
 | 7.5 | 核心抽象只有 `Resource`【已删】+ `RunState`【已删】| 🔄 **部分（曾虚报）** | `resource.py`【已删】/ `scheduler_core.py`(291 行) 早已写好, 但**从没被调度器调用**（在 `config.py`/`script.py` 搜 `next_available\|Resource\|RunState` 得 **0 处**）。2026-10-10 已接线: `Config._next_run_from_resource()` 调 `next_available()`; 守卫 `test_task_window.py::TestResourceWiring`。**但 `next_run` 仍是落盘字段** —— 完全"纯函数化"未做 |
 | 7.6 | 「次数」与「冷却」**解耦** | ✅ | 失败走 `failure_interval`（退避重试）, 与资源补充无关; `_next_run_from_resource()` 只处理成功路径 |
 | 7.7 | 用户配置面 10 → 3 个字段 | ✅ **实际是 16 → 4** |
-| **7.8** | `custom_next_run`（用户偏好时刻）| ⛔ **决策: 保留** —— 它与"开放时段"是**两个概念**（允许 vs 希望几点）。4 个调用点全部属于"用户配置的时刻"（`banquet_day_*` / `next_ryoutoppa_time` / 领体力时刻 / 跨任务排期）, 无法用固定 window 声明。详见 §13.1 | | 见 7.1 的证据。原计划"3 个", 实测需要 4 个（`enable`/`priority`/`target`/`expected_minutes`）|
+| **7.8** | `custom_next_run`（用户偏好时刻）| ★★ **部分推翻（用户裁定 W-a）** ★★ —— 见下方 §7.8-修订 | | 见 7.1 的证据。原计划"3 个", 实测需要 4 个（`enable`/`priority`/`target`/`expected_minutes`）|
+
+#### ★★ 7.8 修订（用户裁定 W-a，本会话实施）★★
+
+**用户原话**：
+> "W-a ★ **确实用 window start 替代** —— **放弃'希望几点'这个概念**"
+> "W-a：**涉及冲突的任务标为废弃不可启用，留待删除或适配**，其它就 W1"
+
+**结论 = 部分推翻**（不是全推翻，也不是全保留）：
+
+| 类别 | 字段 | 处置 |
+|---|---|---|
+| ★ **偏好时刻**（**已删除**）| `custom_run_time_friday/saturday/sunday`（AbyssShadows）· `custom_run_time`（DemonRetreat）· `next_exploration_time`（MemoryScrolls）| ★ 改用 `scheduler.windows` 的 **`start`** 表达；迁移见 `Config.migrate_moment_fields_to_windows_once()` |
+| ★ **排期逻辑**（**保留**）| `before_end`（WantedQuests）· `time_of_mystery`（MysteryShop）· `run_time_1/2`（GuildBanquet）| ★ 它们**不是偏好时刻**：`before_end` 是"结束前 N 分钟"的**相对偏移**、`time_of_mystery` 的 `00:00` 表示**结束任务**、`run_time_*` 被 `meta.times_from_config` 引用且**反向写回** ⇒ ★ 其所在任务已按用户裁定标为 **`TaskSpec.deprecated`（废弃、不可启用）**，留待删除或适配 |
+| ★ **不动的** | `kirin_time` / `netherworld_time`（Hunt）· `next_ryoutoppa_time`（RyouToppa）| ★ 这两个任务的 **`meta.py` 已声明权威窗口**（Hunt = 2 段；RyouToppa = 全天，用户裁定 A），而 **配置窗口会永久压住 meta** ⇒ **不往配置里塞窗口**（有回归测试盯着：`test_multi_segment_window.py` / `test_ryou_toppa_has_no_config_window` / `TestRyouToppaIsFullDay`）|
+| ⚠ **不是任务** | `sleep_end`（`tasks/Script/config_antiban.py`，晚安模式唤醒时刻）| ★ 没有 `meta.py` ⇒ 走不了任务废弃机制，**保留** + 本说明 |
+
+★ 所以原决策 7.8 的核心论据——"它与开放时段是两个概念（允许 vs 希望几点）"——
+**只对后两类成立**；对第一类（真正的偏好时刻），
+用户裁定**用 window start 统一**，因为"**从这个时刻起可以跑**"与
+"**我希望几点跑**"在实现上**可以合一**。
+
+★ `TaskSpec.deprecated` 的机制见 `module/config/task_catalog.py` 与
+`module/device/capabilities.py:disabled_tasks()`。
 
 ### 10.8 架构与可演进性
 

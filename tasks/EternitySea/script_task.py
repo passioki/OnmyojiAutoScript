@@ -293,10 +293,8 @@ class ScriptTask(
 
     @property
     def _limit_time(self) -> timedelta:
-        limit_time = self._task_config.eternity_sea_config.limit_time
-        return timedelta(
-            hours=limit_time.hour, minutes=limit_time.minute, seconds=limit_time.second
-        )
+        # ★ 片 2: 统一到 `scheduler.expected_minutes`（见 `BaseTask.time_limit`）
+        return self.time_limit
 
     def _enter_eternity_sea(self) -> None:
         logger.info("Enter eternity_sea")

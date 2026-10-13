@@ -32,16 +32,14 @@ class MoonSea(MoonSeaMap, MoonSeaL101, MoonSeaL102, MoonSeaL103, MoonSeaL104, Mo
 
     def _run_moon_sea(self):
         # 在六道界面
-        limit_time = self._conf.limit_time
+        # ★ 片 2: 时间上限统一到 `scheduler.expected_minutes`
+        #   （原 `six_realms_gate.limit_time` 配置字段已删除；
+        #    `self.time_limit` 由 `BaseTask` 从 scheduler 派生）
         # ★ 上限用 `self.limit_count` —— 由 `script_task.run()` 通过
         #   `effective_target()` 设定(= `scheduler.target` 或配置默认值)。
         #   改造前直接读 `self._conf.limit_count`, 界面上的次数输入框无效。
         max_cont = self.limit_count or 0
-        max_time: timedelta = timedelta(
-            hours=limit_time.hour,
-            minutes=limit_time.minute,
-            seconds=limit_time.second
-        )
+        max_time: timedelta = self.time_limit
         cnt = 0
         while 1:
             if cnt >= max_cont:

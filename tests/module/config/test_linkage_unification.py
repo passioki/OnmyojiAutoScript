@@ -171,75 +171,66 @@ class TestRemovalRuleFollowsGroupNotAutoQueue:
             '★ 临时任务移出后 enable 必须保持（它要留在【添加任务】池子里）')
 
 
-class TestPauseAlsoRequeuesRunning:
-    """★★★ 「暂停调度」顺带把正在运行的任务**退回队列首位**（用户最终裁定）★★★
+class TestPauseDoesNotTouchQueue:
+    """★★★ 「暂停调度」**不动队列顺序**（用户裁定 2026-10-11）★★★
 
-    用户原话:
-    > "**就把这个功能聚合到暂停调度按钮上好了**, 点击暂停调度,
-    >  正在运行的任务**自动回退到队列首位, 视作等待执行**,
-    >  这样是不是更优雅。"
+    ## ★★ 用户原话 ★★
 
-    ★ 我第一版做成了**独立端点** `POST /running/cancel`（暂停 + **移出队列**
-      + 周期任务**停用**）。★ 用户纠正了两处:
-      * 不是移出队列 -> 是**退回队首**
-      * 不停用 -> `enable` 保持
-      * 而且**聚合进暂停按钮**, 不再需要单独按钮
+    > "这里的**退回队首是什么意思**，感觉咱们哪里沟通错了。
+    >  这个**执行顺序就是个播放列表**，
+    >  **退回队首不应该是软件来操作的**。"
+
+    ## 旧设计（**已推翻**）
+
+    原来（P-1）点暂停会**把正在跑的条目插到 `run_list` 第 1 位**，
+    点「继续」时它第一个跑 —— ★ 代价是**软件擅自改动了用户编排的顺序**。
+
+    ## 现在（用户选 **甲**）
+
+    > "甲：★ **原地不动**（还在第 2 条），只是'停手了'
+    >   恢复时从它**接着**跑"
+
+    ⇒ ★ 暂停 = **单纯的"停手"**：不动 `run_list`、不动 `enable`、
+      不动 `next_run`、**次数也留着**。
     """
 
-    def test_put_pause_moves_running_to_front(self):
-        """★ `put_pause` 必须**同时**置暂停 + 把 `running_task` 退回队首。"""
+    def test_put_pause_does_not_requeue(self):
+        """★ `put_pause` **不许**再动 `run_list`。"""
         body = code_of(REPO / 'module/server/schema_router.py',
                        'async def put_pause')
-        assert 'request_pause' in body, '★ 必须先置暂停'
-        assert 'running_task' in body, '★ 必须在暂停时处理正在运行的任务'
-        assert 'save_run_list' in body, '★ 必须把它退回 `run_list`'
-        assert 'PAUSE_BATTLE' in body or 'mode' in body
+        assert 'request_pause' in body, '★ 必须置暂停'
+        assert 'save_run_list' not in body, (
+            '★ 暂停**不该**再写 `run_list` —— '
+            '用户: "退回队首不应该是软件来操作的"')
+        assert 'entries.insert(0' not in body, (
+            '★ 不许再把条目插到队首')
 
     def test_does_not_disable(self):
-        """★ **不许停用** —— 它不是移出队列（用户明确纠正）。"""
+        """★ **不许停用** —— 它不是移出队列。"""
         body = code_of(REPO / 'module/server/schema_router.py',
                        'async def put_pause')
         assert '.enable = False' not in body, (
-            '★ 暂停时不该停用任务 —— 用户明确"并非移除队列，所以不停用"')
+            '★ 暂停时不该停用任务')
         assert 'post_queue_remove' not in body, (
-            '★ 暂停**不该**复用移除逻辑（那是"移出队列"，语义不同）')
+            '★ 暂停**不该**复用移除逻辑')
 
-    def test_says_requeued_and_not_disabled(self):
-        """★ 返回/文案要说明"退回队首"+"未停用"+"继续后第一个跑"。
-
-        ⚠ 这里**不用 `code_of`** —— `put_pause` 的函数体里有**多个 `try`**,
-          `code_of()` 会在第一个 `try` 处截断（实测: 拿不到后半段的文案）。
-          ★ 改用"从 `async def put_pause` 到下一条 `@schema_app` 之间"整段。
-        """
+    def test_says_order_untouched(self):
+        """★ 文案要说清"**队列顺序没有被改动**"。"""
         src = (REPO / 'module/server/schema_router.py').read_text(
             encoding='utf-8')
         i = src.index('async def put_pause')
         j = src.index('@schema_app', i)
         body = src[i:j]
-        assert 'requeued' in body, '★ 返回里要告诉前端退回了哪个任务'
-        assert '未停用' in body
-        assert '队首' in body
+        # ⚠ 兼容键仍在（旧调用方），但**恒为空**
+        assert "'requeued': ''" in body, '★ `requeued` 兼容键应恒为空'
+        assert '队列顺序没有被改动' in body, (
+            '★ 文案必须说明"队列顺序没有被改动"')
 
-    def test_put_pause_live_moves_to_front_without_disabling(self):
-        """★★ 实测: 暂停 -> 退回队首 + `enable` 不变 ★★
-
-        ## ⚠ 必须**通过 config 对象**设置状态（我踩过一次）
-
-        `save_run_list()` 走的是**整份 `save()`**（项目既有设计, 队列排序/
-        移除都这么用）—— 它把**内存模型**写回磁盘。
-
-        ★ 所以若测试**直接改磁盘 JSON**, 而 `mm.config_cache` 里已经有旧模型,
-          那么 `put_pause` 的保存会**用旧模型覆盖**测试的改动
-          -> 看起来像"`enable` 被改了", 其实是**测试脚手架**的错。
-          实测踩到: 报 `six_realms.scheduler.enable = None/False`。
-
-        ★ 正确做法: 经由 `config.model.deep_set(...)` + `config.save()`,
-          让内存与磁盘一致。
-        """
+    def test_put_pause_live_keeps_order(self):
+        """★★ 实测: 暂停后**队列顺序原样不变** + `enable` 不变 ★★"""
         import server  # noqa: F401
         from module.config import run_control
         from module.server import schema_router as SR
-        from module.server.main_manager import mm
 
         c = _mk({})
         c.model.deep_set(c.model, keys='six_realms.scheduler.enable',
@@ -257,18 +248,18 @@ class TestPauseAlsoRequeuesRunning:
             r = _call(SR.put_pause, CFG, mode='battle')
             assert 'error' not in r, r
             assert run_control.is_paused() is True
-            assert r.get('requeued') == 'SixRealms', r
+            # ★ 不再"退回队首" ⇒ `requeued` 恒为空
+            assert not r.get('requeued'), (
+                f'★ 不该再有 requeued: {r.get("requeued")!r}')
 
             d = json.loads(P.read_text(encoding='utf-8'))
             tasks = [e.get('task') for e in
                      d['script']['optimization']['run_list']
                      if isinstance(e, dict)]
-            assert tasks[0] == 'SixRealms', f'★ 没退回队首: {tasks}'
-            assert len(tasks) == 4, f'★ 队列被改了长度: {tasks}'
+            assert tasks == ['Orochi', 'Exploration', 'SixRealms', 'Pets'], (
+                f'★ 暂停**动了队列顺序**（应原样不变）: {tasks}')
             en = (d.get('six_realms', {}).get('scheduler') or {}).get('enable')
-            assert en is True, (
-                f'★ 暂停时把 `enable` 改成 {en!r} 了 —— '
-                f'用户明确"并非移除队列，所以**不停用**"')
+            assert en is True, f'★ 暂停时把 `enable` 改成 {en!r} 了'
         finally:
             run_control.clear_all()
 

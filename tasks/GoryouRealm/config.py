@@ -18,10 +18,6 @@ class GoryouClass(str, Enum):
     Dark_Peacock = '暗孔雀'
 
 class GoryouConfig(ConfigBase):
-    # 限制时间
-    limit_time: Time = Field(default=Time(minute=30), description='limit_time_help')
-    # 限制次数
-    limit_count: int = Field(default=30, description='limit_count_help')
     # 类型
     goryou_class: GoryouClass = Field(default=GoryouClass.RANDOM, description='goryou_class_help')
 

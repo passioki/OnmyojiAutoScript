@@ -26,9 +26,8 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, SougenbiAssets):
         #   于是: 计数既不落盘(`commit_count()` 是空操作)、也不从磁盘恢复
         #   -> 进程重启后从头再打, 永远打不满 N。
         self.bind_counter()
-        limit_time = con.sougenbi_config.limit_time
-        self.limit_time: timedelta = timedelta(hours=limit_time.hour, minutes=limit_time.minute,
-                                               seconds=limit_time.second)
+        # ★ 片 2: 统一到 `scheduler.expected_minutes`
+        self.limit_time: timedelta = self.time_limit
         if s_con.buff_enable:
             self.goto_page(page_main)
             self.open_buff()

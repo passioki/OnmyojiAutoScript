@@ -31,10 +31,6 @@ class HeroTestConfig(BaseModel):
                     "藤原道长矩阵博士攻略:https://www.bilibili.com/opus/1162129635334422531",
     )
     skill_mode: SkillMode = Field(default=SkillMode.PVE, description="技能本技能偏向\n藤原道长使用攻略高配阵容,需自己配置好技能和祝福")
-    # 限制时间
-    limit_time: Time = Field(default=Time(minute=30), description="limit_time_help")
-    # 限制次数
-    limit_count: int = Field(default=100, description="limit_count_help")
     # 是否开启经验加成
     exp_50_buff_enable_help: bool = Field(default=False, description="打开经验50%加成")
     exp_100_buff_enable_help: bool = Field(

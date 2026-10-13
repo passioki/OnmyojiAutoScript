@@ -18,11 +18,6 @@ class SougenbiClass(str, Enum):
 
 class SougenbiConfig(ConfigBase):
     sougenbi_class: SougenbiClass = Field(default=SougenbiClass.Foolery)
-    # 限制时间
-    limit_time: Time = Field(default=Time(minute=30), description='limit_time_help')
-    # 限制次数
-    limit_count: int = Field(default=30, description='limit_count_help')
-
     # 加成
     buff_enable: bool = Field(default=False)
     # 是否点击金币50buff

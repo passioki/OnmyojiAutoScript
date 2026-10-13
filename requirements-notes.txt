@@ -1,0 +1,15 @@
+# requirements.txt 的**中文注释**（★ pip 不读本文件）
+#
+# ★★ 为什么放在这里
+# ★ `pip install -r requirements.txt` 在**中文 Windows** 上用 **GBK**
+#   解码该文件 ⇒ 若里面有非 ASCII 字符 ⇒
+#   `UnicodeDecodeError: gbk codec ... illegal multibyte sequence`
+#   ⇒ **exit code 2** ⇒ 启动器报 "UPDATE FAILED"。
+# ⇒ 所以 `requirements.txt` **必须保持纯 ASCII**，
+#   任何中文说明都放本文件。
+#
+# ---- 以下是从 requirements.txt 移出的原文 ----
+# 注意: 本行由上游 ppocr-onnx 改为显式钉住 1.20.1, 原因见 requirements-in.txt:
+#   PP-OCRv6 需要 IR version 10 (1.16.3 不支持);
+#   而 1.21.0+ 与 zerorpc/gevent 存在 Windows DLL 加载顺序冲突。
+#   1.20.1 是同时满足两者的最高版本。

@@ -40,17 +40,41 @@ class Scene(Enum):
 
 
 class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, ReplaceShikigami, SwitchSoul, ExplorationAssets):
-    minions_cnt = 0
+    # ★★★ 改名: `minions_cnt` -> `battle_count`（**片 1 收尾**）★★★
+    #
+    # ## 为什么改名
+    #
+    # 原来这里叫 `minions_cnt` —— 与**配置字段**
+    # `exploration_config.minions_cnt`（`tasks/Exploration/config.py:93`）
+    # **重名**。★ 那个配置字段**已按用户裁定删除**
+    # （次数统一到 `scheduler.target`，见 `module/config/config.py` 的
+    # `migrate_count_to_target_once`）。
+    #
+    # ⚠ 若继续叫 `minions_cnt`：一个**已删除的配置名**仍出现在运行时属性里,
+    #   后人会以为"配置里还有这个字段", 或者以为 `self.minions_cnt`
+    #   读的是配置 —— ★ 这正是本会话反复遇到的"字段语义混乱"。
+    #
+    # ## 它是什么
+    #
+    # ★ 它是**运行时计数器**（本任务**已经打过几场**），
+    #   与"上限"是两回事:
+    #   * `self.battle_count`（本属性）= **已打场数**（`fire()` 里 `+= 1`）
+    #   * `self.limit_count`           = **上限**（来自 `effective_target()`）
+    #   ⇒ 判据: `if self.battle_count >= (self.limit_count or 0)`
+    #
+    # ## ⚠ 已知缺陷（**未修，记录在案**）
+    #
+    # ★ 它是**类属性**（不是实例属性），`__init__` 里也不重置
+    #   ⇒ 同一进程内第二次跑 Exploration / WantedQuests 会**带着上次的计数继续累加**。
+    #   ★ 属于审计发现的 bug（见 `DEV-SCHEDULER-UNIFY-PLAN.md` §6-B），
+    #     本次**只改名，不改行为**（改名本身不影响语义，便于单独验证）。
+    battle_count = 0
 
     @cached_property
     def _config(self):
         self.config.exploration.general_battle_config.lock_team_enable = True
-        limit_time = self.config.exploration.exploration_config.limit_time
-        self.limit_time: timedelta = timedelta(
-            hours=limit_time.hour,
-            minutes=limit_time.minute,
-            seconds=limit_time.second
-        )
+        # ★ 片 2: 统一到 `scheduler.expected_minutes`
+        self.limit_time: timedelta = self.time_limit
         return self.config.model.exploration
 
     @cached_property
@@ -375,7 +399,9 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         # ★ 上限用 `self.limit_count`（由 `solo.py` 的 `run()` 通过
         #   `effective_target()` 设定 = `scheduler.target` 或配置默认值）。
         #   改造前直接读 `exploration_config.minions_cnt`, 界面改不到。
-        if self.minions_cnt >= (self.limit_count or 0):
+        #   ★ 那个配置字段**已删除**（片 1 收尾）, 计数器也**改名**为
+        #     `battle_count` 以免与已删除的配置名混淆（见类定义处的说明）。
+        if self.battle_count >= (self.limit_count or 0):
             logger.info('Minions count is enough, exit')
             return True
         if datetime.now() - self.start_time >= self.limit_time:
@@ -437,7 +463,8 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
             logger.warning('Fire button disappear, but still in exploration')
             return False
         self.run_general_battle(self._config.general_battle_config)
-        self.minions_cnt += 1
+        # ★ 片 1 收尾: `minions_cnt` -> `battle_count`（配置字段已删, 见类定义处说明）
+        self.battle_count += 1
         return True
 
     def wait_world_stable(self) -> bool:

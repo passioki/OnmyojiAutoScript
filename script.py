@@ -74,6 +74,20 @@ class Script:
         # 由 run() 的各 except 分支设置: 能在"任务级"处理的异常置 True 并让实例继续运行,
         # 而不是直接 exit(1) 终止整个实例(那样会连带停掉其它所有任务)。
         self._task_failed = False
+        # ★★★ 2026-10-13（用户裁定「丙」）：★ 上一个被执行的**任务实例** ★★★
+        #
+        # ★ 用户原话："**痛点是，重新跑的时候，读取了上一轮跑的计数，导致无法运行**"
+        #   / "**或者按照时间戳来判断**"。
+        #
+        # ★ 为什么需要它：★ `loop()` 收尾时要**如实**把"本次几场"写进长时记录
+        #   （`task_state.record_entry_run(runs_this_time=...)`），
+        #   ★ 而 `self.config.task` 是 **`Function`**（调度元数据）——
+        #   ★ **没有** `current_count`（见 `run()` 里的赋值处与 `tasks/base_task.py:116`）。
+        # ★ "本轮进度"按规格书 §1.6-L500/L504 **只活在内存**
+        #   （★ 不落盘、★ 重启后从 0 开始）⇒ ★ 只能经由**任务实例**取。
+        # ★ 默认 `None`：★ 还没跑过任何任务就走到收尾 ⇒ 记为 **0 场（如实）**,
+        #   ★ **绝不"补记 1 场"**（★ §2.2-REC5「不能未完成却标记完成」）。
+        self._last_task_obj = None
         # 运行loop的线程
         self.loop_thread: Thread = None
         # 跨进程排队管理器（仅在 queue_mode=True 时初始化）
@@ -238,17 +252,51 @@ class Script:
         pending = []
         waiting = []
         task = {}
-        if self.config.task is not None and self.config.task.next_run < datetime.now():
-            task["name"] = self.config.task.command
-            task["next_run"] = str(self.config.task.next_run)
+        # ★★★ 2026-10-12 用户裁定「S3」：**临时任务不看 `next_run` 显示** ★★★
+        #
+        # ## ★ 原来错在哪
+        #
+        # ★ 原来用 `next_run < now` 决定"要不要把当前任务报给界面"。
+        # ★ 但临时任务的 `next_run` **没有排期语义**（§1.2）——
+        #   ★ 它可能是"未来"或"很久以前" ⇒ ★ **界面显示为空/错乱**。
+        #
+        # ## ★ 修法
+        #
+        # ★ 临时任务：★ **只要有当前任务就报**，★ 且**不报 `next_run`**
+        #   （★ 改为 `'按顺序'` —— ★ 它的顺序由队列决定）。
+        # ★ 周期任务：★ 照旧（`next_run < now` + 报 `next_run`）。
+        _cur = self.config.task
+        if _cur is not None:
+            _cur_temp = False
+            try:
+                _tp = self.config.task_period(_cur.command)
+                _cur_temp = (not _tp) or str(_tp).lower() == 'none'
+            except Exception:
+                _cur_temp = False
+            if _cur_temp:
+                task["name"] = _cur.command
+                task["next_run"] = '按顺序'
+            elif _cur.next_run < datetime.now():
+                task["name"] = _cur.command
+                task["next_run"] = str(_cur.next_run)
         data["task"] = task
 
+        # ★ 小工具：临时任务显示"按顺序"，周期任务显示真实时间
+        def _nr(f):
+            try:
+                _p = self.config.task_period(f.command)
+                if (not _p) or str(_p).lower() == 'none':
+                    return '按顺序'
+            except Exception:
+                pass
+            return str(f.next_run)
+
         for p in self.config.pending_task[1:]:
-            item = {"name": p.command, "next_run": str(p.next_run)}
+            item = {"name": p.command, "next_run": _nr(p)}
             pending.append(item)
 
         for w in self.config.waiting_task:
-            item = {"name": w.command, "next_run": str(w.next_run)}
+            item = {"name": w.command, "next_run": _nr(w)}
             waiting.append(item)
 
 
@@ -361,14 +409,73 @@ class Script:
             if self.state_queue:
                 self.state_queue.put({"schedule": self.config.get_schedule_data()})
             now = datetime.now()
+            # ★★★ 2026-10-12 用户裁定「S2」：**防封不为临时任务改 `next_run`** ★★★
+            #
+            # ## ★ 为什么
+            #
+            # ★ `antiban_wake` 是"**防封让任务再等一会儿**"的机制 ——
+            #   ★ 它把 `next_run` **推到未来**。
+            # ★ 但临时任务**没有排期语义**（§1.2 分型规则）：
+            #   ★ 它由 **次数 / 门票 / 队列顺序** 决定何时跑。
+            # ★ 若这里把它的 `next_run` 推远 ⇒
+            #   ★ 虽然 S1 已让派发判定跳过 `next_run`，
+            #   ★ 但**界面/日志/其它读它的代码**仍会看到一个"未来的时间"
+            #     ⇒ ★★ **误导**（用户就是因此以为"还在用 next_run 排期"）。
+            #
+            # ## ★ 修法
+            #
+            # ★ 先算出这个任务是不是临时任务；
+            # ★ **是临时任务** ⇒ ★ **不改 `next_run`**（跳过这一句）。
+            # ⚠ 周期任务**照旧**（防封对它们仍是必要的）。
+            _is_temp_task = False
+            try:
+                _tp = self.config.task_period(task.command)
+                _is_temp_task = (not _tp) or str(_tp).lower() == 'none'
+            except Exception:
+                _is_temp_task = False
             antiban_wake = self.anti_ban_guard.wake_time(now, self.config.script.anti_ban)
-            if antiban_wake is not None:
+            if antiban_wake is not None and not _is_temp_task:
                 task.next_run = max(task.next_run, antiban_wake)
             if not self._try_acquire_queue_token():
                 del_cached_property(self, "config")
                 continue
             # 任务时间到了返回任务名称
-            if task.next_run <= now:
+            #
+            # ★★★ 2026-10-12 用户裁定「S1」：**临时任务【跳过】时点判定** ★★★
+            #
+            # ## ★★ 用户报的问题（原话）
+            #
+            # > "**怎么还有 next_run？没有按照新的调度吗？**"
+            # > "**是只是日志语义没适配，还是内层代码逻辑还是 `next_run`？**"
+            #
+            # ## ★★ 我先前只改了【门④】，★ 没改【这里】—— 这就是"说了四五遍
+            #    还没完成"的真正原因
+            #
+            # ★ 我改的门④（`config.py:1907`）只管"**谁进 `pending_task`**"。
+            # ★ 但"**要不要现在派发**"是【本行】决定的：
+            #   ★ 队首任务 `next_run` 在未来 ⇒ **不 return** ⇒ 落到下面的
+            #     "等待逻辑"（`_handle_wait_during_idle`）
+            #   ⇒ ★★ **临时任务照样被 `next_run` 拦在门外**。
+            #
+            # ## ★ 设计依据（§1.2 分型规则）
+            #
+            # | 维度 | 临时任务（`period = none`）|
+            # |---|---|
+            # | `next_run` | ★★ **不参与派发判断** |
+            # | 谁决定"能不能跑" | ★ **次数（`runs`/`target`）+ 门票** |
+            # | 谁决定"下一条是谁" | ★ **队列顺序**（§1.1-R3）|
+            #
+            # ⇒ ★ 临时任务在**所有时点判定**里都应被跳过
+            #   ★ （★ 这是设计的**核心**："不允许被执行顺序以外的机制调动"）。
+            #
+            # ⚠ 周期任务**完全不动**（时间排期是它们的正确语义）。
+            #
+            # ★ 注：`_is_temp_task` 已在上面（防封那一段）算好，★ 这里直接复用。
+            if _is_temp_task or task.next_run <= now:
+                logger.info(f'★[派发诊断] 派发 {task.command}'
+                            f'（entry={getattr(task, "entry_id", "")}）'
+                            f' 临时={_is_temp_task}'
+                            f' next_run={task.next_run}')
                 return task.command
             # 根据策略执行等待逻辑
             #
@@ -400,9 +507,51 @@ class Script:
             #
             # ★ "已经跑了几轮" **存盘**（`task_state`）—— 重启后端不丢（用户选 B）。
             # ★ 只有用户点「重置循环计数」才清 0（用户选 乙）。
+            # ★★★ 片 5 (P1-P3): **乱序**（`SHUFFLE`）★★★
+            #
+            # > 用户裁定: "**P2 乱序就是随机挑一个可跑的**。"
+            #
+            # ★ 与 `loop`（循环）**共用候选判据**（`Config._loop_candidates`）——
+            #   区别只在"全都要" vs "**随机挑一个**"。
+            # ★ 放在 `loop` 之前: 三种模式互斥（同一个配置字段），
+            #   所以先匹配哪个都一样; 这里只是让"乱序"更早短路。
             try:
-                if (str(self.config.script.optimization.when_task_queue_empty)
-                        == 'loop'):
+                # ★★★ 2026-10-12 修：**枚举比较 bug**（与 D12 同一类）★★★
+                #
+                # ## ★★ 症状
+                # > "**循环计数有问题，一直显示 1，导致无法停止**"
+                #
+                # ## ★ 根因
+                # ★ `when_task_queue_empty` 是**枚举** `WhenTaskQueueEmpty.LOOP`
+                #   `str(枚举)` = `'WhenTaskQueueEmpty.LOOP'`
+                #   ⇒ ★★ **永远不等于 `'shuffle'` / `'loop'`**
+                #   ⇒ ★ **整段循环逻辑从不执行**
+                #   ⇒ ★ `bump_loop_rounds()` 从不被调
+                #   ⇒ ★ 计数**停在旧值**（用户看到"一直是 1"）
+                #   ⇒ ★ 停止判据 `_done >= _times` **永不成立**
+                #   ⇒ ★★ **无法停止**（用户报的症状完全吻合）
+                #
+                # ★ 修法：★ 取 `.value`（★ 与项目其它地方同一手法）。
+                _wte_raw = self.config.script.optimization.when_task_queue_empty
+                _wte = str(getattr(_wte_raw, 'value', _wte_raw) or '').lower()
+                if _wte == 'shuffle':
+                    _now_sh = datetime.now()
+                    if (_loop_reset_at is None
+                            or (_now_sh - _loop_reset_at).total_seconds()
+                            >= _loop_throttle_s):
+                        _picked = self.config.shuffle_next_run(_now_sh)
+                        if _picked:
+                            _loop_reset_at = _now_sh
+                            del_cached_property(self, "config")
+                            continue
+                        _loop_reset_at = _now_sh
+                        logger.info('队列乱序: 当前没有可跑的任务 -> 按原策略等待')
+            except Exception as exc:
+                logger.warning(f'队列乱序重排失败({type(exc).__name__}: {exc}), '
+                               f'按原策略等待')
+            try:
+                # ★ 复用上面算好的 `_wte`（★ 同一枚举 bug，见上）
+                if _wte == 'loop':
                     _now_loop = datetime.now()
                     if (_loop_reset_at is None
                             or (_now_loop - _loop_reset_at).total_seconds()
@@ -496,13 +645,48 @@ class Script:
         :return: True 表示等待成功完成, False 表示等待被中断
         """
         method = self.config.script.optimization.when_task_queue_empty
+        # ★★★ 2026-10-12 修：`loop` / `shuffle` **不是非法值** ★★★
+        #
+        # ## ★★ 用户报的 bug + 日志证据
+        #
+        # ```
+        # WARNING | Invalid Optimization_WhenTaskQueueEmpty: loop,
+        #           fallback to stay_there
+        # ... 条目 RealmRaid【本轮已完成】-> 跳过
+        # ... 条目 Exploration【本轮已完成】-> 跳过
+        # ... Pending tasks: ['Exploration', 'RealmRaid']
+        # ... [Task] Exploration (Enable, 5, 2026-10-12 20:18:45)
+        #     ↑ ★ next_run 在过去却【不跑】
+        # ```
+        #
+        # ## ★ 根因
+        #
+        # ★ `WhenTaskQueueEmpty` 的**合法值**有 4 个：
+        #   `goto_main` / `close_game` / ★ **`loop`** / ★ **`shuffle`**
+        #   （见 `tasks/Script/config_optimization.py`）
+        # ★ 但这里的 `strategy_map` **只有前两个**
+        #   ⇒ ★ `loop` / `shuffle` 落到 `func is None`
+        #   ⇒ ★★ **误报 "Invalid"** + 退化成 `stay_there`（**什么都不做**）
+        #
+        # ## ★ 为什么 `loop`/`shuffle` 不该走这个函数
+        #
+        # ★ 它们由**上层**处理：`script.py` 主循环里的
+        #   `reset_loop_next_run()` / `shuffle_next_run()`
+        #   （★ 见本文件 L411~L460）
+        # ⇒ ★ 走到这里只可能是"**上层没找到可重排的任务**"
+        #   ⇒ ★ 此时 **`stay_there` 是正确行为**（等待下一个到点任务）
+        #   ★ 但**不该报 "Invalid"** —— ★ 那不是配置错误。
         strategy_map = {
             "close_game": self._wait_close_game,
             "goto_main": self._wait_goto_main,
+            # ★ 合法值：交给 `stay_there`（★ 上层已尝试过重排）
+            "loop": self._wait_stay_there,
+            "shuffle": self._wait_stay_there,
         }
         func = strategy_map.get(method)
         if func is None:
-            logger.warning(f"Invalid Optimization_WhenTaskQueueEmpty: {method}, fallback to stay_there")
+            logger.warning(f"Invalid Optimization_WhenTaskQueueEmpty: {method}, "
+                           f"fallback to stay_there")
             func = self._wait_stay_there
         return func(next_run)
 
@@ -675,6 +859,33 @@ class Script:
             #   同样落盘），供界面展示与"重置=归档后重开"。
             runs_before = self._task_runs_snapshot(task_obj)
             started = datetime.now()
+            # ★★★ 2026-10-13（用户裁定「丙」）：★ 存下**任务实例**，供收尾读"本次几场" ★★★
+            #
+            # ## ★★ 用户原话
+            # > "**痛点是，重新跑的时候，读取了上一轮跑的计数，导致无法运行**"
+            # > "**或者按照时间戳来判断**"
+            #
+            # ## ★ 为什么收尾（`loop()`）**读不到**这个数
+            #
+            # ★ `_task_obj` 是**本函数的局部变量** ⇒ ★ `loop()` 里根本看不见它。
+            # ★ 而 `loop()` 里能拿到的 `self.config.task` 是 **`Function`**
+            #   （调度元数据：`command` / `next_run` / `entry_id` / `target`）
+            #   ⇒ ★ **没有** `current_count`、**没有** `_counter_task`
+            #   ⇒ ★ 这就是缺陷 A 的根因。
+            # ★ `current_count` 只在**任务实例**上（`tasks/base_task.py:116` 初始化、
+            #   `bind_counter()` L374 **置 0**）—— ★ 它才是**本轮进度**，
+            #   ★ 而本轮进度**只在内存**（规格书 §1.6-L500/L504）。
+            #
+            # ## ★ 与规格书对齐
+            #
+            # ★ §1.6-L502-L504：「磁盘**只保留长时记录**；"这一轮打了多少场"
+            #   ⇒ ★ **只活在内存**」⇒ ★ 所以只能**从内存里的任务实例**取。
+            #
+            # ## ⚠ 赋值时机（`task_obj` 已构造好）
+            #
+            # ★ 本句在下面 `try:` **之前**执行，★ 而 `loop()` 的收尾在
+            #   `run()` **返回之后** ⇒ ★ 引用一定已就绪（★ 不会读到上一轮的陈旧值）。
+            self._last_task_obj = task_obj
             try:
                 task_obj.run()
             finally:
@@ -786,11 +997,48 @@ class Script:
     # ---------------------------------------------------------------- 运行记录
     def _task_runs_snapshot(self, task_obj) -> int:
         """
-        取任务**当前**已打次数（用于算增量）。
+        取任务**本次运行**已打次数（用于算增量 `runs_after - runs_before`）。
 
-        优先用任务对象内存里的 `current_count`（那是权威值, 由
-        `bind_counter` 从磁盘恢复、由战斗代码递增）；
-        取不到就退回 `task_state` 的持久化值。
+        ## ★★★ 2026-10-13 用户裁定「丙」：★ **只读内存，★ 绝不读盘** ★★★
+
+        ## ★★ 用户原话
+        > "**痛点是，重新跑的时候，读取了上一轮跑的计数，导致无法运行**"
+        > "**或者按照时间戳来判断**"
+
+        ## ★ 这个方法现在**应该**返回什么
+
+        ★ 它要的是"**本次运行期间，这个任务实例打了几场**"
+          ⇒ ★ 答案**只可能在内存**（`task_obj.current_count`）
+          ⇒ ★ **取不到就返回 0**（★ 0 就是 0，★ 如实，★ 不猜、不补）。
+
+        ## ⚠ 为什么**必须删掉**"退回 `task_state.get_entry_runs(...)`（读盘）"
+
+        ★ `runs` **不再由本轮写盘** —— `bind_counter()` 从 0 开始（不读盘）、
+          `commit_count()` 空操作（不写盘），`script.py` 收尾也不再
+          `set_entry_runs` / `bump_entry_runs`
+          （见 `tasks/base_task.py` 的 `bind_counter` / `commit_count`）。
+        ★ 于是读盘读到的**只会是上一轮的残留/假数据**
+          ⇒ ★ 报表失真（★ 实测日志 `本次 88 次, 0 分钟` 就是这类错位）。
+        ★ 而且"**这条本次跑没跑过**"的判定**已经**换成
+          ★ `completed_session` ↔ `__loop__.session_start` 的**时间戳比对**
+          （`task_state.get_entry_completed()`，§1.6-L496-L498）
+          ⇒ ★ 磁盘里的 `runs` **不再参与任何调度判定**
+          ⇒ ★ 读它**没有任何正当理由**，★ 只会把上一轮的数字带回来。
+
+        ## ★ 与规格书对齐（`docs\\DESIGN-SPEC.md` §1.6）
+
+        ★ §1.6-L500「**不再把"本轮进度计数"落盘**」
+        ★ §1.6-L502-L504「磁盘**只保留长时记录**（`total_runs` / `total_log`，
+          纯统计、**不参与调度判定**）；"这一轮打了多少场"
+          ⇒ ★ **只活在内存**（★ 重启后从 0 开始）」。
+
+        ## ★ 调用点不受影响（见 `run()` 的 `runs_before` 与 `_record_task_run()`）
+
+        ★ `runs_before` 在 `task_obj` **刚构造完、`run()` 之前**取 ——
+          `BaseTask.__init__`（`tasks/base_task.py:116`）已把 `current_count`
+          置 0，★ 所以它**本来就是 0**（★ 与本次改动无关）。
+        ★ `runs_after` 在 `run()` 之后取，而 `bind_counter()` 本轮**从 0 开始**
+          ⇒ ★ `delta = runs_after - 0` = ★ **本次这个实例打的场数**（语义干净）。
         """
         try:
             v = getattr(task_obj, 'current_count', None)
@@ -798,12 +1046,10 @@ class Script:
                 return int(v)
         except Exception:
             pass
-        try:
-            from module.config import task_state
-            return int(task_state.get_count(
-                self.config_name, task_obj.get_task_name()))
-        except Exception:
-            return 0
+        # ★ 取不到就**如实返回 0** —— ★ **绝不**退回 `task_state.get_entry_runs()`
+        #   （★ 那是读盘 `runs`；★ 本轮不再写盘 ⇒ ★ 只会读到上一轮的残留/假数据，
+        #     ★ 正是用户报的"读取了上一轮跑的计数"）。
+        return 0
 
     def _record_task_run(self, task_obj, command: str,
                          started: datetime, runs_before: int) -> None:
@@ -836,6 +1082,38 @@ class Script:
             logger.set_file_logger(self.config_name, do_cleanup=True)
         start_day = date.today()
         logger.info(f'Start scheduler loop: {self.config_name}')
+
+        # ★★★ 10-13 新增：记下【本次启动时间】（用户裁定「丙」）★★★
+        #
+        # ## ★★ 用户原话
+        # > "**痛点是，重新跑的时候，读取了上一轮跑的计数，导致无法运行**"
+        # > "**或者按照时间戳来判断**"
+        # > "**就按这个来**"
+        #
+        # ## ★ 这是规格书 §1.6-L453 / §2.6-LR5 缺的那个量
+        # ★ 规格书要求："这条【本次】跑没跑过" = 用【本次启动时间】与【记录里的时间】比对。
+        # ★ 但全仓**没有任何"本次启动时间"**：
+        #   * `__loop__.reset_at` 只写不读（死数据）
+        #   * `_loop_reset_at`（本文件后面）只是**一次函数调用内的局部变量**，不落盘
+        #   * `base_task.start_time` 是**任务实例内存**，随任务对象生灭
+        # ⇒ ★ 于是"跑没跑过"只能靠**计数器**（`runs >= target`）判
+        #   ⇒ ★ 计数残留 ⇒ **跑不起来**（用户痛点）。
+        #
+        # ## ★ 语义与效果
+        # ★ 每次**后端调度循环启动**刷新一次 ⇒ ★ `get_entry_completed()` 的过期基准
+        #   ★ 从"轮次号"改成"本时间戳" ⇒ ★ **每次重启后端，所有条目都算"本次没跑过"**
+        #   ⇒ ★★ **一定能跑**（★ 用户已接受"重启后本轮从 0 重打"）。
+        # ★ 彻底摆脱"轮次号只在 loop 模式才推进"的依赖
+        #   （`goto_main` / `stay_there` / 乱序下轮次号永不推进 ⇒ 旧实现会永久残留）。
+        try:
+            from module.config import task_state as _task_state
+            _task_state.mark_session_start(self.config_name)
+        except Exception as exc:
+            # ★ 绝不因为记时间失败而挡住调度 —— 宁可没基准（判定会放宽为"可跑"）
+            logger.warning(f'记录【本次启动时间】失败'
+                           f'({type(exc).__name__}: {exc}), 忽略'
+                           f'（完成判定会放宽为"可跑"）')
+
         self.config.model.running_task = ''
         self.anti_ban_guard.reset()
 
@@ -902,6 +1180,159 @@ class Script:
             if self._task_failed:
                 success = False
             self.config.model.running_task = ''
+            # ★★★ 片 5 (F2): 条目跑完 -> **条目级计数 +1**（界面上显示"已运行 N 次"）★★★
+            #
+            # ## ★★ 用户裁定 ★★
+            #
+            # > "由于现在是**流转的运行**，那么就会出现**运行过，状态标记为已运行X次**"
+            # > 并选定：**按条目**计（甲）—— 与"条目级次数"（`RunEntry.target`）一致。
+            #
+            # ★ 为什么按条目: 队列里**同一任务可以有多条条目** ——
+            #   按任务计会把两条混在一起（与 `running_entry_id` 同一理由:
+            #   "**身份，不是位置**"）。
+            # ★ **必须在这里记** —— 再下一行就把 `running_entry_id` 清掉了。
+            #
+            # ═══════════════════════════════════════════════════════════════════
+            # ★★★ 2026-10-13 重写（用户裁定「丙」）：这里**只**记长时记录 ★★★
+            # ═══════════════════════════════════════════════════════════════════
+            #
+            # ## ★★ 用户原话
+            #
+            # > "**痛点是，重新跑的时候，读取了上一轮跑的计数，导致无法运行**"
+            # > "**或者按照时间戳来判断**"
+            #
+            # ## ★ 本次删掉了哪两条路（都是"计数当判据"的遗物）
+            #
+            # ★ ① **`set_entry_runs(eid, target)`**（把 `runs` **直接覆写成 target**，原 L1233）
+            #   * ★ 它与「**本轮进度只在内存**」**直接冲突**：`runs` 一旦被写成
+            #     `target` ⇒ ★ 就"跨轮存活且虚高" ⇒ ★ **下次真的跑不起来**
+            #     （★ 用户痛点本体）。
+            #   * ★ 它还**污染长时统计**：`runs` 变成"被赋过的值"，不再是"打了几场"。
+            # ★ ② **"0 场也补记 1 场"** 的两处补记（`_bound` 分支 + `else` 分支）
+            #   * ★ 对 `target=1` 的条目 ⇒ ★ `runs` 至少为 1 ⇒
+            #     ★ **一场没打也被判"本轮完成"** ⇒ ★ 撞规格书 §2.2-REC5
+            #     「**不能未完成却标记完成**」（★ 用户亲令"最重要的一点"）。
+            #   * ★ "没打就是没打"：★ **不能补**；★ `total_log` 的 `runs`
+            #     必须**如实**记本次打了 0 场。
+            #
+            # ## ★★ 缺陷 A：`_bound` 恒为 `False` ⇒ 那里是**死代码**
+            #
+            # ★ 原判据: `_bound = bool(getattr(self.config.task, '_counter_task', None))`
+            # ★ 为什么**永远**是 `False`（两条证据）：
+            #   * ★ `self.config.task` 是 **`Function`**（见 `run()` 上方
+            #     `self.config.task = task`，`task` 来自 `self.config.get_next()`；
+            #     再往上是 `Config.get_next()` 里的 `self.task = _f`，
+            #     `_f` 取自 `self.pending_task` ⇒ ★ 都是 `Function`）
+            #   * ★ 而 `_counter_task` 全仓**只**在 `tasks/base_task.py` 里被赋值
+            #     （`__init__` 置 `None`、`bind_counter()` 置 `name.lower()`）
+            #     ⇒ ★ 它**只存在于【任务实例】**上
+            #     （`ScriptTask(config=..., device=...)`，见 `run()` 里 `task_obj`）
+            # ★ 两者**不是同一个对象** ⇒ `getattr(Function, '_counter_task', None)`
+            #   ★ 恒为 `None`（`Function` 是**普通类**、只设 `self.model` 那些字段，
+            #   没有 `__getattr__` 兜底 ⇒ ★ 拿不到、也不会抛）
+            #   ⇒ ★ `_bound` 恒 `False` ⇒ ★ `if not _bound:` **恒真**
+            #   ⇒ ★ `else:` 那一整段**不可达**（死分支）★ 已删。
+            #
+            # ## ★★ 缺陷 B 的后果（★ 这才是"任务跑不起来"的最后一环）
+            #
+            # ★ `if not _bound:` 恒真 ⇒ ★ **所有** `target > 0` 的条目收尾都走
+            #   `set_entry_runs(eid, target)` ⇒ ★ **runs 被直接覆写成 target**。
+            # ★ 对**战斗任务**也照做（★ 它本该只由 `commit_count()` 按场计数）
+            #   ⇒ ★ 打了几场根本不看 ⇒ ★ 计数**凭空达标**。
+            #
+            # ## ★★ 现行做法（★ 实际统一走哪条路）
+            #
+            # ★ 现在**没有分支**了：★ **战斗任务 / 非战斗任务走同一条路** ——
+            #   * ★ **只调** `task_state.record_entry_run(runs_this_time=本次几场)`
+            #     ⇒ ★ 写 `total_runs`（"本条被运行了几次"）+ `total_log`
+            #       （★ 时间戳到**毫秒** + 本次几场）
+            #   * ★ **删掉** `set_entry_runs` / `bump_entry_runs`
+            #     ⇒ ★ **不再写盘 `runs`** ⇒ ★ 与「本轮进度只在内存」一致
+            #   * ★ "**本次跑没跑过**"由 ★ `mark_entry_completed()`（下方）
+            #     写的 `completed_session` ↔ `session_start` 的**时间戳比对**判定
+            #     （§1.6-L496-L498）—— ★ **不再用"计数 >= target"**
+            #
+            # ## ★ 为什么**不再需要**"既然没统计到就补记 1"来避免"反复派发"
+            #
+            # ★ `Config.entry_target_reached()` 已按「丙」改成
+            #   "★ **临时任务成功跑完一次即 `True`**；周期任务返回 `False`"
+            #   ⇒ ★ "跑完 ⇒ 标 completed" 这条腿**不再依赖 `runs`**
+            #   ⇒ ★ 之前靠"补记 1 场把 runs 顶到 target"的**动机已消失**。
+            #
+            # ⚠ 将来若要改这段，★ 请**先**确认 `entry_target_reached()` 的语义 ——
+            #   它已**不代表**"计数达标"（名字是历史遗留）。
+            try:
+                _eid = str(getattr(self.config.model, 'running_entry_id', '') or '')
+                if _eid and success:
+                    from module.config import task_state as _ts2
+                    # ★★ 如实取"本次打了几场"（★ 0 就是 0，★ 不补记）★★
+                    #
+                    # ★ 取值来源 = **任务实例的内存计数** `current_count`
+                    #   （★ 由 `bind_counter()` L374 **从 0 开始**、
+                    #    战斗代码场内自增；见 `tasks/base_task.py:116/374`）。
+                    #
+                    # ⚠ 为什么**不能**读 `self.config.task`：
+                    #   ★ 它是 `Function`（调度元数据）⇒ ★ **没有** `current_count`
+                    #   ⇒ ★ 读出来恒是"取不到" ⇒ ★ 就会误记成 0
+                    #   ⇒ ★ 这也是缺陷 A 的同一个根因。
+                    # ⚠ 为什么**不能**再 `get_entry_runs(...)`（读盘 `runs`）：
+                    #   ★ `runs` 现在**不再由本轮写盘**（`commit_count` 空操作、
+                    #     本处也不再 `set/bump`）⇒ ★ 读到的只会是**旧值/残留**
+                    #   ⇒ ★ 记进 `total_log` 就是**假数据**。
+                    #
+                    # ★ 与规格书对齐：§1.6-L500「**不再把"本轮进度计数"落盘**」、
+                    #   §1.6-L502-L504「磁盘**只保留长时记录**；"这一轮打了多少场"
+                    #   ⇒ ★ **只活在内存**（★ 重启后从 0 开始）」。
+                    _n = 0
+                    try:
+                        _n = int(getattr(self._last_task_obj,
+                                        'current_count', 0) or 0)
+                    except Exception as _exc_n:
+                        _n = 0
+                        logger.debug(f'读本次场次失败'
+                                     f'({type(_exc_n).__name__}: {_exc_n})，按 0')
+                    # ★★ 记"总记录"（**每次运行**一笔，颗粒度 = 次）★★
+                    #    ★ 它**只**写 `total_runs` / `total_log` / `updated`，
+                    #      ★ **不碰** `runs` 字段 ⇒ ★ 与"本轮进度不落盘"不冲突
+                    #    ★ 与 `runs`（场次）分开 —— 见 `record_entry_run` 的说明
+                    _tot = _ts2.record_entry_run(
+                        self.config_name, _eid, runs_this_time=_n)
+                    logger.info(f'条目运行计数: {_eid} -> 本次 {_n} 场（如实）, '
+                                f'累计运行 {_tot} 次')
+                    # ★★★ 片 12（用户裁定 丙）: **本次跑完 -> 本轮完成** ★★★
+                    #
+                    # ## ★★ 这修的是"券用完了还一直重复个人突破" ★★
+                    #
+                    # ★ 临时任务（`period=none`）**没有**周期完成记忆
+                    #   ⇒ ★ 跑完之后**没有任何东西让它退出** ⇒ 被反复派发
+                    #   （实测 RealmRaid 每 40 秒一轮，永不停）。
+                    # ★ 丙 的两条腿：
+                    #   * ★ **调度层**：本次跑完 ⇒ 自动标 completed（这里）
+                    #   * ★ **任务自己**：提前做完（如 RealmRaid 券打完）
+                    #     ⇒ 调 `mark_entry_completed()` 上报
+                    #
+                    # ⚠ 判据**已不是**"跑满 target" ——
+                    #   ★ 见 `Config.entry_target_reached()`（临时任务成功跑完即 True；
+                    #     周期任务 False）；★ 方法名是**历史遗留**，别被名字误导。
+                    # ⚠ 只对 `period='none'` 生效（周期任务走周期记忆，不变）。
+                    #
+                    # ★★ 这一句**必须保留**（不是"计数落盘"）★★
+                    #   ★ `mark_entry_completed()` 写的是 `completed_session`
+                    #   （= **本次启动时间**），★ 而 `get_entry_completed()`
+                    #   **按它与 `session_start` 比对判过期**
+                    #   ⇒ ★ **下一次启动自动全部失效 ⇒ 一定能跑** ★ = §1.6 核心机制。
+                    #   ★ 删掉它 ⇒ ★ 临时任务无完成标记 ⇒ ★ 反复派发。
+                    try:
+                        if self.config.entry_is_temporary(_eid) \
+                                and self.config.entry_target_reached(_eid):
+                            _ts2.mark_entry_completed(
+                                self.config_name, _eid,
+                                reason=f'本次跑完（已打 {_n} 场）')
+                    except Exception as _exc2:
+                        logger.debug(f'标记本轮完成失败'
+                                     f'({type(_exc2).__name__}: {_exc2})')
+            except Exception as exc:
+                logger.debug(f'读条目运行计数失败({type(exc).__name__}: {exc})')
             # ★ P-1: 身份一起清掉（不留"上一次跑的是哪条"的错觉）
             self.config.model.running_entry_id = ''
             logger.info(f'Scheduler: End task `{task}`')

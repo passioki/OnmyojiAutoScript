@@ -87,8 +87,25 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RyouToppaAssets):
         #   改造前本任务只**读** `current_count` 而从不 bind,
         #   于是计数既不落盘也不恢复 -> 重启后从头再打。
         self.bind_counter()
-        time_limit: Time = ryou_config.raid_config.limit_time
-        time_delta = timedelta(hours=time_limit.hour, minutes=time_limit.minute, seconds=time_limit.second)
+        # ★★ 片 2: 时间上限统一到 `scheduler.expected_minutes` ★★
+        #
+        # 原代码:
+        # ```python
+        # time_limit: Time = ryou_config.raid_config.limit_time
+        # time_delta = timedelta(hours=time_limit.hour, minutes=..., seconds=...)
+        # ```
+        # ⇒ 配置字段已删除; 现在 `self.time_limit` **本身就是 `timedelta`**
+        #   （由 `BaseTask.time_limit` 从 `scheduler.expected_minutes` 派生）
+        #   ⇒ ★ **直接用它, 不要再取 `.hour`**。
+        #
+        # ⚠ ★ 我在这里犯过一次错, 记录以免重犯:
+        #   我先"审计"出 `time_delta` 是死变量（**因为搜索输出被截断,
+        #   没看到 `if datetime.now() >= self.start_time + time_delta:`**）
+        #   于是把这两行删了 —— 结果 `test_undefined_names` **立刻抓到**
+        #   `time_delta` 未定义。
+        #   ★ 教训: **输出被截断时不能下"某变量是死的"这种结论**;
+        #     必须确认全部出现处（本会话已被截断输出误导多次）。
+        time_delta: timedelta = self.time_limit
         self.medal_grid = ImageGrid([RealmRaidAssets.I_MEDAL_5, RealmRaidAssets.I_MEDAL_4, RealmRaidAssets.I_MEDAL_3,
                                      RealmRaidAssets.I_MEDAL_2, RealmRaidAssets.I_MEDAL_1, RealmRaidAssets.I_MEDAL_0])
 

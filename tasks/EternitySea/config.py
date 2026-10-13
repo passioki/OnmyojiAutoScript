@@ -24,11 +24,6 @@ class EternitySeaConfig(ConfigBase):
     user_status: UserStatus = Field(default=UserStatus.LEADER, description='user_status_help')
     # 层数
     layer: Layer = Field(default=Layer.FOUR, description='layer_help')
-    # 限制时间
-    limit_time: Time = Field(default=Time(minute=30), description='limit_time_help')
-    # 限制次数
-    limit_count: int = Field(default=30, description='limit_count_help')
-
 class EternitySea(ConfigBase):
     scheduler: Scheduler = Field(default_factory=Scheduler)
     eternity_sea_config: EternitySeaConfig = Field(default_factory=EternitySeaConfig)

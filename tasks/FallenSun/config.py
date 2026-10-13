@@ -31,12 +31,6 @@ class FallenSunConfig(ConfigBase):
     user_status: UserStatus = Field(default=UserStatus.LEADER, description='user_status_help')
     # 层数
     layer: Layer = Field(default=Layer.THREE, description='layer_help')
-    # 限制时间
-    limit_time: Time = Field(default=Time(minute=30), description='limit_time_help')
-    # 限制次数
-    limit_count: int = Field(default=50, description='limit_count_help')
-
-
 class FallenSun(ConfigBase):
     scheduler: Scheduler = Field(default_factory=Scheduler)
     fallen_sun_config: FallenSunConfig = Field(default_factory=FallenSunConfig)

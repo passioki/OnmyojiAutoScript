@@ -48,7 +48,31 @@ from module.logger import logger
 
 DATA_FILE = Path(__file__).with_name('task_catalog_data.json')
 
-# 统一后的"目标次数"字段名。所有固定任务最终都应暴露这个名字。
+# ★★★ 统一后的「目标次数」字段名 ★★★
+#
+# ## 用户裁定（原话）
+#
+# > "① 「次数」字段，**全部统一为咱们任务顺序设置的那个次数字段，
+# >   应该是 target 吧**"
+#
+# ## ⚠ 为什么这个常量**仍然是 `'limit_count'`**（而不是 `'target'`）
+#
+# ★ 片 1 已经**删掉了 14 个任务配置里的次数字段**
+#   （`limit_count` / `minions_cnt` / `hya_limit_count` / `number_attack`），
+#   次数现在**只**住在 `scheduler.target`（任务级）与 `RunEntry.target`（条目级）。
+#
+# ★ 本常量的**真实作用**是：`BaseTask.effective_target()` 第 ③ 级
+#   （"任务配置里的次数字段"）**按哪个名字去找**。
+#   ⇒ 那 14 个字段已删 ⇒ ★ **第 ③ 级自然落空、回落到 ④ `count_default`** ——
+#     这正是统一后的**预期行为**（出厂默认值仍在 `meta.py`/生成物里）。
+#
+# ⚠ 我一度把它改成 `'target'`，但那样会连带改动：
+#   `gen_task_catalog.py` 的 `needs_unify`（14 个任务全变 True —— 假警报）、
+#   `schema_router` 暴露的 `unified_count_field`、
+#   以及 `tests/module/server/test_schema_router.py:76` 的断言。
+#   ★ 那是**另一片更大的改动**，不该混在片 1 里做（片 1 的目标是"搬家 + 删字段"）。
+#   ⇒ 所以**保留 `'limit_count'`**：它对"已删除的字段"永远找不到，
+#     效果 = 跳过第 ③ 级，行为正确且不牵连其它子系统。
 UNIFIED_COUNT_FIELD = 'limit_count'
 
 
@@ -179,9 +203,13 @@ class TaskMeta:
         """
         对外统一的次数字段名。
 
-        不论该任务实际用的是 minions_cnt 还是 limit_count, 调用方都拿
-        `limit_count`(见 UNIFIED_COUNT_FIELD), 由这里做适配 —— 这样
-        上层(API/界面/调度器)不必再关心别名。
+        ★ 片 1 收尾后统一字段是 **`target`**（`UNIFIED_COUNT_FIELD`）——
+        见该常量的说明（14 个任务配置里的次数字段已删除，
+        次数只住在 `scheduler.target` / `RunEntry.target`）。
+
+        ⚠ 历史上这里返回 `'limit_count'`（"曾经的统一别名"）；
+        那些字段**已全部删除**，所以旧返回值会让
+        `BaseTask.effective_target()` 的第 ③ 级**永远落空**。
         """
         return UNIFIED_COUNT_FIELD if self.countable else None
 
@@ -229,6 +257,32 @@ class TaskSpec:
     period: Period = Period.NONE
     requires: tuple = ()
     note: str = ''
+    # ★★★ 废弃标记（片 4 / W-a，用户裁定）★★★
+    #
+    # > 用户原话: "**涉及冲突的任务标为废弃不可启用，留待删除或适配**"
+    #
+    # ## 什么情况标这里
+    #
+    # 当任务的某个字段**无法用统一后的字段表达**、且真的在**参与排期逻辑**时
+    # （即"语义冲突"），按用户裁定把**该任务**标为废弃 ——
+    # 它**不出现在可启用列表**，留待后续**删除或适配**。
+    #
+    # ## 目前标了谁（W-a 审计结果）
+    #
+    # | 任务 | 冲突字段 | 为什么冲突 |
+    # |---|---|---|
+    # | `MysteryShop` | `time_of_mystery` | `00:00` = **结束任务**；否则 `set_next_run` 到该时刻 |
+    # | `WantedQuests` | `before_end` | **"活动结束前 N 分钟"的偏移量** |
+    # | `FrogBoss` | `before_end_frog` | 同样的**相对偏移** |
+    # | `GuildBanquet` | `run_time_1` / `run_time_2` | ★ **主程序反向写回配置**（显示用）|
+    #
+    # ⚠ `sleep_end`（`tasks/Script/config_antiban.py`，晚安模式唤醒时刻）
+    #   **不是任务**（没有 `meta.py`）⇒ 走不了本机制，单独保留 + 文档说明。
+    #
+    # ## 值 = 原因（供界面/日志显示）
+    #
+    # ★ `''` / `None` = **不废弃**（默认）。
+    deprecated: str = ''
     # ★★ 是否**自动进入执行队列**（用户确认的"任务类别属性"）★★
     #
     # | 值 | 含义 | 例 |

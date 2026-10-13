@@ -233,7 +233,41 @@
 | **T8** | `entry_target_reached()` 判据 → 临时任务"跑完即完成" | `module/config/config.py` | ✅ |
 | **T9** | 修 `script.py` 收尾（`_bound` 死代码 / 覆写 target / 0 场补记）| `script.py` | 🔄 子智能体 `73d4b2a4` |
 | **T10** | 修**两道反向守卫测试** + 新增时间戳用例 | `tests/` | ✅ **已完成**：★ 子智能体 `f171d9fb` 改了 **3 个测试文件**（`test_effective_target.py` / `test_count_wiring.py` / **`test_no_false_completion.py`** ← ★ 审计没点名的第三个必红文件）+ 新增 **5 个用例**（含 a/b/c/d 四项时间戳守卫）；★ 并用 `ast.parse` 验证语法通过 |
-| **T10b** | ★ **`entry_target_reached()` 零覆盖** | `tests/` | ⬜ **新记缺口**：★ 它改语义（runs>=target → 临时任务跑完即 True）但 **`tests/` 里零测试**（★ 要构造真 `Config` + `build_run_list()`，★ 子智能体不敢写假红/假绿）|
+| **T10b** | ★ **`entry_target_reached()` 零覆盖** | `tests/` | ⬜ **仍缺**：★ 它改语义（runs>=target → 临时任务跑完即 True）但 **`tests/` 里仍无测试**（★ 要构造真 `Config` + `build_run_list()`）|
+| **T25** | ★★ **队列循环「轮数只到 1」守卫测试** | `tests/module/config/test_loop_rounds.py`（★ **新增**）| ✅ **已完成**：8 条断言（递增 / 读回 / 停止判据 / 重置 / **枚举 .value 根因** / **源码级取 .value** / delta / 状态损坏不抛）|
+| **T25b** | ★★ **守卫有效性验证**（★ 防空转）| — | ✅ **已做注入验证**：改回裸枚举 ⇒ **1 failed**；`bump` 不递增 ⇒ **5 failed**；还原 ⇒ **8 passed** |
+| **T26** | ★★ **推送恢复节点 + 转 main** | GitHub 两仓库 | ✅ **已完成**（见 §B.5）|
+
+## B.5 ★★ 恢复节点（[10-13 15:14] 用户指定）
+
+> ★★ **用户原话**：
+> > "**将当前的后端和前端作为一个重要的恢复节点版本推送，将这版转为 main 节点**"
+
+| 仓库 | `main` | `dev` / 分支 | 恢复节点 tag | 状态 |
+|---|---|---|---|---|
+| ★ 后端 `passioki/OnmyojiAutoScript` | ★ **`9872ec0c`** | `dev` = `9872ec0c` | ★ **`recovery-20261013-scheduler-audit`** | ✅ 已推 · worktree 干净 |
+| ★ 前端 `passioki/OASX` | ★ **`af10440`** | `oas-live-build` = `af10440` | ★ **`recovery-20261013-isolated-live`** | ✅ 已推 · worktree 干净 |
+
+★ **后端这一版含**（★ 84 文件 · +15110/−839）：
+```
+★ ① 判定改「按时间戳」（session_start ↔ completed_session）
+★ ② 本轮进度不落盘（bind_counter 不读 / commit_count 不写）
+★ ③ entry_target_reached 改「临时任务跑完即完成」
+★ ④ script.py 收尾重写（删 _bound 死分支 / set_entry_runs 覆写 / 0 场补记）
+★ ⑤ 队列循环「轮数只到 1」的修复 + ★ **新增守卫测试**
+★ ⑥ 文档：DESIGN-SPEC §1.6.x / 分歧块⑪ / §6.6 / §4.1 重判 / Q5Q6 定案
+★ ⑦ 台账：本文件 §B
+```
+
+★ **可验证性**：★ 上述 7 个关键文件**全部 `git ls-files` 已入库** ⇒ ★ 从 GitHub 拉下来即可跑。
+
+★ ⚠ **仍未入库的**（★ 用户在决策）：
+```
+★ `DESIGN-SPEC.md` 的 §4.2-C 小标题仍写"未废弃"（正文已改 ✅）
+★ `loop_times` 的 help 文案仍写「跑空后 / 队列循环」（★ 旧措辞 ⇒ 界面看着"像旧版"）
+★ `.py` 里 7 处注释与新实现不一致（★ 见 §B.4 T18）
+```
+
 | **T11** | 移植到 `D:\OAS` | `D:\OAS\` | 🔄 子智能体 `684a5265` |
 | **T12** | 规格书矛盾收敛（§1.3 → 时间戳 · §5 定案 · §4.1 订正 · 新增 §1.6.x）| `docs/DESIGN-SPEC.md`（1785 → **1974 行**）| ✅ **已完成**：新增 **§1.6.x**（`session_start`，Z1~Z7）+ **分歧块⑪**（轮次号→时间戳）+ **§6.6** 巡检 + **§4.5-⑮~⑳**；§4.1 第 13/15/16 条由 ✅ **重判 ❌**；§4.4 汇总 `22/8/5` → **`21/7/7`**（★ 并指出旧数从来对不上）；Q5/Q6 **✅ 已定案**；校正 **17 处行号** |
 | **T13** | ★ 台账改 `PENDING-LEDGER.md`（本节 B）| 本文件 | ✅ |

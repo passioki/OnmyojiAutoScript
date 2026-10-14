@@ -4482,8 +4482,36 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             try:
                 _placeholder = copy.deepcopy(getattr(self, 'task', None))
                 if _placeholder is None:
+                    # ★★★ [10-14] 修 P0：这里**必须传小写配置键** ★★★
+                    #
+                    # ## ★★ 实机证据（`记录/20261013-关于循环和周期任务.txt:39`）
+                    #
+                    # ```
+                    # WARNING  | 构造待命占位失败(KeyError: 'Restart')
+                    # CRITICAL | No task waiting or pending
+                    # ```
+                    # ⇒ ★ 占位**没造出来** ⇒ `except` 吞掉 ⇒ 落到末尾 `raise`
+                    #   ⇒ ★★ **整个调度循环死掉**（★ 用户 10-12 就报过
+                    #     "循环虚设" —— 这是同一个 bug 的第二次现身）。
+                    #
+                    # ## ★ 为什么必须小写
+                    #
+                    # ★ `Function.__init__` 调 `ConfigModel.type(key)`（`config.py:89`），
+                    #   而它是 **`ConfigModel.__annotations__[key]`**
+                    #   （`config_model.py:314`）—— ★ 模型字段名**全是小写**
+                    #   （`restart` / `script` / `orochi` …）。
+                    # ★ 实测：`ConfigModel.type('Restart')` ⇒ **`KeyError: 'Restart'`**；
+                    #         `ConfigModel.type('restart')` ⇒ `'Restart'` ✅
+                    # ★ 而 `command` 仍会被还原成**大驼峰** `'Restart'`
+                    #   —— ★ 上游 `script.py:1139` 拿它比字符串，所以**反而是对的**。
+                    #
+                    # ## ⚠ 不许改成"返回 None / 返回字符串"
+                    #
+                    # ★ `script.py:1139` 用 `task == 'Restart'` 比字符串、
+                    #   `script.py:1156` 直接把它当字符串赋给 `running_task`
+                    #   ⇒ ★ 占位**必须仍是 `Function`**（它未实现 `__eq__`）。
                     _placeholder = Function(
-                        'Restart',
+                        'restart',
                         {'scheduler': {'enable': True, 'period': 'none',
                                        'priority': 0,
                                        'next_run': datetime.now()}})

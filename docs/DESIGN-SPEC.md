@@ -429,6 +429,43 @@ flowchart TD
 ★ ⇒ ★ 这样"**本轮已完成**"**不再混进"未到开放时间"**，
   ★ 界面语义正确。
 
+## 1.5.x ★★★ 「队列全完成 ⇒ 待命」—— ★ **调度循环绝不许断**（[10-12] 起 · [10-14] 定型）
+
+> ★★ **用户原话（两次报同一个 bug）**：
+> > **[10-12]** "**循环虚设**！！！跑到最后一列后出现以下日志：
+> >  `CRITICAL No task waiting or pending`"
+> >
+> > **[10-14]**（附 [10-13] 实机日志）"**1循环模式，以上是最后一个任务结束后报错日志。**"
+
+### ★★ 实机日志（真因现场，`记录/20261013-关于循环和周期任务.txt:37-41`）
+
+```
+INFO     | 队列里没有可跑的条目（本轮全完成/未到点） -> **待命**（不抛 CRITICAL）
+WARNING  | 构造待命占位失败(KeyError: 'Restart')      ← ★★ 真因
+CRITICAL | No task waiting or pending
+CRITICAL | Please enable at least one task
+ERROR    | Run script 恋鸟树 error  ➜ RequestHumanTakeover  ➜ 脚本进程退出
+```
+
+### ★★★ 规则
+
+| # | 规则 |
+|---|---|
+| **SB1** | ★★ **"队列全完成"是【正常状态】，不是错误** ⇒ ★ `get_next()` **不许** `raise RequestHumanTakeover`（★ 那会**中断整个调度循环** `script.py:1130` 的 `while 1`）|
+| **SB2** | ★★ 该情形 ⇒ 返回一条 **「待命占位」**（`config.py:4479-4491`）—— ★ 上游据其 `command` 继续走等待逻辑 |
+| **SB3** | ★★ **占位必须构造成功**：★ `Function(...)` 的**第一个参数必须是【小写配置键】**<br>★ 为什么：`Function.__init__` 调 `ConfigModel.type(key)`（`config.py:89`），而它是 **`ConfigModel.__annotations__[key]`**（`config_model.py:314`）—— ★ 模型字段名**全是小写**<br>★ 实测：`Function('Restart', …)` ⇒ **`KeyError`**（★ → 被 `except` 吞 ⇒ 落到 `raise` ⇒ **调度器死掉**）；`Function('restart', …)` ⇒ `command='Restart'` ✅ |
+| **SB4** | ★ **占位必须是 `Function` 对象**（**不许** `return None` / 返回字符串）：★ `script.py:1139` 用 `task == 'Restart'` **比字符串**、`script.py:1156` 直接把它当字符串赋给 `running_task`；而 `Function` **未实现 `__eq__`** ⇒ ★ 换类型会让语义静默漂移 |
+| **SB5** | ★ **不许把"待命分支"提前**：★ `pending_task` 非空 ⇒ 必须先返回它（`config.py:4353-4373`）；★ `waiting_task` 非空 ⇒ 必须返回它（`:4496-4501`）|
+
+★ **守这条的地方**：`tests/module/config/test_standby_placeholder.py`（★ 5 条用例：
+  ★ 不抛异常 · `command` 必须是真任务 · 必须是 `Function` · ★ 两条**反向**守卫）
+★ **教训（★ 我在这里连续空转两次）**：★ `get_next()` **第一行就
+  `self.update_scheduler()`**（`config.py:4351`）⇒ ★ 在外部设
+  `pending_task` / `waiting_task` **会被重算覆盖** ⇒ ★ 守卫必须
+  **`monkeypatch` 打桩 `update_scheduler`** 才能精确构造"待命"那一刻；
+  ★ 并且**必须同时清 `pending` 与 `waiting`**（★ 模板里 `Restart` 默认
+  `enable=True` ⇒ 实测 `pending_task = ['Restart']` ⇒ ★ 不清就走**出路①** ⇒ 空转）。
+
 ## 1.6 ★ 字段语义（后端）
 
 > **[10-12 12:09:29]** "`runs` 是还保留着吗，`target` 现在起什么作用，**两者边界怎么样**"
@@ -1709,9 +1746,10 @@ pending_task = self._order_by_queue(pending_task)   # L2044 之后才按队列�
 | **⑮** | — | ★★★ **[10-13] 完成判定改【时间戳】**：★ `completed_session == __loop__.session_start`（★ 基准毫秒 · ★ 写入 = `script.py` 的 `loop()` **开头**）| ✅ **已修** | ★ 代码已核实：`task_state.py:736` / `:839` / `:960` / `:1013` · `script.py:1083` · ★ **本轮未跑测试** |
 | **⑯** | — | ★★★ **[10-13] `bind_counter()` 不读盘**（`current_count = 0`）—— ★ 修"**重新跑时读到上一轮计数 ⇒ 跑不起来**"的痛点 | ✅ **已修** | ★ 代码已核实：`base_task.py:286-389`（★ `current_count = 0` 在 `374`）|
 | **⑰** | — | ★★★ **[10-13] `commit_count()` 不写盘**（**空操作**，★ 只同步内存水位 `_counter_persisted`）| ✅ **已修** | ★ 代码已核实：`base_task.py:391-421` |
-| **⑱** | — | ★★ **[10-13] 判据从"计数 ≥ `target`"改成"跑完即完成"**：★ `entry_target_reached()` = ★ 临时任务 `True` · ★ 周期任务 `False`（交给周期记忆）| ✅ **已修** | ★ 代码已核实：`config.py:3993-4131` |
+| **⑱** | — | ★★ **[10-13] 判据从"计数 ≥ `target`"改成"跑完即完成"**：★ `entry_target_reached()` = ★ 临时任务 `True` · ★ 周期任务 `False`（交给周期记忆）| ✅ **已修 + ★ [10-14] 已补守卫** | ★ 代码已核实：`config.py:3993-4135`；★★ **[10-14] 新增** `tests/module/config/test_entry_target_reached.py`（★ 补台账 `T10b` 的「**零覆盖**」）⇒ ★ **11 passed** ＋ ★★ **注入验证 3/3 都真红**（①"临时→False" ⇒ **5 failed**；②"周期→True" ⇒ **3 failed**；③"塞回 `runs>=target`" ⇒ **1 failed** 静态守卫）|
 | **⑲** | — | ★ **[10-13] `total_log` 时间戳 → 毫秒 + 带 `session` 标签**（★ 长时记录**只做统计**，不参与判定）| ✅ **已修** | ★ 代码已核实：`task_state.py:522-583`（★ 毫秒在 `562` · `session` 在 `576-578`）|
 | **⑳** | — | ★★★ **[10-13] 本轮文档自相矛盾收敛**（★ §1.3 轮次号 → 时间戳 · ★ §1.6/§2.1 `runs` 生命周期统一 · ★ §4.1-13/15/16 改判 · ★ 行号校正 · ★ 新增 §1.6.x · ★ Q5/Q6 定案）| ✅ **已完成** | ★ 见 §6.6（★ 逐条 + `文件:行号`）|
+| **㉑** | — | ★★★ **[10-14] P0：`get_next()` 的「待命占位」必须构造成功**（★ 否则 `raise RequestHumanTakeover` ⇒ **调度循环死掉**）。★ 真因：`Function('Restart', …)` 用了**大驼峰键**，而 `ConfigModel.type()` = `__annotations__[key]` 要**小写** ⇒ `KeyError` | ✅ **已修** | ★ 修法 = `config.py:4518` 的 `'Restart'` ➜ `'restart'`；★ **新增 §1.5.x（SB1~SB5）** + ★ 守卫 `tests/module/config/test_standby_placeholder.py` **5 passed** ＋ ★★ **注入验证真红**（改回 `'Restart'` ⇒ **3 failed**）＋ 还原逐字节一致 |
 
 ★ ⚠ **⑫ 与 ⑳ 的关系**：★ ⑫（10-12 的巡检）**只消解了当时的矛盾**，
 ★ **并未覆盖 [10-13] 的新裁定** ⇒ ★ 那些矛盾（§1.3 轮次号 / §4.1 记 ✅ 的旧行为 / 漂移行号）

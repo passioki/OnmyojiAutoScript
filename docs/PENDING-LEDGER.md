@@ -281,3 +281,52 @@
 ★ ⇒ ★★ 所有"验收"都要**你**在实机跑（★ 我会给你逐条可粘贴的验收命令）
 ```
 
+★ ✅ **[10-14] 已解除**：本会话 `pwsh` 恢复正常（★ 已实跑 pytest：守卫 43 passed ·
+  全量 49 failed/1706 passed）⇒ ★ `T14` 的"阻塞"理由**不再成立**，
+  改成"**需要你双击/实机确认**"（★ 阻塞 ≠ 难度）。
+
+---
+
+# §C ★★★ [10-14] 新会话：`记录\20261013-关于循环和周期任务.txt` 的 9 条反馈
+
+> ★ **来源**：用户 [10-14] 指定 `D:\OAS-dev\记录\20261013-关于循环和周期任务.txt`
+>   （★ 内容 = **10-13 23:xx 实机后端日志**（157 行）+ **9 条用户反馈**）。
+> ★ **本节的每条都做了【代码核实】**（★ 贴 `文件:行号`，★ 不许凭日志自述）。
+
+## C.0 ★★★ F0：**"最后一个任务结束后报错"的真因**（★ 已有代码证据 + 复现路径）
+
+| 项 | 内容 |
+|---|---|
+| **用户原话** | ★ "**1循环模式，以上是最后一个任务结束后报错日志。**" |
+| **日志证据** | `记录/…txt:37-41`：`队列里没有可跑的条目（本轮全完成/未到点） -> **待命**（不抛 CRITICAL）` ➜ ★ `WARNING 构造待命占位失败(KeyError: 'Restart')` ➜ ★ `CRITICAL No task waiting or pending` ➜ `RequestHumanTakeover` ➜ 脚本进程**退出** |
+| ★★ **真因** | ★ `config.py:4485-4489` 用 `Function('Restart', {...})` 造"待命占位"，★ 而 `Function.__init__` 会调 `ConfigModel.type(key)`（`config.py:89`），后者是 ★ **`ConfigModel.__annotations__[key]`**（`config_model.py:314`）⇒ ★ **键必须是小写**（`'restart'`）⇒ ★ 传 `'Restart'` **必抛 `KeyError`**（★ 已实测：`ConfigModel.type('Restart')` ⇒ `KeyError: 'Restart'`；`ConfigModel.type('restart')` ⇒ `'Restart'` ✅）|
+| ★ **后果** | ★ `except` 只 `logger.warning`（`config.py:4492-4493`）⇒ ★ `_placeholder` 仍为 `None` ⇒ ★ 落到 `config.py:4502-4505` ⇒ ★ `raise RequestHumanTakeover` ⇒ ★ **调度循环整个死掉**（★ 正是用户 10-12 报的"循环虚设"） |
+| ★ **修法（最小）** | ★ `config.py:4486`：`'Restart'` ➜ **`'restart'`**（★ 与 `ConfigModel.type` 的**键**约定一致）|
+| ⚠ **连带确认** | ★ 不能改成 `return None`：`script.py:1139` 用 `task == 'Restart'` **比字符串**，`script.py:1156` 直接 `task` 当字符串用（`Function` 未实现 `__eq__`）⇒ ★ 占位必须仍是 `Function` |
+
+## C.1 ★ 9 条反馈台账（★ 全部经代码核实）
+
+| # | 用户反馈（原话摘要）| 核实结果（★ `文件:行号`）| 定性 | 状态 | 验证 |
+|---|---|---|---|---|
+| **N9-1** | 循环模式：最后一个任务结束后**报错** | ★ 真因见 §C.0；★ `config.py:4485-4493` + `config_model.py:314` | ✅ **已修（[10-14]）** | ★ 见下三行（fix / test / spec）|
+| **N9-2** | "目前的**强制休息**是否还在运行，如凌晨 2-8 点" | ★ 机制**在**：`module/config/anti_ban.py:39-54`（睡眠窗 / 每日活跃上限 / 强制长休息）；★ 默认值 **2:00→8:00**（`tasks/Script/config_antiban.py:11-14`）| ★ 问答（**不是 bug**）| ⬜ 待核 | ★ 查 `config/*.json` 里 `script.anti_ban.enable`；★ 注意 `enable` 默认 **False**（`:10`）|
+| **N9-3** | 添加任务的**休息时间**做成**范围内随机 ±20%** | ★ 现状 = `RunEntry.minutes` 固定值（`module/config/run_list.py:165`）| ★ 新功能（**无规格**）| ⬜ 未开始 | ★ 须先出 SPEC（§3 前端 + §1 调度）|
+| **N9-4** | 新建配置页时**填的名称不生效**，得靠重命名 | ★ 端点 `schema_router.py:2102-2161`（`copy_from` / 默认名"源名 副本"）| ★ **疑似 bug** | ⬜ 待核 | ★ 需复现：新建时传 `name` ⇒ 看落盘 |
+| **N9-5** | 对**每个任务**画流程图"用于理解代码" | ★ 现状：`docs/` 有 `scheduler-architecture.md` 等，但**无逐任务流程图** | ★ 文档任务（**大**）| ⬜ 未开始 | ★ 交付物形如 `docs/flows/<Task>.md` |
+| **N9-6** | 结合 `http://127.0.0.1:22288/tool/annotator` **集成"新建任务"**：彻底了解实现 ⇒ 设计增删改查复制标准流程 ⇒ 前后端实现 ⇒ 用前端**新建一个周期任务 + 一个临时任务并跑通** 才算验收；再把**所有周期任务统一管理**、接入统一调度 | ★ 端点存在（`/tool/annotator`，端口 22288 = **dev**）；★ 现状只具备"测 match / 更新识别库" | ★★ **重大功能（需求级）** | ⬜ 未开始（★ **必须先写 SPEC**）| ★ 用户已给验收定义（★ 照抄）|
+| **N9-7** | **周期任务**运行时**没有"正在运行"状态 tag** | ★ 后端**已返**：`running_entry_id` / `running_task`（`schema_router.py:1240-1242`、`:1283-1284`）；★ "正在运行"判据 = `running_entry_id` 优先、退回任务名（`:1236`）| ★ 需看**前端**如何用（★ 前端仓库在 `D:\OAS-dev\frontend`）| ⬜ 待核 | ★ 需实机复现 + 前端代码核对 |
+| **N9-8** | 从别的配置**复制执行顺序页** ⇒ 复制后**自身的周期任务被加了进来**（比源页多）| ★ 复制走 `copy_from` 快照：`schema_router.py:2125-2151`（深拷贝源页 `snapshot`，不读当前状态）| ★ **疑似 bug**（★ 多出 = 违反了"快照复制"语义）| ⬜ 待核 | ★ 需复现 + 读 `build_queue()` 的 **auto_queue 自动补齐**（★ 复制后 `run_list` 被"自动进队列"污染？）|
+| **N9-9** | **御灵之境更换御魂出错，直接跳过了更换** | ★ 入口 `tasks/GoryouRealm/script_task.py:26-28`（`enable` ⇒ 进式神录 ⇒ `run_switch_soul`）；★ 静默路径：`tasks/Component/SwitchSoul/switch_soul.py:90-95`（`switch_parser` 失败 ⇒ `logger.error('Switch soul config error')` + **return** ⇒ ★ **跳过且不抛**）| ★ **疑似 bug（错误被吞）** | ⬜ 待核 | ★ 需实机日志里那句 `Switch soul config error` |
+
+## C.2 ★★ 本轮（[10-14]）守卫新增台账
+
+| # | 事项 | 依据 | 状态 | 验证 |
+|---|---|---|---|---|
+| **T10b** | ★★ **`entry_target_reached()` 零覆盖** ⇒ ★ 新增 `tests/module/config/test_entry_target_reached.py` | ★ 台账 `T10b` · SPEC §1.6.x-Z6 / §4.5-⑱ | ✅ **已完成** | ★ **11 passed**；★★ **注入验证 3/3 都真红**：注入①"临时任务→False" ⇒ **5 failed**；注入②"周期任务→True" ⇒ **3 failed**；注入③"塞回 `runs>=target`" ⇒ **1 failed**（静态守卫）；★ 还原后 SHA256 与原始**逐字节一致** + `git diff` 空 |
+| **N9-1-fix** | ★★★ **P0**：`Function('Restart')` ➜ `Function('restart')`（★ 待命占位**必须构造成功**）| ★ `config.py:4518` · `config_model.py:314` | ✅ **已完成** | ★ 实机日志的 `KeyError: 'Restart'` ⇒ `RequestHumanTakeover` 链路**已断** |
+| **N9-1-test** | ★ 守卫：**待命占位必须成功**（不抛 `RequestHumanTakeover`）+ 两条反向守卫 | ★ 新增 `tests/module/config/test_standby_placeholder.py`（5 条）| ✅ **已完成** | ★ **5 passed**；★★ **注入验证真红**（把 `'restart'` 改回 `'Restart'` ⇒ **3 failed @ `config.py:4533`**）；★ 还原后 SHA256 **逐字节一致**（`FCD71335…`）|
+| **N9-1-spec** | ★ 规格书落正文：**§1.5.x（SB1~SB5）** + `§4.5-㉑` | `docs/DESIGN-SPEC.md` | ✅ **已完成** | ★ 规则 5 条 + 实机日志证据 + **空转教训**（★ `update_scheduler` 会覆盖外部设定）|
+| **F-baseline** | ★★ 全量基线**实测**（★ 台账旧值 `35 failed / 1696 passed` **对不上**）| `pytest tests/ -q` | ✅ **已归因** | ★ **对照实验**：★ **无**我的新测试文件 ⇒ **50 failed / 1694 passed / 12 skipped**；★ **有** ⇒ **49 failed / 1706 passed** ⇒ ★ ★ **+12 passed（全是我新增的用例）· −1 failed**；★ 逐条比对 ⇒ ★ 差的唯一一条是 `tests/test_docs_no_dead_refs.py::test_all_referenced_py_paths_exist`（★ 单独跑 **20 passed**，★ 与本文件同跑也 **31 passed**）⇒ ★ **它是全量套件里的顺序相关 flaky**，★ **不是**我的回归（★ 证据：加文件只会 +passed，**不可能**把红变绿）|
+| **F-cwd** | ★★ **我自己踩的坑（已修）**：新测试文件 `os.chdir(REPO)` **不还原** ⇒ ★ 污染**共享测试进程的 `cwd`** | `tests/module/config/test_entry_target_reached.py:93-118` | ✅ **已修** | ★ fixture 里 `cwd_before = os.getcwd()` ⇒ `finally: os.chdir(cwd_before)`；★ 修后本文件仍 **11 passed** |
+| **F-baseline-attrib** | ★★ **49 failed 的归因**（★ 给"完成定义"用）| ★ 实测 | 🔄 进行中 | ★ **绝大多数** = 测试去读 **`D:/OAS-dev/OASX-src`**（★ 实测 `FileNotFoundError: 'D:\\OAS-dev\\OASX-src\\lib\\...'`）⇒ ★ **"前端仓库不在本机"类**（★ 与 `DEV-WORKFLOW §3.1` 的已知项吻合，★ 但**路径名已漂移**：期望 `OASX-src`，本机是 `frontend`）；★ **剩 6 条**须逐条归因：`test_task_catalog::test_interval_from_user_config`（读**用户配置**）· `test_schema_router::test_at_least_one_task_outside_window`（读**实机状态**）· `test_queue_clear_and_settings::test_disables_auto_queue_tasks` · `test_i18n_full_coverage::TestFieldKeyCoverage`×4 |
+

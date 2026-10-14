@@ -37,6 +37,46 @@ from module.logger import logger
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main
 
+#: ★★★ [10-14] 休息时长的**随机幅度**（用户裁定：±20%）★★★
+#
+# ## ★★ 用户原话（[10-14] 记录文件第 3 条）
+#
+# > "**添加任务的休息时间做成范围内随机上下20%**"
+#
+# ## ★ 为什么这样定（而不是"每次重新读配置"）
+#
+# ★ 随机的**只是"这一轮实际睡多久"** ⇒ ★ 不写回配置、不落盘
+#   ⇒ ★ 界面/日志里"休息 30 分钟"仍然是**用户填的那个数**
+#     （★ 用户填 30，实际可能 26 或 34 —— 见下面的日志）。
+# ★ 若把随机值写回配置 ⇒ ★ 切页/重启后会**越随机越偏**（游走），
+#   而且用户再也看不到自己填的数。
+REST_JITTER = 0.20
+
+
+def randomized_rest_minutes(base: int, jitter: float = REST_JITTER) -> int:
+    """★ 把"基准分钟数"随机成**这一轮实际要休息的分钟数**（±`jitter`）。
+
+    :param base: ★ 用户填的分钟数（= `scheduler.target` / 条目 `target`）
+    :param jitter: ★ 随机幅度，默认 **0.20**（±20%）
+    :return: ★ **整数分钟**，且 **>= 1**
+
+    ## ★ 规则
+
+    * ★ 区间 = `[base*(1-jitter), base*(1+jitter)]`，**均匀分布**
+      （★ 与项目其它地方一致：用全局 `random`）
+    * ★ **四舍五入到整分钟** —— ★ 休息是按分钟表达的，秒级随机没有意义
+    * ★ **下限 1 分钟**：★ `base=1` 时 `[0.8, 1.2]` 四舍五入后可能得 1，
+      但保险起见夹到 >= 1（★ 不许出现"0 分钟休息"）
+    * ★ `base <= 0` ⇒ ★ 原样返回（★ 调用方负责兜底默认 30 分钟）
+    """
+    if base <= 0:
+        return base
+    low = base * (1.0 - jitter)
+    high = base * (1.0 + jitter)
+    import random as _random
+    minutes = int(round(_random.uniform(low, high)))
+    return max(1, minutes)
+
 
 class ScriptTask(GameUi):
 
@@ -117,7 +157,19 @@ class ScriptTask(GameUi):
             minutes = 30
             logger.info('休息未设置分钟数（target=0）-> 用默认 30 分钟')
 
-        logger.info(f'休息 {minutes} 分钟（回庭院待着）')
+        # ★★★ [10-14] 用户裁定：休息时长**范围内随机 ±20%** ★★★
+        #
+        # > "**添加任务的休息时间做成范围内随机上下20%**"
+        #
+        # ★ 只随机"这一轮实际睡多久" —— ★ 配置里 `minutes` **不动**
+        #   ⇒ ★ 界面/日志里的"休息 N 分钟"仍是用户填的数（见 `REST_JITTER`）。
+        # ★ 在**进入等待之前**算一次 ⇒ ★ 暂停/切条后重跑会重新随机
+        #   （★ 这是期望的：那是**新的一次休息**）。
+        actual = randomized_rest_minutes(minutes)
+        logger.info(f'休息 {minutes} 分钟（回庭院待着）'
+                    + (f'；★ 本次实际休 {actual} 分钟'
+                       f'（±{int(REST_JITTER * 100)}% 随机）'
+                       if actual != minutes else ''))
 
         # ③ 待在庭院等 —— 走 `self.device.sleep` 以便**响应停止/暂停**
         #
@@ -145,7 +197,8 @@ class ScriptTask(GameUi):
         # ⇒ ★ 退出后走**正常收尾**（`raise TaskEnd`）⇒ ★ 调度器下一轮
         #   ★ 就能派发播放头那条 ⇒ ★ **真正"切过去"**。
         slice_s = 30
-        total_s = minutes * 60
+        # ★ [10-14] 睡的是**随机后**的 `actual`（★ 不再是固定 `minutes`）
+        total_s = actual * 60
         slept = 0
         while slept < total_s:
             step = min(slice_s, total_s - slept)

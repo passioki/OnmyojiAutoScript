@@ -1,0 +1,34 @@
+feat(N9-3): 休息时长范围内随机 ±20%
+
+## 用户原话（10-14 记录第 3 条）
+  "添加任务的休息时间做成范围内随机上下20%"
+
+## 设计要点（为什么不写回配置）
+  * 随机的只是"这一轮实际睡多久" => 配置里的 minutes 不动
+    => 界面/日志里"休息 30 分钟"仍是【用户填的那个数】（实际值另打一行日志）
+    => 切页/重启不会"越随机越偏"（不落盘就没有游走）
+  * 沿用既定的四级取值（条目 target -> 条目 minutes -> 任务级 target -> 30）
+  * 均匀分布（用户说"范围内上下20%" => 均值必须仍在 base，不许"只加不减"）
+
+## 改了什么
+  * tasks/Rest/script_task.py
+      + REST_JITTER = 0.20
+      + randomized_rest_minutes(base, jitter=0.20) -> int
+          base*(1±jitter) 内均匀随机, 四舍五入到整数分钟, 下限 1
+          base<=0 原样返回（兜底交调用方）
+      + run() 里 actual = randomized_rest_minutes(minutes)
+          total_s = actual * 60      <- 睡的是随机后的值
+          日志区分"基准 N 分钟"与"本次实际休 M 分钟（±20% 随机）"
+  * 新增守卫 tests/tasks/test_rest_random_minutes.py（14 条）
+      400 次采样都在 ±20% 内（含取整余量）· 均值居中（±5%）
+      下限 1 分钟 · 非正数原样返回
+      签名只接标量（结构上无法改写配置）
+      total_s 必须用 actual（防"算了随机却睡固定值"）
+  * DESIGN-SPEC: 新增 §1.14.x（RJ1~RJ5）+ §4.5-㉖; 台账/HANDOFF 同步
+
+## 验证（可核查）
+  * test_rest_random_minutes : 14 passed
+  * 注入验证 ①（只加不减 base*(1+rand*0.2)）: 1 failed => 均值判据真红
+  * 注入验证 ②（total_s 改回 minutes*60）    : 1 failed => 源码判据真红
+  * 两次注入后均还原, SHA256 逐字节一致
+  * 全量: 49 failed / 1776 passed（失败集与基线逐条相同 => 零回归）

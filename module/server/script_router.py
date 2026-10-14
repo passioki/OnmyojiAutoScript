@@ -122,6 +122,57 @@ async def post_queue_profile_transfer(data: dict = Body(default={})):
         import copy as _copy
         snap = _copy.deepcopy(snap)
 
+        # ★★★ [10-14] 修「N9-8」：**跨配置转移不许改写目标的任务启停** ★★★
+        #
+        # ## ★★ 用户原话
+        #
+        # > "**从别的配置中复制执行顺序配置页时，复制后，自身的周期任务被添加了
+        # >   进来，意味着和复制的相比多了自身的周期任务，这不符合复制的语义。**"
+        #
+        # ## ★★ 复现（实测，[10-14]）
+        #
+        # ```
+        # A 配置: enable=True 的任务 = ['orochi']
+        # B 配置: enable=True 的任务 = ['abyss_shadows']
+        # 把 A 的页 transfer 到 B 并切过去之后:
+        #   B 的 enable=True = ['orochi']        ← ★ 被源的快照整片覆盖
+        #   B 的队列显示     = ['RealmRaid'] + ['Orochi']
+        #                                          ↑ ★ "多出来的周期任务"
+        # ```
+        #
+        # ## ★ 为什么这是 bug（有三条独立依据）
+        #
+        # ① ★ **本端点自己的取舍**就写着：★ "**不激活**新页 —— 否则会把
+        #    目标配置**正在用的队列换掉**"（见上面的 docstring）。
+        #    而 `scheduler.enable` **恰恰会换掉**目标能跑什么 ——
+        #    周期任务一旦 `enable=True` 就 `auto_queue` **自动进队列**
+        #    （★ 用户看到的就是"执行顺序里多了一条"）。
+        # ② ★ **任务启停是【账号级】设置**，不是"某一页"的属性：
+        #    同配置里切换页**本来就不改**它（`_order_by_queue` 只按队列排），
+        #    跨配置却整片覆盖 ⇒ ★ 语义不一致。
+        # ③ ★ 用户要的"复制的语义" = **把那一页的顺序拿过来**；
+        #    ★ 不是"把我的任务配置也换成对方的"。
+        #
+        # ## ★ 修法（只去 `enable`，别的字段全留）
+        #
+        # ★ 从转移用的快照里**删掉每个任务的 `enable`** ⇒
+        #   ★ 目标配置**自己的**启停**原样保留**（`abyss_shadows` 还在），
+        #   ★ 源配置的周期任务**不会被"启用"**（`orochi` 不会凭空出现）。
+        # ★ `target` / `priority` / `expected_minutes` / `queue` / `global`
+        #   **照旧复制** —— 那些确实是"这一页怎么跑"的属性。
+        #
+        # ⚠ **同配置**的"复制这一页…"（`schema_router.post_queue_profile`）
+        #   **不动** —— ★ 那是既有行为（页快照含启停），用户没抱怨它；
+        #   ★ 本修法只针对**跨配置**这一条路径。
+        _src_sched = snap.get('scheduler')
+        if isinstance(_src_sched, dict):
+            for _k, _v in _src_sched.items():
+                if isinstance(_v, dict):
+                    _v.pop('enable', None)
+            logger.info(
+                f'跨配置转移: 已从快照中剥离 {len(_src_sched)} 个任务的 `enable` '
+                f'—— ★ 目标配置「{dst_name}」自己的任务启停保持不变')
+
         dst_cfg = mm.config_cache(dst_name)
         dst_store = _profiles_store(dst_cfg)          # ★ 允许自动建"页1"
         if dst_store is None:

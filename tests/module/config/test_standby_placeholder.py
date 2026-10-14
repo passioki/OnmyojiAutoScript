@@ -84,6 +84,10 @@ logging.disable(logging.CRITICAL)
 CFG = '__standby_placeholder_cfg__'
 P = REPO / 'config' / f'{CFG}.json'
 
+#: ★ [10-14] 两条反向用例的**哨兵**：占位没有 `entry_id` ⇒ 用它区分"真条目 / 占位"
+_SENTINEL_WAITING = '__guard_waiting_entry__'
+_SENTINEL_PENDING = '__guard_pending_entry__'
+
 
 @pytest.fixture()
 def cfg(monkeypatch):
@@ -196,20 +200,65 @@ def test_standby_placeholder_is_a_function_object(cfg):
 
 
 # ────────────────────────── ④ 反向：waiting 非空必须返回它
+def _material_entry(c):
+    """★ [10-14] 取一条**真实条目**当素材（★ 修"守卫时红时绿"）。
+
+    ## ★★ 根因（★ 实测，不是猜）
+
+    原来这两条用例**直接读 `c.pending_task`** ⇒ ★ 它**依赖墙上时钟**：
+    `Restart`（唯一默认 `enable=True` 的任务）的窗口是
+    **每天 12:00-14:00 与 20:00-22:00**，而 `update_scheduler()` 在**窗口外**
+    会把"`next_run` 已过"的任务放进 **`waiting_task`** 而不是 `pending_task`
+    （`module/config/config.py:1946-1949`）。
+
+    ```
+    ★ 实测（同一天 · 同一份代码 · 期间只有文档改动）：
+        22:55（★ 在 20:00-22:00 窗口内）  ⇒ 守卫 98 passed
+        23:01（★ 窗口外）                ⇒ 守卫 96 passed / 2 failed ← 就是本条
+    ★ 判据（脚本实测）：window_reason =
+        「不在开放时段（每天 12:00-14:00 与 每天 20:00-22:00，10-15 12:00 开放）」
+    ```
+
+    ## ★ 修法
+
+    ★ 素材**优先取 `pending_task`，取不到就取 `waiting_task`** ——
+      两者都是**同一次真 `update_scheduler()`** 的产物，都是"真实条目"
+      ⇒ ★ 与窗口/时刻**无关**，守卫不再时红时绿。
+    ★ 两条用例本来就**自己设置** `cfg.pending_task` / `cfg.waiting_task`
+      （见 `_make_idle` 与用例体），素材只当"内容"用 ⇒ 语义不变。
+    """
+    for src in (c.pending_task, c.waiting_task):
+        if src:
+            return copy.deepcopy(list(src))
+    pytest.fail(
+        '★ 该配置里**一条可用条目都没有** —— 本用例无法构造素材。'
+        '★ 请检查 `Restart`（唯一默认 enable 的任务）是否被禁用，'
+        '或 `template.json` / 任务默认值是否被改过。')
+
+
 def test_waiting_task_still_returned_when_present(cfg):
     """★ 反向守卫：★ `waiting_task` **非空**时**不能**走待命占位。
 
     ★ 为什么要有这条：★ 修"不抛异常"最容易的走偏做法是**把待命分支提前**
       ⇒ ★ 那会让"还有等待中的任务"直接返回占位 ⇒ ★ **调度器彻底不出任务**。
     """
-    waited = copy.deepcopy(list(cfg.pending_task))
+    waited = _material_entry(cfg)
     assert waited, '前置：本配置应有条目可用（否则本用例无意义）'
+    # ★★ 防"假通过"（本项目铁律：守卫必须真的会红）：
+    #   ★ 唯一默认启用的任务恰好**也叫 `Restart`**，而待命占位的 `command`
+    #     也 `Restart` ⇒ ★ 只比 `command` **分不出**"真条目"与"占位"
+    #     （★ 注入 `if False and self.waiting_task:` 时曾经照样绿）。
+    #   ⇒ ★ 给素材打一个**哨兵 `entry_id`**：占位没有 `entry_id`，一比就露。
+    waited[0].entry_id = _SENTINEL_WAITING
     cfg.pending_task = []
     cfg.waiting_task = waited
     cfg.task = None
 
     task = cfg.get_next()
     assert task is not None
+    assert str(getattr(task, 'entry_id', '') or '') == _SENTINEL_WAITING, (
+        '★ 返回的必须是 `waiting` 里的**真条目**（哨兵 entry_id 不见了）——'
+        '★ 不是待命占位（占位是由 `Function(\'restart\', …)` 现造的，没有 entry_id）')
     assert str(getattr(task, 'command', '') or '') == \
         str(getattr(waited[0], 'command', '') or ''), (
         '★ `waiting_task` 非空时 `get_next()` 必须返回其中的条目，'
@@ -222,13 +271,16 @@ def test_pending_task_still_returned_when_present(cfg):
 
     ★ 依据：`config.py:4353-4373`（`pending_task` 一有内容就进它）。
     """
-    pend = copy.deepcopy(list(cfg.pending_task))
+    pend = _material_entry(cfg)
     assert pend, '前置：本配置应有可派发条目（否则本用例无意义）'
+    pend[0].entry_id = _SENTINEL_PENDING      # ★ 同 ④：哨兵，防"占位也算通过"
     cfg.pending_task = pend
     cfg.waiting_task = []
     cfg.task = None
 
     task = cfg.get_next()
+    assert str(getattr(task, 'entry_id', '') or '') == _SENTINEL_PENDING, (
+        '★ 返回的必须是 `pending` 里的**真条目**（哨兵 entry_id 不见了）')
     assert str(getattr(task, 'command', '') or '') == \
         str(getattr(pend[0], 'command', '') or ''), (
         '★ `pending_task` 非空时 `get_next()` 必须返回它（出路①）')

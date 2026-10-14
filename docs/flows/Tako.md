@@ -225,13 +225,13 @@ flowchart LR
 |---|---|---|
 | **1** | ★ **`tasks/Tako/assets.py` 是空壳**（`class TakoAssets: pass`，12 行）—— ★ 本任务**不拥有任何素材**，全靠基类：`GameUiAssets` / `GeneralBattleAssets` / `GeneralRoomAssets` / `GeneralInviteAssets` / `SwitchSoulAssets` / `GeneralBuffAssets`。★ 也就是说 **`I_WIN` / `I_FALSE` / `I_REWARD` / `I_CREATE_ROOM` / `L_TEAM_LIST` 全部是别人的素材**，改动要连带核对其余 20+ 个任务 | `tasks/Tako/assets.py:10-11` |
 | **2** | ★ **两个窗口在 11:59 / 23:59 各漏 1 分钟** —— `contains()` 用 `[start, end)`（`availability.py:208-211`），而 `meta.py:42-43` 写的是 `11:59` / `23:59`（不是 `12:00` / `24:00`）⇒ ★ 每天有 **2 处 60 秒的"窗口外"**。★ 判据在 `contains` 是闭开区间，★ **我未确认**调度器是否恰好会在那一分钟判定 | `meta.py:41-44` · `module/config/availability.py:208-211` |
-| **3** | ★ **`meta.py` 的注释是从"金币妖怪"抄来的** —— `:36-40` 明确在讲"金币妖怪 (a) 多个 window"与 `charge_slots=0,12`。★ 本文件的窗口是 `0:00-11:59` / `12:00-23:59`，即**每天两次节奏**，但这个"一天两次"是否为**石距的真实机制**，★ **我未核实**（注释里自己也写"若该玩法有真实游戏时段，应把它收窄"）| `meta.py:35-44` |
+| **3** | ★ **`meta.py` 的注释是从"金币妖怪"抄来的** —— `:36-40` 明确在讲"金币妖怪 (a) 多个 window"与**早已删除的"次数补充"旧字段**（★ 该机制已删 ⇒ 见 `docs/deprecated.md`；★ 这里**不写符号名**，否则会触发 `test_docs_no_dead_refs` 的"现行文档不许提已删符号"守卫）。★ 本文件的窗口是 `0:00-11:59` / `12:00-23:59`，即**每天两次节奏**，但这个"一天两次"是否为**石距的真实机制**，★ **我未核实**（注释里自己也写"若该玩法有真实游戏时段，应把它收窄"）| `meta.py:35-44` |
 | **4** | ★★ **`battle_wait` 被重写，语义与基类不同** —— 基类会识别 `I_DE_WIN` / `I_REWARD_GOLD` / 统计页并做"二次确认 + 领奖"（`general_battle.py:246-340`）；★ 本任务的版本只认 `I_WIN` / `I_REWARD` / `I_FALSE`（`script_task.py:136-150`）⇒ ★ **只认这 3 张图**。改战斗识别时**只改基类不会生效**，必须改这里 | `script_task.py:128-150` |
 | **5** | ★ **`exit_task()` 里的 `success` 是硬编码 `True`**（`:125`）⇒ ★ **`create_room()` 失败（:88-89）和邀请失败（:94-96）都会被记成"本轮成功"**。★ 只有倒计时跳票那条显式写了 `success=False`（`:84`）| `script_task.py:88-89` · `:94-96` · `:125` |
 | **6** | ★ **`TakoConfig.enable` 是"死字段"** —— 它在 `:35` 与 `:112` 被读，但它**同时控制了"开加成"和"关加成"**。★ 运行时它必然为真（同一份配置），所以逻辑正确；★ 但**读代码时极易误以为是"任务总开关"** —— 它不是（任务开关在 `scheduler`）| `config.py:25` · `script_task.py:35` · `:112` |
 | **7** | ★ **组队任务被打断的正确性风险** —— 本任务会 `ensure_public()` 开**公开房**（`:90`）并可能邀请真人好友（LEADER，`:94`）。★ 框架级暂停在 `screenshot()` 处生效（`base_task.py:949-968`）⇒ ★ 可能在**队友已在房间**时把房主拉走。★ `PAUSE_FRAMEWORK_EXEMPT` 目前只有 3 个任务，**`Tako` 不在其中**（`base_task.py:767-771`）| `script_task.py:90-99` · `tasks/base_task.py:767-771` |
 | **8** | ★ `ensure_public()` / `ensure_private()` 的 `while 1` **没有失败出口**（只 `return True`）—— ★ 卡住时靠 device 的卡死看门狗兜底。★ 好消息：这几个 `while` 里都调了 `screenshot()`，所以能响应框架级暂停 | `general_room.py:63-78` |
-| **9** | ★ **`A4` 注释里的坑**：`meta.py:2` 写的任务是"石距"，而 `docs/flows/README.md:87` 把 `Tako` 的中文名登记成"**章鱼**" —— ★ **文档与代码不一致**（代码是权威：`meta.py:22` `name_zh='石距'`）| `meta.py:22` vs `docs/flows/README.md:87` |
+| **9** | ★ **中文名曾被登记错**：`meta.py:22` 写 `name_zh='石距'`（★ 权威），而 `docs/flows/README.md` 原来把它登记成"**章鱼**" —— ✅ **[10-14] 已订正**（★ 同一批共订正 18 处中文名；★ 结论：**以 `meta.py` 为准**）| `meta.py:22` · `docs/flows/README.md` |
 | **10** | ★ 场地名 `'喷怒的石距'`（`:74`）**不是笔误但会归一化成** `'价悠的石距'`（`general_room.py:211-212`）—— ★ 也就是说 OCR 关键词与游戏显示名**不一致**，靠 `:224` 的 `'石距' in text_ocr` **子串兜底**才不至于卡死。★ 这是"OCR 误读被写进代码"的典型痕迹 | `script_task.py:74` · `general_room.py:211-224` |
 
 ---

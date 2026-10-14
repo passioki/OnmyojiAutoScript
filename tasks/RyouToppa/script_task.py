@@ -196,8 +196,23 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RyouToppaAssets):
             # 设置长任务标志,用来寻找寮突可进攻的目标
             self.device.stuck_record_add('PREPARE_BEFORE_BATTLE')
             if not self.has_ticket():
-                logger.info("We have no chance to attack. Try again after 1 hour.")
-                success = False
+                # ★★★ [10-14] 用户裁定：**没票 = 本轮【正常结束】（成功）** ★★★
+                #
+                # ★★ 用户原话（逐字）：
+                # > "**没票算成功，本来就是清票，票没有了就不用清了。**"
+                #
+                # ★ 所以这里与样板 `RealmRaid/script_task.py:180-200` 对齐：
+                #   * ★ **不改 `success`**（保持 True）——
+                #     ⚠ [10-14] 订正：这里原来写的是 `success = False`
+                #     ⇒ ★ 把"清票已完成"记成**失败**（★ 与上面的裁定相反）
+                #   * ★ **上报"本条目本轮已完成"** ⇒ 调度层 `_skip_by_completed()`
+                #     把它剔出 pending ⇒ ★ 不再被反复派发
+                #   * ★ **不标"资源耗尽"**（★ 本项目**没有**监控门票的机制，
+                #     标了永远没人解除 ⇒ 任务会再也跑不了）
+                #   * 新一轮（队列循环到末尾）⇒ `clear_entry_completed()` 清零
+                #     ⇒ 它又能跑（重新探票）
+                self.mark_entry_completed('没票了（本轮结束）')
+                logger.info('没票了 —— 本轮正常结束（清票完成），已上报"本轮完成"')
                 break
             if self.current_count >= self.limit_count:
                 logger.warning("We have attacked the limit count.")

@@ -95,7 +95,7 @@
 | `Restart`（重启）| ⬜ 待补 | ★ 与**调度器待命**有关（它被当成待命占位，见 §1.5.x-SB3）|
 | `RichMan`（大富翁）| ⬜ 待补 | 特殊玩法 |
 | `RyouToppa`（寮突破）| ✅ **已完成** | [RyouToppa.md](RyouToppa.md)（与 RealmRaid 同源但语义相反）|
-| `Secret`（秘闻副本）| ⬜ 待补 | ★ 有**窗口**（`success_interval='07 00:00:00'`）|
+| `Secret`（秘闻副本）| ⬜ 待补 | ★ 有**窗口**（★ 每日 **07:00** 起开放；★ 旧写法提的 `success_interval` **已删除**，别再照抄）|
 | `SixRealms`（六道之门）| ⬜ 待补 | 普通战斗任务 |
 | `Sougenbi`（业原火）| ⬜ 待补 | 普通战斗任务 |
 | `SoulsTidy`（御魂整理）| ⬜ 待补 | ★ 纯 UI + 规则判定（无战斗）|

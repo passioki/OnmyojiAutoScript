@@ -23,8 +23,8 @@ git status --porcelain
 REM ② 台账里"进行中/未开始"的有哪些
 findstr /n /c:"🔄" /c:"⬜" /c:"⛔" docs\PENDING-LEDGER.md
 
-REM ③ 强制跑守卫（★ 期望：全部 passed）
-toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py -q
+REM ③ 强制跑守卫（★ 期望：全部 passed —— ★ [10-14] 第二轮 = 106 条）
+toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py -q
 ```
 
 ★ 三条都对得上 ⇒ ★ **可以开工**；★ 对不上 ⇒ ★ **先修对齐，别改代码**。
@@ -41,7 +41,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | ★ **后端分支/提交** | `main` · ★ **[本次提交后取 `git log -1`]**；★ ★ **远端 `dev` 已含本轮全部提交**（★ **`main` 远端未动** = `e28793ce`）|
 | ★ **前端分支/提交** | `main` · ★ **`9c66064`**（★ 远端 `dev` 同）|
 | ★ **恢复节点 tag** | 后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live` |
-| ★★ **测试基线（★ 实测 [10-14]）** | 后端全量 = **49 failed / 1785 passed / 12 skipped**（★ 失败集**与基线逐条相同** ⇒ ★ **这 49 条是"已知环境类"**：★ 43 = 读 `D:/OAS-dev/OASX-src`（本机是 `frontend`）· ★ 4 = 缺 `module/config/i18n/zh-CN.json`（★ 前端推来的运行时产物）· ★ 2 = 读用户/实机状态 · ★ 1 = live 配置 · ★ 1 = 顺序 flaky）<br>★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info —— ★ [10-14] 实测订正：★ 原写"4 条既有 info"**不准**）|
+| ★★ **测试基线（★ 实测 [10-14] 第二轮）** | ★ **守卫 = 106 passed**（★ 98 + 新增 `tests/tasks/test_no_ticket_is_success.py` 8 条）<br>后端全量 = **49 failed / 1793 passed / 12 skipped**（★ 较 1785 **+8** = 新守卫）· ★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info —— ★ [10-14] 实测订正：★ 原写"4 条既有 info"**不准**）|
 | ★★ **`pwsh` 可用性** | ★★ **可用** ⇒ ★ 我能自己跑 pytest / flutter（★ 不必再让用户代跑）|
 | ★ **实机是否在跑** | ★ 后端 `:22287`（`D:\OAS-live\backend`）|
 
@@ -101,12 +101,37 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
    **P13** 核对行号**别用 `Get-Content`**（少算 10 行 ⇒ 行号错位）
 ```
 
+## ★ 1d. ★★★ [10-14] 第二轮**用户裁定后的修复**（★ 有代码改动 + 守卫）
+
+```
+★ 【裁定】★ 用户 [10-14]：①**M2**（= §1.17 的 A/A+ 受控指令集；★ annotator **可以深度拆解**进任务实现器）
+   ②**没票算成功**（"本来就是清票，票没有了就不用清了"）③④ `FL-6`/`FL-8` **待定**（后续可能重构）
+   ⑤ `FL-9` **查清原因解决就行**
+★ 【修 1｜㉜】`RyouToppa`（寮突破）"没票"不再记失败 —— `success = False` ➜ **不改 success** +
+   `mark_entry_completed('没票了（本轮结束）')` + 中文日志（★ 与样板 `RealmRaid:180-200` 对齐）
+   ⇒ ★ 新增守卫 `tests/tasks/test_no_ticket_is_success.py`（**8 条 · AST 级**，覆盖 `RyouToppa` + `RealmRaid`）
+   ⇒ **8 passed** · ★★ **注入验证 2/2 真红** + 还原后逐字节一致
+★ 【修 2｜㉝】`FL-9` 守卫"时红时绿" —— ★★ **根因（实测）**：`Restart` 的窗口 = **12:00-14:00 / 20:00-22:00**，
+   `update_scheduler()`（`config.py:1946-1949`）在**窗口外**把"next_run 已过"的任务放进 **`waiting_task`**
+   ⇒ 用例读 `pending_task` 就空（★ 同日 22:55 绿 / 23:01 红，期间**只有文档改动**）
+   ⇒ ★ 修法：素材取 `pending or waiting` + ★ **加"哨兵 `entry_id`"**
+   —— ⚠ ★ **原断言只比 `command`，而唯一默认任务是 `Restart`、占位也叫 `Restart` ⇒ 空转**（注入后照样绿！）
+   ⇒ **注入验证 2/2 真红**（破坏 waiting / pending 分支各 1 failed）+ 还原 SHA 一致
+★ 【查清·不修】`FL-2`（"满票被误判成没票"）★ **是误报**：`sub_ocr.py:166` 的 `DigitCounter` 返回
+   `(current, total - current, total)` ⇒ ★ `cu + res == total` **恒真** ⇒ 条件等价于 `cu == 0`；
+   ★ 而 `cu` = **可用票数**（佐证：`RealmRaid:378` 用 `cu < base` 判"票不够基准"）
+★ 【顺手抓到】★ 新写的 `docs/flows/Tako.md` 提了**已删符号** ⇒ 触发 `test_docs_no_dead_refs`
+   ⇒ ★ 已改写（★ 现行文档不许提已删符号 —— 这是**真守卫**，不是噪音）
+★ 【数字】★ 守卫 **106 passed** · 全量 **49 failed / 1793 passed / 12 skipped**
+```
+
 ## ★ 2. ★★ 下一步（★ 按优先级）
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
-| **★1** | ★★★ **等你点头：同一个决定的两端** —— ★ **①上层（§1.17 一）**：★ **A 受控指令集（DSL，我推荐）** vs ★ **B 直接编辑 Python**（★ 工具端点**无鉴权** ⇒ B = **远程代码执行**）★ 或折中 **A+**；★ **②下层（§1.18-五）**：★ **M1 只做原语层** vs ★ **M2 原语层 + 解释器（我推荐，= 上层的 A/A+）** | **SPEC §1.17 一 · §1.18-五** | ⬜ **阻塞（★ 等你一句话）** |
-| **★1b** | ★ **[10-14 第二轮] 新发现待你裁定**（★ 见台账 §D.4 · 均**未改代码**）：★ `FL-1` `RyouToppa` **没票记失败**（与样板相反）· `FL-6` `Tako` **失败记成功** · `FL-8` 组队任务**不在暂停白名单**（可能把房主从房间里拉走）· `FL-9` 守卫 2 条**依赖实时状态**（建议用例内冻结时间）| 台账 **§D.4** | ⬜ **待你裁定** |
+| **★1** | ★★★ **接口模块化的方案已定案（[10-14] 用户）**：★ **`M2`**（= §1.17 的 **A/A+ 受控指令集**，**不用 `eval`**）＋ ★ **annotator 可以"深度拆解"进任务实现器** | **SPEC §1.17 一（分歧块⑫）· §1.18-五/八** | ✅ **已定案 ⇒ 可开工** |
+| **★1b** | ★ **[10-14] `FL-*` 新发现的处置**：★ `FL-1` ✅ **已修**（㉜）· ★ `FL-9` ✅ **已修**（㉝）· ★ `FL-2` ✅ **查清 = 误报** · ★ `FL-6`/`FL-8` ⏸ **用户裁定"待定"**（★ 原话："待定，后续可能会重构代码"）| 台账 **§D.4** · SPEC **㉜/㉝** | ✅ / ⏸ |
+| **★1c** | ★★ **下一步开工项（M2 · P0）**：★ 新增 `module/action/{target,pacer,errors}.py` + `module/perception/{target,parse,roi}.py`（★ **只加不改**）+ ★ 守卫（每个原语一条 + ★ "禁止新增第 8 份 interval 模板"的源码守卫）+ ★★ 注入验证 | **SPEC §1.18-六** | ⬜ **待你一句"开工"** |
 | **★2** | ★ **N9-6 P1**（★ 架构定了就开工）：★ 后端 `tasks/create`（NT1~NT4：★ **原子创建 + 回滚** + **命名校验前置** + **示例识别骨架**）+ ★ `flow.json` **解释器**（NL1/NL2）+ ★ **立即运行**（NL3）+ ★ **结构化日志**（NL4）| **SPEC §1.16 + §1.17** | ⬜ 待启动 |
 | **★3** | ★ **N9-6 P2**：★ 前端「任务编排」面板（★ 指令增删改 · 素材下拉 · 立即运行 · 实时日志）| SPEC §1.17 三 | ⬜ |
 | **★4** | ★ **N9-6 P3 验收**：★ **新建一个周期任务 + 一个临时任务并跑通**（★ 用户原验收定义）| SPEC §1.16-NT6 | ⬜ |

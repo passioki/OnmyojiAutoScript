@@ -402,18 +402,30 @@
 
 | # | 发现 | 依据（`文件:行号`）| 状态 |
 |---|---|---|---|
-| **FL-1** | ★★ **`RyouToppa`：没票 = 记失败**（★ 与样板 `RealmRaid` 语义**正好相反**：那边是"保持成功 + 上报本轮完成"） | ★ **已验证**：`tasks/RyouToppa/script_task.py:198-201`（`success = False` + `break`）vs `tasks/RealmRaid/script_task.py:180-200` | ⬜ 待裁定 |
-| **FL-2** | ★★ **`RyouToppa`：满票会被误判成"没票"** —— 判据 `cu == 0 and cu + res == total`，而 `O_NUMBER` 是 `DigitCounter`（语义 `current/total`）⇒ 界面显示 `0/N` 时**一场不打就记失败** | ★ **已验证**：`tasks/RyouToppa/script_task.py:280-283` · `tasks/RyouToppa/assets.py:141` | ⬜ 待核实（需实机看 `cu` 语义）|
+| **FL-1** | ★★ **`RyouToppa`：没票 = 记失败**（★ 与样板 `RealmRaid` 语义**正好相反**：那边是"保持成功 + 上报本轮完成"） | ★ **已验证**：`tasks/RyouToppa/script_task.py:198-201`（`success = False` + `break`）vs `tasks/RealmRaid/script_task.py:180-200` | ✅ **已修（㉜）**：★ 用户裁定"**没票算成功**" ⇒ 改为**不改 `success`** + `mark_entry_completed('没票了（本轮结束）')`；★ 守卫 `tests/tasks/test_no_ticket_is_success.py` **8 passed** · ★★ 注入验证 **2/2 真红** |
+| **FL-2** | ★★ **`RyouToppa`：满票会被误判成"没票"** —— 判据 `cu == 0 and cu + res == total`，而 `O_NUMBER` 是 `DigitCounter`（语义 `current/total`）⇒ 界面显示 `0/N` 时**一场不打就记失败** | ★ **已验证**：`tasks/RyouToppa/script_task.py:280-283` · `tasks/RyouToppa/assets.py:141` | ✅ **已查清：★ 误报（不是 bug）** —— ★ 实测 `module/ocr/sub_ocr.py:166` 的 `DigitCounter` 返回 `(current, total - current, total)` ⇒ ★ **`cu + res == total` 恒真** ⇒ 条件**等价于 `cu == 0`**；★ 而 `cu` = **可用票数**（★ 佐证：样板 `RealmRaid/script_task.py:378` 用 `cu < base` 判"票不够基准"）⇒ ★ 该判据**没有反** |
 | **FL-3** | ★★ **`RyouToppa`：`attack_area` 的暂停分支是死代码**（`raise_if_paused()` 只会抛 `TaskPaused`，**从不返回 True**）⇒ 即便 break，函数落尾返回 `None` ⇒ 主循环判假 ⇒ **继续打下一个区域** | `tasks/RyouToppa/script_task.py:347-349` + `:211-217` · `tasks/base_task.py:686-717` | ⬜ 待核实 |
 | **FL-4** | ★★ **`RyouToppa` 主循环没有显式暂停检查**，全靠框架兜底；而框架层**只在 `PAUSE_BATTLE` 生效** ⇒ **`PAUSE_ROUND` 模式下没有检查点** | `tasks/RyouToppa/script_task.py:192-217` · `tasks/base_task.py:836` | ⬜ 待核实 |
 | **FL-5** | ★ **`RyouToppa`：`skip_difficult` 是死配置**（全仓零引用，界面上还能改但无效果）；★ `click_failure_count` 名字骗人（记的是**点击次数**） | `tasks/RyouToppa/config.py:12` · `script_task.py:344/350/362/367` | ⬜ 待核实 |
-| **FL-6** | ★ **`Tako`（石距）：失败被记成成功** —— `create_room()` 失败与邀请失败都走 `exit_task()`，而那里**硬编码 `success=True`** | ★ **已验证 `:125`**：`self.set_next_run(task='Tako', success=True, finish=False)`；★ 失败分支见 `:88-96` | ⬜ 待裁定 |
+| **FL-6** | ★ **`Tako`（石距）：失败被记成成功** —— `create_room()` 失败与邀请失败都走 `exit_task()`，而那里**硬编码 `success=True`** | ★ **已验证 `:125`**：`self.set_next_run(task='Tako', success=True, finish=False)`；★ 失败分支见 `:88-96` | ⏸ **用户裁定 [10-14]：待定**（★ 原话"**3.待定，后续可能会重构代码**"）⇒ ★ **本项不修，等重构** |
 | **FL-7** | ★ **`TakoConfig.enable` 同时控制"开加成"与"关加成"**，不是任务总开关（读代码易误判） | `tasks/Tako/script_task.py:35` / `:112` | ⬜ 待核实 |
-| **FL-8** | ★ **组队类任务不在 `PAUSE_FRAMEWORK_EXEMPT` 白名单** ⇒ 框架级暂停可能在**队友还在房间**时把房主拉走 | `tasks/base_task.py:767-771`（白名单仅 3 个）| ⬜ 待裁定 |
-| **FL-9** | ★★ **本文件 §D 的新坑 P11（沙箱）之外，又一条"报数字前先确认环境"**：★ `test_standby_placeholder` 的 **④⑤ 依赖实时状态** —— 同一天 **22:55 = 98 passed**、**23:01 = 96 passed / 2 failed**，两次之间**只有文档改动**（`git status` 只列 `docs/**`）⇒ ★ **不是代码回归**；★ 用例自己写着"前置：本配置应有条目可用（否则本用例无意义）" | `tests/module/config/test_standby_placeholder.py:199-234`（★ 用例内 `c.update_scheduler()` 跑**真调度**）| ⬜ **待修（建议：用例内冻结时间 / 自造窗口）** |
+| **FL-8** | ★ **组队类任务不在 `PAUSE_FRAMEWORK_EXEMPT` 白名单** ⇒ 框架级暂停可能在**队友还在房间**时把房主拉走 | `tasks/base_task.py:767-771`（白名单仅 3 个）| ⏸ **用户裁定 [10-14]：待定**（★ 原话"**4.待定，同3**"）⇒ ★ **本项不修，等重构** |
+| **FL-9** | ★★ **本文件 §D 的新坑 P11（沙箱）之外，又一条"报数字前先确认环境"**：★ `test_standby_placeholder` 的 **④⑤ 依赖实时状态** —— 同一天 **22:55 = 98 passed**、**23:01 = 96 passed / 2 failed**，两次之间**只有文档改动**（`git status` 只列 `docs/**`）⇒ ★ **不是代码回归**；★ 用例自己写着"前置：本配置应有条目可用（否则本用例无意义）" | `tests/module/config/test_standby_placeholder.py:199-234`（★ 用例内 `c.update_scheduler()` 跑**真调度**）| ✅ **已修（㉝）**：★ 根因 = `Restart` 窗口 **12:00-14:00 / 20:00-22:00** ⇒ 窗口外任务落 `waiting_task`（`config.py:1946-1949`）；★ 修法 = 素材取 `pending or waiting` + **哨兵 `entry_id`**（★ 否则 `Restart` vs 占位**同名 ⇒ 空转**）；★★ 注入验证 **2/2 真红** |
 | **FL-10** | ★★ **核对行号不要用 `Get-Content`**：它按 ANSI 解码，**同一文件会少算 10 行**（实测 `tasks/Tako/script_task.py` = **163** 行，`Get-Content` 只看到 **153** 行）；★ `Select-String` 与 read/grep 口径一致 | ★ 实测（本轮踩过一次，一度误判子智能体的行号全错）| ✅ **已查清 → P13** |
 
 ★ **未做**（★ 本轮明确不做，等你点头）：★ 上述 FL-* 的**任何代码修改** ——
    ★ 它们要么是**语义裁定**（FL-1/FL-6/FL-8 要你定"什么算成功"），
    ★ 要么需要**实机复现**（FL-2/FL-3/FL-4）。
+
+## D.5 ★★★ [10-14] 用户裁定台账（★ 原话逐字 · ★ 已落进代码/规格）
+
+| # | 我问的 | 用户原话（★ 逐字）| 处置 | 可核查证据 |
+|---|---|---|---|---|
+| **1** | 接口模块化：**M1** 还是 **M2**？ | "**1.M2， annotator不是简单的集成，如果有必要，可以深度地调用拆解到这个任务实现器中。**" | ★★ **M2 定案**（= 受控指令集 / 不用 `eval`）+ ★ **annotator 允许深度拆解**（新增 `AN1`~`AN4`）| SPEC **§1.17 一 · 分歧块⑫** · **§1.18-五/八** |
+| **2** | `FL-1`：`RyouToppa` 没票算成功还是失败？ | "**2.没票算成功，本来就是清票，票没有了就不用清了。**" | ✅ **已修**（与 `RealmRaid` 对齐）| **㉜** · 守卫 `tests/tasks/test_no_ticket_is_success.py` **8 passed** · ★★ 注入验证 **2/2 真红** |
+| **3** | `FL-6`：`Tako` 失败被记成成功？ | "**3.待定，后续可能会重构代码**" | ⏸ **不修**（等重构）| 台账 §D.4 的 `FL-6` 行 |
+| **4** | `FL-8`：组队任务要不要进暂停白名单？ | "**4.待定，同3**" | ⏸ **不修**（等重构）| 台账 §D.4 的 `FL-8` 行 |
+| **5** | `FL-9`：守卫 2 条时红时绿？ | "**5.查清原因解决就行。**" | ✅ **已查清 + 已修** | **㉝** · 根因 = `Restart` 窗口 12:00-14:00/20:00-22:00 ⇒ 窗口外落 `waiting_task`（`config.py:1946-1949`）· ★★ 注入验证 **2/2 真红** |
+
+★ **顺带查清（★ 原记为待核实，实为误报）**：`FL-2` —— ★ 见 §D.4 的 `FL-2` 行（`cu + res == total` **恒真**）。
 

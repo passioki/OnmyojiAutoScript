@@ -1656,6 +1656,37 @@ else:
   （治的是"没有定时触发"），★ 但**根因是那份数据里没有周期任务** ⇒
   ★ **"加个轮询"式的修法**只解决了**触发**，没解决**数据来源**。
 
+### 3.9.8 ★★ 配置页（歌单）的「新建」必须**让用户填名字**（[10-14] 修）
+
+> ★★ **用户原话（[10-14] 记录第 4 条）**：
+> > "**添加任务顺序配置页时，新建时填写的名称不会生效，
+> >   目前是用重命名来做到第一次赋予名字的。**"
+
+#### ★★ 真因（前端）
+
+```dart
+// 旧实现（task_list_view.dart）
+final msg = await c.createQueueProfile();   // ★ 既不弹输入框，也不传 name
+```
+★ 而后端是 `name = data.get('name') or default_name`（`schema_router.py:2149`）
+  ⇒ ★ **永远走自动编号**（`1/2/3`）。
+★ ⇒ ★ "名字不生效"的**本质是「没地方填」** —— ★ 用户只能事后用
+  `[⋯ 管理] → 重命名` 补第一次命名（★ 用户原话已经点明这个绕法）。
+
+#### ★★★ 规则
+
+| # | 规则 |
+|---|---|
+| **PN1** | ★★ **「新建配置页」必须先弹取名对话框**（★ 与「重命名」**同一款式** —— 同样的 `labelText: '页名'`、同样的例子文案）⇒ ★ 用户不用学两套 |
+| **PN2** | ★★ **用户填的名字必须真的传上去**（`name` 参数）—— ★ 不许"前端自己起名再本地显示"；★ 权威在**后端落盘** |
+| **PN3** | ★ **两条边界**：★ **取消 ⇒ 不新建**（★ 不许"点了取消却多出一页"）；★ **留空 ⇒ 传 `null`** ⇒ ★ 后端自动编号（★ 保留"懒得起名"的快捷路径）|
+
+★ **守这条的地方**：
+  * ★ **后端（运行时）**：`tests/module/server/test_profile_name_from_user.py`（**5 条**）——
+    ★ 传 `name` ⇒ 那页**就叫它** · ★ 不传/空 ⇒ 自动编号 · ★ 名字**落盘** · ★ `copy_from` 时**名字仍听用户的**
+  * ★ **前端（源码断言）**：`test/task_list_panel_test.dart` 的 `_n94CreateProfileNameTests()`（**4 条**）
+    —— ★ 视图层的对话框在无后端时点不了，所以前端这侧钉**结构**，后端那侧钉**行为**（★ 两侧配对）
+
 
 
 # §4 ★★★ L3 对照（设计 vs 当前代码）
@@ -1825,6 +1856,7 @@ pending_task = self._order_by_queue(pending_task)   # L2044 之后才按队列�
 | **㉑** | — | ★★★ **[10-14] P0：`get_next()` 的「待命占位」必须构造成功**（★ 否则 `raise RequestHumanTakeover` ⇒ **调度循环死掉**）。★ 真因：`Function('Restart', …)` 用了**大驼峰键**，而 `ConfigModel.type()` = `__annotations__[key]` 要**小写** ⇒ `KeyError` | ✅ **已修** | ★ 修法 = `config.py:4518` 的 `'Restart'` ➜ `'restart'`；★ **新增 §1.5.x（SB1~SB5）** + ★ 守卫 `tests/module/config/test_standby_placeholder.py` **5 passed** ＋ ★★ **注入验证真红**（改回 `'Restart'` ⇒ **3 failed**）＋ 还原逐字节一致 |
 | **㉒** | — | ★★★ **[10-14] 换御魂：配置非法（如出厂默认 `-1,-1`）⇒ 必须"响亮地跳过"，不许终结任务**。★ 真因：`get_group_assets(-1)` 是 dict 下标 ⇒ **`KeyError`**（★ 非 `ValueError`）⇒ 旧 `except` 抓不住 ⇒ 25+ 个调用方都没包 `try` ⇒ **整局任务被终结** | ✅ **已修** | ★ 修法：`switch_soul.py` 新增 `_parse_switch_target()`（**先校验**：组 1-7 · 队 1-4）+ `switch_soul_one()` 的校验**移到取素材之前**；★ **新增 §1.5.y（SS1~SS5）** + ★ 守卫 `tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py` **38 passed** ＋ ★★ **注入验证真红**（校验置 `if False:` ⇒ **5 failed**）＋ 还原 SHA256 一致 |
 | **㉓** | — | ★★★ **[10-14] 前端：「运行中」标记必须覆盖队列【每一行】**（含**自动进队列**的周期任务）。★ 真因：标记数据来自 `/run_list`，而它**只遍历 `run_list`** ⇒ 周期任务不在其中；且周期任务 `entry_id = None` ⇒ `running_entry_id` 恒空 | ✅ **已修（前端）** | ★ 修法：`queuedTaskRows` 的"自动补齐"段补 `running`（★ 无条目身份 ⇒ **按任务名比**，与后端兜底同口径 + ★ 防重复）；★ **新增 §3.9.7（RT1~RT4）** + ★ `test/task_list_panel_test.dart` 的 `_n97RunningTagTests()`（**4 条运行时断言**）⇒ `flutter test` **153 passed** ＋ ★★ **注入验证真红**（判据置 `false` ⇒ 1 failed）＋ 还原 SHA256 一致；★ 前端提交 `6a9d1f0` |
+| **㉔** | — | ★★ **[10-14] 配置页「新建」必须让用户填名字**（★ 旧实现"没地方填" ⇒ 只能事后重命名）。★ 真因：前端 `_createProfile` **不弹框、不传 `name`** ⇒ 后端永远自动编号 | ✅ **已修（前端）** | ★ 修法：新增 `_askProfileName()`（与 `_renameProfile` 同款）+ `_createProfile` 传 `name`（★ 取消 ⇒ 不新建 · ★ 留空 ⇒ `null` ⇒ 自动编号）；★ **新增 §3.9.8（PN1~PN3）** + ★ 前端 4 条结构断言 + ★ **后端 5 条运行时断言**（`tests/module/server/test_profile_name_from_user.py`）⇒ `flutter test` **157 passed** · `pytest` **5 passed** ＋ ★★ **两侧注入验证都真红**；★ 前端提交 `ae2830c` |
 
 ★ ⚠ **⑫ 与 ⑳ 的关系**：★ ⑫（10-12 的巡检）**只消解了当时的矛盾**，
 ★ **并未覆盖 [10-13] 的新裁定** ⇒ ★ 那些矛盾（§1.3 轮次号 / §4.1 记 ✅ 的旧行为 / 漂移行号）

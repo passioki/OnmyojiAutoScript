@@ -41,7 +41,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | ★ **后端分支/提交** | `main` · ★ **[本次提交后取 `git log -1`]**；★ ★ **远端 `dev` 已含本轮全部提交**（★ **`main` 远端未动** = `e28793ce`）|
 | ★ **前端分支/提交** | `main` · ★ **`9c66064`**（★ 远端 `dev` 同）|
 | ★ **恢复节点 tag** | 后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live` |
-| ★★ **测试基线（★ 实测 [10-14] 第三轮）** | ★ **守卫 = 135 passed**（★ 106 + 新增 29：`tests/module/flow/test_control_types.py` 20 + `tests/module/config/test_entry_custom_state.py` 9）<br>后端全量 = **49 failed / 1826 passed / 12 skipped**（★ **失败集与基线逐条一致** = 无回归；★ 49 条是"已知环境类"）· ★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info）|
+| ★★ **测试基线（★ 实测 [10-14] 第四轮）** | ★ **守卫 = 166 passed**（★ 135 + 新增 31：`tests/module/test_task_factory.py`）<br>后端全量 = **49 failed / 1858 passed / 12 skipped**（★ **失败集与基线逐条一致** = 无回归）· ★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info）|
 | ★★ **`pwsh` 可用性** | ★★ **可用** ⇒ ★ 我能自己跑 pytest / flutter（★ 不必再让用户代跑）|
 | ★ **实机是否在跑** | ★ 后端 `:22287`（`D:\OAS-live\backend`）|
 
@@ -170,6 +170,35 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 ★ 【下一轮】★ **P1**：★ C5 补 5 个空缺（返回键/键盘/文本/滚动/拖拽）+ C9 的
    `LoopBudget/StuckGuard/RetryPolicy` 提到 `module/action/`
 ★ ⚠ 【仍待办】★ 三个红灯 ⏸ 待定（★ 等重构）· ★ `N9-5` 流程图 47 张 · ★ `N9-6` P1 后端
+```
+
+## ★ 1g. ★★★ [10-14] 第五轮：**「新建任务 → 测试」跑通**（★ 用户澄清后的正解 · ★ 有代码）
+
+```
+★★ 用户澄清："我说的最小代码跑通整个流程是指，**跑通新建任务、测试、运行这个流程**"
+   ⇒ ★ 用户选定：★ "**只做到『测试』为止，运行由你在实机界面点**"
+★ 【交付】★ 新增 `module/task_factory.py` —— ★ **新建任务工厂**（SPEC §1.16 NT1~NT4）
+   · ★ 原子创建（临时目录 ⇒ `ast.parse` 自检 ⇒ `os.replace` ⇒ 失败 `rmtree` 回滚）
+   · ★ 命名校验 `[A-Z][A-Za-z0-9]*` + 保留名 + 大小写不敏感查重（★ 路径穿越不可能）
+   · ★ 安全空壳 + ★ **示例识别**（用全局素材 `I_UI_BACK_RED` ⇒ 开箱可跑）
+   · ★ **自动登记** `docs/flows/README.md`（★ 否则流程图守卫变红）
+   · ★ 自动 `window`（全天）+ 自动唯一 `list_pos`（★ 都是被守卫逼出来的合同）
+★ 【交付】★ 守卫 `tests/module/test_task_factory.py`（**31 条**）⇒ 166 passed
+   ★★ 注入验证 **3/3 真红**（关命名校验 ⇒ 10 failed；去回滚 ⇒ 1 failed；假装登记成功 ⇒ 2 failed）
+★ 【跑通】★ 探针在**真 `tasks/`** 下建了又删；★ 实证：`task_catalog` 认到 · `ConfigBase` 子类在 ·
+   `ScriptTask.run` 可调用 · ★ **新进程**里 `_CONFIG_CLASSES = ['flow_demo']` · `all_tasks()` 含它
+★ 【修 bug】★ 工厂第一版只清 `reload_specs()` ⇒ ★ `all_tasks()`（走 JSON+合并缓存）**看不到新任务**
+   ⇒ ★ **单跑测试绿、放进完整守卫链才红** ⇒ 已改成两个缓存都清
+★★ 【最重要的发现】★ **"新建任务"远不止写 4 个文件** —— ★ 实测一次创建撞红 **14 条**项目级守卫，
+   分 **6 类合同**（★ 明细见 SPEC **§1.16-五 NT8** 与台账 **§D.8-b**）：
+   ① `window` 必须显式声明 ② `list_pos` 必须唯一 ③ 流程图台账必须登记
+   ④ 必须重生成 `task_catalog_data.json` ⑤ 必须重生成 i18n（★ 且 `gen_i18n.py` **要前端仓库路径**，
+      本机未配置 ⇒ 实测报"找不到 OASX 仓库"）⑥ ★ **"库存快照"类守卫**（★ `test_counts_are_15_and_40`
+      写死 15/40 等）⇒ ★ 每加一个任务必红 ⇒ ★ **待你裁定**（台账 §D.9）
+★ 【实机就绪】★ `D:\OAS-live\backend\tasks\FlowDemo\` 已装（4 文件）+ ★ 实机 `task_catalog_data.json` 已重生成
+   + ★ **实机新进程验证通过** ⇒ ★ **你重启实机后端 + 在界面"添加任务"里加 `FlowDemo`（流程示例）即可跑**
+   ★ dev 侧已撤掉（★ 保持基线绿：49 failed / 1858 passed）
+★ 【数字】★ 守卫 **166 passed** · ★ 全量 **49 failed / 1858 passed / 12 skipped**（★ 失败集逐条一致）
 ```
 
 ## ★ 2. ★★ 下一步（★ 按优先级）

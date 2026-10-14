@@ -458,3 +458,34 @@
 ★ **验证（★ 按 START-HERE §1.3）**：★ 守卫链 **135 passed**（106 + 29）· ★ 全量 **49 failed / 1826 passed / 12 skipped**
   （★ **失败集与基线逐条一致** ⇒ 无回归）★ **零改行为**（★ 未动任何任务的 `run()`）
 
+## D.8 ★★★ [10-14] 第四轮：**「新建任务」工厂 + 跑通"新建 → 测试"**（★ 用户澄清后的正解）
+
+> ★★ **用户原话（逐字）**：
+> > "**你误会了，我说的最小代码跑通整个流程是指，跑通新建任务、测试、运行这个流程。**"
+> ★ 用户随后选定：★ **"只做到『测试』为止，运行由你在实机界面点"**
+
+| # | 交付物 | 位置 | 可核查证据 |
+|---|---|---|---|
+| **N9-11** | ★★ **新建任务工厂**（SPEC §1.16 `NT1`~`NT4`）★ 原子创建 + 回滚 + 语法自检 + 命名校验 + ★ **自动登记流程图台账** | ★ 新增 `module/task_factory.py`（★ 约 400 行）| ★ 守卫 `tests/module/test_task_factory.py`（**31 条**）⇒ **31 passed**；★★ **注入验证 3/3 真红**（★ 关命名校验 ⇒ **10 failed**；★ 去回滚 ⇒ **1 failed**；★ 假装登记成功 ⇒ **2 failed**，★ 其中一条正是"新建后流程图守卫变红"）★ 还原后**逐字节一致**（`4e4cc2e1…`）|
+| **N9-11-a** | ★★ **跑通"新建 → 测试"**（★ 用户要的那条链）| ★ 探针任务在**真 `tasks/`** 下建了又删（★ 用例内 `finally` 保证）| ★ 实测：★ `task_catalog.get_spec()` 认到 · ★ `config.py` 真有 `ConfigBase` 子类 · ★ `script_task.py` 真有 `script_task` 契约 · ★ **新进程**里 `_CONFIG_CLASSES` = `['flow_demo']`、`all_tasks()` 含它、`ScriptTask.run` 可调用 · ★ 流程图守卫**仍绿** |
+| **N9-11-b** | ★★★ **`NT8`：新建任务的"完整合同"**（★ **实测 14 条守卫**撞出来的）| SPEC **§1.16-五** | ★ 实测：★ 建一个任务 ⇒ 全量 **49 → 63 failed（+14）**；★ 工厂补 `window` + 唯一 `list_pos` ⇒ **−4**；★ 跑 `gen_task_catalog` + `gen_i18n` ⇒ **−4**；★ 剩 **6 条**（★ 典型：`test_execution_queue` 的 **15/40 硬编码清单**）★ 明细见 §D.8-b |
+| **N9-11-c** | ★★ **修掉工厂的一个真 bug**（★ 被"放进完整守卫链"抓到）| `module/task_factory.py:_invalidate_catalog()` | ★ `task_catalog` 有**两套缓存**：★ `get_spec()` 走 meta.py 发现（`reload_specs()`）· ★ `all_tasks()`/`all_meta()` 走 JSON+合并（`reload()`）⇒ ★ 只清前者 ⇒ **`all_tasks()` 看不到新任务**（★ 界面"建了却不在列表里"）★ 单跑测试是绿的，★ **链里才红** ⇒ 已两个都清 |
+| **N9-11-d** | ★★★ **实机（live）就绪**（★ 供用户点"运行"）| `D:\OAS-live\backend\tasks\FlowDemo\` | ★ 已装 4 文件 + ★ 在**实机树**里重生成 `task_catalog_data.json` + ★ **实机新进程验证**：`task_catalog` 发现 `FlowDemo / 流程示例 / TIMED / NONE`、`ConfigModel` 命中 `flow_demo`、`all_tasks()` 含它、`ScriptTask.run` 可调用 ⇒ ★ **只差你重启实机后端然后在界面里加它**（★ dev 侧已撤掉，保持基线绿）|
+
+### D.8-b ★★ 实测：新建任务会撞红的 **14 条守卫**（★ 6 类合同）
+
+| 守卫 | 条数 | 要求 | 处置 |
+|---|---|---|---|
+| `test_every_task_has_window.py` | 3 | ★ `meta.py` **必须显式声明 `window`**（`Period.NONE` 推导不出）| ✅ 工厂模板已生成（★ 全天）|
+| `test_list_pos_metadata.py` | 1 | ★ `list_pos` **全局唯一** | ✅ 工厂自动取"最大 + 1"（★ 实测当前用到 53）|
+| `test_task_flow_docs.py` | (1) | ★ 必须在流程图台账登记 | ✅ 工厂自动插行 |
+| `test_task_spec.py` · `test_config_model_discovery.py` | 2 | ★ 需**重生成 `task_catalog_data.json`** | ⚠ 需跑 `python dev_tools/gen_task_catalog.py` |
+| `test_i18n_consistency.py`（`TestOasXml` / `TestCompiledQm`）| 2 | ★ 需**重生成 i18n** | ⚠ 需跑 `python dev_tools/gen_i18n.py`；★ **且它要求前端仓库路径**（`$OASX_REPO` 或 `dev_tools/paths.local.json` 的 `oasx`）—— ★ 本机**未配置**（实测报"找不到 OASX 仓库"），★ 补上后**跑通并把那 2 条转绿** |
+| `test_execution_queue.py::TestAutoQueueMetadata` | 4 | ⚠ ★ **"库存快照"类硬编码**：`test_counts_are_15_and_40`（★ 写死 **15/40**）· `test_the_fifteen_manual_tasks`（★ 钉住 15 个名字）· 另 2 条同理 | ⬜ **待你裁定**（★ 见 §D.9）|
+
+## D.9 ⬜ **待你裁定**：★ "库存快照"类守卫怎么处理（★ [10-14] 新增）
+
+| # | 事项 | 依据 | 状态 |
+|---|---|---|---|
+| **N-库存** | ★★ 项目里有**一批把"当前任务清单/数量"写死**的守卫（★ 例 `test_execution_queue.py:test_counts_are_15_and_40` 写死 **15/40**、`test_the_fifteen_manual_tasks` 钉住 15 个名字、`test_config_model_discovery` 的字段数、`test_list_pos_metadata` 的唯一性）⇒ ★★ **每新建一个任务都会撞红它们** | ★ 实测：★ 建 `FlowDemo` ⇒ 全量 **+14 failed**（★ 其中 4 条属这一类）| ⬜ **待裁定**：★ **A** 新建任务时**同步这份盘点**（改测试里的数字/清单）· ★ **B** 把这类守卫**改成读实际清单**（★ 不写死 ⇒ 加任务不再返工）· ★ **C** 只记录、暂不处理 |
+

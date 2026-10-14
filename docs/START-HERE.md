@@ -56,8 +56,8 @@ REM   ⚠ 不要用 findstr 查 emoji（GBK 下匹配不到，会静默输出空
 REM     用 PowerShell 的 Select-String（本机 pwsh 可用）
 powershell -NoProfile -Command "Select-String -Path docs\PENDING-LEDGER.md -Pattern '🔄','⬜','⛔' | Select-Object LineNumber,Line"
 
-REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 135 passed）
-toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py -q
+REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 166 passed）
+toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py -q
 
 REM ④ ★ 全量基线（★ [10-14] 实测：49 failed / 1785 passed / 12 skipped）
 REM   ★ 那 49 条是【已知环境类】，★ 不是回归：
@@ -67,7 +67,7 @@ REM     · 1 = live 配置 · 1 = 顺序 flaky
 toolkit\python.exe -m pytest tests/ -q
 ```
 
-★ 期望：★ **守卫 135 passed**（★ [10-14] 第三轮：106 + 新增 29 条 —— `tests/module/flow/test_control_types.py` 20 条 + `tests/module/config/test_entry_custom_state.py` 9 条）；★ 全量 **49 failed / 1826 passed**（★ 失败集与基线**逐条一致** ⇒ 无回归）。
+★ 期望：★ **守卫 166 passed**（★ [10-14] 第四轮：135 + 新增 31 条 `tests/module/test_task_factory.py`）；★ 全量 **49 failed / 1858 passed**（★ 失败集与基线**逐条一致** ⇒ 无回归）。
 
 ```bat
 REM ⑤ ★ 前端（★ 也要核）

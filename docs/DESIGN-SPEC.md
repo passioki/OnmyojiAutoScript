@@ -1114,7 +1114,7 @@ INFO | 运行记录: RealmRaid 本次 88 次, 0 分钟  ← ★ 0 分钟 = 一�
 | # | 文件 | 是否必需 | 作用 | 谁读它 |
 |---|---|---|---|---|
 | **1** | `meta.py` | ★★ **必需** | ★ `SPEC = TaskSpec(task=…, name_zh=…, category=…, period=…, window=…)` —— ★ **任务与调度器之间的唯一契约** | `task_catalog._discover_specs()`（`task_catalog.py:588-605`）|
-| **2** | `config.py` | ★★ **必需**（否则任务没有配置节点）| `class <Name>(ConfigBase)` + `scheduler: Scheduler` | `config_model._discover_config_classes()`（`config_model.py:64-93`、`:138`）|
+| **2** | `config.py` | ⚠ ★ **[10-14] 实测订正：不是"必需"** —— ★ `tasks/GotoMain/` **就没有** `config.py`（目录里只有 `meta.py` / `script_task.py` / `assets.py`），★ 它照样能被发现、能跑 | ★ 但**要配置界面**就必须有：`class <Name>(ConfigBase)` + `scheduler: Scheduler` | `config_model._discover_config_classes()`（`config_model.py:64-93`、`:138`）|
 | **3** | `script_task.py` | ★★ **必需** | ★ 类名**必须**叫 `ScriptTask`，**必须**实现 `run()` | `script.py:848-852`（`tasks/<cmd>/script_task.py` 写死）|
 | **4** | `assets.py` | ★ 有素材才需要 | `class <Name>Assets` + `RuleImage/RuleOcr(...)` | 由 `dev_tools/assets_extract.py` **自动生成** |
 
@@ -1143,12 +1143,35 @@ INFO | 运行记录: RealmRaid 本次 88 次, 0 分钟  ← ★ 0 分钟 = 一�
 | # | 规则 |
 |---|---|
 | **NT1** | ★★ **新建 = 一个原子操作**：★ 一次调用里创建 `tasks/<Name>/` + `meta.py` + `config.py` + `script_task.py`（+ 空 `assets.py`）<br>★ **要么全成、要么全不落盘**（★ 失败必须**回滚删除**刚建的目录 —— ★ 半成品目录会让 `config_model` 发现一个坏配置类 ⇒ ★ 后端起不来）|
-| **NT2** | ★★ **命名校验必须在写盘之前**：★ 只允许 `[A-Za-z][A-Za-z0-9]*`（★ 大驼峰，与现有 55 个任务一致）；★ 拒绝保留名（`Component`/`General`/`GameUI`/`Utils`/`Script`/`GlobalGame`/`_Template` 等 `config_model.NOT_A_TASK` + 白名单）；★ 拒绝已存在（★ 大小写不敏感，Windows 上 `Rest` 与 `rest` 同目录）|
+| **NT2** | ★★ **命名校验必须在写盘之前**：★ 只允许 **`[A-Z][A-Za-z0-9]*`**（★ **首字母必须大写** = 大驼峰，与现有任务一致；⚠ **[10-14] 实测订正**：原写 `[A-Za-z][A-Za-z0-9]*` ⇒ ★ 会放过 `rest` / `myTask` ⇒ ★ 与"大驼峰"的本意不符，且 Windows 大小写不敏感下更易撞名）；★ 拒绝保留名（`Component`/`General`/`ScriptTask`/`Utils`/`GlobalGame` 等）；★ 拒绝已存在（★ 大小写不敏感，Windows 上 `Rest` 与 `ReSt` 同目录）｜ ★ **落地**：`module/task_factory.py:validate_name()` |
 | **NT3** | ★★ **新任务默认"安全空壳"**：★ `script_task.py` 生成**能跑通但不操作游戏**的骨架（`goto_page(page_main)` + `raise TaskEnd`）—— ★ **绝不生成"会乱点屏幕"的模板**（★ 那会在用户没配好素材时误操作账号）<br>★ `meta.py` 的 `period` 默认 **`none`（临时任务）**、`window` 默认**全天**、`auto_queue` 默认 **`False`** ⇒ ★ 新建后**不会自动进队列**（★ 用户显式添加才生效）|
 | **NT4** | ★★ **只允许在 `tasks/` 下动手**：★ 复用现有闸门 `_ensure_within_root`（`tool.py:832-837`）；★ `Name` 参数**必须**经过 NT2 的正则 ⇒ ★ **路径穿越不可能**（★ 与 §3.9.9 的"跨配置转移"同一安全原则）|
 | **NT5** | ★★ **"增删改查复制"的标准流程（用户要的"标准流程"）**：<br>★ **增** = `POST /annotator/api/tasks/create`（NT1~NT4）<br>★ **查** = `GET /annotator/api/tasks`（★ 已有，但**要用权威判据**：★ 必须有 `meta.py` —— 现有实现只跳过 `__` 前缀，★ 会把 `Component/Utils/...` 也列出来）<br>★ **改** = ★ 已有（规则 json + `assets.py` 重生成）；★ **任务级"改"**（改 `name_zh`/`category`/`period`）= **后续项**，★ 本轮不做<br>★ **删** = ★ **本轮不做**（★ 删任务会牵动 `run_list` / 完成记忆 / i18n，★ 风险大，★ 需单独设计 + 二次确认 + 备份）<br>★ **复制** = ★ **本轮不做**（★ 与"跨配置转移"（§3.9.9）不同：★ 那是复制**配置页**，★ 这是复制**任务代码**）|
 | **NT6** | ★★ **验收定义（★ 照抄你的原话）**：★ "**用前端实现新增一个周期任务和一个临时任务并成功运行**" ⇒ ★ ① 标出两个任务的判定：★ **周期任务** = `meta.py` 的 `period != none`（如 `daily`）；★ **临时任务** = `period = none`；★ ② "成功运行" = ★ 后端日志出现 `Scheduler: Start task` + 任务**正常收尾**（`TaskEnd`）+ ★ `entry_target_reached` 判定链路生效 |
 | **NT7** | ★★ **统一化管理（★ 第二阶段的入口）**：★ 用户要"**再通过这类流程将当前所有的周期任务统一化管理，接入统一化的调度**" ⇒ ★ 这要求每个周期任务都有 **`meta.py` + `config.py`**（★ 实测**已满足**：55 个目录有 `meta.py`）⇒ ★ 第二阶段 = **用同一套 CRUD 去"体检 + 补齐"**（★ 先出**盘点报告**，不盲改）|
+
+### ★★★ 五、NT8 —— **新建任务的"完整合同"**（★ [10-14] **实测跑出来**的，不是推测）
+
+> ★★ **[10-14] 用户裁定**："**2.开工吧…先做最小代码验证，跑通整个流程**" +
+>   澄清"**跑通新建任务、测试、运行这个流程**"。
+> ★ 于是我真的建了一个任务（`FlowDemo`），并把**全量测试跑了一遍** ⇒
+>   ★★ **结果：4 个文件远不够 —— 一共撞红 14 条项目级守卫，分 6 类。**
+
+| # | 合同 | 不满足会让谁变红 | ★ 落地方式（[10-14] 已实现/待办）|
+|---|---|---|---|
+| **NT8-1** | ★★ **4 个文件**（`meta.py`/`config.py`/`script_task.py`/`assets.py`）+ ★ **原子 + 回滚** | ★ 半成品目录 ⇒ `config_model` 发现坏类 ⇒ **后端起不来** | ✅ `module/task_factory.py:create_task()`（临时目录 ⇒ 语法自检 ⇒ `os.replace` ⇒ 失败 `rmtree`）|
+| **NT8-2** | ★★ **`meta.py` 必须显式声明 `window`** | ★ `test_every_task_has_window.py`（**3 条**）—— ★ `Period.NONE` **推导不出**窗口 | ✅ 模板已生成 `window=AvailabilityWindow(True, time(0,0), time(23,59))` |
+| **NT8-3** | ★★ **`list_pos` 必须全局唯一** | ★ `test_list_pos_metadata.py::test_positions_are_unique` | ✅ 工厂自动取"当前最大 + 1"（实测当前已用到 **53**）|
+| **NT8-4** | ★★ **必须登记流程图台账** | ★ `test_task_flow_docs.py::test_every_task_is_registered` | ✅ 工厂自动往 `docs/flows/README.md` 插一行（★ 注入验证过：假装登记成功 ⇒ **2 条红**）|
+| **NT8-5** | ★★ **必须重生成 `task_catalog_data.json`** | ★ `test_config_model_discovery.py` · `test_task_spec.py` | ⚠ **需手动/由调用方跑**：`python dev_tools/gen_task_catalog.py`（★ 实测：跑完这两条里的 1 条转绿）|
+| **NT8-6** | ★★ **必须重生成 i18n（`zh_CN.xml` + `.qm`）** | ★ `test_i18n_consistency.py`（**2 条**：`TestOasXml` / `TestCompiledQm`）| ⚠ **需手动**：`python dev_tools/gen_i18n.py` ★ **且它需要前端仓库路径**（`$OASX_REPO` 或 `dev_tools/paths.local.json` 的 `oasx`）—— ★ 本机**未配置**，实测报"找不到 OASX 仓库"；★ 补上后跑通并让那 2 条转绿 |
+| **NT8-7** | ⚠ ★ **"库存快照"类守卫**（★ 与任务数量/清单**硬编码**有关）| ★ `test_execution_queue.py::TestAutoQueueMetadata` **4 条**：`test_counts_are_15_and_40`（★ 硬编码 **15/40**）· `test_the_fifteen_manual_tasks`（★ 钉住 15 个名字）· `test_every_spec_declares_auto_queue_explicitly` · `test_auto_queue_matches_countable` | ⬜ **待你裁定**：★ 是"新建任务时同步这份盘点"，★ 还是"把这类守卫改成**读实际清单**"（★ 后者才不会每加一个任务就要改测试）|
+
+★ **实测汇总（★ 可复现）**：★ 建 `FlowDemo` ⇒ 全量 **49 → 63 failed**（**+14**）；★
+  工厂补 `window`+`list_pos` ⇒ **−4**；★ 跑 `gen_task_catalog`+`gen_i18n` ⇒ **−4**；★
+  剩 **6 条**全是 **NT8-5/8-7 类**（★ 其中 4 条是硬编码清单）。
+★ ★ **结论**：★ **"新建任务"不是"写 4 个文件"，而是"动一次全局台账"** —— ★
+  这正是用户要的"**彻底吃透底层接口**"的最硬证据（★ 细节见台账 §D.8）。
 
 ### ★★★ 四、三个问题 —— ★ [10-14] **用户已裁定**
 

@@ -1374,6 +1374,142 @@ L0 方法层          module/device/method/*（adb / minitouch / uiautomator2 / 
 
 ---
 
+## 1.19 ★★★ 「流程控制抽象」—— 要"实现这 8 张流程图"，需要哪些控制面（[10-14] 用户提问 · ★ **实测归纳**）
+
+> ★★ **用户原话（逐字）**：
+> > "**看了这些流程图，请抽象一下，实现这些流程，需要哪些抽象层面的控制。我先说几个我认为的但不一定对：
+> >   该任务是否该执行；该任务执行成功/失败；初始化（重启或回到庭院）；该任务如何执行。
+> >   我这些说的太宽泛了，执行上需要更具体些的分类及实现。**"
+
+★ **本节的方法**（★ 不靠印象）：★ 先抠 8 份图纸的「出口语义表 + 与调度层的接口」段，
+★ 再对 8 个 `tasks/<Name>/script_task.py` **实测统计**控制点调用次数（脚本可复现）。
+
+### ★★★ 一、你那四条 → 拆细后的对照（★ 先纠三个"太粗"）
+
+| 你的说法 | ★ 实测发现它其实是 | 为什么必须拆 |
+|---|---|---|
+| "**该任务是否该执行**" | ★★ **两个不同的层**：★ **①调度层准入**（7 个门，全在 `config.py`）· ★ **②任务内前置**（票/资源/界面状态/依赖）| ★ ① 已集中且可配；★ ② **散落在各任务里、写法各异**，★★ 且它有**三种结局**（跑 / 跳过 / **推迟到某时刻**）——"能不能跑"和"什么时候能跑"不是一回事 |
+| "**成功/失败**" | ★★ **两件事**：★ **①出口**（为什么停下来：8 类）· ★ **②结果**（三态 + 两个上报对象 + 两种排期基准）| ★ 现在**出口与结果被写在同一行**（`break` 旁边的 `success=…`）⇒ ★ 改一处就改语义（★ `RyouToppa` 就是这么错的）；★ 而"上报对象"分**条目**与**任务**，`finish=True/False` 又决定以**现在**还是**开始时刻**排期 |
+| "**初始化（重启或回到庭院）**" | ★★ **三级**：★ **环境级**（进程/adb/frida）· ★ **界面级**（回庭院→进页面链）· ★ **配置级**（换御魂/换预设/锁阵容/加成/难度层数）| ★ 三级**失败后果不同**（环境级失败 = 整轮不能跑；配置级失败 = 可以"响亮跳过"继续）|
+| "**该任务如何执行**" | ★★ **四件事**：★ **骨架**（直线/主循环/多循环/子项串行）· ★ **判断** · ★ **动作** · ★ **容错** | ★ 骨架有 **4 种**（见下表 C3）；★ 动作有 **5 个空缺**（§1.18-三）；★ 容错（预算/看门狗/重试/安全区）**你没想到，但图纸里到处都是** |
+
+### ★★ 二、九个控制面 + 两个支撑面（★ 每一面 = 图上一类方框）
+
+| # | 控制面 | 回答什么 | 具体分类（★ 执行级） | 现状实现（`file:line`）| ★ 缺口 |
+|---|---|---|---|---|---|
+| **C1** | **准入 Gate** | 现在该不该跑？ | ①任务开关 `enable` ②类别总开关 `enable_timed/fixed` ③窗口 `in_window` ④到点 `next_run` ⑤完成记忆 `_skip_by_completed` ⑥失败冷却 `_in_failure_cooldown` ⑦队列成员（`run_list`/`auto_queue`）★ **＋ 任务内前置**：票、资源、界面状态 | ★ ①~⑦ 全在 `config.py`：`:1811`（enable）· `:1820`（类别）· `:1946`（窗口）· `:1927-1952`（到点）· `:2141`（完成记忆）· `:1829`（冷却）· `:2530`（队列）<br>★ 任务内：`RealmRaid:180 check_ticket` · `RyouToppa:198 has_ticket` · `Tako:84` 倒计时 | ★★ **任务内前置没有统一抽象**（各写各的、有的在循环内）★ 且**没有"推迟到某时刻"这一态**（现在只能 `success=False` 让它 1 小时后再试）|
+| **C2** | **准备 Prepare** | 跑之前要变成什么状态？ | ★ 环境级：进程/连接（`Restart` 任务、`AutoCheckinBigGod._launch_app:212`、`_ensure_frida_server_running:416`）· ★ 界面级：`goto_page(page_main)` → 目标页（Dijkstra：`navigator.py:403`）· ★ 配置级：换御魂 `switch_soul.py:128/295`、锁阵容 `RealmRaid:158 ensure_lock`、加成 `general_buff.py:18/39`、难度/层数 `AreaBoss:199/218/253/271/288` | 各自都有实现 | ★★ **没有 `prepare()` 契约**（谁负责调、失败算不算失败、要不要回滚 —— 每个任务自己决定）|
+| **C3** | **骨架 Skeleton** | 用什么形状跑？ | ★ **4 种**：★ `①单轮直线`（`Tako`：**0 个 `while 1`**）★ `②单主循环`（`RealmRaid` 1 个逻辑循环）★ `③多主循环+角色分支`（`Orochi`：`run_leader/run_member/run_alone/run_wild`）★ `④子项串行`（`DailyTrifles`/`WeeklyTrifles`：每项独立跳过）★ `⑤无循环`（`AutoCheckinBigGod`：frida+HTTP 直线）| ★ 实测 `while 1` 数：`RealmRaid 12` · `Orochi 15` · `AreaBoss 12` · `WeeklyTrifles 12` · `DailyTrifles 8` · `RyouToppa 5` · `Tako 2` · `AutoCheckin 0` | ★★ **骨架没有抽象** —— "子项串行"这种形状在 `DailyTrifles`/`WeeklyTrifles` 里**各写一遍** |
+| **C4** | **判断 Decide** | 现在是什么情况？ | ★ 出现判定 `appear/ocr_appear` · ★ **数值判定**（票数 `DigitCounter`、次数、倒计时）· ★ **状态判定**（`is_in_battle` `general_battle.py:618`、`is_room_dead` `Orochi:420`、`is_group_ranked` `AreaBoss:444`）· ★ **历史判定**（上一战结果 `last_battle`、地区缓存 `AreaBoss:310 flush_area_cache`）| ★ 出现/数值：`base_task.py:999/1426` · ★ 状态：各任务自写 | ★★ **返回值三种混用**（`bool` / `tuple` / `int`）⇒ 没法统一接分支；★ **上一战结果没有统一载体**（各任务自己存 `last_battle`）|
+| **C5** | **动作 Act** | 怎么动？ | 点击 / 滑动 / 拖拽 / 长按 / **键盘** / **文本** / 等待 | ★ 点击 `base_task.py:1392` · 滑动 `:1362` · 长按 `RuleLongClick` | ★★ **5 个空缺**（返回键/键盘/文本/滚动/拖拽）★ + **26 组重复**（§1.18-四）|
+| **C6** | **出口 Exit** | 为什么停下来？ | ★ **8 类（★ 实测自 8 张图）**：①**暂停**（`raise_if_paused`）②**次数打满** ③**时间到** ④**资源耗尽**（没票）⑤**状态丢失**（房间没了 `Orochi:186/385`）⑥**依赖失败**（邀请不到队友 `Orochi:197/204`、adb/frida 不可用）⑦**目标已被满足**（已上榜 `AreaBoss:165`、已领完）⑧**异常中断**（`GameStuckError` 等）| ★ 全是 `break` + 手工改 `success` | ★★ **没有 `Exit` 枚举** ⇒ ★ 语义靠人记（★ 三条红灯之一）|
+| **C7** | **结果 Outcome** | 这一轮算成功吗？下次何时？ | ★ **三态**：`DONE`（正常做完）/ `FAILED`（真失败）/ **`EXHAUSTED`（资源用完 = 也算 DONE —— ★ 你的裁定）** · ★ **两个上报对象**：条目级 `mark_entry_completed`（剔出 pending）/ 任务级 `set_next_run(success)` · ★ **两种排期基准**：`finish=True`（以**收尾时刻**）/ `finish=False`（以**开始时刻** `base_task.py:1570-1573`）| ★ `set_next_run` `base_task.py:1559` · `mark_entry_completed` `:447` · 框架代劳 `script.py:1325-1330` | ★★ **`EXHAUSTED` 没有名字**（★ 所以 `RyouToppa` 才会把它写成 `FAILED`）★ + ★ **只有 2 个任务主动上报**（实测：全仓仅 `RealmRaid:198`、`RyouToppa:214`）|
+| **C8** | **收尾 Teardown** | 走之前要还原什么？ | ★ 还原配置（锁阵容 `lock_team_enable`、难度、加成）· ★ 回庭院 `goto_page(page_main)` · ★ 关外部进程/APP（`AutoCheckinBigGod._cleanup:163`）| ★ `Tako:105-126 exit_task()`（回庭院 + 关加成）· `RyouToppa:221` | ★★ **与 C2 不对称**：★ 实测 `goto_page(page_main)` 次数 = `Orochi 6` · `Tako 3` · `DailyTrifles 2` · `RealmRaid/RyouToppa/WeeklyTrifles 各 1` · **`AreaBoss 0` · `AutoCheckinBigGod 0`**；★ 且 **失败路径常不清理**（`AutoCheckinBigGod` 失败①②③④ 的"清理/回前台"实测 **都没做**）|
+| **C9** | **容错 Safety** | 卡住了怎么办？ | ★ 无进展预算 `_loop_budget`（`base_task.py:1261`）· ★ 看门狗（`device.py:261/310`：卡死 / 同名点击 ≥10 次）· ★ 重试上限（`Tako fire` 20 次）· ★ **安全区防误点**（`Orochi` 点 `C_WIN_3` 而不是奖励图片：`script_task.py:166`）| ★ 有 | ★★ **"循环无出口"没有统一兜底**（`ensure_public()` 的 `while 1` 只 `return True`，`general_room.py:63-78`）★ + 预算/看门狗**各任务自己记得加** |
+| **C10** | **记忆 State**（支撑）| 上次到哪了？ | ★ 次数（条目级 `target`）· ★ 完成记忆（`completed_session` ↔ `session_start`）· ★ **任务自定义状态** · ★ 任务级缓存（`AreaBoss` 地区缓存）· ★ 外部凭据（`AutoCheckinBigGod` token）| ★ `task_state.py`（38 函数：`get/set_entry_runs:364/434`、`mark/clear_entry_completed:841/910`、`mark_session_start:962`…）| ★★ **没有"任务自定义状态"入口** ⇒ 新任务只能自己往 `.task_state.json` 里塞（★ 这正是"从零构建任务"最缺的一块）|
+| **C11** | **接管 Abort**（支撑）| 谁兜住异常？ | ★ `TaskEnd`（正常结束→继续调度）· `TaskPaused`（阻塞等继续）· `GameStuckError`/`GameTooManyClickError`/`GameNotRunningError`/`GamePageUnknownError`（→ 重启游戏）· `RequestHumanTakeover`（→ `exit(1)` 硬停）· `ScriptError`（任务级失败，不退出）| ★ 定义 `module/exception.py:21/30/40/48/52/56/61/65`；★ 捕获矩阵 `script.py:893-965` | ★★ **同一动作失败可能是 `return False` / `TaskEnd` / `RequestHumanTakeover`**（`control.py:196` · `base_task.py:1320` · `scrcpy.py:68`）⇒ ★ 调用方**无法用统一 `try/except` 处理** |
+
+### ★★ 三、实测覆盖矩阵（★ 8 个任务的 `script_task.py` · 脚本统计 · 可复现）
+
+| 控制点 | RealmRaid | Tako | Orochi | RyouToppa | AreaBoss | DailyTrifles | WeeklyTrifles | AutoCheckin |
+|---|---|---|---|---|---|---|---|---|
+| `bind_counter()`（次数）| 3 | **0** | 2 | 2 | **0** | **0** | **0** | **0** |
+| `mark_entry_completed()`（主动上报）| 1 | **0** | **0** | 1 | **0** | **0** | **0** | **0** |
+| `set_next_run()` | 1 | 2 | 3 | 7 | 1 | 1 | 1 | 6 |
+| └ `finish=True` / `False` | 1/0 | 1/1 | 1/2 | 5/0 | 0/1 | 0/1 | 1/0 | 6/0 |
+| `raise_if_paused()`（★ 暂停检查点）| 1 | **0** | 4 | 1 | **0** | **0** | **0** | **0** |
+| `should_stop_battle_loop()` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `goto_page(page_main)`（回庭院）| 1 | 3 | 6 | 1 | **0** | 2 | 1 | **0** |
+| `while 1`（骨架）| 12 | 2 | 15 | 5 | 12 | 8 | 12 | **0** |
+| `success = False` | 4 | 1 | 6 | 3 | **0** | **0** | **0** | 4 |
+| 行数 | 634 | 163 | 526 | 397 | 506 | 311 | 374 | 1147 |
+
+### ★★★ 四、三个红灯（★ 本矩阵直接暴露的，不是猜）
+
+| # | 红灯 | 证据 | 后果 |
+|---|---|---|---|
+| **1** | ★★ **出口语义靠各任务自觉** | ★ `success = False` 次数：`Orochi 6` / `RealmRaid 4` / `AutoCheckin 4` / `RyouToppa 3` / `Tako 1` / **`AreaBoss`·`DailyTrifles`·`WeeklyTrifles` 0**；★ `AreaBoss` 的出口返回 `True/False/None` **三种混用**（图纸 2.2 表）| ★ 同一个"停下来"在不同任务里**含义不同**（★ `RyouToppa` 已经因此把"清票完成"记成失败）|
+| **2** | ★★ **收尾与准备不对称** | ★ `AreaBoss` 与 `AutoCheckinBigGod` **不回庭院**；★ `AutoCheckinBigGod` 的 4 条失败出口**清理全都没做**（图纸出口语义表）| ★ 下一棒可能从**未知界面**开始；★ 外部进程/APP 残留 |
+| **3** | ★★ **暂停检查点只有一半任务有** | ★ `raise_if_paused` = 0 的任务：**`Tako`·`AreaBoss`·`DailyTrifles`·`WeeklyTrifles`**；★ 框架级兜底**只在 `PAUSE_BATTLE` 生效**（`base_task.py:836`）| ★ **`PAUSE_ROUND`（⏭ 本轮跑完再停）对它们 ≈ 不生效** |
+
+### ★★ 五、API 草案（★ 具体到能照着写 —— 这是"更具体的分类及实现"）
+
+```python
+# ── C1 准入：★ 任务不写"该不该跑"，而是【声明判据】
+class Precondition(Protocol):
+    def check(self) -> Verdict: ...          # ★ OK / SKIP(reason) / DEFER(until)
+@dataclass
+class Verdict:
+    ok: bool
+    reason: str = ''                         # ★ 要能上界面（"没票了""本周已完成"）
+    defer_until: datetime | None = None      # ★★ 新增态：★ "什么时候能跑"（现在没有）
+
+# ── C2 准备 / C8 收尾：★ 对称的栈（★ 失败路径也要 unwind）
+prepare = PrepareStack([
+    EnvEnsure(adb=True, game='running'),      # C2-环境级
+    GotoPage(page_main), GotoPage(page_target),# C2-界面级
+    SwitchSoul(spec), LockTeam(True), Buffs(True), Difficulty('ultra'),  # C2-配置级
+])
+prepare.run()                                 # ★ 任一步失败 ⇒ 决定"响亮跳过 or 整轮失败"
+...
+teardown = TeardownStack([LockTeam('restore'), Buffs('restore'), GotoPage(page_main)])
+teardown.run(always=True)                     # ★ 与 prepare 对称（★ 红灯 2 的修法）
+
+# ── C3 骨架：★ 只留 3 个宿主（覆盖实测的 5 种形状）
+SingleShot(steps)                             # Tako / AutoCheckinBigGod
+Loop(driver, exits=[...], budget=LoopBudget(timeout=..., max_clicks=...))  # 主循环
+Sequence([SubTask('祈愿', skip_if=Done('today')), ...])  # DailyTrifles/WeeklyTrifles 子项串行
+
+# ── C4 判断：★ 统一返回（终结 bool/tuple/int 三种混用）
+@dataclass
+class Match: ok: bool; score: float; roi: tuple | None; text: str = ''
+def appear(t) -> Match; def read_counter(t) -> tuple[int,int,int]; def in_battle() -> bool
+
+# ── C5 动作（补 5 个空缺）：tap / swipe / drag / long_press / key / text / scroll / wait
+
+# ── C6 出口：★ 把"为什么停"变成类型
+class Exit(Enum):
+    PAUSED, COUNT_DONE, TIME_DONE, RESOURCE_EMPTY, STATE_LOST, DEP_FAILED, ALREADY_DONE, ABORTED
+
+# ── C7 结果：★ 三态 + 显式上报（★ 让 EXHAUSTED 有名字）
+class Outcome(Enum):
+    DONE, FAILED, EXHAUSTED          # ★ EXHAUSTED 的语义 = DONE（★ 你的裁定）
+def finish(exit_: Exit) -> Outcome   # ★ 唯一映射点：改语义只改这里
+
+# ── C9 容错 / C10 记忆 / C11 接管
+LoopBudget(...) · StuckGuard(...) · RetryPolicy(tries, backoff) · SafeArea(clicks)
+entry_state(key, default)            # ★★ 现在缺的"任务自定义状态"入口
+task_state(key, default)             # ★ 任务级（跨轮）
+# C11：把 script.py:893-965 的捕获矩阵固化成表（异常 → 后果），任务只抛类型
+```
+
+### ★★ 六、与 M2 / DSL 的映射（★ "流程图方框 → 控制面 → 指令"）
+
+| 流程图上的方框 | 控制面 | DSL 指令（§1.17-NL1）|
+|---|---|---|
+| 开始/结束 | C2/C8 | `prepare` / `teardown`（★ 隐式，由宿主跑）|
+| 菱形（判断） | C4 | `if / elif / else / while / wait_until(条件)`；条件由 `appear/read_counter/in_battle` 组合 |
+| 矩形（动作） | C5 | `click / swipe / drag / key / text / log / screenshot` |
+| 循环回边 | C3 | `loop(n) / while(cond)` + `break / continue` |
+| 出口（出图） | C6 | `exit(RESOURCE_EMPTY)` 等 **8 个具名出口** |
+| 结束标记 | C7 | `finish(DONE/FAILED/EXHAUSTED)` |
+| 旁注"重试/超时" | C9 | 宿主 `LoopBudget` + 指令参数 |
+| 方框外的前置说明 | C1 | `require(...)` / `defer(until)` |
+
+### ★ 七、落地顺序（★ 接到 §1.18 的 P0~P3）
+
+```
+★ P0（只加不改）：★ 先落 **C1 Verdict · C4 Match · C6 Exit · C7 Outcome** 四个"纯数据类型"
+   + ★ **C10 `entry_state`**（新任务最缺的入口）⇒ ★ 它们不改任何现有行为，可立刻加
+★ P1：★ C5 补 5 个空缺 + C9 的 `LoopBudget/StuckGuard/RetryPolicy` 提到 `module/action/`
+★ P2：★ C2/C3/C8 的**宿主**（PrepareStack/TeardownStack/SingleShot/Loop/Sequence）
+   ⇒ ★ 用 `flow.json` 重写 `Tako`（★ 它 0 个 `while 1`，最适合当第一个）
+★ P3：★ 前端编排面板（§1.17-P2）+ annotator 集成（§1.16）
+★ ★ 红灯 1/2/3 的修法**都落在 C6/C7/C8** ⇒ ★ 它们是"最省力的正确性提升"
+```
+
+---
+
 # §2 记录模型（后端）
 
 ## 2.1 ★★★ 记录的**源头要求**（[10-09 12:57:14]）

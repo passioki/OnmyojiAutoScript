@@ -21,7 +21,8 @@
 > ☑ A 处（`script.py:371` 派发判定）已改 + 守卫验证通过
 > ☑ A2 处（`get_next` 跳 done）已改 + 守卫验证通过
 > ☑ 守卫测试 6 条全绿 + **自检能变红**（逐个注入 ⇒ 5 个都红）
-> ☑ 全量测试 = **35 failed / 1696 passed**（★ 比基线 36 更好）
+> ☑ 全量测试 = **49 failed / 1785 passed**（★ [10-14] 实测订正：★ 原写 `35 failed / 1696 passed` 是**旧值**；
+>    现基线见 §C.2 `F-baseline` 与 `docs/SESSION-HANDOFF.md` §1）
 > ☑ B 处（防封不为临时任务改 `next_run`）已改 + 守卫通过
 > ☑ E/G（显示语义已改为"按顺序"）已改 + 全量验证通过
 > □ 端到端实测（★ 需你重启后端；★ 也用于验收 D7.2/D7.3）
@@ -352,4 +353,67 @@
 | **N9-9-spec** | ★ 规格书：**§1.5.y（SS1~SS5）** + `§4.5-㉒` | `docs/DESIGN-SPEC.md` | ✅ **已完成** | ★ 规则 5 条 + 真因 + 已定案依据（`SESSION-INDEX.md:1162`）|
 | **★ 教训-C** | ★★★ **源码级"比行序"的守卫是空转的**（★ 本会话**第三次**抓到空转守卫）| — | ✅ 已记录 | ★ 证据：把 `if not 1 <= int(group) <= 7:` 改成 `if False:`（★ 校验**形同不存在**）⇒ ★ 那条**只比行序**的守卫**照样绿**（★ `raise` 字样还在）⇒ ★★ **必须有【运行时】断言**（`pytest.raises(ValueError)`）；★ 已补上 ⇒ 注入后**真的变红**（5 failed）|
 | **★ 教训-D** | ★★ **`pwsh -replace` 是正则 + `$` 会展开 ⇒ 注入会"静默不生效"** | — | ✅ 已记录 | ★ 实测：同一注入连试 **3 次**都"没生效"（★ 却让我一度误判守卫有效）⇒ ★ **注入验证要用 Python 做**（`str.replace` + 打印"是否生效" + 还原后比 SHA256）|
+
+---
+
+# §D ★★ [10-14] 新会话核实记录（★ 基线复核 · ★ 全部为【实测】）
+
+> ★ 依据：`docs/START-HERE.md` §1.3 的四条命令 + 前端两条命令。
+> ★ 结论：★ **与 [10-14] 基线逐项一致** ⇒ ★ 可以开工（★ 但仍**等用户点头 N9-6 架构**）。
+
+| # | 项 | 实测结果 | 与台账/文档对照 | 状态 |
+|---|---|---|---|---|
+| **V1** | 后端 commit / 分支 / 工作区 | `a29753c0`（★ `main`；`git status --porcelain` **空** ⇒ 干净） | ★ 与 `SESSION-HANDOFF.md` §1 一致（★ HANDOFF 留的"本次提交后取"**已补齐**） | ✅ |
+| **V2** | ★ 守卫（§1.3 第 ③ 条那**一条命令**，10 个文件） | ★ **98 passed**（7.11s） | ★ 与 [10-14] 基线 **98** 一致 | ✅ |
+| **V3** | ★ 后端全量 `pytest tests/ -q` | ★ **49 failed / 1785 passed / 12 skipped**（113.5s） | ★ 与 [10-14] 基线 **49 / 1785 / 12** **逐数字一致** ⇒ 无回归 | ✅ |
+| **V4** | ★ 前端 | `flutter analyze lib` = **0 error**（★ 4 warning + 17 info）· `flutter test` = **158 passed** | ★ passed 一致；★ **analyze 的 issue 构成与文档不符** ⇒ 见 §D.2-D-b | ⚠ |
+| **V5** | N9-1 修复**代码核实** | `config.py:4517-4521` = `Function('restart', …)`（★ 小写键） | ★ 与 `N9-1-fix` 一致 | ✅ |
+| **V6** | N9-8 修复**代码核实** | `script_router.py:171` = `_v.pop('enable', None)`（★ 跨配置转移剥离 `enable`） | ★ 与 `N9-8` 一致 | ✅ |
+| **V7** | N9-3 / N9-9 修复**代码核实** | `tasks/Rest/script_task.py:56 randomized_rest_minutes()` · `tasks/Component/SwitchSoul/switch_soul.py:86 _parse_switch_target()` | ★ 一致 | ✅ |
+| **V8** | ★ 规格书覆盖 | ★ §1.16（NT1~NT7）/ §1.17（NL1~NL7）**已读正文**；★ §4.5 已到 **㉚** | ★ 一致 | ✅ |
+
+## D.1 ★★ 新坑 **P11**：★ **DSH 沙箱（`workspace-write`）会把 125 条测试打成"假红"**
+
+| 现象（★ 同一台机器 · 同一份代码）| 真因（★ 实测 `文件:行号`）| 处置 |
+|---|---|---|
+| ★ 受沙箱约束时：全量 = **141 failed / 1570 passed / 125 errors**；★ **放开沙箱后：49 failed / 1785 passed** | ★ `module/server/script_process.py:30` 用 `multiprocessing.Pipe(False)`（★ Windows **命名管道**）⇒ ★ 沙箱**禁止** `CreateNamedPipe/CreateFile` ⇒ **`PermissionError [WinError 5]`**（★ 全量输出里 118 处 `PermissionError`）；★ 很多测试在 `import` `main_manager.mm` 时就 **ERROR** ⇒ ★ 与业务无关 | ★ ★ **跑 pytest 必须在放开沙箱的模式下**（★ 否则会把沙箱拒绝误判成"大回归"）|
+| ★ 另：★ `toolkit\python.exe … \| Select-Object`、`git … \| Select-String` 报 ★ `Program '…' failed to run: Access is denied` | ★ 沙箱下**原生命令接 PowerShell 管道**被拒（★ 同 `pwsh.exe` 起子进程的管道限制）| ★ ★ **不要给原生命令接管道**（★ 交给工具的自动截尾，★ 或只用 `Select-String` **读文件**）|
+
+★ **记忆点**：★ "**同一份代码 · 两种沙箱模式 · 两套数字**" ⇒ ★ **报数字前先确认沙箱模式**。
+
+## D.2 ★ 文档内部矛盾（★ 本轮顺带发现 · ★ **未改，等你点头**）
+
+| # | 文档说 | 我实测看到的 | 建议 |
+|---|---|---|---|
+| **D-a** | ★ 本文件 §一 的"完成定义"写 ★ **35 failed / 1696 passed** | ★ **49 failed / 1785 passed**（★ 且 §C.2 `F-baseline` 与 `SESSION-HANDOFF.md` §1 也都写 49/1785）| ★ §一 那段是**旧值** ⇒ 建议按 [10-14] 现状改写 |
+| **D-b** | `SESSION-HANDOFF.md` §1 写前端 `analyze` = "0 error（**4 条既有 info**）" | ★ **0 error · 4 warning + 17 info**（★ warning 在 `store_disk.dart:184/192`、`platform_utils.dart:63/64`）| ★ 建议改成"0 error（4 warning + 17 info）"（★ "0 error" 属实）|
+
+## D.3 ★★ [10-14] 本轮交付：**逐任务流程图 8 张**（★ `N9-5` 从 1 张 → 8 张）
+
+| # | 交付物 | 规模 | 验证 |
+|---|---|---|---|
+| **N9-5-a** | ★ `docs/flows/{Tako,Orochi,RyouToppa,AreaBoss,DailyTrifles,WeeklyTrifles,AutoCheckinBigGod}.md` | ★ 7 个新文件 · 共 **约 2390 行** · 每个 3~7 张 mermaid + **五段结构** | ★ 逐份实测：★ 段数 5/5（`AutoCheckinBigGod` 的"二"叫**主流程**：它**没有战斗主循环**，★ 属实）· 代码围栏**全部成对** · 首行标题正确 |
+| **N9-5-b** | ★ `docs/flows/README.md` 登记表更新（★ 8 张标 ✅ + 补链接） | ★ 55 个任务**一个不漏** | ★ 守卫 `tests/test_task_flow_docs.py` ⇒ **4 passed** |
+| **N9-5-c** | ★ **任务中文名按 `meta.py` 逐条订正：18 处** | ★ 例：`Tako`「章鱼」→「**石距**」· `RyouToppa`「突破」→「**寮突破**」· `MetaDemon`「鬼王」→「**超鬼王**」· `FindJade`「找勾玉」→「**寻找协作任务**」· `TalismanPass`「符咒通行证」→「**花合战**」… | ★ 依据 = `tasks/<Name>/meta.py` 的 `name_zh`（★ 权威）|
+
+## D.4 ★★ [10-14] 本轮**新发现**（★ 来自 7 份流程图的实证 · ★ 均带 `文件:行号`）
+
+> ★ 状态口径：★ `⬜ 待核实` = **子智能体读代码得出、我只复核了标注"✅已验证"的那几条**；★ **未改任何代码**。
+
+| # | 发现 | 依据（`文件:行号`）| 状态 |
+|---|---|---|---|
+| **FL-1** | ★★ **`RyouToppa`：没票 = 记失败**（★ 与样板 `RealmRaid` 语义**正好相反**：那边是"保持成功 + 上报本轮完成"） | ★ **已验证**：`tasks/RyouToppa/script_task.py:198-201`（`success = False` + `break`）vs `tasks/RealmRaid/script_task.py:180-200` | ⬜ 待裁定 |
+| **FL-2** | ★★ **`RyouToppa`：满票会被误判成"没票"** —— 判据 `cu == 0 and cu + res == total`，而 `O_NUMBER` 是 `DigitCounter`（语义 `current/total`）⇒ 界面显示 `0/N` 时**一场不打就记失败** | ★ **已验证**：`tasks/RyouToppa/script_task.py:280-283` · `tasks/RyouToppa/assets.py:141` | ⬜ 待核实（需实机看 `cu` 语义）|
+| **FL-3** | ★★ **`RyouToppa`：`attack_area` 的暂停分支是死代码**（`raise_if_paused()` 只会抛 `TaskPaused`，**从不返回 True**）⇒ 即便 break，函数落尾返回 `None` ⇒ 主循环判假 ⇒ **继续打下一个区域** | `tasks/RyouToppa/script_task.py:347-349` + `:211-217` · `tasks/base_task.py:686-717` | ⬜ 待核实 |
+| **FL-4** | ★★ **`RyouToppa` 主循环没有显式暂停检查**，全靠框架兜底；而框架层**只在 `PAUSE_BATTLE` 生效** ⇒ **`PAUSE_ROUND` 模式下没有检查点** | `tasks/RyouToppa/script_task.py:192-217` · `tasks/base_task.py:836` | ⬜ 待核实 |
+| **FL-5** | ★ **`RyouToppa`：`skip_difficult` 是死配置**（全仓零引用，界面上还能改但无效果）；★ `click_failure_count` 名字骗人（记的是**点击次数**） | `tasks/RyouToppa/config.py:12` · `script_task.py:344/350/362/367` | ⬜ 待核实 |
+| **FL-6** | ★ **`Tako`（石距）：失败被记成成功** —— `create_room()` 失败与邀请失败都走 `exit_task()`，而那里**硬编码 `success=True`** | ★ **已验证 `:125`**：`self.set_next_run(task='Tako', success=True, finish=False)`；★ 失败分支见 `:88-96` | ⬜ 待裁定 |
+| **FL-7** | ★ **`TakoConfig.enable` 同时控制"开加成"与"关加成"**，不是任务总开关（读代码易误判） | `tasks/Tako/script_task.py:35` / `:112` | ⬜ 待核实 |
+| **FL-8** | ★ **组队类任务不在 `PAUSE_FRAMEWORK_EXEMPT` 白名单** ⇒ 框架级暂停可能在**队友还在房间**时把房主拉走 | `tasks/base_task.py:767-771`（白名单仅 3 个）| ⬜ 待裁定 |
+| **FL-9** | ★★ **本文件 §D 的新坑 P11（沙箱）之外，又一条"报数字前先确认环境"**：★ `test_standby_placeholder` 的 **④⑤ 依赖实时状态** —— 同一天 **22:55 = 98 passed**、**23:01 = 96 passed / 2 failed**，两次之间**只有文档改动**（`git status` 只列 `docs/**`）⇒ ★ **不是代码回归**；★ 用例自己写着"前置：本配置应有条目可用（否则本用例无意义）" | `tests/module/config/test_standby_placeholder.py:199-234`（★ 用例内 `c.update_scheduler()` 跑**真调度**）| ⬜ **待修（建议：用例内冻结时间 / 自造窗口）** |
+| **FL-10** | ★★ **核对行号不要用 `Get-Content`**：它按 ANSI 解码，**同一文件会少算 10 行**（实测 `tasks/Tako/script_task.py` = **163** 行，`Get-Content` 只看到 **153** 行）；★ `Select-String` 与 read/grep 口径一致 | ★ 实测（本轮踩过一次，一度误判子智能体的行号全错）| ✅ **已查清 → P13** |
+
+★ **未做**（★ 本轮明确不做，等你点头）：★ 上述 FL-* 的**任何代码修改** ——
+   ★ 它们要么是**语义裁定**（FL-1/FL-6/FL-8 要你定"什么算成功"），
+   ★ 要么需要**实机复现**（FL-2/FL-3/FL-4）。
 

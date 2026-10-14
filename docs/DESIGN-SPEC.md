@@ -1212,6 +1212,130 @@ INFO | 运行记录: RealmRaid 本次 88 次, 0 分钟  ← ★ 0 分钟 = 一�
 
 ---
 
+## 1.18 ★★★ 「接口模块化」—— 把现有能力抽成原语，让**任何流程图都能落到代码上**（[10-14] 用户需求 · ★ **方案待你点头**）
+
+> ★★ **用户原话（[10-14]，逐字）**：
+> > "**1.把现有的接口功能抽象为一个个模块，将底层的接口彻底吃透和改进。包括但不限于：
+> >   重启、调度、换御魂、换预设、OCR调用、时间判断、资源统计、次数统计、战斗状态判定、
+> >   字段增删改查、长时/短时存储、点击/滑动/键盘等等。最终应在调用以上接口的情况下，
+> >   能把任何的流程图都实现到代码上。你可以从一个创建任务、维护任务的开发人员角度
+> >   去考虑下，评估下实现方案。**"
+
+★ **与 §1.17 的关系**（★ 这是本节最重要的判断）：
+
+```
+★ §1.17 = 【上层】：可视化编排 + 立即运行 + 日志（用户看到的编辑器）
+★ §1.18 = 【下层】：那些指令**背后的模块**（指令的能力从哪来）
+★ ⇒ ★ 两者是同一件事的两端 ⇒ ★ NL1 的指令集，**就是**本节的模块目录
+```
+
+### ★★★ 一、结论先说（★ 现状评估）
+
+| 判断 | 证据 |
+|---|---|
+| ★★ **原语大部分【已经存在】**，缺的是**分层、命名统一与"可编排"** | `tasks/base_task.py`（1475 行）已含 **60+ 个原语**：`appear`(:999) · `appear_then_click`(:1028) · `wait_until_appear`(:1127) · `click`(:1392) · `swipe`(:1362) · `ocr_appear`(:1426) · `ui_click`(:1643) · `list_find`(:1500) · `bind_counter`(:286) · `mark_entry_completed`(:447) · `set_next_run`(:1559) |
+| ★★ **动作层"没有唯一入口"** —— 同一动作有 **26 组重复实现** | ★ 详见 §1.18-三 |
+| ★ **30+ 处绕开封装直调 `self.device.click(x, y)`** | 如 `tasks/RealmRaid/script_task.py:554`（硬编码坐标）⇒ ★ **丢掉 `control_name` ⇒ 看门狗的"重复点击"判据失效**（`module/device/device.py:271`）|
+| ★★ **有 4 个"流程图必需的原语"今天写不出来** | **返回键 / 键盘 / 文本输入 / 滚动 / 拖拽** —— `module/atom/scroll.py:11` 是 `class RuleScroll: pass` **空壳**；`scrcpy/control.py` 的 `keycode`(:48)/`text`(:62)/`scroll`(:100)/`back_or_turn_screen_on`(:123) **全部零调用**；`Control.drag`(`control.py:239`) **零调用**且缺 2 个分支、还读错配置字段（`:246` 读 `config.script.emulator`，而 click/swipe 读 `config.script.device`）|
+| ★★ **`tasks/GameUi/` 已经是"流程图→代码"的雏形**（★ 最重要的正面发现） | ★ `Page(recognizer, priority, cost)`（`page_definition.py:75`）+ 有向边 `Page.connect(destination, action, cost, key)`(:146) + **Dijkstra 路径规划**（`navigator.py:403`）+ **失败重规划**（:855-875）+ 条件组合子 `any_of/all_of/not_`（`matcher.py:108/121/134`）→ ★ **这就是"图"的执行器** |
+| ★ **状态存储已有 38 个函数**，但**没有"任务自定义状态"的入口** | `module/config/task_state.py` 有 `get/set_entry_runs`(:364/:434) · `get_entry_target`(:477) · `mark/clear_entry_completed`(:841/:910) · `mark/get_session_start`(:962/:1015) · `get/bump/reset_loop_rounds`(:1038/:1056/:1072) · `write/read_heartbeat`(:1110/:1127) … ⇒ ★ 但"我这个任务今天刷了几次"只能自己往 `.task_state.json` 里塞 |
+| ★ **字段增删改查已有 40 个 HTTP 端点**，但**没有"通用字段写"入口** | `module/server/schema_router.py`：`/schema`(:1140) · `/run_list` GET/PUT(:1216/:1301) · `/run_list/entry` POST/DELETE(:1493/:1546) · `/queue/sort`(:1448) · `/queue/profiles*`(:2089~2306) · `/tasks/{task}/windows*`(:2384~2537) · `/run_record*`(:2763~2879) · `/run_control/*`(:3015~3362) ⇒ ★ 每个字段都**专用端点**（有校验，是好事；但新增字段 = 新增端点 + 前端改造）|
+
+### ★★ 二、五层模型（★ 建议的目标结构）
+
+```
+L5 任务脚手架      tasks/<Name>/{meta,config,script_task,assets}.py   ← §1.16 新建任务
+L4 流程层          flow.json + 解释器（§1.17-NL1）· 或 GameUi 的 Page 图（已有）
+L3 语义模块       换御魂 · 换预设/阵容 · 战斗 · 领奖 · 跳页 · 组队 · 结算判定
+L2 原语模块 ★新增  module/action/*（点击/滑动/拖拽/按键/文本/等待/循环预算/随机）
+                   module/perception/*（目标协议/组合子/文本解析/ROI）
+L1 设备层          module/device/{device,control,screenshot,app_control}.py + 看门狗
+L0 方法层          module/device/method/*（adb / minitouch / uiautomator2 / window_message / scrcpy / nemu）
+```
+
+★ **原则**：★ **L0/L1 保留**（平台适配天然要分叉）；★ **L2 是本次要做的核心**（收敛 + 补齐缺口）；
+★ **L3 收敛成"语义 API"**；★ **L4 是"流程图 → 代码"的落点**。
+
+### ★★★ 三、流程图元素 → 原语 映射表（★ 这就是"任何流程图能不能落到代码"的判据）
+
+| 流程图元素 | 应落到的原语 | 现状 | 证据 |
+|---|---|---|---|
+| 开始 / 结束 | `run()` / `TaskEnd` / `set_next_run` | ✅ 有 | `base_task.py:1559` |
+| 判断（图上菱形） | `appear` / `ocr_appear` / `Matcher(any_of/all_of/not_)` | ✅ 有（★ 组合子锁在 GameUi 里） | `matcher.py:108/121/134` |
+| 分支 if/else | ★ **无**（各任务手写 `if`） | ❌ **缺**（§1.17-NL1 的 `if` 指令要新写解释器） | — |
+| 循环 loop/while | `while 1` 手写 + `_loop_budget` | ⚠ 有但**不统一**（`base_task.py:1261` 是唯一"无进展"看门狗） | — |
+| 点击 | `click` / `appear_then_click` / `ui_click` | ✅ 有，但 ★ **30+ 处旁路直调** | `base_task.py:1392` · `RealmRaid:554` |
+| 滑动 | `swipe` / `RuleSwipe` | ✅ 有 | `base_task.py:1362` · `atom/swipe.py:15` |
+| **拖动** | `Control.drag` | ❌ **事实上不可用**（零调用 + 缺分支 + 字段错） | `control.py:239/246` |
+| **长按** | `RuleLongClick` | ⚠ 只在 6 处基类调用点，**任务层拿不到** | `base_task.py:1052` |
+| **键盘 / 返回键** | ★ 无 | ❌ **缺**（唯一按键是任务自拼 adb） | `AutoCheckinBigGod/script_task.py:124` |
+| **文本输入** | ★ 无 | ❌ **缺**（`scrcpy/control.py:62` 零调用） | — |
+| **滚动** | `RuleScroll` | ❌ **空壳** | `atom/scroll.py:11` |
+| 日志 | `logger.*` | ✅ 有 | — |
+| 等待 / 超时 | `wait_until_*` | ⚠ 有，★ **`wait_until_appear(wait_time=None)` 会死循环**；`wait_until_stable` **无返回值** | `base_task.py:1127/1225` |
+| 换御魂 | `run_switch_soul` / `_by_name` | ✅ 有（★ 非法配置"响亮跳过"） | `switch_soul.py:128/295/86` |
+| **换预设 / 阵容** | ★ 无统一封装 | ❌ **缺**（散在 `ReplaceShikigami` / `GeneralBuff` / 各任务） | — |
+| OCR 调用 | `RuleOcr` → `BaseCor` → RapidOCR | ✅ 有（★ 3 个入口但不冲突） | `atom/ocr.py:15` · `module/ocr/base_ocr.py:69` |
+| **文本 → 值** | ★ 无 | ❌ **缺**（22 组手写正则重复） | 见 §1.18-四 |
+| 时间判断 | `AvailabilityWindow` / `next_run` / `success_interval` | ✅ 有 | `module/config/availability.py:208` |
+| **资源统计** | ★ 无 | ❌ **缺**（历史裁定"不监控门票" ⇒ 保持不做，但要在文档写明） | 台账 `N9-2` |
+| 次数统计 | `bind_counter` / `effective_target` / `entry_target_reached` | ✅ 有 | `base_task.py:286/137` · `config.py:3997` |
+| 战斗状态判定 | `battle_wait` / `run_general_battle` / `stuck_record` | ✅ 有 | `general_battle.py:41` |
+| 字段增删改查 | `ConfigModel` + 40 个端点 | ✅ 有（★ 无通用字段写） | `schema_router.py` |
+| 长时 / 短时存储 | `task_state.py`（38 函数） | ✅ 有（★ 无"自定义状态"入口） | `task_state.py` |
+| 重启 | `tasks/Restart` + 待命占位 | ✅ 有（★ 双重身份，见 §1.5.x-SB3） | `config.py:4487-4523` |
+
+★ **判据**：★ **上表里凡是 ❌ 的，流程图上的对应方框今天就"落不到代码"** ⇒ ★ 它们就是 P1 的范围。
+
+### ★★ 四、重复实现（★ 抽象前的最大障碍 · 抽样 8 条）
+
+| # | 同一件事 | 实现 1 | 实现 2 | 差异 |
+|---|---|---|---|---|
+| 1 | interval 模板（"上次多久前"） | `base_task.py:1010-1017` | `:1075` · `:1343` · `:1372` · `:1402` · `:1438` · `:1540` | ★ **逐字重复 7 份** |
+| 2 | 取坐标（拟人随机） | `RuleClick.coord`（正态） | `RuleImage.coord`（正态）· `RuleOcr.coord`（正态）· **`RuleGif.coord`（均匀 `np.random.randint`）** | ★ **4 份，分布不一致** |
+| 3 | `appear` 与多尺度版 | `base_task.py:1028` | `:1091` | ★ 1112-1123 与 1044-1056 **几乎逐行相同** |
+| 4 | 点到消失 | `base_task.py:1680` | `Dokan/script_task.py:962` · `SwitchAccount/login_account.py:325` | ★ **3 份** |
+| 5 | 文本清洗 `remove_symbols` | `DemonEncounter/data/utils.py:7` | `data/answer.py:14` · `Quiz/debug.py:11` | ★ **3 份逐字相同** |
+| 6 | 竖排旋转判定 | `module/ocr/ppocr.py:224` | `rpc.py:128` · `SixRealms/oas_ocr.py:28` | ★ **3 份同一判据** |
+| 7 | 绿标名字识别（相似度） | `general_battle.py:455` | `battle_wait.py:1447` · `Dokan/ex_green_mark.py:175` | ★ **3 份，相似度算法还不一样** |
+| 8 | 文本 → 数字 / 时长 | 22 组手写正则（如 `DailyTrifles:117`、`Summon/summon.py:94`、`Dokan:627/774`、`Nian:139`、`general_room.py:137-148`） | — | ★ **没有任何"解析原语"** |
+
+★ ★ **代价**：★ 每新建一个任务，作者都要**重新抄一遍**这些 6~15 行的片段 ——
+   ★ 这正是"**从零构建任务**"最大的摩擦（★ 用户要的正是"从零构建 + 维护"）。
+
+### ★★★ 五、方案：两阶段（★ 请你选一个）
+
+| 方案 | 内容 | ✅ 优 | ❌ 劣 |
+|---|---|---|---|
+| **M1 · 只做原语层（保守）** | ★ 新增 `module/action/*` + `module/perception/*`，**把 26 组重复收敛**、补齐 §1.18-三 的 5 个 ❌；★ **不动** `BaseTask` 的对外签名（只加薄封装）；★ 各任务**逐步**改用新原语 | ★ 风险小、可增量、**立刻减摩擦**；★ 不碰"无鉴权端点"的安全问题 | ★ **流程图本身仍要人写 Python**（只是更好写） |
+| **M2 · 原语层 + 流程解释器（推荐，= §1.17 的 A/A+）** | ★ M1 全部 + ★ `flow.json` 指令集 + 解释器（NL1/NL2）+ 立即运行（NL3）+ 结构化日志（NL4） | ★★ **真正实现"任何流程图都能落到代码上"**（指令就是流程图的方框）；★ 安全（DSL，无 `eval`） | ★ 多写一个解释器；★ 表达力初期受限（可扩） |
+
+★ **我的建议：M2（= §1.17 的方案 A/A+）** ——
+   ★ 因为用户的目标是"**把任何流程图实现到代码上**"，
+   ★ 而 **M1 只让"写 Python"更省事，并没有把"流程图"变成一等公民**。
+
+### ★★ 六、分期与验收（★ 按 M2）
+
+| 期 | 内容 | 交付判据（★ 可核查） |
+|---|---|---|
+| **P0** | ★ **只加不改**：新增 `module/action/{target,pacer,errors}.py` + `module/perception/{target,parse,roi}.py`；★ 6 条守卫（每个新原语一条 + 一条"禁止新增第 8 份 interval 模板"的源码守卫）| ★ 守卫全绿 + **注入验证真红**（本项目铁律）|
+| **P1** | ★ 补齐 5 个 ❌：`back()` · `keyevent()` · `text()` · `scroll()` · 修好 `drag()`（补分支 + 统一配置字段）；★ 把 30+ 处旁路直调**逐个改回**（每改一批跑一次全量） | ★ 每个原语有单测 + 注入验证；★ `grep` 证明旁路直调数 **0** |
+| **P2** | ★ `flow.json` 指令集 + 解释器（NL1/NL2）+ 立即运行（NL3）+ 结构化日志（NL4）| ★ 用 `flow.json` **重写一个真实任务**（建议 `Tako`：单轮直线、无主循环 ⇒ 最适合当第一个）并跑通 |
+| **P3** | ★ 前端「任务编排」面板（§1.17-P2）+ annotator 集成（§1.16） | ★ 端到端：**新建一个周期任务 + 一个临时任务并跑通**（用户原验收定义 NT6） |
+
+### ★ 七、风险（★ 必须先说清）
+
+| # | 风险 | 证据 / 理由 |
+|---|---|---|
+| 1 | ★★ **规则对象是"可变的全局单例"** —— 抽象成纯函数前**必须先解决共享状态** | `RuleImage.match` 命中会**回写 `roi_front`**（`atom/image.py:261`）；`wait_until_pos_stable` **临时改 `roi_back`**（`base_task.py:1206`）；`DailyTrifles:265` 直接改 `O_STORE_SUSHI_PRICE.roi` |
+| 2 | ★★ **`wait_until_stable` 有可变默认参数**（`Timer` 在 def 时只构造一次）⇒ **跨调用串味** | `base_task.py:1227-1228` |
+| 3 | ★ **动作失败语义三套并存**（`return False` / `TaskEnd` / `RequestHumanTakeover`）⇒ 流程图上的"失败分支"无法统一表达 | `control.py:196` · `base_task.py:1320` · `scrcpy.py:68` |
+| 4 | ★ **测试即规格**：改签名会打破大量测试替身 | `tests/test_switch_onmyoji.py:69` 等有假 `click()` |
+| 5 | ★ **`_backup/` 目录会让 grep 结果翻倍** | `D:\OAS-dev\_backup\20261013-1420-OAS-before-codeswap\` 是完整副本 |
+| 6 | ★ **`test_standby_placeholder` ④⑤ 依赖实时状态**（本日实测 22:55 绿 / 23:01 红）⇒ ★ 改原语层前先让它确定性 | 台账 §D 新增项 |
+
+---
+
 # §2 记录模型（后端）
 
 ## 2.1 ★★★ 记录的**源头要求**（[10-09 12:57:14]）
@@ -2039,6 +2163,7 @@ pending_task = self._order_by_queue(pending_task)   # L2044 之后才按队列�
 | **㉘** | — | ★★ **[10-14] 逐任务流程图**（★ `N9-5`）：★ 交付**样板** + **55 任务登记台账** + 登记守卫 | ✅ **样板已交付** | ★ `docs/flows/RealmRaid.md`（★ 总览/主循环全决策+三出口语义/子过程/**与调度层 4 接口**/5 条已知坑，★ 全带 `文件:行号`）· `docs/flows/README.md`（★ **1 ✅ + 54 ⬜ 各带理由**）· 守卫 `tests/test_task_flow_docs.py`（**4 条**）⇒ **4 passed** ＋ ★★ **注入验证真红**（★ 假装新增任务未登记 ⇒ 1 failed）；★ **剩 54 张**（★ 建议顺序 `Exploration` → `Orochi` → `Rest` → `GeneralBattle`）|
 | **㉙** | — | ★★ **[10-14] 前端未完成台账**（★ `N5`）：★ 交付 `frontend/docs/PENDING-LEDGER.md`（★ 与后端同套铁律 + 前端 4 条新账 F5~F8）+ 结构守卫 | ✅ **已修** | ★ 守卫 `_ledgerExistsTests`（★ 前端 `test/task_list_panel_test.dart`）⇒ `flutter test` **158 passed** ＋ ★★ **注入验证真红**（★ 台账改名隐藏 ⇒ 1 failed）|
 | **㉚** | — | ★★★ **[10-14] `N9-6` 规格成型：新建任务（§1.16 NT1~NT7）+ 任务逻辑编辑器（§1.17 NL1~NL7）**。★ 用户三项裁定：★ ①**先只做增** ②**要示例识别** ③★★ **要能写条件/循环/点击/拖动/键盘/日志 + 复用标注工具 + 从零构建与维护 + 立即运行与日志** | 🔄 **SPEC 已写 · 待启动（★ 需先定架构）** | ★ **卡在一个架构选择**：★ **A 受控指令集（我推荐）** vs **B 直接编辑 Python**（★ 后者在**无鉴权**的工具端点上 = **远程代码执行**）；★ 另有折中 **A+**（指令集 + 解析式表达式，不用 `eval`）；★ 分期：**P1 后端（创建+示例骨架+解释器+立即运行+日志）→ P2 前端编排面板 → P3 端到端验收（新建周期+临时并跑通）** |
+| **㉛** | — | ★★★ **[10-14] `N9-6` 的下层：接口模块化（§1.18）** —— ★ 用户要求"**把现有接口抽象为模块…最终能把任何流程图实现到代码上**"。★ 调研结论：★ **原语大部分已有**（`base_task.py` 60+ 个），★ 缺的是**分层/统一/可编排**；★ **26 组重复实现**；★ **5 个流程图必需原语为空缺**（返回键/键盘/文本/滚动/拖拽）；★ 已有资产：★ **`tasks/GameUi/` 的 `Page`+`Matcher`+Dijkstra 就是"图执行器"雏形** | 🔄 **§1.18 方案已写 · 待你点头（M1 只做原语层 / M2 原语层+解释器）** | ★ 分期 **P0 只加不改（原语+守卫）→ P1 补齐 5 个空缺 + 收敛 30+ 旁路直调 → P2 `flow.json` 解释器（★ 建议先拿 `Tako` 试，它无主循环）→ P3 前端编排面板 + annotator 集成**；★ 风险已列 §1.18-七（共享可变规则对象 / 可变默认参数 / 三套失败语义 / 测试即规格）|
 
 ★ ⚠ **⑫ 与 ⑳ 的关系**：★ ⑫（10-12 的巡检）**只消解了当时的矛盾**，
 ★ **并未覆盖 [10-13] 的新裁定** ⇒ ★ 那些矛盾（§1.3 轮次号 / §4.1 记 ✅ 的旧行为 / 漂移行号）

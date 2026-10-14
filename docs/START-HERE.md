@@ -74,7 +74,7 @@ REM ⑤ ★ 前端（★ 也要核）
 cd /d D:\OAS-dev\frontend
 D:\flutter3271\bin\flutter.bat analyze lib
 D:\flutter3271\bin\flutter.bat test
-REM   ★ [10-14] 实测：analyze 0 error（4 条既有 info）· test 158 passed
+REM   ★ [10-14] 实测：analyze 0 error（4 warning + 17 info）· test 158 passed
 ```
 
 ## 1.4 ★★★ 先回报，再动手（★ 这一步不许省）

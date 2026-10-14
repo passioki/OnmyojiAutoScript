@@ -41,7 +41,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | ★ **后端分支/提交** | `main` · ★ **[本次提交后取 `git log -1`]**；★ ★ **远端 `dev` 已含本轮全部提交**（★ **`main` 远端未动** = `e28793ce`）|
 | ★ **前端分支/提交** | `main` · ★ **`9c66064`**（★ 远端 `dev` 同）|
 | ★ **恢复节点 tag** | 后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live` |
-| ★★ **测试基线（★ 实测 [10-14]）** | 后端全量 = **49 failed / 1785 passed / 12 skipped**（★ 失败集**与基线逐条相同** ⇒ ★ **这 49 条是"已知环境类"**：★ 43 = 读 `D:/OAS-dev/OASX-src`（本机是 `frontend`）· ★ 4 = 缺 `module/config/i18n/zh-CN.json`（★ 前端推来的运行时产物）· ★ 2 = 读用户/实机状态 · ★ 1 = live 配置 · ★ 1 = 顺序 flaky）<br>★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 条既有 info）|
+| ★★ **测试基线（★ 实测 [10-14]）** | 后端全量 = **49 failed / 1785 passed / 12 skipped**（★ 失败集**与基线逐条相同** ⇒ ★ **这 49 条是"已知环境类"**：★ 43 = 读 `D:/OAS-dev/OASX-src`（本机是 `frontend`）· ★ 4 = 缺 `module/config/i18n/zh-CN.json`（★ 前端推来的运行时产物）· ★ 2 = 读用户/实机状态 · ★ 1 = live 配置 · ★ 1 = 顺序 flaky）<br>★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info —— ★ [10-14] 实测订正：★ 原写"4 条既有 info"**不准**）|
 | ★★ **`pwsh` 可用性** | ★★ **可用** ⇒ ★ 我能自己跑 pytest / flutter（★ 不必再让用户代跑）|
 | ★ **实机是否在跑** | ★ 后端 `:22287`（`D:\OAS-live\backend`）|
 
@@ -78,15 +78,39 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
      ⇒ 注入与提交信息一律走 Python str.replace / git commit -F 文件
 ```
 
+## ★ 1c. ★★ [10-14] 第二轮做完的（★ 交接用 · ★ **本轮只动文档，没动一行代码**）
+
+```
+★ 【入口自检】守卫 **98 passed** · 全量 **49 failed / 1785 passed / 12 skipped** · 前端 **0 error + 158 passed**
+   ⇒ ★ 与 [10-14] 基线**逐数字一致**
+★ 【订正】4 处实测不符的数字（★ 你已授权"确认事实就订正"）：
+   ① 本文件 §一「35 failed / 1696 passed」→ **49 / 1785**（旧值）
+   ② 本文件 §1 + START-HERE §1.3 + 前端台账 F8 的「4 条既有 info」→ **4 warning + 17 info**
+   ③ 前端台账 F8 的「157 passed」→ **158 passed**
+★ 【交付 N9-5】逐任务流程图 **7 张**（`Tako` 石距 · `Orochi` · `RyouToppa` 寮突破 · `AreaBoss` ·
+   `DailyTrifles` · `WeeklyTrifles` · `AutoCheckinBigGod`）+ README 登记表（★ 8 张 ✅ + 补链接）
+   + ★ **任务中文名按 `meta.py` 订正 18 处**（如「章鱼」→「石距」、「突破」→「寮突破」）
+   ⇒ ★ 守卫 `tests/test_task_flow_docs.py` = **4 passed**
+★ 【规格】★ 新增 **§1.18「接口模块化」**（★ 用户第 1 项需求：把接口抽成模块 ⇒ 任何流程图都能落到代码上）
+   + §4.5-**㉛** 登记 ⇒ ★ **方案待你点头：M1 只做原语层 / M2 原语层 + 解释器（我推荐 M2）**
+★ 【台账】★ 新增 **§D.3**（本轮交付）· **§D.4**（`FL-1`~`FL-10` 新发现，★ 全部带 `文件:行号`）
+★ ⚠★ 【数字口径】★ 守卫里有 **2 条会自己变红/绿**：`test_standby_placeholder` 的 ④⑤
+   （★ 用例内跑**真调度** ⇒ 依赖实时状态）⇒ ★ 同一天 **22:55 = 98 passed**、**23:01 = 96 passed / 2 failed**，
+   而两次之间**只有文档改动**（`git status` 只列 `docs/**`）⇒ ★ **不是代码回归** ⇒ 见 §D.4 的 `FL-9`
+★ 【新坑】**P11** 沙箱 `workspace-write` 假红（125 errors）· **P12** 原生命令**别接管道** ·
+   **P13** 核对行号**别用 `Get-Content`**（少算 10 行 ⇒ 行号错位）
+```
+
 ## ★ 2. ★★ 下一步（★ 按优先级）
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
-| **★1** | ★★★ **等你点头：N9-6 的架构选择** —— ★ **A 受控指令集（DSL，我推荐）** vs ★ **B 直接编辑 Python**（★ 工具端点**无鉴权** ⇒ B = **远程代码执行**）★ 或折中 **A+**（指令集 + **解析式表达式**，不用 `eval`）| **SPEC §1.17 一** | ⬜ **阻塞（★ 等用户一句话）** |
+| **★1** | ★★★ **等你点头：同一个决定的两端** —— ★ **①上层（§1.17 一）**：★ **A 受控指令集（DSL，我推荐）** vs ★ **B 直接编辑 Python**（★ 工具端点**无鉴权** ⇒ B = **远程代码执行**）★ 或折中 **A+**；★ **②下层（§1.18-五）**：★ **M1 只做原语层** vs ★ **M2 原语层 + 解释器（我推荐，= 上层的 A/A+）** | **SPEC §1.17 一 · §1.18-五** | ⬜ **阻塞（★ 等你一句话）** |
+| **★1b** | ★ **[10-14 第二轮] 新发现待你裁定**（★ 见台账 §D.4 · 均**未改代码**）：★ `FL-1` `RyouToppa` **没票记失败**（与样板相反）· `FL-6` `Tako` **失败记成功** · `FL-8` 组队任务**不在暂停白名单**（可能把房主从房间里拉走）· `FL-9` 守卫 2 条**依赖实时状态**（建议用例内冻结时间）| 台账 **§D.4** | ⬜ **待你裁定** |
 | **★2** | ★ **N9-6 P1**（★ 架构定了就开工）：★ 后端 `tasks/create`（NT1~NT4：★ **原子创建 + 回滚** + **命名校验前置** + **示例识别骨架**）+ ★ `flow.json` **解释器**（NL1/NL2）+ ★ **立即运行**（NL3）+ ★ **结构化日志**（NL4）| **SPEC §1.16 + §1.17** | ⬜ 待启动 |
 | **★3** | ★ **N9-6 P2**：★ 前端「任务编排」面板（★ 指令增删改 · 素材下拉 · 立即运行 · 实时日志）| SPEC §1.17 三 | ⬜ |
 | **★4** | ★ **N9-6 P3 验收**：★ **新建一个周期任务 + 一个临时任务并跑通**（★ 用户原验收定义）| SPEC §1.16-NT6 | ⬜ |
-| **★5** | ★ **N9-5 续**：★ 流程图**剩 54 张**（★ 建议顺序 `Exploration` → `Orochi` → `Rest` → `GeneralBattle`，★ 登记台账已就绪 ⇒ **只写不改**）| `docs/flows/README.md` | 🔄 进行中 |
+| **★5** | ★ **N9-5 续**：★ 流程图**剩 47 张**（★ 已完成 8 张：`RealmRaid`/`Tako`/`Orochi`/`RyouToppa`/`AreaBoss`/`DailyTrifles`/`WeeklyTrifles`/`AutoCheckinBigGod`；★ 建议下一批 `Exploration` → `Rest` → `GeneralBattle`，★ 登记台账已就绪 ⇒ **只写不改**）| `docs/flows/README.md` | 🔄 进行中（8/55）|
 | **★6** | ★ **前端 F5~F8**（★ 见 `frontend/docs/PENDING-LEDGER.md`）：★ 自动补齐行是否也该显示"已运行 N 次" · `zh-CN.json` 推送时机 · `generated_plugin*` 反复变脏 · 测试基线 | 前端台账 §一 | ⬜ |
 | **★7** | ★ **实机验收**（★ 用户明令"**暂不验收，继续做**"⇒ 等指令）⇒ ★ 把 dev 拷到 `D:\OAS-live`；★ **N9-7/N9-4 需先** `flutter build windows --release` | 台账 §C | ⬜ **等指令** |
 | **★8** | ★ **旧账未动**：`S3b`（门④临时任务队列过滤）· `D7.4` · `D43` · `D45` · `F4` · `DOC4` · `DOC5` · `O1` · `O2` · `T9/T11/T14` | 台账 §一~§六 | ⬜ |
@@ -105,6 +129,9 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | **P8** | ★ **`git commit -m` 带中文引号/反引号会被 PowerShell 吞** | ★ **用 `git commit -F <文件>`**（★ 文件放**仓库外**，否则会误提交）|
 | **P9** | ★ **`/tool/annotator` 的写端点【无鉴权】**（`tool_router.py` 无 `Depends`；`app.py:112` 的 `-k/--key` **从未被使用**）| ★ 这直接决定了 N9-6 的架构选择（见 §2-★1）|
 | **P10** | ★ **测试去读 `D:/OAS-dev/OASX-src`**（本机没有；真实前端在 `frontend`）| 那 43 条失败是**环境类**，不是回归 |
+| **P11** | ★★ **DSH 沙箱（`workspace-write`）会把 125 条测试打成"假红"** | `script_process.py:30` 的 `multiprocessing.Pipe`（**命名管道**）被沙箱拒 ⇒ `PermissionError [WinError 5]`：★ 受约束 = **141 failed / 1570 passed / 125 errors**，★ 放开 = **49 / 1785** ⇒ ★ **跑 pytest 必须放开沙箱** |
+| **P12** | ★ **沙箱下原生命令接 PowerShell 管道 = `Access is denied`** | 如 `python.exe … \| Select-Object` / `git … \| Select-String` ⇒ ★ **别接管道**（看工具自动截尾，或 `Select-String` 只读文件）|
+| **P13** | ★★ **核对行号不要用 `Get-Content`** | 它按 **ANSI** 解码 ⇒ 同一文件**少算行**（实测 `tasks/Tako/script_task.py` = **163** 行，`Get-Content` 只看到 **153** 行 ⇒ 行号**整体错位**）★ 用 **read/grep 工具**（与 `Select-String` 口径一致）|
 
 ## ★ 4. ★ 文档权威顺序（★ 冲突时）
 

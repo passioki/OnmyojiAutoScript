@@ -1097,6 +1097,68 @@ INFO | 运行记录: RealmRaid 本次 88 次, 0 分钟  ← ★ 0 分钟 = 一�
 | **E2** | ★ 原因：★ **重复条目 = 重复跑整个任务**（§1.1-R4），★ 每条应能独立配 |
 | **E3** | ★ 落地：★ 条目级 `RunEntry.target`（`>0` 时优先于任务级 `scheduler.target`）|
 
+## 1.16 ★★★ 「新建任务」的标准流程（[10-14] 用户需求 · ★ **待你确认后实现**）
+
+> ★★ **用户原话（[10-14] 记录第 6 条，逐字）**：
+> > "**结合 http://127.0.0.1:22288/tool/annotator 这类 OAS Web 标注工具，
+> >   进一步集成新建任务的功能。目前只具备测试 match 程度、更新识别库的功能。
+> >   需要彻底了解目前代码的实现，然后设计增删改查复制任务的标准流程，
+> >   然后通过代码来实现前后端，最后用前端实现新增一个周期任务和一个临时任务
+> >   并成功运行，至此通过验收。再通过这类流程将当前所有的周期任务统一化管理，
+> >   接入统一化的调度。**"
+
+### ★★★ 一、任务是什么（★ 有调研证据的**契约**）
+
+★ 一个任务 = **4 个约定文件**（`tasks/Rest/meta.py:4-9` 是权威说明）：
+
+| # | 文件 | 是否必需 | 作用 | 谁读它 |
+|---|---|---|---|---|
+| **1** | `meta.py` | ★★ **必需** | ★ `SPEC = TaskSpec(task=…, name_zh=…, category=…, period=…, window=…)` —— ★ **任务与调度器之间的唯一契约** | `task_catalog._discover_specs()`（`task_catalog.py:588-605`）|
+| **2** | `config.py` | ★★ **必需**（否则任务没有配置节点）| `class <Name>(ConfigBase)` + `scheduler: Scheduler` | `config_model._discover_config_classes()`（`config_model.py:64-93`、`:138`）|
+| **3** | `script_task.py` | ★★ **必需** | ★ 类名**必须**叫 `ScriptTask`，**必须**实现 `run()` | `script.py:848-852`（`tasks/<cmd>/script_task.py` 写死）|
+| **4** | `assets.py` | ★ 有素材才需要 | `class <Name>Assets` + `RuleImage/RuleOcr(...)` | 由 `dev_tools/assets_extract.py` **自动生成** |
+
+★ **字段来源**（★ 易踩）：★ `name_zh` / `category` / `window` / `period` / `auto_queue` / `list_pos`
+  来自 **`meta.py`**；★ 而 **`count_default` 不在 `meta.py`**（★ 实测 55 个 `meta.py` 零命中）
+  ⇒ ★ 它在 `module/config/task_catalog_data.json`（由 `gen_task_catalog.py` 生成）。
+
+### ★★ 二、现状（★ 调研实测）
+
+| 能力 | 现状 | 证据 |
+|---|---|---|
+| ★ 标注**规则 json**（增删改）| ✅ 有 | `tool_router.py:246-261`（`rules/source/create` / `delete`）|
+| ★ 试识别 / 调阈值 | ✅ 有 | `tool_router.py:318-332` |
+| ★ 模拟器取帧 | ✅ 有 | `tool_router.py:282-315`、`:368-414`（WS 推帧）|
+| ★ 保存规则 ⇒ **自动重生成 `assets.py`** | ✅ 有 | `tool.py:1309-1378`、`assets_extract.py:262,400` |
+| ★★ **创建 `tasks/<New>/` 目录** | ❌ **没有** | ★ 全文无此代码；且 `_resolve_task_root` **要求目录已存在**否则 404（`tool.py:843-844`）|
+| ★★ **生成 `meta.py` / `config.py` / `script_task.py`** | ❌ **没有** | ★ `tool.py` 的写操作只有 `:944-946,963,1121,1339-1344,1425-1426`，**没有一个**指向这三个文件 |
+| ★ 前端**输入新任务名** | ❌ **没有** | ★ `web/annotator` 内无"新建任务"字样；`taskName` 只能从已选目录首段推出（`app.js:1868-1883`）|
+| ★ 离线 `meta.py` 生成器 | ⚠ 有但**只对已存在目录** | `dev_tools/gen_task_meta.py:127-131`（不建目录、不暴露 HTTP）|
+
+★★ **结论**：★ 现有 annotator 正好是"**从已有任务目录开始**"的**下游**（写 json → 生成 assets.py）。
+   ★ **缺上游三步**：① 建目录 + `meta.py` ② `config.py` / `script_task.py` 骨架 ③ 名称校验 + **失败回滚**。
+
+### ★★★ 三、规则（★ 增删改查复制 —— 请你确认后再实现）
+
+| # | 规则 |
+|---|---|
+| **NT1** | ★★ **新建 = 一个原子操作**：★ 一次调用里创建 `tasks/<Name>/` + `meta.py` + `config.py` + `script_task.py`（+ 空 `assets.py`）<br>★ **要么全成、要么全不落盘**（★ 失败必须**回滚删除**刚建的目录 —— ★ 半成品目录会让 `config_model` 发现一个坏配置类 ⇒ ★ 后端起不来）|
+| **NT2** | ★★ **命名校验必须在写盘之前**：★ 只允许 `[A-Za-z][A-Za-z0-9]*`（★ 大驼峰，与现有 55 个任务一致）；★ 拒绝保留名（`Component`/`General`/`GameUI`/`Utils`/`Script`/`GlobalGame`/`_Template` 等 `config_model.NOT_A_TASK` + 白名单）；★ 拒绝已存在（★ 大小写不敏感，Windows 上 `Rest` 与 `rest` 同目录）|
+| **NT3** | ★★ **新任务默认"安全空壳"**：★ `script_task.py` 生成**能跑通但不操作游戏**的骨架（`goto_page(page_main)` + `raise TaskEnd`）—— ★ **绝不生成"会乱点屏幕"的模板**（★ 那会在用户没配好素材时误操作账号）<br>★ `meta.py` 的 `period` 默认 **`none`（临时任务）**、`window` 默认**全天**、`auto_queue` 默认 **`False`** ⇒ ★ 新建后**不会自动进队列**（★ 用户显式添加才生效）|
+| **NT4** | ★★ **只允许在 `tasks/` 下动手**：★ 复用现有闸门 `_ensure_within_root`（`tool.py:832-837`）；★ `Name` 参数**必须**经过 NT2 的正则 ⇒ ★ **路径穿越不可能**（★ 与 §3.9.9 的"跨配置转移"同一安全原则）|
+| **NT5** | ★★ **"增删改查复制"的标准流程（用户要的"标准流程"）**：<br>★ **增** = `POST /annotator/api/tasks/create`（NT1~NT4）<br>★ **查** = `GET /annotator/api/tasks`（★ 已有，但**要用权威判据**：★ 必须有 `meta.py` —— 现有实现只跳过 `__` 前缀，★ 会把 `Component/Utils/...` 也列出来）<br>★ **改** = ★ 已有（规则 json + `assets.py` 重生成）；★ **任务级"改"**（改 `name_zh`/`category`/`period`）= **后续项**，★ 本轮不做<br>★ **删** = ★ **本轮不做**（★ 删任务会牵动 `run_list` / 完成记忆 / i18n，★ 风险大，★ 需单独设计 + 二次确认 + 备份）<br>★ **复制** = ★ **本轮不做**（★ 与"跨配置转移"（§3.9.9）不同：★ 那是复制**配置页**，★ 这是复制**任务代码**）|
+| **NT6** | ★★ **验收定义（★ 照抄你的原话）**：★ "**用前端实现新增一个周期任务和一个临时任务并成功运行**" ⇒ ★ ① 标出两个任务的判定：★ **周期任务** = `meta.py` 的 `period != none`（如 `daily`）；★ **临时任务** = `period = none`；★ ② "成功运行" = ★ 后端日志出现 `Scheduler: Start task` + 任务**正常收尾**（`TaskEnd`）+ ★ `entry_target_reached` 判定链路生效 |
+| **NT7** | ★★ **统一化管理（★ 第二阶段的入口）**：★ 用户要"**再通过这类流程将当前所有的周期任务统一化管理，接入统一化的调度**" ⇒ ★ 这要求每个周期任务都有 **`meta.py` + `config.py`**（★ 实测**已满足**：55 个目录有 `meta.py`）⇒ ★ 第二阶段 = **用同一套 CRUD 去"体检 + 补齐"**（★ 先出**盘点报告**，不盲改）|
+
+### ★★ 四、待你确认的三件事（★ 确认后我才动代码）
+
+1. ★★ **删除/复制要不要一起做**？★ 我的建议：★ **先只做"增"**（+ 复用现有"改"/"查"），
+   ★ 删/复制单独立项（★ 它们各自需要"二次确认 + 备份 + 对 `run_list`/完成记忆的影响分析"）。
+2. ★★ **新任务的 `script_task.py` 骨架**："能跑通但不操作游戏"（NT3）够吗？
+   ★ 还是你要一个**带示例素材识别**的模板（★ 更快见效，但★ 更容易误操作）？
+3. ★★ **周期任务的 `period` 默认值**：★ 新建"周期任务"时，`period` 需要你选（`daily`/`weekly`/`monthly`）
+   —— ★ 界面上给单选，★ 还是先用一个默认值（如 `daily`）？
+
 ---
 
 # §2 记录模型（后端）

@@ -107,13 +107,12 @@ toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tes
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
-| **N9-5** | ★ 逐任务**流程图** —— ★ **样板已交付**（`docs/flows/RealmRaid.md`）+ ★ **55 任务登记台账**（`docs/flows/README.md`）+ ★ 登记守卫 | 台账 §C.1 · `docs/flows/` | 🔄 **样板完成**；★ **剩 54 张**待补（★ 建议顺序：`Exploration` → `Orochi` → `Rest` → `GeneralBattle`）|
-| **N9-6** | ★★ **annotator 集成"新建任务"**（需求级：设计 → 前后端 → 新建周期/临时任务跑通验收 → 统一管理全部周期任务）| 台账 §C.1 | ⬜ **需先写 SPEC** |
-| **N2** | ★ `.py` 里 **7 处注释漂移**改齐 | 台账 `T18` · SPEC §6.6 | ⬜ |
+| **N9-6** | ★★ annotator 集成"新建任务" | ★ **SPEC §1.16（NT1~NT7）已写好** ⇒ ★ **等你确认 3 件事**（删除/复制是否同做 · 骨架形态 · `period` 默认）| 🔄 **待你确认** |
+| **N9-5 续** | ★ 逐任务流程图**剩 54 张**（★ 建议顺序：`Exploration` → `Orochi` → `Rest` → `GeneralBattle`）| 台账 §C.1 · `docs/flows/README.md` | 🔄 进行中（★ 样板 + 登记守卫已交付）|
 | **N5** | ★ 前端：`D:\OAS-dev\frontend` 也建 `PENDING-LEDGER.md`（现在只后端有）| 本文件 §3 | ⬜ |
-| **★ 实机验收** | ★★ **等你说"阶段性验收"**（★ 用户明令："**暂不验收，继续做**"）⇒ 再把 dev 拷到 `D:\OAS-live` 并逐条验；★ **N9-7 / N9-4 需要重新构建前端**（`flutter build windows --release`）| 台账 §C | ⬜ **等指令** |
-| ~~**N9-1 / N9-9 / N9-7 / N9-4 / N9-8 / N9-3 / N3 / N9-2 / N4**~~ | — | 台账 §C | ✅ **已完成（[10-14]，9 项）** |
-| ★ **推送** | ★★ **前后端都已推 `dev`**：后端 = **本次提交后**的最新；前端 `refs/heads/dev = ae2830c`；★ **两边 `main` 都未动** | `git ls-remote` | ✅ **已完成** |
+| **★ 实机验收** | ★★ **等你说"阶段性验收"**（★ 用户明令："**暂不验收，继续做**"）⇒ 再把 dev 拷到 `D:\OAS-live`；★ **N9-7 / N9-4 需要重新构建前端**（`flutter build windows --release`）| 台账 §C | ⬜ **等指令** |
+| ~~**N9-1 / N9-9 / N9-7 / N9-4 / N9-8 / N9-3 / N3 / N9-2 / N9-5（样板）/ N2 / N4**~~ | — | 台账 §C | ✅ **已完成（[10-14]）** |
+| ★ **推送** | ★★ **前后端都已推 `dev`**：后端 `refs/heads/dev = 20ccb0a4`（★ 本提交会再前移）；前端 `refs/heads/dev = ae2830c`；★ **两边 `main` 都未动** | `git ls-remote` | ✅ **已完成** |
 
 ## ★ 3. ★ 活跃的坑（★ 别再踩）
 

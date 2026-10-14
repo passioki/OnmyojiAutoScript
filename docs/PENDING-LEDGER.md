@@ -487,5 +487,21 @@
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
-| **N-库存** | ★★ 项目里有**一批把"当前任务清单/数量"写死**的守卫（★ 例 `test_execution_queue.py:test_counts_are_15_and_40` 写死 **15/40**、`test_the_fifteen_manual_tasks` 钉住 15 个名字、`test_config_model_discovery` 的字段数、`test_list_pos_metadata` 的唯一性）⇒ ★★ **每新建一个任务都会撞红它们** | ★ 实测：★ 建 `FlowDemo` ⇒ 全量 **+14 failed**（★ 其中 4 条属这一类）| ⬜ **待裁定**：★ **A** 新建任务时**同步这份盘点**（改测试里的数字/清单）· ★ **B** 把这类守卫**改成读实际清单**（★ 不写死 ⇒ 加任务不再返工）· ★ **C** 只记录、暂不处理 |
+| **N-库存** | ★★ 项目里有**一批把"当前任务清单/数量"写死**的守卫 ⇒ ★★ **每新建一个任务都会撞红它们** | ★ 实测：★ 建 `FlowDemo` ⇒ 全量 49 → **63 failed**（+14）| ✅ **A 已按先例处理**（★ 先例就在守卫自己的 docstring：*"原来是 14+40 —— 新增 `Rest` 后变成 15+40"*）⇒ ★ **共 6 处**：`test_execution_queue`（55→**56** · 40→**41**）· `test_config_model_discovery`（61→**62**）· `test_task_spec`（55→**56**）· `test_task_catalog`（55→**56** · summary 55→**56**）★ 每处**都写明来历**；★ **全量回到基线 49** ★ ⚠ 仍建议 **B**（改成读实际清单 ⇒ 以后加任务不再返工）|
+
+## D.10 ★★★ [10-14] 第五轮收尾：**按用户纠正回退实机 + dev 侧跑通"新建 → 测试"**
+
+> ★★ **用户原话（逐字）**：
+> > "**不要在实机跑，现有开发基于dev侧，实机是版本稳定后直接从dev拷贝过去，请仔细阅读
+> >   D:\OAS-dev\backend\docs\START-HERE.md**"
+
+| # | 事项 | 结果 |
+|---|---|---|
+| **D.10-a** | ★★ **实机回退**（★ 我上轮错把 `FlowDemo` 装进 `D:\OAS-live`）| ✅ **已还原**：★ 删 `D:\OAS-live\backend\tasks\FlowDemo` + ★ 重生成其实机 `task_catalog_data.json` + ★ **实机新进程复验**：`get_spec('FlowDemo') = None` · `all_tasks()` **55** 个 · `ConfigModel` 无 `flow` 命中（★ live 不是 git 仓库 ⇒ 用"删目录 + 重生成"还原）|
+| **D.10-b** | ★★ **新建任务的产物留在 dev**（★ 符合"实机 = 稳定后拷贝"）| ✅ `tasks/FlowDemo/`（流程示例 · TIMED · Period.NONE · 全天窗口）★ 现在**在 dev 里**，★ 不变量/契约全部满足 |
+| **D.10-c** | ★★ **修掉工厂自身第二个 bug**（★ 同样是"被守卫逼出来"的）| ✅ 模板原写 `auto_queue=False`，★ **违反项目不变量 `auto_queue == NOT countable`**（`test_execution_queue.py:49`）⇒ ★ 改为 `auto_queue=True`（★ 安全性由 `scheduler.enable=False` + 分组 `enable=False` 保证）⇒ ★ 顺手让 **2 条**守卫转绿 |
+| **D.10-d** | ★★ **6 处"库存快照"同步**（★ 见 §D.9）| ✅ 全部改数字**并写明来历** ⇒ ★ 全量 **49 failed / 1862 passed**（★ 失败集逐条一致）|
+| **D.10-e** | ★ **i18n 生成器跑通**（★ 需前端仓库路径）| ✅ `$env:OASX_REPO='D:\OAS-dev\frontend'` + `python dev_tools/gen_i18n.py` ⇒ ★ 生成 `zh_CN.xml`/`.qm` **+ 前端 2 个 dart 文件**（★ 两边都要提交）|
+| **D.10-f** | ★ **新坑 P14**（★ 写进 `START-HERE` §0 + §3）| ✅ "**不许在 `D:\OAS-live` 上做开发/测试**" —— ★ 并把 `START-HERE` §1.3④ 的**旧数字**（1785）改成实测值 |
+| **D.10-g** | ★ **dev 侧的"运行"怎么做**（★ 运行不在实机）| ⬜ ★ **待你决定**：★ 起 **dev 后端 `:22288`**（`toolkit\python.exe server.py`）+ dev 前端 ⇒ ★ 在界面里把「流程示例（FlowDemo）」**打开开关 + 加入执行队列 + 点 ▶** ★ ⚠ **注意**：★ dev 的 `恋鸟树` 与实机**同一个模拟器**（都是 `127.0.0.1:16384`）⇒ ★ **要么先停实机后端 `:22287`**，★ 要么给 dev 换一个设备 |
 

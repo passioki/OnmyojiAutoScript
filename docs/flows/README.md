@@ -104,3 +104,4 @@
 | `TrueOrochi`（真八岐大蛇）| ⬜ 待补 | 与 Orochi 相近 |
 | `WantedQuests`（悬赏封印）| ⬜ 待补 | 轻量流程 |
 | `WeeklyTrifles`（每周琐事）| ✅ **已完成** | [WeeklyTrifles.md](WeeklyTrifles.md)（每周周期 + 分享子项）|
+| `FlowDemo`（流程示例）| ⬜ **新建任务待补** | ★ [10-14] 由「新建任务」创建 ⇒ ★ 流程图待补（★ 先看 `RealmRaid.md` 样板：五段结构 + 每个判断带 `文件:行号`）|

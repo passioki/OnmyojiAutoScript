@@ -276,6 +276,19 @@
       "success_interval": null
     },
     {
+      "task": "FlowDemo",
+      "name_zh": null,
+      "category": "timed",
+      "count_field": null,
+      "count_field_detected": null,
+      "count_field_mismatch": false,
+      "count_default": null,
+      "needs_unify": false,
+      "has_limit_time": false,
+      "fixed_schedule_time": null,
+      "success_interval": null
+    },
+    {
       "task": "FrogBoss",
       "name_zh": null,
       "category": "limited",

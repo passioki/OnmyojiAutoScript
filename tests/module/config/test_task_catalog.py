@@ -48,7 +48,9 @@ class TestNames:
         assert missing == [], f'这些任务缺中文名: {missing}'
 
     def test_task_count(self):
-        assert len(TC.all_tasks()) == 55
+        # ★ [10-14] 55 -> 56: 新增 `FlowDemo`（由「新建任务」工厂创建；
+        #   ★ 每新增一个任务就 +1 —— 见 docs/DESIGN-SPEC.md §1.16-五 NT8）
+        assert len(TC.all_tasks()) == 56
 
 
 class TestCategories:
@@ -82,12 +84,14 @@ class TestCategories:
         }
 
     def test_summary_totals(self):
+        # ★ [10-14] total 55 -> 56: 新增 `FlowDemo`（TIMED 类；
+        #   ★ fixed / toppa / limited 都没动）
         s = TC.summary()
-        assert s['total'] == 55
+        assert s['total'] == 56
         assert s['fixed'] == 13
         assert s['toppa'] == 2
         assert s['limited'] == 8
-        assert sum(s[c.value] for c in Category) == 55
+        assert sum(s[c.value] for c in Category) == 56
 
 
 class TestCountFieldAdaptation:

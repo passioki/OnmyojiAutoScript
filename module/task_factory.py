@@ -131,8 +131,14 @@ SPEC = TaskSpec(
     name_zh='__NAME_ZH__',
     # ★ 类别：FIXED 固定 / TOPPA 突破 / LIMITED 限时 / TIMED 定时
     category=Category.__CATEGORY__,
-    # ★★ 新任务默认**不自动进队列**（★ 用户显式"添加任务"才生效 —— SPEC §1.16 NT3）
-    auto_queue=False,
+    # ★★ `auto_queue`：★ 本项目的不变量是 **`auto_queue == NOT countable`**
+    #   （"**次数任务不自动进队列，定时任务自动进**" —— 见
+    #    `tests/module/config/test_execution_queue.py:test_auto_queue_matches_countable`）
+    #   ⇒ ★ 新任务（TIMED、非次数类）**必须** `auto_queue=True`，★ 否则那条守卫变红。
+    #   ⚠ **[10-14] 实测订正**：本模板原来写 `auto_queue=False`（想表达"新建后不自动跑"），
+    #     但那**违反项目不变量**。★ **安全性不靠它**：★ 真正拦住"新建即乱跑"的是
+    #     `scheduler.enable=False`（任务开关）+ 下面 `config.py` 分组里的 `enable=False`。
+    auto_queue=True,
     # ★★ `list_pos` 必须**全局唯一**（★ 守卫 `test_list_pos_metadata.py` 强制）
     #   ⇒ ★ 工厂已自动取"当前最大值 + 1"（★ 别手改成 0，那会让守卫变红）
     list_pos=__LIST_POS__,

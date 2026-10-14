@@ -17,6 +17,10 @@
 ★ 开发工作区：`D:\OAS-dev\`（`backend\` + `frontend\`，★ 各自是 git 仓库）
 ★ 实机：      `D:\OAS-live\`（★ dev 的**拷贝**；后端端口 **22287**；开发用 **22288**）
 ★ ★ **唯一真相 = git**：后端 `main` · 前端 `main`
+★ ★★ **不许在 `D:\OAS-live` 上做开发/测试**（★ 用户 [10-14] 原话：
+   "**不要在实机跑，现有开发基于 dev 侧，实机是版本稳定后直接从 dev 拷贝过去**"）
+   ⇒ ★ 新任务/新代码**一律先在 dev 做完并跑绿**，★ **稳定后**才整份拷到实机
+   （★ 反面教材：我 [10-14] 曾把新建的 `FlowDemo` 直接装进实机 —— ★ 已还原，见坑 P14）
 ```
 
 ---
@@ -59,7 +63,7 @@ powershell -NoProfile -Command "Select-String -Path docs\PENDING-LEDGER.md -Patt
 REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 166 passed）
 toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py -q
 
-REM ④ ★ 全量基线（★ [10-14] 实测：49 failed / 1785 passed / 12 skipped）
+REM ④ ★ 全量基线（★ [10-14] 实测：49 failed / 1862 passed / 12 skipped）
 REM   ★ 那 49 条是【已知环境类】，★ 不是回归：
 REM     43 = 测试去读 D:/OAS-dev/OASX-src（本机是 frontend）· 4 = 缺
 REM     module/config/i18n/zh-CN.json（前端推来的运行时产物）· 2 = 读用户/实机状态
@@ -67,7 +71,7 @@ REM     · 1 = live 配置 · 1 = 顺序 flaky
 toolkit\python.exe -m pytest tests/ -q
 ```
 
-★ 期望：★ **守卫 166 passed**（★ [10-14] 第四轮：135 + 新增 31 条 `tests/module/test_task_factory.py`）；★ 全量 **49 failed / 1858 passed**（★ 失败集与基线**逐条一致** ⇒ 无回归）。
+★ 期望：★ **守卫 166 passed**（★ [10-14] 第四轮：135 + 新增 31 条 `tests/module/test_task_factory.py`）；★ 全量 **49 failed / 1862 passed**（★ 失败集与基线**逐条一致** ⇒ 无回归）。
 
 ```bat
 REM ⑤ ★ 前端（★ 也要核）

@@ -41,7 +41,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | ★ **后端分支/提交** | `main` · ★ **[本次提交后取 `git log -1`]**；★ ★ **远端 `dev` 已含本轮全部提交**（★ **`main` 远端未动** = `e28793ce`）|
 | ★ **前端分支/提交** | `main` · ★ **`9c66064`**（★ 远端 `dev` 同）|
 | ★ **恢复节点 tag** | 后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live` |
-| ★★ **测试基线（★ 实测 [10-14] 第四轮）** | ★ **守卫 = 166 passed**（★ 135 + 新增 31：`tests/module/test_task_factory.py`）<br>后端全量 = **49 failed / 1858 passed / 12 skipped**（★ **失败集与基线逐条一致** = 无回归）· ★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info）|
+| ★★ **测试基线（★ 实测 [10-14] 第五轮 · ★ 且 `tasks/FlowDemo` 已在库）** | ★ **守卫 = 166 passed**（★ 135 + 新增 31：`tests/module/test_task_factory.py`）<br>后端全量 = **49 failed / 1862 passed / 12 skipped**（★ **失败集与基线逐条一致** = 无回归）· ★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info）|
 | ★★ **`pwsh` 可用性** | ★★ **可用** ⇒ ★ 我能自己跑 pytest / flutter（★ 不必再让用户代跑）|
 | ★ **实机是否在跑** | ★ 后端 `:22287`（`D:\OAS-live\backend`）|
 
@@ -201,6 +201,33 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 ★ 【数字】★ 守卫 **166 passed** · ★ 全量 **49 failed / 1858 passed / 12 skipped**（★ 失败集逐条一致）
 ```
 
+## ★ 1h. ★★★ [10-14] 第六轮：**按你的纠正回退实机 + 在 dev 侧跑通"新建 → 测试"**
+
+```
+★★ 用户纠正（原话）："**不要在实机跑，现有开发基于dev侧，实机是版本稳定后直接从dev拷贝过去，
+   请仔细阅读 D:\OAS-dev\backend\docs\START-HERE.md**"
+★ 【纠错】★ 我上轮**错把新建的 `FlowDemo` 装进了实机**（`D:\OAS-live`）—— ★ 违反 START-HERE §0
+   （★ 实机 = dev 的**拷贝**）⇒ ★ **已还原**：★ 删实机里的 `tasks/FlowDemo` + ★ 重生成实机
+   `task_catalog_data.json` + ★ **实机新进程复验**：`get_spec('FlowDemo') = None`、**55** 个任务、
+   `ConfigModel` 无 `flow` 命中
+★ 【留在 dev】★ `tasks/FlowDemo/`（流程示例 · TIMED · NONE · 全天窗口）★ **就放在 dev** ——
+   ★ 符合"**dev 开发 → 稳定后整份拷到实机**"的模型
+★ 【修 bug】★ 工厂模板原写 `auto_queue=False` ⇒ ★ **违反项目不变量 `auto_queue == NOT countable`**
+   （"次数任务不自动进队列，定时任务自动进"）⇒ ★ 改 `True`（★ 安全性由 `scheduler.enable=False`
+   + 分组 `enable=False` 保证）⇒ ★ 2 条守卫转绿
+★ 【补合同】★ 跑 `$env:OASX_REPO=D:\OAS-dev\frontend` + `python dev_tools/gen_i18n.py` ⇒ i18n 2 条转绿
+   （★ 同时改了**前端 2 个 dart** ⇒ 一起提交）
+★ 【同步盘点】★ "库存快照"类守卫 **6 处**按**项目既有先例**改数字并写明来历
+   （★ 先例就在守卫自己的 docstring："14+40 ⇒ 新增 Rest 后 15+40"）
+★ 【数字】★ 守卫 **166 passed** · ★ 全量 **49 failed / 1862 passed / 12 skipped**（★ 失败集逐条一致）
+   · ★ 前端 **158 passed / 0 error**（★ 生成器改过 dart，也复跑过）
+★ 【新坑】★ **P14**：★ **不许在 `D:\OAS-live` 上做开发/测试**（★ 已写进 START-HERE §0 + §3）
+   ★ 顺带把 START-HERE §1.3④ 的**旧数字**（1785）改成实测值（1862）
+★ 【下一步】★ **dev 侧"运行"** ⬜ 待你定：★ 起 dev 后端 `:22288` + dev 前端 ⇒ 打开「流程示例」开关
+   + 加入执行队列 + 点 ▶ ★ ⚠ dev 的 `恋鸟树` 与实机**同一个模拟器**（`127.0.0.1:16384`）
+   ⇒ ★ 要么先停实机后端 `:22287`，★ 要么给 dev 换设备
+```
+
 ## ★ 2. ★★ 下一步（★ 按优先级）
 
 | # | 事项 | 依据 | 状态 |
@@ -234,6 +261,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | **P11** | ★★ **DSH 沙箱（`workspace-write`）会把 125 条测试打成"假红"** | `script_process.py:30` 的 `multiprocessing.Pipe`（**命名管道**）被沙箱拒 ⇒ `PermissionError [WinError 5]`：★ 受约束 = **141 failed / 1570 passed / 125 errors**，★ 放开 = **49 / 1785** ⇒ ★ **跑 pytest 必须放开沙箱** |
 | **P12** | ★ **沙箱下原生命令接 PowerShell 管道 = `Access is denied`** | 如 `python.exe … \| Select-Object` / `git … \| Select-String` ⇒ ★ **别接管道**（看工具自动截尾，或 `Select-String` 只读文件）|
 | **P13** | ★★ **核对行号不要用 `Get-Content`** | 它按 **ANSI** 解码 ⇒ 同一文件**少算行**（实测 `tasks/Tako/script_task.py` = **163** 行，`Get-Content` 只看到 **153** 行 ⇒ 行号**整体错位**）★ 用 **read/grep 工具**（与 `Select-String` 口径一致）|
+| **P14** | ★★ **不要把开发中的东西写进实机 `D:\OAS-live`** | ★ 用户原话："**不要在实机跑，现有开发基于 dev 侧，实机是版本稳定后直接从 dev 拷贝过去**"（★ `START-HERE.md` §0 已写死：★ **实机 = dev 的拷贝**）⇒ ★ 我 [10-14] 曾把新建的 `FlowDemo` 装进实机（**已还原**：删目录 + 重生成 catalog + 新进程复验 55 个任务）|
 
 ## ★ 4. ★ 文档权威顺序（★ 冲突时）
 

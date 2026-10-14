@@ -34,15 +34,19 @@ class TestAutoQueueMetadata:
     """`auto_queue` 是任务类别属性, 落在各 `meta.py` 里。"""
 
     def test_every_spec_declares_auto_queue_explicitly(self):
-        """★ 54 个任务**都必须显式声明** —— 不许靠推导。
+        """★ 56 个任务**都必须显式声明** —— 不许靠推导。
 
         为什么要显式: 推导规则在 `TaskSpec` 里只能看 `category`, 而
         `countable = category in COUNTABLE_CATEGORIES and bool(count_field)`
         —— 某个 FIXED 任务若没有 `count_field`, 推导会判错。
         显式落值就不会有这种偏差。
+
+        ★ 任务数来历: 55 -> **56**: `FlowDemo`（★ [10-14] 由「新建任务」工厂
+          （`module/task_factory.py`）创建的示例任务；★ 新增任务必然 +1，
+          见 `docs/DESIGN-SPEC.md` §1.16-五 `NT8`）
         """
         specs = TC._load_specs()
-        assert len(specs) == 55, f'期望 55 个任务, 实际 {len(specs)}'
+        assert len(specs) == 56, f'期望 56 个任务, 实际 {len(specs)}'
         missing = sorted(t for t, s in specs.items() if s.auto_queue is None)
         assert not missing, f'这些 meta.py 没写 auto_queue（靠推导, 不可靠）: {missing}'
 
@@ -85,20 +89,23 @@ class TestAutoQueueMetadata:
             f'{len(bad)} 个任务的 auto_queue 与 countable 矛盾: {bad}'
             f'（★ 唯一允许的例外是 {sorted(_EXEMPT)}，理由是用户裁定 乙）')
 
-    def test_counts_are_15_and_40(self):
-        """实测分布: **15** 个不自动进队列（False）+ **40** 个自动（True）。
+    def test_counts_are_15_and_41(self):
+        """实测分布: **15** 个不自动进队列（False）+ **41** 个自动（True）。
 
         ★ 原来是 14 + 40 —— 新增 `Rest`（休息）后变成 **15 + 40**。
         ★ `Rest` 在 **manual 边**（`auto_queue=False`）:
           用户裁定 **乙** = 休息**由用户主动添加**, 不自动进队列。
         ★ 注意它**不是次数任务**（`countable=False`）—— 见
           `test_auto_queue_matches_countable` 里对这条例外的说明。
+        ★ **[10-14] 40 -> 41**: 新增 `FlowDemo`（★ 由「新建任务」工厂创建）。
+          它 **TIMED + 非次数任务** ⇒ ★ 按不变量"定时任务自动进队列"
+          ⇒ 落在 **auto 边**（★ manual 仍是 15，★ 那条断言没动）。
         """
         specs = TC._load_specs()
         manual = [t for t, s in specs.items() if not s.auto_queue_effective]
         auto = [t for t, s in specs.items() if s.auto_queue_effective]
         assert len(manual) == 15, f'应为 15 个, 实际 {len(manual)}: {sorted(manual)}'
-        assert len(auto) == 40, f'应为 40 个, 实际 {len(auto)}' 
+        assert len(auto) == 41, f'应为 41 个, 实际 {len(auto)}'
 
     def test_the_fifteen_manual_tasks(self):
         """钉住这 15 个（14 个次数任务 + ★ 新增的 `Rest`）。"""

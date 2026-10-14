@@ -31,7 +31,8 @@ class TestDiscoveryCompleteness:
         """
         自动发现的字段数 == 原手写声明的 58 个。
 
-        (56 个任务/设置 + `config_name` + `running_task`)
+        （= ★ **每个任务/设置节点各一个字段** + `config_name` + `running_task`；
+        ⚠ [10-14] 原来这里写死成"56 个任务/设置"，**早已过期** ⇒ 去掉数字，只留口径）
         这是替换安全性的核心断言: 少一个字段就意味着某个任务的配置读不出来。
 
         ★ 新增字段的来历（都要在这里说清 —— 否则下一个人不知道该改哪个数）:
@@ -42,8 +43,11 @@ class TestDiscoveryCompleteness:
           队列行「▶ 播放」写它 -> `update_scheduler` 把该条目提到最前,
           **用一次就清空**。这是"立即生效"的落盘覆盖位 ——
           脚本跑在独立进程, 不落盘它看不见, 与 `running_entry_id` 同理）
+        * 61 -> **62**: `flow_demo`（★ [10-14] 由「新建任务」工厂
+          （`module/task_factory.py`）创建的示例任务节点 `FlowDemo`
+          —— ★ **新增一个任务必然 +1**，见 `docs/DESIGN-SPEC.md` §1.16-五 `NT8`）
         """
-        assert len(ConfigModel.__annotations__) == 61
+        assert len(ConfigModel.__annotations__) == 62
 
     def test_contains_expected_globals(self):
         keys = set(ConfigModel.__annotations__)

@@ -74,13 +74,16 @@ toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tes
      ★ 并且**模板里 `Restart` 默认 `enable=True`** ⇒ 实测
        `pending_task = ['Restart']` ⇒ ★ 不清空就走**出路①** ⇒ **空转**。
      ★ 判据：★ **"pass 但注入破坏后仍 pass" = 空转**（★ 必须做注入验证）
+★ ⑦ ★ **N3 已完成**（★ 台账 `T21` 最后一项）：`loop_times` help 旧文案
+     「跑空后 / 队列循环」在**界面上都不存在**（现行 = 「播放模式」+
+     顺序/循环/乱序）⇒ ★ 已改，并新增守卫
+     `tests/module/server/test_help_texts_current_ui.py`（4 条，注入验证真红）
 ```
 
 ## ★ 2. ★★ 下一步（★ 按优先级）
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
-| **N3** | ★ `loop_times` 的 help 文案改"播放模式"口径（现仍写「跑空后/队列循环」）| 台账 `T21` · `schema_router.py:466-467` | ⬜ |
 | **N9-9** | ★ 御灵之境**更换御魂出错被静默跳过**（★ 疑 `switch_parser` 失败被 `return` 吞）| 台账 §C.1 · `SwitchSoul/switch_soul.py:90-95` | ⬜ |
 | **N9-4** | ★ 新建配置页时"填的名称不生效"（要靠重命名）| 台账 §C.1 · `schema_router.py:2102-2161` | ⬜ |
 | **N9-7** | ★ 周期任务运行时**没有"正在运行" tag** | 台账 §C.1 · `schema_router.py:1240-1284` | ⬜ |
@@ -92,6 +95,7 @@ toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tes
 | **N2** | ★ `.py` 里 **7 处注释漂移**改齐 | 台账 `T18` · SPEC §6.6 | ⬜ |
 | **N5** | ★ 前端：`D:\OAS-dev\frontend` 也建 `PENDING-LEDGER.md`（现在只后端有）| 本文件 §3 | ⬜ |
 | ~~**N9-1**~~ | ~~P0 待命占位 `KeyError`~~ | 台账 §C | ✅ **已完成（[10-14]）** |
+| ~~**N3**~~ | ~~`loop_times` help 旧文案~~ | 台账 `T21` | ✅ **已完成（[10-14]）** |
 | ~~**N4**~~ | ~~§4.2-C 小标题仍写"未废弃"~~ | ★ **实测已完成**（`DESIGN-SPEC.md:1641` 已写"三函数已删"）| ✅ **关闭** |
 
 ## ★ 3. ★ 活跃的坑（★ 别再踩）

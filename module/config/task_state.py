@@ -728,10 +728,12 @@ def reset_entry_runs(config_name: str, entry_id: str = '') -> int:
 #
 # | 字段 | 数什么 | 谁判 |
 # |---|---|---|
-# | `runs`         | ★ 这一行被**派发**了几次 | `_skip_by_count`：`runs >= target` |
-# | `completed`    | ★ **本轮已完成**（含提前完成）| 本模块 + 调度层 |
+# | `runs`         | ★ 这一行被**派发**了几次 | ⚠ **[10-14] 已不再是判据** —— `_skip_by_count`（`runs >= target`）**已停用**（调用点注释掉）；`runs` 现在只是**遗留计数键**（见 §1.6.x-Z5/Z7）|
+# | `completed`    | ★ **本轮已完成**（含提前完成）| ★ **判据 = 时间戳**：`completed_session == __loop__.session_start`（`get_entry_completed()` 下方）⇒ ★ 后端重启即自动过期 |
 #
-# ★ 新一轮（队列循环到末尾）由 `clear_entry_completed()` 清空 ⇒ 可以再跑。
+# ★ **"本轮能不能再跑"的现行唯一判据** = ★ `completed_session` 与
+#   `session_start` 的**时间戳比对**（SPEC §1.6.x-Z3）——
+#   ★ **不是**轮次号（★ 旧实现），★ **也不是** `runs >= target`（★ 更旧）。
 
 def get_entry_completed(config_name: str, entry_id: str) -> bool:
     """★ 该条目**本轮是否已完成**（查不到 = False）。

@@ -372,8 +372,12 @@ class RunList:
 
         ## 为什么需要
 
-        `entry_id = 时间 + task`（用户裁定）精确到**秒**。同一秒内加入**两次
-        同一任务**时, 两条的 id **完全相同** —— 按条目追踪会失效
+        `entry_id = 时间 + task`（用户裁定）—— ★ **2026-10-12 起精确到
+        【毫秒】**（见 `new_entry_id()` 的说明；旧数据仍是"秒"）。
+        ⚠ **[10-14] 注释修正**：本段原先写"精确到**秒**" —— 那是**旧实现**；
+        提精度后同一毫秒内加两次的概率极低, 但**兜底仍然保留**（见下）。
+        同一秒内加入**两次同一任务**时（★ 旧格式 / 极端情况）, 两条的 id
+        可能**完全相同** —— 按条目追踪会失效
         （实测踩过: 两条 `RealmRaid` 都是 `20261010T091229-RealmRaid`）。
 
         ## 做法
@@ -383,6 +387,8 @@ class RunList:
             20261010T091229-RealmRaid
             20261010T091229-RealmRaid-2
             20261010T091229-RealmRaid-3
+
+        ★ 毫秒格式（18 位前缀）示例：`20261010T143005123-RealmRaid`
         """
         base = entry.entry_id or new_entry_id(entry.task)
         used = {e.entry_id for e in self.entries if e.entry_id}

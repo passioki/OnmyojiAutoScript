@@ -3111,14 +3111,18 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             # ## ★ 现在的判据（一条判据同时修好 F/G/I）
             #
             # ★ 对【临时任务】：★ `completed` 为真 ⇒ **不算候选**
-            #   （★ `get_entry_completed()` 内部按**轮次号**自动过期 ⇒
-            #     ★ 进入新一轮后它自然又算候选 —— 这就是"能不能再跑"的判据）
+            #   （★ `get_entry_completed()` 内部按【**本次启动时间**】自动过期 ⇒
+            #     ⚠ **[10-14] 注释修正**：这里原写"按**轮次号**自动过期" ——
+            #     ★ 那是**旧实现**；★ 10-13 用户裁定「丙」后改为
+            #     ★ **时间戳比对**（`completed_session == __loop__.session_start`，
+            #     SPEC §1.6.x-Z3）⇒ ★ **后端重启即全部失效** ⇒ 又算候选 ——
+            #     这就是"能不能再跑"的现行判据）
             # ★ 对【周期任务】：★ 沿用 `is_completed_in_period()`（上方已判）
             #
             # ⇒ ★ 于是：
             #   * ★ 循环：只把"还没做完"的拉回现在（已完成的**不动**）
             #   * ★ 乱序：只在"还没做完"里随机（★ 不会重复随机到跑过的）
-            #   * ★ 新一轮：★ 由 `completed` 的**轮次过期**体现
+            #   * ★ 新一轮：★ 由 `completed` 的**时间戳过期**体现
             if str(period or '').lower() in ('none', ''):
                 try:
                     from module.config.task_state import get_entry_completed

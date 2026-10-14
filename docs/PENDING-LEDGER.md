@@ -248,6 +248,16 @@
 | ★ 后端 `passioki/OnmyojiAutoScript` | ★ **`9872ec0c`** | `dev` = `9872ec0c` | ★ **`recovery-20261013-scheduler-audit`** | ✅ 已推 · worktree 干净 |
 | ★ 前端 `passioki/OASX` | ★ **`af10440`** | `oas-live-build` = `af10440` | ★ **`recovery-20261013-isolated-live`** | ✅ 已推 · worktree 干净 |
 
+★ ⚠★ **[10-14] 实测更正（★ 上面 `dev` 那一格是错的）**：
+```
+★ 实测（git ls-remote）★ 远端 dev 在我推之前的真实值是 **b858496c**（不是 9872ec0c）
+★ ⇒ ★ 当时"dev = 9872ec0c"这个说法**从来不对**（★ 与 §A.3 同类"文档与事实不符"）
+★ [10-14] 推送后：refs/heads/dev = **c8929941**（★ 用户指令："现在 push 到 dev 分支"）
+★ 推送方式：git push origin main:dev（★ 纯快进 b858496c..c8929941，**未动 main**）
+★ 另实测：远端还有 dev-scheduler(72b0bef) / master / archive-QML / solana
+```
+
+
 ★ **后端这一版含**（★ 84 文件 · +15110/−839）：
 ```
 ★ ① 判定改「按时间戳」（session_start ↔ completed_session）

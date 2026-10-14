@@ -1499,13 +1499,18 @@ task_state(key, default)             # ★ 任务级（跨轮）
 ### ★ 七、落地顺序（★ 接到 §1.18 的 P0~P3）
 
 ```
-★ P0（只加不改）：★ 先落 **C1 Verdict · C4 Match · C6 Exit · C7 Outcome** 四个"纯数据类型"
-   + ★ **C10 `entry_state`**（新任务最缺的入口）⇒ ★ 它们不改任何现有行为，可立刻加
+★★ P0（只加不改）★ **[10-14] 已落地**：★ 落了 **C1 Verdict · C4 Match · C6 Exit · C7 Outcome** 四个"纯数据类型"
+   + ★ **C10 `entry_state`/`task_state`**（★ 新任务最缺的入口）
+   ⇒ ★ 交付物：`module/flow/{outcome,precondition,match}.py` + `module/config/task_state.py` 的新函数
+   ⇒ ★ 证据：守卫 **29 条**（`tests/module/flow/test_control_types.py` 20 · `tests/module/config/test_entry_custom_state.py` 9）
+     · ★★ **注入验证 2/2 真红** · ★ 守卫链 **135 passed** · ★ 全量 49 failed / 1826 passed（★ 失败集逐条一致）
 ★ P1：★ C5 补 5 个空缺 + C9 的 `LoopBudget/StuckGuard/RetryPolicy` 提到 `module/action/`
 ★ P2：★ C2/C3/C8 的**宿主**（PrepareStack/TeardownStack/SingleShot/Loop/Sequence）
    ⇒ ★ 用 `flow.json` 重写 `Tako`（★ 它 0 个 `while 1`，最适合当第一个）
 ★ P3：★ 前端编排面板（§1.17-P2）+ annotator 集成（§1.16）
 ★ ★ 红灯 1/2/3 的修法**都落在 C6/C7/C8** ⇒ ★ 它们是"最省力的正确性提升"
+   ★★ **[10-14] 用户裁定：★ 三个红灯「待定，可记录下。后期可能重构，暂不处理」** ⇒ ★ 已登记台账 §D.6，
+     ★ **不修**（★ 等重构时一起做）
 ```
 
 ---
@@ -2339,6 +2344,7 @@ pending_task = self._order_by_queue(pending_task)   # L2044 之后才按队列�
 | **㉚** | — | ★★★ **[10-14] `N9-6` 规格成型：新建任务（§1.16 NT1~NT7）+ 任务逻辑编辑器（§1.17 NL1~NL7）**。★ 用户三项裁定：★ ①**先只做增** ②**要示例识别** ③★★ **要能写条件/循环/点击/拖动/键盘/日志 + 复用标注工具 + 从零构建与维护 + 立即运行与日志** | 🔄 **SPEC 已写 · 待启动（★ 需先定架构）** | ★ **卡在一个架构选择**：★ **A 受控指令集（我推荐）** vs **B 直接编辑 Python**（★ 后者在**无鉴权**的工具端点上 = **远程代码执行**）；★ 另有折中 **A+**（指令集 + 解析式表达式，不用 `eval`）；★ 分期：**P1 后端（创建+示例骨架+解释器+立即运行+日志）→ P2 前端编排面板 → P3 端到端验收（新建周期+临时并跑通）** |
 | **㉛** | — | ★★★ **[10-14] `N9-6` 的下层：接口模块化（§1.18）** —— ★ 用户要求"**把现有接口抽象为模块…最终能把任何流程图实现到代码上**"。★ 调研结论：★ **原语大部分已有**（`base_task.py` 60+ 个），★ 缺的是**分层/统一/可编排**；★ **26 组重复实现**；★ **5 个流程图必需原语为空缺**（返回键/键盘/文本/滚动/拖拽）；★ 已有资产：★ **`tasks/GameUi/` 的 `Page`+`Matcher`+Dijkstra 就是"图执行器"雏形** | 🔄 **§1.18 方案已写 · 待你点头（M1 只做原语层 / M2 原语层+解释器）** | ★ 分期 **P0 只加不改（原语+守卫）→ P1 补齐 5 个空缺 + 收敛 30+ 旁路直调 → P2 `flow.json` 解释器（★ 建议先拿 `Tako` 试，它无主循环）→ P3 前端编排面板 + annotator 集成**；★ 风险已列 §1.18-七（共享可变规则对象 / 可变默认参数 / 三套失败语义 / 测试即规格）|
 | **㉜** | — | ★★★ **[10-14] `FL-1` 修复：`RyouToppa`（寮突破）「没票」不再记失败** —— ★★ **用户裁定原话**："**没票算成功，本来就是清票，票没有了就不用清了。**" ★ 修法：`tasks/RyouToppa/script_task.py:198-201` 的 `success = False` ➜ ★ **不改 `success`** + `mark_entry_completed('没票了（本轮结束）')` + 中文日志（★ 与样板 `RealmRaid:180-200` **对齐**）| ✅ **已修** | ★ 新增守卫 `tests/tasks/test_no_ticket_is_success.py`（**8 条 · AST 级**：★ 不许把 `success` 置假 / ★ 必须上报"本轮完成" / ★ 必须 `break` / ★ 文案必须说"本轮结束"；★ 覆盖 `RyouToppa` + `RealmRaid` **正向对照**）⇒ **8 passed**；★★ **注入验证 2/2 真红**（★ 把 `RyouToppa` 改回 `success=False` ⇒ **1 failed**；★ 删掉 `RealmRaid` 的上报 ⇒ **2 failed**）+ ★ 还原后**逐字节一致**（SHA `87a9c24a…` / `3149f031…`）|
+| **㉞** | — | ★★★ **[10-14] `P0` 落地：流程控制面的四个"纯数据类型" + C10 状态入口** —— ★ 用户裁定"**开工吧**…先做最小代码验证，跑通整个流程"。★ 新增 `module/flow/`（`outcome.py` C6`Exit` 8 类 + C7`Outcome` 三态 + `finish()` **唯一映射点** · `precondition.py` C1`Verdict` **三态含 `defer_until`** · `match.py` C4`Match`）★ + `module/config/task_state.py` 新增 **C10 `get/set_state` + 四个便捷入口**（★ `entry_state` / `task_state` —— ★ 周期任务 `entry_id=None`，**必须两级**）| ✅ **已落地** | ★ **纯新增、零改行为**（★ 未动任何任务的 `run()`）★ 守卫 **29 条**（`tests/module/flow/test_control_types.py` 20 · `tests/module/config/test_entry_custom_state.py` 9）⇒ ★ **守卫链 135 passed** · ★ 全量 **49 failed / 1826 passed**（★ 失败集逐条一致）★ ★★ **注入验证 2/2 真红**：★ 把 `RESOURCE_EMPTY` 塞进"失败集"（篡改裁定）⇒ **2 failed**；★ 写状态时整条替换（踩坏 `runs`）⇒ **1 failed**；★ 还原后**逐字节一致**（`428e84b8…` / `5711bb1f…`）|
 | **㉝** | — | ★★ **[10-14] `FL-9` 修复：守卫"时红时绿"的根因查清并修掉** —— ★★ **真因（实测）**：★ `Restart` 的窗口是 **每天 12:00-14:00 与 20:00-22:00**，而 `update_scheduler()`（`module/config/config.py:1946-1949`）在**窗口外**会把"`next_run` 已过"的任务放进 **`waiting_task`** ⇒ ★ 两条用例读 `pending_task` 就为空（★ 同日 **22:55 绿 / 23:01 红**，期间**只有文档改动**）| ✅ **已修** | ★ 修法：素材改为 **`pending_task or waiting_task`**（★ 与窗口无关，都是同一次真 `update_scheduler()` 的产物）+ ★ **加"哨兵 `entry_id`"** —— ⚠ 原断言只比 `command`，而**唯一默认 enable 的任务恰好也叫 `Restart`**、待命占位的 `command` **也是 `Restart`** ⇒ ★ **注入后照样绿（空转！）**；★★ **注入验证 2/2 真红**（★ 破坏 `waiting` 分支 ⇒ **1 failed**；★ 破坏 `pending` 分支 ⇒ **1 failed**）+ ★ 还原后 SHA 一致（`b6005ac8…`）|
 
 ★ ⚠ **⑫ 与 ⑳ 的关系**：★ ⑫（10-12 的巡检）**只消解了当时的矛盾**，

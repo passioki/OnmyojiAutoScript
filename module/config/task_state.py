@@ -519,6 +519,159 @@ def get_entry_target(config_name: str, entry_id: str) -> int:
         return 0
 
 
+# ────────────────────────── ★★ 任务自定义状态（C10 · SPEC §1.19-C10）
+#
+# ★★ 为什么要有这一组（★ 用户 [10-14] 要"从零构建任务"）
+#
+# ★ 实测：`task_state.py` 原有 38 个函数，**没有一个是给"任务自己想存点东西"用的** ——
+#   ★ 于是一个新任务想记"今天刷了几次""上次成功是什么时候"，
+#   ★ 只能**自己往 `.task_state.json` 里塞**（★ 那就绕过了锁与版本管理 ⇒ 迟早撞车）。
+#
+# ★ 设计（★ 建在既有落盘 + 锁之上，不另造一套）：
+#   * ★ 条目级：`<config>/__entries__/<entry_id>/custom/<key>`
+#     —— ★ `entry_id` 是"执行顺序里的那一条"（★ 同任务多条互不影响）
+#   * ★ 任务级：`<config>/__tasks__/task:<task_key>/custom/<key>`
+#     —— ★ 给**周期任务**用（★ 它们 `entry_id` 为 `None`，见台账 `N9-7`）
+#
+# ★ 约定：★ 任何异常都**不抛**（返回默认值 / `False`）—— ★ 与既有函数同口径，
+#   ★ 免得"存个进度"把调度循环打断。
+
+#: ★ 自定义状态的容器键（★ 与既有字段 `runs` / `total_runs` 并列，互不覆盖）
+CUSTOM_KEY = 'custom'
+#: ★ 任务级容器的键（★ 与 `ENTRIES_KEY` 并列）
+TASKS_KEY = '__tasks__'
+#: ★ 任务级 scope 的前缀（★ 用来区分"这是条目还是任务"）
+TASK_SCOPE_PREFIX = 'task:'
+
+
+def _custom_bucket(data: dict, config_name: str, scope: str) -> dict:
+    """★ 取（必要时建）某个 scope 的 `custom` 容器。
+
+    :param scope: ★ 条目 ⇒ `entry_id`；★ 任务 ⇒ `'task:<task_key>'`
+    """
+    s = str(scope or '').strip()
+    if s.startswith(TASK_SCOPE_PREFIX):
+        holder = data.setdefault(config_name, {})
+        item = holder.get(TASKS_KEY)
+        if not isinstance(item, dict):
+            item = {}
+            holder[TASKS_KEY] = item
+        slot = s[len(TASK_SCOPE_PREFIX):]
+    else:
+        item = _entries_bucket(data, config_name)
+        slot = s
+    one = item.get(slot)
+    if not isinstance(one, dict):
+        one = {}
+        item[slot] = one
+    custom = one.get(CUSTOM_KEY)
+    if not isinstance(custom, dict):
+        custom = {}
+        one[CUSTOM_KEY] = custom
+    return custom
+
+
+def get_state(config_name: str, scope: str, key: str,
+              default=None):
+    """★ 读**任务自定义状态**（C10）—— 查不到 / 出错 ⇒ 返回 `default`。
+
+    :param scope: ★ 条目 ⇒ `entry_id`；★ 任务 ⇒ `'task:<task_key>'`
+    :param key: ★ 自定义键（★ 建议带前缀，例 `'myfeat_last_ok'`）
+    """
+    s, k = str(scope or '').strip(), str(key or '').strip()
+    if not s or not k:
+        return default
+    try:
+        with _lock():
+            data = _read_all()
+            one = (data.get(config_name) or {})
+            if s.startswith(TASK_SCOPE_PREFIX):
+                holder = one.get(TASKS_KEY)
+                slot = s[len(TASK_SCOPE_PREFIX):]
+            else:
+                holder = one.get(ENTRIES_KEY)
+                slot = s
+            if isinstance(holder, dict):
+                item = holder.get(slot)
+                if isinstance(item, dict):
+                    custom = item.get(CUSTOM_KEY)
+                    if isinstance(custom, dict) and k in custom:
+                        return custom[k]
+        return default
+    except Exception as exc:
+        logger.warning(f'[TaskState] 读自定义状态失败'
+                       f'({type(exc).__name__}: {exc}), 用默认值')
+        return default
+
+
+def set_state(config_name: str, scope: str, key: str, value) -> bool:
+    """★ 写**任务自定义状态**（C10）—— 成功 `True`；★ 出错 `False`（**不抛**）。
+
+    ★ `value` 必须是 **JSON 可序列化**的（★ 落盘就是 json）；
+      ★ 不可序列化 ⇒ ★ `False` + `warning`（★ 而不是把整个状态文件写坏）。
+    """
+    s, k = str(scope or '').strip(), str(key or '').strip()
+    if not s or not k:
+        return False
+    try:
+        import json as _json
+        _json.dumps(value)          # ★ 先自检：★ 不可序列化就别碰落盘
+    except Exception as exc:
+        logger.warning(f'[TaskState] 自定义状态不可序列化'
+                       f'({type(exc).__name__}: {exc}), 不写')
+        return False
+    try:
+        with _lock():
+            data = _read_all()
+            custom = _custom_bucket(data, config_name, s)
+            custom[k] = value
+            # ★ 记录更新时间（★ 排障用；★ 与 `bump_entry_runs` 同口径）
+            s_holder = data.setdefault(config_name, {})
+            item = (s_holder.get(TASKS_KEY) if s.startswith(TASK_SCOPE_PREFIX)
+                    else s_holder.get(ENTRIES_KEY))
+            slot = s[len(TASK_SCOPE_PREFIX):] if s.startswith(TASK_SCOPE_PREFIX) else s
+            if isinstance(item, dict) and isinstance(item.get(slot), dict):
+                item[slot]['updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            _write_all(data)
+            return True
+    except Exception as exc:
+        logger.warning(f'[TaskState] 写自定义状态失败'
+                       f'({type(exc).__name__}: {exc}), 忽略')
+        return False
+
+
+def get_entry_state(config_name: str, entry_id: str, key: str, default=None):
+    """★ C10 便捷入口：**条目级**自定义状态（★ `entry_id` 为空 ⇒ 返回 `default`）。"""
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return default
+    return get_state(config_name, eid, key, default)
+
+
+def set_entry_state(config_name: str, entry_id: str, key: str, value) -> bool:
+    """★ C10 便捷入口：**条目级**自定义状态（★ `entry_id` 为空 ⇒ `False`）。"""
+    eid = str(entry_id or '').strip()
+    if not eid:
+        return False
+    return set_state(config_name, eid, key, value)
+
+
+def get_task_state(config_name: str, task: str, key: str, default=None):
+    """★ C10 便捷入口：**任务级**自定义状态（★ 周期任务没有 `entry_id`，用这个）。"""
+    t = str(task or '').strip()
+    if not t:
+        return default
+    return get_state(config_name, TASK_SCOPE_PREFIX + t, key, default)
+
+
+def set_task_state(config_name: str, task: str, key: str, value) -> bool:
+    """★ C10 便捷入口：**任务级**自定义状态。"""
+    t = str(task or '').strip()
+    if not t:
+        return False
+    return set_state(config_name, TASK_SCOPE_PREFIX + t, key, value)
+
+
 def record_entry_run(config_name: str, entry_id: str,
                      runs_this_time: int = 1) -> int:
     """★ 某**条目跑完一次** -> 记**总记录**（`total_runs` / `total_log`）。

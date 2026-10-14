@@ -23,8 +23,8 @@ git status --porcelain
 REM ② 台账里"进行中/未开始"的有哪些
 findstr /n /c:"🔄" /c:"⬜" /c:"⛔" docs\PENDING-LEDGER.md
 
-REM ③ 强制跑守卫（★ 期望：全部 passed —— ★ [10-14] 第二轮 = 106 条）
-toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py -q
+REM ③ 强制跑守卫（★ 期望：全部 passed —— ★ [10-14] 第三轮 = 135 条）
+toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py -q
 ```
 
 ★ 三条都对得上 ⇒ ★ **可以开工**；★ 对不上 ⇒ ★ **先修对齐，别改代码**。
@@ -41,7 +41,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | ★ **后端分支/提交** | `main` · ★ **[本次提交后取 `git log -1`]**；★ ★ **远端 `dev` 已含本轮全部提交**（★ **`main` 远端未动** = `e28793ce`）|
 | ★ **前端分支/提交** | `main` · ★ **`9c66064`**（★ 远端 `dev` 同）|
 | ★ **恢复节点 tag** | 后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live` |
-| ★★ **测试基线（★ 实测 [10-14] 第二轮）** | ★ **守卫 = 106 passed**（★ 98 + 新增 `tests/tasks/test_no_ticket_is_success.py` 8 条）<br>后端全量 = **49 failed / 1793 passed / 12 skipped**（★ 较 1785 **+8** = 新守卫）· ★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info —— ★ [10-14] 实测订正：★ 原写"4 条既有 info"**不准**）|
+| ★★ **测试基线（★ 实测 [10-14] 第三轮）** | ★ **守卫 = 135 passed**（★ 106 + 新增 29：`tests/module/flow/test_control_types.py` 20 + `tests/module/config/test_entry_custom_state.py` 9）<br>后端全量 = **49 failed / 1826 passed / 12 skipped**（★ **失败集与基线逐条一致** = 无回归；★ 49 条是"已知环境类"）· ★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info）|
 | ★★ **`pwsh` 可用性** | ★★ **可用** ⇒ ★ 我能自己跑 pytest / flutter（★ 不必再让用户代跑）|
 | ★ **实机是否在跑** | ★ 后端 `:22287`（`D:\OAS-live\backend`）|
 
@@ -150,13 +150,36 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 ★ 【台账】新增 **§D.6**（`N9-10` / `N9-10-a` / `N9-10-b`）
 ```
 
+## ★ 1f. ★★★ [10-14] 第四轮：**P0 落地**（★ 用户"开工"裁定 · ★ 有代码 · ★ 零改行为）
+
+```
+★★ 用户裁定：①三个红灯"待定、记录下、后期可能重构暂不处理" ②"开工吧，先做最小代码验证，跑通整个流程"
+★ 【交付】★ 新增 `module/flow/`（★ 4 个控制面里的 3 个文件）
+   · `outcome.py`  = ★ C6 `Exit`（**8 类具名出口**）+ C7 `Outcome`（**三态** DONE/FAILED/EXHAUSTED）
+                     + ★★ `finish()` = **唯一映射点**（★ 改语义只改这里）
+   · `precondition.py` = ★ C1 `Verdict`（★ **三态：跑 / 跳过 / `defer_until`**）+ `Precondition` 协议
+   · `match.py`    = ★ C4 `Match`（ok/score/roi/text —— ★ 终结 bool/tuple/int 混用）
+   · `__init__.py` = 统一出口
+★ 【交付】★ `module/config/task_state.py` 新增 **C10 任务自定义状态**（约 170 行）
+   `get_state/set_state` + `get/set_entry_state` + `get/set_task_state`
+   ★ **两级**（★ 周期任务 `entry_id=None` ⇒ 必须能按任务名存）· ★ 建在**既有落盘 + 锁**上
+★ 【方法】★ 按 START-HERE：★ 先出「设计 vs 现状」→ ★ 逐步（先 types，再 state）→
+   每步立刻 `pytest` → ★★ **注入验证**（2/2 真红）→ 更新台账/交接 → commit + push
+★ 【数字】★ 守卫 **135 passed**（106 + 29）· ★ 全量 **49 failed / 1826 passed / 12 skipped**
+   （★ 失败集与基线**逐条一致** ⇒ 无回归）· ★★ **零改行为**（★ 没动任何任务的 `run()`）
+★ 【下一轮】★ **P1**：★ C5 补 5 个空缺（返回键/键盘/文本/滚动/拖拽）+ C9 的
+   `LoopBudget/StuckGuard/RetryPolicy` 提到 `module/action/`
+★ ⚠ 【仍待办】★ 三个红灯 ⏸ 待定（★ 等重构）· ★ `N9-5` 流程图 47 张 · ★ `N9-6` P1 后端
+```
+
 ## ★ 2. ★★ 下一步（★ 按优先级）
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
 | **★1** | ★★★ **接口模块化的方案已定案（[10-14] 用户）**：★ **`M2`**（= §1.17 的 **A/A+ 受控指令集**，**不用 `eval`**）＋ ★ **annotator 可以"深度拆解"进任务实现器** | **SPEC §1.17 一（分歧块⑫）· §1.18-五/八** | ✅ **已定案 ⇒ 可开工** |
 | **★1b** | ★ **[10-14] `FL-*` 新发现的处置**：★ `FL-1` ✅ **已修**（㉜）· ★ `FL-9` ✅ **已修**（㉝）· ★ `FL-2` ✅ **查清 = 误报** · ★ `FL-6`/`FL-8` ⏸ **用户裁定"待定"**（★ 原话："待定，后续可能会重构代码"）| 台账 **§D.4** · SPEC **㉜/㉝** | ✅ / ⏸ |
-| **★1c** | ★★ **下一步开工项（M2 · P0）**：★ 新增 `module/action/{target,pacer,errors}.py` + `module/perception/{target,parse,roi}.py`（★ **只加不改**）+ ★ 守卫（每个原语一条 + ★ "禁止新增第 8 份 interval 模板"的源码守卫）+ ★★ 注入验证 | **SPEC §1.18-六** | ⬜ **待你一句"开工"** |
+| **★1c** | ★★ **`P0` 已落地**（★ 见 §1f）：★ `module/flow/`（C1/C4/C6/C7）+ ★ C10 状态入口；★ 守卫 29 条 + ★★ 注入验证 2/2 ⇒ ★ **下一轮做 P1** | **SPEC §1.19-七 · 台账 §D.7** | ✅ **已完成** |
+| **★1d** | ★ **P1 开工项**：★ C5 补 5 个空缺（**返回键/键盘/文本/滚动/拖拽**，★ 现状：`atom/scroll.py:11` 空壳 · `scrcpy/control.py:48/62/100/123` **零调用** · `Control.drag`(`control.py:239`) 零调用且缺 2 分支/读错配置字段）+ ★ C9 的 `LoopBudget/StuckGuard/RetryPolicy` 提到 `module/action/` | **SPEC §1.18-三/六 · §1.19-C5/C9** | ⬜ **下一轮** |
 | **★2** | ★ **N9-6 P1**（★ 架构定了就开工）：★ 后端 `tasks/create`（NT1~NT4：★ **原子创建 + 回滚** + **命名校验前置** + **示例识别骨架**）+ ★ `flow.json` **解释器**（NL1/NL2）+ ★ **立即运行**（NL3）+ ★ **结构化日志**（NL4）| **SPEC §1.16 + §1.17** | ⬜ 待启动 |
 | **★3** | ★ **N9-6 P2**：★ 前端「任务编排」面板（★ 指令增删改 · 素材下拉 · 立即运行 · 实时日志）| SPEC §1.17 三 | ⬜ |
 | **★4** | ★ **N9-6 P3 验收**：★ **新建一个周期任务 + 一个临时任务并跑通**（★ 用户原验收定义）| SPEC §1.16-NT6 | ⬜ |

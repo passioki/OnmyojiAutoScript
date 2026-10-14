@@ -316,7 +316,7 @@
 | **N9-6** | 结合 `http://127.0.0.1:22288/tool/annotator` **集成"新建任务"**：彻底了解实现 ⇒ 设计增删改查复制标准流程 ⇒ 前后端实现 ⇒ 用前端**新建一个周期任务 + 一个临时任务并跑通** 才算验收；再把**所有周期任务统一管理**、接入统一调度 | ★ 端点存在（`/tool/annotator`，端口 22288 = **dev**）；★ 现状只具备"测 match / 更新识别库" | ★★ **重大功能（需求级）** | ⬜ 未开始（★ **必须先写 SPEC**）| ★ 用户已给验收定义（★ 照抄）|
 | **N9-7** | **周期任务**运行时**没有"正在运行"状态 tag** | ★ 后端**已返**：`running_entry_id` / `running_task`（`schema_router.py:1240-1242`、`:1283-1284`）；★ "正在运行"判据 = `running_entry_id` 优先、退回任务名（`:1236`）| ★ 需看**前端**如何用（★ 前端仓库在 `D:\OAS-dev\frontend`）| ⬜ 待核 | ★ 需实机复现 + 前端代码核对 |
 | **N9-8** | 从别的配置**复制执行顺序页** ⇒ 复制后**自身的周期任务被加了进来**（比源页多）| ★ 复制走 `copy_from` 快照：`schema_router.py:2125-2151`（深拷贝源页 `snapshot`，不读当前状态）| ★ **疑似 bug**（★ 多出 = 违反了"快照复制"语义）| ⬜ 待核 | ★ 需复现 + 读 `build_queue()` 的 **auto_queue 自动补齐**（★ 复制后 `run_list` 被"自动进队列"污染？）|
-| **N9-9** | **御灵之境更换御魂出错，直接跳过了更换** | ★ 入口 `tasks/GoryouRealm/script_task.py:26-28`（`enable` ⇒ 进式神录 ⇒ `run_switch_soul`）；★ 静默路径：`tasks/Component/SwitchSoul/switch_soul.py:90-95`（`switch_parser` 失败 ⇒ `logger.error('Switch soul config error')` + **return** ⇒ ★ **跳过且不抛**）| ★ **疑似 bug（错误被吞）** | ⬜ 待核 | ★ 需实机日志里那句 `Switch soul config error` |
+| **N9-9** | **御灵之境更换御魂出错，直接跳过了更换** | ★ 入口 `tasks/GoryouRealm/script_task.py:26-28`；★ **真因（实测）**：`switch_soul_config.switch_group_team` 出厂默认 = **`'-1,-1'`** ⇒ `switch_parser('-1,-1')` = **`(-1,-1)`（不抛）** ⇒ `switch_soul_one(-1,-1)` ⇒ `get_group_assets(-1)` **dict 下标** ⇒ ★★ **`KeyError: -1`**（★ 范围检查原本排在**之后**）⇒ ★ 旧 `except ValueError` **抓不住** ⇒ ★ 25+ 调用方都没包 `try` ⇒ **整局任务被终结** | ★★ **真 bug（通用，非御灵之境专有）** | ✅ **已修（[10-14]）** | ★ 见 §C.3 |
 
 ## C.2 ★★ 本轮（[10-14]）守卫新增台账
 
@@ -330,4 +330,14 @@
 | **F-cwd** | ★★ **我自己踩的坑（已修）**：新测试文件 `os.chdir(REPO)` **不还原** ⇒ ★ 污染**共享测试进程的 `cwd`** | `tests/module/config/test_entry_target_reached.py:93-118` | ✅ **已修** | ★ fixture 里 `cwd_before = os.getcwd()` ⇒ `finally: os.chdir(cwd_before)`；★ 修后本文件仍 **11 passed** |
 | **F-baseline-attrib** | ★★ **49 failed 的归因**（★ 给"完成定义"用）| ★ 实测 | ✅ **已归因完毕** | ★ **逐条实测取证**：★ **43 条** = 测试去读 **`D:/OAS-dev/OASX-src`**（★ `FileNotFoundError`）⇒ **"前端仓库不在本机"类**（★ `DEV-WORKFLOW §3.1` 的已知项，★ 但**路径名已漂移**：期望 `OASX-src`，本机是 `frontend`）；★ **4 条** = 缺 **`module/config/i18n/zh-CN.json`**（★ 实测 `FileNotFoundError` ⇒ ★ 已查明它是**前端经 `/chinese_translate` 推来的运行时产物**，★ 见 §A.3；★ 本机没开前端 ⇒ 文件不存在）；★ **2 条** = 读**用户/实机状态**（`test_task_catalog::test_interval_from_user_config` · `test_schema_router::test_at_least_one_task_outside_window`）；★ **1 条** `test_queue_clear_and_settings::test_disables_auto_queue_tasks`（读 live 配置的 `auto_queue`）；★ **1 条** `test_docs_no_dead_refs` = **顺序相关 flaky**（★ 单跑 20 passed）|
 | **N3** | ★ `loop_times` help 文案改"播放模式"口径（★ 台账 `T21` 的**最后一项**）| ★ `schema_router.py:449-472` | ✅ **已完成** | ★ 旧文案「★『**跑空后**』选『**队列循环**』时才生效」引用**界面上不存在**的词（★ 现行 = 「播放模式」+ 顺序/循环/乱序）⇒ ★ 改为「★ 只在「播放模式」选「循环」时生效」；★ **新增守卫** `tests/module/server/test_help_texts_current_ui.py`（4 条）⇒ **4 passed**；★★ **注入验证真红**（改回旧文案 ⇒ **1 failed**）+ 还原 SHA256 一致 |
+
+## C.3 ★★ [10-14] N9-9（换御魂）修复 + ★★ **守卫空转的第三次教训**
+
+| # | 事项 | 依据 | 状态 | 验证 |
+|---|---|---|---|---|
+| **N9-9-fix** | ★★ `_parse_switch_target()` **先校验**（组 1-7 · 队 1-4）+ `switch_soul_one()` 校验**移到取素材之前**；非法 ⇒ ★ `logger.error` **响亮跳过** | `tasks/Component/SwitchSoul/switch_soul.py` | ✅ **已完成** | ★ 出厂默认 `-1,-1` ⇒ 不再抛 `KeyError` |
+| **N9-9-test** | ★ 守卫 **38 条**（非法只跳过 · **不碰 UI** · 合法**照常换**（反向）· 元组入口 · `error` 日志 · ★★ **运行时**断言抛 `ValueError` 而非 `KeyError`）| ★ 新增 `tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py` | ✅ **已完成** | ★ **38 passed**；★★ 注入（校验置 `if False:`）⇒ **5 failed**；★ 还原 SHA256 一致 |
+| **N9-9-spec** | ★ 规格书：**§1.5.y（SS1~SS5）** + `§4.5-㉒` | `docs/DESIGN-SPEC.md` | ✅ **已完成** | ★ 规则 5 条 + 真因 + 已定案依据（`SESSION-INDEX.md:1162`）|
+| **★ 教训-C** | ★★★ **源码级"比行序"的守卫是空转的**（★ 本会话**第三次**抓到空转守卫）| — | ✅ 已记录 | ★ 证据：把 `if not 1 <= int(group) <= 7:` 改成 `if False:`（★ 校验**形同不存在**）⇒ ★ 那条**只比行序**的守卫**照样绿**（★ `raise` 字样还在）⇒ ★★ **必须有【运行时】断言**（`pytest.raises(ValueError)`）；★ 已补上 ⇒ 注入后**真的变红**（5 failed）|
+| **★ 教训-D** | ★★ **`pwsh -replace` 是正则 + `$` 会展开 ⇒ 注入会"静默不生效"** | — | ✅ 已记录 | ★ 实测：同一注入连试 **3 次**都"没生效"（★ 却让我一度误判守卫有效）⇒ ★ **注入验证要用 Python 做**（`str.replace` + 打印"是否生效" + 还原后比 SHA256）|
 

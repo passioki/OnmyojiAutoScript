@@ -1,4 +1,4 @@
-﻿# This Python file uses the following encoding: utf-8
+# This Python file uses the following encoding: utf-8
 # @author runhey
 # github https://github.com/runhey
 from time import sleep
@@ -82,19 +82,84 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         logger.info('Exit shikigami records')
 
 
-    def run_switch_soul(self, target: tuple | list[tuple] | str):
+    @staticmethod
+    def _parse_switch_target(target):
+        """把 `switch_group_team` 解析成 `[(组, 队), ...]`，并**校验值域**。
+
+        :return: `(pairs, reason)` —— ★ 成功时 `reason` 为空串；
+                 ★ 失败时 `pairs=None` 且 `reason` 是**给人看**的原因
+                 （★ 调用方负责**响亮地**记录它，不许静默忽略）。
         """
-        保证在式神录的界面
-        :return:
-        """
+        # 1) 字符串形式：`'组,队'`（如 `'1,1'`）
         if isinstance(target, str):
             try:
                 target = switch_parser(target)
-            except ValueError:
-                logger.error('Switch soul config error')
-                return
+            except (ValueError, TypeError) as exc:
+                return None, (f'配置「组,队」解析失败（{target!r}）：'
+                              f'{type(exc).__name__}: {exc}；'
+                              f'正确格式形如 `1,1`')
+        # 2) 统一成"若干对"
+        items = [target] if isinstance(target, tuple) else list(target or [])
+        if not items:
+            return None, f'配置为空（{target!r}）'
+        pairs = []
+        for pair in items:
+            try:
+                group, team = int(pair[0]), int(pair[1])
+            except (TypeError, ValueError, IndexError, KeyError):
+                return None, f'组/队必须是两个数字（得到 {pair!r}）'
+            # ★★★ 这一步就是 N9-9 的修复点 ★★★
+            #
+            # ★ `-1,-1` 是 `SwitchSoulConfig.switch_group_team` 的**出厂默认值**
+            #   （`switch_soul_config.py:12`）⇒ ★ 用户只勾「启用」时就是它
+            #   ⇒ ★ 旧代码会带进 `switch_soul_one(-1,-1)`
+            #   ⇒ ★ `get_group_assets(-1)` 的 **dict 下标** ⇒ `KeyError: -1`
+            #   ⇒ ★ `KeyError` **不是** `ValueError` ⇒ 旧的 `except` 抓不住
+            #   ⇒ ★ 异常冒泡 ⇒ **整局任务被终结**（★ 用户看到的"直接跳过"）。
+            if not 1 <= group <= 7 or not 1 <= team <= 4:
+                return None, (
+                    f'组/队超出范围（{group},{team}）；'
+                    f'合法范围是 **组 1-7 · 队 1-4**。'
+                    f'★ `-1,-1` 是「**未设置**」的出厂默认值 —— '
+                    f'想真的换御魂，请把「御魂组,队伍」设成如 `1,1`')
+            pairs.append((group, team))
+        return pairs, ''
+
+    def run_switch_soul(self, target: tuple | list[tuple] | str):
+        """到式神录里把预设御魂换成 `target`。
+
+        ## ★★★ [10-14] 修 N9-9：**先校验、再动作；非法就"响亮地跳过"** ★★★
+
+        > ★★ **用户原话**（10-14 记录文件第 9 条）：
+        > > "**御灵之境更换御魂出错，直接跳过了更换。**"
+
+        ### ★ 为什么要"跳过"而不是"抛异常"（★ 这是**已定案**的语义）
+
+        ★ `SESSION-INDEX.md:1162`（10-08 12:00 已确认）：
+        > "确认：**所有调用方都不检查返回值**，
+        >  所以『**跳过切换御魂**』是**安全的**。"
+
+        ★ `_scan_for_name` 的注释同源："仍未找到则返回 False
+          （**调用方跳过切换，不要让整局任务卡死**）"。
+
+        ### ★ 那原来的 bug 是什么
+
+        ★ 不是"跳过"，而是 ★ **配置非法时既没跳过、又没报错**：
+          旧代码只 `except ValueError`（解析失败），
+          而 `'-1,-1'` **解析成功**、却在 `switch_soul_one` 里
+          抛 **`KeyError`**（★ dict 下标）⇒ 抓不住 ⇒ 冒泡 ⇒
+          ★ **25+ 个调用方都没包 try** ⇒ **整局任务被这一行终结**。
+
+        ⚠ 本函数**必须留在 `click_preset()` 之前**做校验 ——
+          非法配置**不该**先把界面切到式神录（★ 那是白跑一遍 UI）。
+        """
+        pairs, reason = self._parse_switch_target(target)
+        if pairs is None:
+            logger.error(
+                f'切换御魂：**跳过本次切换**（任务继续跑）。原因：{reason}')
+            return
         self.click_preset()
-        self.switch_souls(target)
+        self.switch_souls(pairs)
 
     def click_preset(self) -> None:
         """
@@ -125,7 +190,25 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         :param team: 只能是[1-4]
         :return:
         """
-
+        # ★★★ [10-14] 修 N9-9：**范围校验必须排在"取素材"之前** ★★★
+        #
+        # ## ★ 原来的顺序（有 bug）
+        #
+        # ★ 下面的 `get_group_assets(group)` 是 **dict 下标**
+        #   ⇒ ★ 传 `-1`（出厂默认 `'-1,-1'`）⇒ **`KeyError: -1`**
+        #   ⇒ ★ 而范围检查排在**它后面** ⇒ ★ 永远轮不到
+        #   ⇒ ★★ 且 `KeyError` **不是** `ValueError` ⇒ 上面那个 `except`
+        #     **抓不住** ⇒ 异常冒泡 ⇒ **整局任务被终结**
+        #     （★ 用户报的"御灵之境更换御魂出错，直接跳过了更换"就是它）。
+        # ★ 现在：★ **先校验** ⇒ 非法直接 `ValueError`（带可读信息）。
+        if not 1 <= int(group) <= 7:
+            raise ValueError(
+                f'Switch soul_one group must be in [1-7], got {group}'
+                f'（★ `-1` 是「未设置」的出厂默认值）')
+        if not 1 <= int(team) <= 4:
+            raise ValueError(
+                f'Switch soul_one team must be in [1-4], got {team}'
+                f'（★ `-1` 是「未设置」的出厂默认值）')
         def get_group_assets(group: int) -> tuple:
             match = {
                 1: tuple([self.C_SOU_GROUP_1, self.I_SOU_CHECK_GROUP_1]),
@@ -162,11 +245,9 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             # 等待滑动动画
             sleep(0.5)
 
-        if group < 1 or group > 7:
-            raise ValueError('Switch soul_one group must be in [1-7]')
-        if team < 1 or team > 4:
-            raise ValueError('Switch soul_one team must be in [1-4]')
-        # 这一步是选择组
+        # ★ [10-14] 范围校验已**移到函数开头**（★ 必须在取素材之前 ——
+        #   否则 `get_group_assets(-1)` 的 `KeyError` 会排在它前面，
+        #   见函数开头的说明）。这里只留一句提示，避免后人以为漏了校验。
         target_click, target_check = get_group_assets(group)
         # while 1:
         #     self.screenshot()

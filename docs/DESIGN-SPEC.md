@@ -466,6 +466,42 @@ ERROR    | Run script 恋鸟树 error  ➜ RequestHumanTakeover  ➜ 脚本进�
   ★ 并且**必须同时清 `pending` 与 `waiting`**（★ 模板里 `Restart` 默认
   `enable=True` ⇒ 实测 `pending_task = ['Restart']` ⇒ ★ 不清就走**出路①** ⇒ 空转）。
 
+## 1.5.y ★★★ 「换御魂」可选项 —— ★ **失败必须"响亮地跳过"，不许终结任务**（[10-08] 定案 · [10-14] 修复）
+
+> ★★ **用户原话（[10-14] 记录第 9 条）**：
+> > "**御灵之境更换御魂出错，直接跳过了更换。**"
+
+### ★★ 真因（代码级，已实测）
+
+```
+★ switch_soul_config.switch_group_team 出厂默认 = '-1,-1'
+★ 用户只勾「启用」没设组/队 ⇒ 值就是 '-1,-1'
+★ 实测 switch_parser('-1,-1') ⇒ (-1, -1)     ← ★ 解析**成功**（不抛）
+★ ⇒ 绕过旧代码唯一的 except ValueError
+★ ⇒ switch_soul_one(-1, -1) ⇒ get_group_assets(-1) 是 dict 下标
+★ ⇒ ★★ KeyError: -1        ← ★ 不是 ValueError ⇒ 仍抓不住
+★ ⇒ 异常冒泡；★ 所有调用方（25+ 任务）都把 run_switch_soul(...) 写在 try 之外
+★ ⇒ ★★ 整局任务被这一行终结 ⇒ 用户体感"直接跳过了更换"
+```
+
+### ★★★ 规则
+
+| # | 规则 |
+|---|---|
+| **SS1** | ★★ **换御魂是【可选项】**：★ 找不到 / 配置非法 ⇒ ★ **跳过并继续**，★ **绝不许**让整局任务卡死或终结<br>★ 依据（**已定案**）：`SESSION-INDEX.md:1162`（10-08 12:00）「确认：**所有调用方都不检查返回值**，所以『**跳过切换御魂**』是**安全的**」；★ `_scan_for_name` 注释同源 |
+| **SS2** | ★★ **跳过必须"响亮"**：★ 用 **`logger.error`** 写明 ① **跳过** ② **原因** ③ **合法范围 / 该怎么改配置**<br>★ 禁止"静默 `return`"（★ 用户报的就是"出错…直接跳过"看不见） |
+| **SS3** | ★★ **校验必须排在【任何 UI 动作】之前**：★ 组 ∈ **1-7**、队 ∈ **1-4**<br>★ 反例（旧行为）：校验排在 `get_group_assets()` 之后 ⇒ ★ 非法值先在 **dict 下标**上抛 **`KeyError`**（★ **不是** `ValueError`）⇒ ★ 旧的 `except ValueError` **抓不住** |
+| **SS4** | ★ **两条入口都要校验**：★ 字符串 `'组,队'`（`switch_parser`）★ **和** 元组/列表（`BondlingFairyland` / `Hunt` 等调用方用元组） |
+| **SS5** | ★ **`-1,-1` 不是"合法值"**，是「**未设置**」⇒ ★ 必须走 SS1/SS2（★ 它是 `SwitchSoulConfig` 的**出厂默认**，所以"只勾启用"的用户**一定**会撞到） |
+
+★ **守这条的地方**：`tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py`
+  （★ **38 条**：★ 非法值只跳过 · ★ 非法值**不碰 UI** · ★ 合法值**照常换**（反向）·
+   ★ 元组入口 · ★ `error` 级日志 · ★★ **运行时**断言 `switch_soul_one`
+   抛 **`ValueError`** 而非 `KeyError`）
+★ **教训（★ 这条守我踩得最深）**：★ **源码级"比行序"的守卫是空转的** ——
+  ★ 把校验改成 `if False:`（★ 校验形同不存在）它**照样绿**（★ `raise` 字样还在）
+  ⇒ ★ **必须有运行时断言**（★ 注入验证抓出来的，见台账 §C.3）。
+
 ## 1.6 ★ 字段语义（后端）
 
 > **[10-12 12:09:29]** "`runs` 是还保留着吗，`target` 现在起什么作用，**两者边界怎么样**"
@@ -1750,6 +1786,7 @@ pending_task = self._order_by_queue(pending_task)   # L2044 之后才按队列�
 | **⑲** | — | ★ **[10-13] `total_log` 时间戳 → 毫秒 + 带 `session` 标签**（★ 长时记录**只做统计**，不参与判定）| ✅ **已修** | ★ 代码已核实：`task_state.py:522-583`（★ 毫秒在 `562` · `session` 在 `576-578`）|
 | **⑳** | — | ★★★ **[10-13] 本轮文档自相矛盾收敛**（★ §1.3 轮次号 → 时间戳 · ★ §1.6/§2.1 `runs` 生命周期统一 · ★ §4.1-13/15/16 改判 · ★ 行号校正 · ★ 新增 §1.6.x · ★ Q5/Q6 定案）| ✅ **已完成** | ★ 见 §6.6（★ 逐条 + `文件:行号`）|
 | **㉑** | — | ★★★ **[10-14] P0：`get_next()` 的「待命占位」必须构造成功**（★ 否则 `raise RequestHumanTakeover` ⇒ **调度循环死掉**）。★ 真因：`Function('Restart', …)` 用了**大驼峰键**，而 `ConfigModel.type()` = `__annotations__[key]` 要**小写** ⇒ `KeyError` | ✅ **已修** | ★ 修法 = `config.py:4518` 的 `'Restart'` ➜ `'restart'`；★ **新增 §1.5.x（SB1~SB5）** + ★ 守卫 `tests/module/config/test_standby_placeholder.py` **5 passed** ＋ ★★ **注入验证真红**（改回 `'Restart'` ⇒ **3 failed**）＋ 还原逐字节一致 |
+| **㉒** | — | ★★★ **[10-14] 换御魂：配置非法（如出厂默认 `-1,-1`）⇒ 必须"响亮地跳过"，不许终结任务**。★ 真因：`get_group_assets(-1)` 是 dict 下标 ⇒ **`KeyError`**（★ 非 `ValueError`）⇒ 旧 `except` 抓不住 ⇒ 25+ 个调用方都没包 `try` ⇒ **整局任务被终结** | ✅ **已修** | ★ 修法：`switch_soul.py` 新增 `_parse_switch_target()`（**先校验**：组 1-7 · 队 1-4）+ `switch_soul_one()` 的校验**移到取素材之前**；★ **新增 §1.5.y（SS1~SS5）** + ★ 守卫 `tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py` **38 passed** ＋ ★★ **注入验证真红**（校验置 `if False:` ⇒ **5 failed**）＋ 还原 SHA256 一致 |
 
 ★ ⚠ **⑫ 与 ⑳ 的关系**：★ ⑫（10-12 的巡检）**只消解了当时的矛盾**，
 ★ **并未覆盖 [10-13] 的新裁定** ⇒ ★ 那些矛盾（§1.3 轮次号 / §4.1 记 ✅ 的旧行为 / 漂移行号）

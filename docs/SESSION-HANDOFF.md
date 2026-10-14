@@ -78,13 +78,35 @@ toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tes
      「跑空后 / 队列循环」在**界面上都不存在**（现行 = 「播放模式」+
      顺序/循环/乱序）⇒ ★ 已改，并新增守卫
      `tests/module/server/test_help_texts_current_ui.py`（4 条，注入验证真红）
+★ ⑧ ★ **N9-9 已完成**（★ 用户记录第 9 条"御灵之境更换御魂出错，直接跳过"）：
+     ★★ **真因是通用的**（不只御灵之境）：`switch_group_team` 出厂默认
+     **`'-1,-1'`** ⇒ `switch_parser` **解析成功**（不抛）⇒ `switch_soul_one(-1,-1)`
+     ⇒ `get_group_assets(-1)` **dict 下标** ⇒ ★★ **`KeyError`**（★ 非 ValueError）
+     ⇒ ★ 旧 `except ValueError` **抓不住** ⇒ ★ **25+ 个调用方都没包 `try`**
+     ⇒ ★★ **整局任务被这一行终结**
+     ★ 修法：`_parse_switch_target()` **先校验**（组 1-7 · 队 1-4）+ 非法
+       **响亮跳过**（`logger.error` 指明合法范围）⇒ ★ 任务继续跑（★ 依据
+       `SESSION-INDEX.md:1162` 已定案"跳过切换御魂是安全的"）
+     ★ 守卫：`tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py`
+       **38 passed** ＋ ★★ 注入（校验置 `if False:`）⇒ **5 failed**
+★ ⑨ ★★★ **本会话第三次抓到【空转守卫】⇒ 方法论升级（★ 必须记住）**：
+     ★ 空转形态①：`get_next()` 第一行会 `update_scheduler()` ⇒ 外部设的
+       状态被覆盖（★ 要 `monkeypatch` 打桩）
+     ★ 空转形态②：模板里 `Restart` 默认 `enable=True` ⇒ `pending_task` 非空
+        ⇒ 走不到被测分支（★ 要**同时清 pending + waiting**）
+     ★ 空转形态③：★ **源码级"比行序"的守卫** —— 把校验改成 `if False:`
+        （校验**形同不存在**）它**照样绿**（★ `raise` 字样还在）
+        ⇒ ★★ **必须有【运行时】断言**（`pytest.raises(ValueError)`）
+     ★★ **判据（写死）**：★ **"注入破坏后仍 pass" ⇒ 该守卫作废、必须重写**
+     ⚠ 另外：★ **`pwsh -replace` 是正则且 `$` 会展开** ⇒ 注入会**静默不生效**
+        （★ 我因此误判过守卫）⇒ ★ **注入一律用 Python `str.replace`**，
+        并**打印"是否生效"** + 还原后**比 SHA256**
 ```
 
 ## ★ 2. ★★ 下一步（★ 按优先级）
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
-| **N9-9** | ★ 御灵之境**更换御魂出错被静默跳过**（★ 疑 `switch_parser` 失败被 `return` 吞）| 台账 §C.1 · `SwitchSoul/switch_soul.py:90-95` | ⬜ |
 | **N9-4** | ★ 新建配置页时"填的名称不生效"（要靠重命名）| 台账 §C.1 · `schema_router.py:2102-2161` | ⬜ |
 | **N9-7** | ★ 周期任务运行时**没有"正在运行" tag** | 台账 §C.1 · `schema_router.py:1240-1284` | ⬜ |
 | **N9-8** | ★ 复制执行顺序页后**多出自身周期任务** | 台账 §C.1 · `schema_router.py:2125-2151` | ⬜ |
@@ -94,7 +116,9 @@ toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tes
 | **N9-6** | ★★ **annotator 集成"新建任务"**（需求级：设计 → 前后端 → 新建周期/临时任务跑通验收 → 统一管理全部周期任务）| 台账 §C.1 | ⬜ **需先写 SPEC** |
 | **N2** | ★ `.py` 里 **7 处注释漂移**改齐 | 台账 `T18` · SPEC §6.6 | ⬜ |
 | **N5** | ★ 前端：`D:\OAS-dev\frontend` 也建 `PENDING-LEDGER.md`（现在只后端有）| 本文件 §3 | ⬜ |
+| **★ 推送** | ★ **本地 `main` 领先 `origin/main` 3 个提交 —— 要不要 push？** | 本文件 §1 | ⬜ **需你裁定** |
 | ~~**N9-1**~~ | ~~P0 待命占位 `KeyError`~~ | 台账 §C | ✅ **已完成（[10-14]）** |
+| ~~**N9-9**~~ | ~~换御魂非法配置终结任务~~ | 台账 §C.3 | ✅ **已完成（[10-14]）** |
 | ~~**N3**~~ | ~~`loop_times` help 旧文案~~ | 台账 `T21` | ✅ **已完成（[10-14]）** |
 | ~~**N4**~~ | ~~§4.2-C 小标题仍写"未废弃"~~ | ★ **实测已完成**（`DESIGN-SPEC.md:1641` 已写"三函数已删"）| ✅ **关闭** |
 

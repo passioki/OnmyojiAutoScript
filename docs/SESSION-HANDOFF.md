@@ -107,7 +107,6 @@ toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tes
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
-| **N9-7** | ★★ 周期任务**无"运行中"tag** —— ★ **已定位三层真因**（`/run_list` 只遍历 run_list + 周期任务 `entry_id=None` + 前端只标那一行）| 台账 §C.1 · `queue_panel.dart:864` · `schema_router.py:1256` · `config.py:2435` | 🔄 **已定位**（修法需两端）|
 | **N9-4** | ★ 新建配置页"填的名称不生效"（★ 后端**正常** ⇒ 已缩小到前端）| 台账 §C.1 · `schema_router.py:2149` | 🔄 需查前端 |
 | **N9-8** | ★ 复制执行顺序页后**多出自身周期任务** | 台账 §C.1 · `schema_router.py:2125-2151` | ⬜ 待复现 |
 | **N9-3** | ★ 休息时间**范围内随机 ±20%**（新功能，需先立 SPEC）| 台账 §C.1 | ⬜ |
@@ -115,9 +114,9 @@ toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tes
 | **N9-6** | ★★ **annotator 集成"新建任务"**（需求级：设计 → 前后端 → 新建周期/临时任务跑通验收 → 统一管理全部周期任务）| 台账 §C.1 | ⬜ **需先写 SPEC** |
 | **N2** | ★ `.py` 里 **7 处注释漂移**改齐 | 台账 `T18` · SPEC §6.6 | ⬜ |
 | **N5** | ★ 前端：`D:\OAS-dev\frontend` 也建 `PENDING-LEDGER.md`（现在只后端有）| 本文件 §3 | ⬜ |
-| **★ 实机验收** | ★★ **等你说"阶段性验收"** ⇒ 再把 dev 拷到 `D:\OAS-live` 并逐条验（★ 用户 [10-14] 明令"**等全部做完阶段性验收**"）| 台账 §C | ⬜ **等指令** |
-| ~~**N9-1 / N9-9 / N3 / N9-2 / N4**~~ | — | 台账 §C | ✅ **已完成（[10-14]）** |
-| ★ **推送** | ★ **`dev` 已推**（[10-14] 用户指令）⇒ 实测 `refs/heads/dev = e4378cd9`；★ **`main` 未动**（仍是 `e28793ce`）| `git ls-remote` | ✅ **已完成** |
+| **★ 实机验收** | ★★ **等你说"阶段性验收"** ⇒ 再把 dev 拷到 `D:\OAS-live` 并逐条验（★ 用户 [10-14] 明令"**等全部做完阶段性验收**"）；★ **N9-7 需要重新构建前端**（`flutter build windows --release`）| 台账 §C | ⬜ **等指令** |
+| ~~**N9-1 / N9-9 / N9-7 / N3 / N9-2 / N4**~~ | — | 台账 §C | ✅ **已完成（[10-14]）** |
+| ★ **推送** | ★★ **前后端都已推 `dev`**：后端 `refs/heads/dev = 9564dad1`；前端 `refs/heads/dev = 6a9d1f0`（★ 新建分支）；★ **两边 `main` 都未动** | `git ls-remote` | ✅ **已完成** |
 
 ## ★ 3. ★ 活跃的坑（★ 别再踩）
 

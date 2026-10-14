@@ -52,19 +52,43 @@ git log -1 --format="%h %ci %s"
 git status --porcelain
 
 REM ② 台账里"进行中/未开始"的
-findstr /n /c:"🔄" /c:"⬜" /c:"⛔" docs\PENDING-LEDGER.md
+REM   ⚠ 不要用 findstr 查 emoji（GBK 下匹配不到，会静默输出空）——
+REM     用 PowerShell 的 Select-String（本机 pwsh 可用）
+powershell -NoProfile -Command "Select-String -Path docs\PENDING-LEDGER.md -Pattern '🔄','⬜','⛔' | Select-Object LineNumber,Line"
 
-REM ③ ★ 强制跑两组守卫
-toolkit\python.exe -m pytest tests/module/config/test_loop_rounds.py -q
-toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tests/tasks/test_effective_target.py -q
+REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 98 passed）
+toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py -q
+
+REM ④ ★ 全量基线（★ [10-14] 实测：49 failed / 1785 passed / 12 skipped）
+REM   ★ 那 49 条是【已知环境类】，★ 不是回归：
+REM     43 = 测试去读 D:/OAS-dev/OASX-src（本机是 frontend）· 4 = 缺
+REM     module/config/i18n/zh-CN.json（前端推来的运行时产物）· 2 = 读用户/实机状态
+REM     · 1 = live 配置 · 1 = 顺序 flaky
+toolkit\python.exe -m pytest tests/ -q
 ```
 
-★ 期望：★ `test_loop_rounds.py` **8 passed**；★ 另两组**全绿**。
+★ 期望：★ **守卫 98 passed**；★ 全量 **49 failed / 1785 passed**（★ 与基线一致 ⇒ 无回归）。
+
+```bat
+REM ⑤ ★ 前端（★ 也要核）
+cd /d D:\OAS-dev\frontend
+D:\flutter3271\bin\flutter.bat analyze lib
+D:\flutter3271\bin\flutter.bat test
+REM   ★ [10-14] 实测：analyze 0 error（4 条既有 info）· test 158 passed
+```
 
 ## 1.4 ★★★ 先回报，再动手（★ 这一步不许省）
 
 ★ **读完、核实完，必须先把 §2 的回报模板发给用户**，
 ★ 并**等用户确认方向**，★ **然后才允许改代码**。
+
+★ ⚠⚠ **[10-14] 换会话时最要紧的一件事**（★ 新会话请先看这条）：
+
+> ★★ **`N9-6`（annotator 集成"新建任务" + 任务逻辑编辑器）卡在一个
+> 【必须用户点头的架构选择】** —— ★ 见 `DESIGN-SPEC.md` **§1.17 一**：
+> ★ **A 受控指令集（DSL，推荐）** vs ★ **B 直接编辑 Python**
+> （★ 工具端点**无鉴权** ⇒ B 等价于"**远程代码执行**"）★ 或折中 **A+**。
+> ★ **在这一条定下来之前，不要动 N9-6 的代码**（★ 免得白做）。
 
 ---
 
@@ -80,7 +104,9 @@ toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tes
 【2. 代码与我核实的台账】
    后端 commit = <hash> · 分支 = <branch> · worktree 干净 = 是/否
    前端 commit = <hash> · 分支 = <branch>
-   守卫测试 = test_loop_rounds: __ passed · no_false_completion: __ · effective_target: __
+   ★ 守卫（§1.3 的第 ③ 条那一条命令）= __ passed（★ [10-14] 基线 = 98）
+   ★ 全量 = __ failed / __ passed（★ [10-14] 基线 = 49 / 1785，★ 49 条是已知环境类）
+   ★ 前端 = flutter analyze __ error · flutter test __ passed（★ [10-14] 基线 = 0 / 158）
 
 【3. 差异（★ 文档说 A、代码是 B 的地方）】
    | 台账/文档说 | 我看到的 | 差异 |

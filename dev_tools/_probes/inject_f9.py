@@ -32,6 +32,7 @@ import hashlib
 import pathlib
 import shutil
 import sys
+import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
@@ -40,7 +41,9 @@ if str(REPO) not in sys.path:
 from dev_tools.paths import require_oasx  # noqa: E402
 
 TARGET = require_oasx() / 'lib' / 'views' / 'tasks' / 'queue_panel.dart'
-BACKUP = pathlib.Path(__file__).resolve().parent / 'queue_panel.dart.orig'
+# ★ 备份放到**系统临时目录** —— 绝不放进仓库（否则会被 `git add -A` 误提交，
+#   ★ 而且它是**前端**文件的副本，放进后端仓库立刻就会过期）。
+BACKUP = pathlib.Path(tempfile.gettempdir()) / 'f9_probe_queue_panel.dart.orig'
 
 ANCHOR = """                    else if (isTask && e['running'] == true)
                       Tooltip(

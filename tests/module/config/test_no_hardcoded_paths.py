@@ -46,7 +46,9 @@ ALLOW_MARK = '# 调试示例'
 
 
 def _py_files():
-    for sub in ('dev_tools', 'module', 'tasks'):
+    # ★ [10-15] 扫描范围**加上 `tests/`** —— 用户裁定："前端仓库要存在" ⇒ 测试里的
+    #   硬编码绝对路径（历史上有 9 处）必须一起禁掉，否则"换个盘/换台机器"必红。
+    for sub in ('dev_tools', 'module', 'tasks', 'tests'):
         d = REPO / sub
         if not d.is_dir():
             continue
@@ -127,3 +129,32 @@ def test_paths_refuses_to_guess(monkeypatch):
     assert P.oasx_root(verbose=False) is None
     with pytest.raises(SystemExit):
         P.require_oasx()
+
+
+def test_negative_result_is_never_cached(monkeypatch):
+    """★★ [10-15] **"找不到"不许被缓存** —— 否则同进程内一次失败会污染后续所有调用。
+
+    ★ 实测根因（[10-15] 全量跑时 3 条跨仓测试变红）：`_resolved_cache` 连 `None` 一起缓存，
+      而 `test_paths_refuses_to_guess` 走完 monkeypatch 之后**缓存里留着 None**
+      ⇒ 同进程里后面所有 `oasx_root()` 都拿到 None。
+
+    ★ 注入验证：把 `if picked is not None:` 去掉（恢复成无条件缓存）⇒ 本用例必须变红。
+    """
+    import dev_tools.paths as P
+
+    monkeypatch.setattr(P, '_OASX_CANDIDATES', ())
+    monkeypatch.setattr(P, '_read_local', lambda: {})
+    monkeypatch.delenv('OASX_REPO', raising=False)
+    P._resolved_cache.clear()
+    assert P.oasx_root(verbose=False) is None, '★ 先制造一次"找不到"'
+
+    # ★ 现在把前端仓库"指回去"（★ 用**布局约定**取路径，不写盘符）
+    frontend = P.workspace_root() / 'frontend'
+    assert frontend.is_dir(), f'★ 前端仓库必须存在: {frontend}'
+    monkeypatch.setenv('OASX_REPO', str(frontend))
+    P._OASX_CANDIDATES = (r'..\frontend',)   # 显式放回候选（monkeypatch 之后不留痕）
+    try:
+        assert P.oasx_root(verbose=False) == frontend.resolve(), (
+            '★ 上次的 None 被缓存住了 —— "找不到"绝不许进缓存')
+    finally:
+        P._resolved_cache.clear()

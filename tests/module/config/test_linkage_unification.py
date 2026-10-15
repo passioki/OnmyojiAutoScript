@@ -308,10 +308,10 @@ class TestPauseDoesNotTouchQueue:
 class TestFrontendPauseIsTheOnlyEntry:
     def test_no_separate_cancel_button(self):
         """★ 界面上**不再有**单独的「取消任务」按钮（已聚合进暂停）。"""
-        src = (REPO.parent / 'OASX-src' / 'lib' / 'views' / 'tasks'
-               / 'queue_panel.dart')
-        if not src.exists():
-            pytest.skip('OASX 源码不在预期位置')
+        # ★ [10-15] 去盘符：前端仓库走解析器（★ 必须存在；缺了就响亮失败，**不跳过**）
+        from dev_tools.paths import require_oasx
+        src = (require_oasx() / 'lib' / 'views' / 'tasks' / 'queue_panel.dart')
+        assert src.is_file(), f'★ 前端仓库里缺少 {src} —— 前端仓库必须存在'
         t = src.read_text(encoding='utf-8')
         # 按钮与确认弹窗都不该在（注释里提到是允许的, 所以剥注释看）
         code = '\n'.join(l.split('//')[0] for l in t.split('\n'))
@@ -322,10 +322,10 @@ class TestFrontendPauseIsTheOnlyEntry:
 
     def test_pause_reports_requeue(self):
         """★ 暂停按钮必须**如实报告**退回队首（否则用户不知道任务去哪了）。"""
-        src = (REPO.parent / 'OASX-src' / 'lib' / 'views' / 'tasks'
-               / 'run_control_bar.dart')
-        if not src.exists():
-            pytest.skip('OASX 源码不在预期位置')
+        # ★ [10-15] 去盘符：前端仓库走解析器（★ 必须存在；缺了就响亮失败，**不跳过**）
+        from dev_tools.paths import require_oasx
+        src = (require_oasx() / 'lib' / 'views' / 'tasks' / 'run_control_bar.dart')
+        assert src.is_file(), f'★ 前端仓库里缺少 {src} —— 前端仓库必须存在'
         t = src.read_text(encoding='utf-8')
         assert 'pauseScriptDetailed' in t, (
             '★ 要走能拿到 `message`/`requeued` 的那个方法')

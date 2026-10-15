@@ -9,7 +9,7 @@ import re
 import sys
 from pathlib import Path
 
-REPO = Path(r'D:\OAS-dev\OnmyojiAutoScript')
+REPO = Path(__file__).resolve().parents[3]   # ★ [10-15] 去盘符（原为硬编码绝对路径）
 sys.path.insert(0, str(REPO))
 
 

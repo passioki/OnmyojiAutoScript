@@ -38,7 +38,10 @@ import pytest
 from module.config import task_catalog as TC
 
 REPO = Path(__file__).resolve().parents[3]
-OASX = Path(r'D:\OAS-dev\OASX-src')
+# ★ [10-15] 去盘符：前端仓库一律走解析器（★ 缺了就**响亮失败**，不跳过）
+from dev_tools.paths import require_oasx  # noqa: E402
+
+OASX = require_oasx()
 XML = REPO / 'module' / 'config' / 'i18n' / 'zh_CN.xml'
 QM = REPO / 'module' / 'config' / 'i18n' / 'zh_CN.qm'
 DART_CN = OASX / 'lib' / 'config' / 'translation' / 'i18n_cn.dart'

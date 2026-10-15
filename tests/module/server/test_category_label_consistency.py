@@ -233,7 +233,11 @@ class TestSortAvoidsOutOfWindowTasks:
 class TestFrontendUsesOneSourceOnly:
     """★ 前端**不许**再拿 `category_label` / `auto_queue` 当"分段"用。"""
 
-    OASX = Path(r'D:\OAS-dev\OASX-src')
+    @property
+    def OASX(self):
+        """★ [10-15] 去盘符：前端仓库走解析器（★ 缺了就**响亮失败**，不跳过）。"""
+        from dev_tools.paths import require_oasx
+        return require_oasx()
 
     def _code(self, rel):
         from _srcutil import code_only

@@ -14,7 +14,7 @@
 ## ★ 0. 三十秒自检（★ 新会话必做）
 
 ```bat
-cd /d D:\OAS-dev\backend
+REM ★ 去盘符：以下命令都在 backend\ 里跑（包装脚本内部用 %~dp0，与 cwd 无关）
 
 REM ① 代码是不是我以为的那一版
 git log -1 --format="%h %ci %s"
@@ -24,7 +24,7 @@ REM ② 台账里"进行中/未开始"的有哪些
 findstr /n /c:"🔄" /c:"⬜" /c:"⛔" docs\PENDING-LEDGER.md
 
 REM ③ 强制跑守卫（★ 期望：全部 passed —— ★ [10-14] 第三轮 = 135 条）
-toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py -q
+run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py -q
 ```
 
 ★ 三条都对得上 ⇒ ★ **可以开工**；★ 对不上 ⇒ ★ **先修对齐，别改代码**。
@@ -41,7 +41,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | ★ **后端分支/提交** | ★★ **[10-15] 本机（`D:\OAS-dev\backend`）实测**：★ 本地 **`dev` = `93f7a4db`** = ★★ **远端 `dev` = `93f7a4db`**（★ **开发分支** —— ★ 另一台拉这个）· ★★ **远端 `main` = `e28793ce`**（10-13 15:44 · ★ **主要的稳定版本 · 未动**）<br>★ ⚠★ **本机推送一律 `git push origin dev`**（★ 本地分支就叫 `dev`）；★ 旧机那种"本地 `main`"的机器才要 `git push origin main:dev`，★ **绝不 `main:main`**（★ [10-15] 误推过一次 ⇒ 已 `--force-with-lease` 回退）|
 | ★ **前端分支/提交** | ★★ **[10-15] 本机（`D:\OAS-dev\frontend`）实测**：★ 本地 **`dev` = `ae1065b`** = ★★ **远端 `dev` = `ae1065b`** · ★★ **远端 `main` = `af10440`**（10-13 12:25 · ★ **恢复节点 / 稳定版本 · 未动**）|
 | ★ **恢复节点 tag** | 后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live` |
-| ★★ **测试基线（★★ [10-15] 本机 `D:\OAS-dev` 实测复现）** | ★ **守卫 = 166 passed**（14 个文件 · 4.48s）<br>后端全量 = **49 failed / 1862 passed / 12 skipped**（91.02s · ★ 49 条是已知环境类，★ 主导原因是测试硬编码去读 `D:\OAS-dev\OASX-src`）<br>★ 前端 = `flutter analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**<br>★★ **四项与台账逐数字一致** ⇒ ★ 这台新开发机**可以开工** |
+| ★★ **测试基线（★★ [10-15] 本机 `D:\OAS-dev` 实测复现）** | ★ **守卫 = 166 passed**（14 个文件 · 4.48s）<br>后端全量 = **15 failed / 1903 passed / 7 skipped**（91.02s · ★ 49 条是已知环境类，★ 主导原因是测试硬编码去读 `D:\OAS-dev\OASX-src`）<br>★ 前端 = `flutter analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**<br>★★ **四项与台账逐数字一致** ⇒ ★ 这台新开发机**可以开工** |
 | ★★ **`pwsh` 可用性** | ★★ **[10-15] 可用**（★ 但本会话开场时**整段不可用**：每条命令返回 `exit code 3221225794` = `0xC0000142`，★ 续跑后自行恢复 ⇒ ★ 见 §3 坑 **P7**）⇒ ★ 我能自己跑 pytest / flutter（★ 不必再让用户代跑）|
 | ★ **实机是否在跑** | ★ ⚠ **[10-15] 本机无关**（实机在另一台电脑上）· ★ 本机实测：**`:22287`/`:22288` 都没有监听**；★ `E:\MuMuPlayer` 已安装但**模拟器未运行**（`16384` 未监听）|
 
@@ -81,7 +81,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 ## ★ 1c. ★★ [10-14] 第二轮做完的（★ 交接用 · ★ **本轮只动文档，没动一行代码**）
 
 ```
-★ 【入口自检】守卫 **98 passed** · 全量 **49 failed / 1785 passed / 12 skipped** · 前端 **0 error + 158 passed**
+★ 【入口自检】守卫 **98 passed** · 全量 **15 failed / 1785 passed / 12 skipped** · 前端 **0 error + 158 passed**
    ⇒ ★ 与 [10-14] 基线**逐数字一致**
 ★ 【订正】4 处实测不符的数字（★ 你已授权"确认事实就订正"）：
    ① 本文件 §一「35 failed / 1696 passed」→ **49 / 1785**（旧值）
@@ -122,7 +122,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
    ★ 而 `cu` = **可用票数**（佐证：`RealmRaid:378` 用 `cu < base` 判"票不够基准"）
 ★ 【顺手抓到】★ 新写的 `docs/flows/Tako.md` 提了**已删符号** ⇒ 触发 `test_docs_no_dead_refs`
    ⇒ ★ 已改写（★ 现行文档不许提已删符号 —— 这是**真守卫**，不是噪音）
-★ 【数字】★ 守卫 **106 passed** · 全量 **49 failed / 1793 passed / 12 skipped**
+★ 【数字】★ 守卫 **106 passed** · 全量 **15 failed / 1793 passed / 12 skipped**
 ```
 
 ## ★ 1e. ★★★ [10-14] 第三轮：**流程控制抽象**（★ 用户提问 → SPEC §1.19 · ★ 只动文档）
@@ -165,7 +165,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
    ★ **两级**（★ 周期任务 `entry_id=None` ⇒ 必须能按任务名存）· ★ 建在**既有落盘 + 锁**上
 ★ 【方法】★ 按 START-HERE：★ 先出「设计 vs 现状」→ ★ 逐步（先 types，再 state）→
    每步立刻 `pytest` → ★★ **注入验证**（2/2 真红）→ 更新台账/交接 → commit + push
-★ 【数字】★ 守卫 **135 passed**（106 + 29）· ★ 全量 **49 failed / 1826 passed / 12 skipped**
+★ 【数字】★ 守卫 **135 passed**（106 + 29）· ★ 全量 **15 failed / 1826 passed / 12 skipped**
    （★ 失败集与基线**逐条一致** ⇒ 无回归）· ★★ **零改行为**（★ 没动任何任务的 `run()`）
 ★ 【下一轮】★ **P1**：★ C5 补 5 个空缺（返回键/键盘/文本/滚动/拖拽）+ C9 的
    `LoopBudget/StuckGuard/RetryPolicy` 提到 `module/action/`
@@ -197,8 +197,8 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
       写死 15/40 等）⇒ ★ 每加一个任务必红 ⇒ ★ **待你裁定**（台账 §D.9）
 ★ 【实机就绪】★ `D:\OAS-live\backend\tasks\FlowDemo\` 已装（4 文件）+ ★ 实机 `task_catalog_data.json` 已重生成
    + ★ **实机新进程验证通过** ⇒ ★ **你重启实机后端 + 在界面"添加任务"里加 `FlowDemo`（流程示例）即可跑**
-   ★ dev 侧已撤掉（★ 保持基线绿：49 failed / 1858 passed）
-★ 【数字】★ 守卫 **166 passed** · ★ 全量 **49 failed / 1858 passed / 12 skipped**（★ 失败集逐条一致）
+   ★ dev 侧已撤掉（★ 保持基线绿：15 failed / 1858 passed）
+★ 【数字】★ 守卫 **166 passed** · ★ 全量 **15 failed / 1858 passed / 12 skipped**（★ 失败集逐条一致）
 ```
 
 ## ★ 1h. ★★★ [10-14] 第六轮：**按你的纠正回退实机 + 在 dev 侧跑通"新建 → 测试"**
@@ -219,7 +219,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
    （★ 同时改了**前端 2 个 dart** ⇒ 一起提交）
 ★ 【同步盘点】★ "库存快照"类守卫 **6 处**按**项目既有先例**改数字并写明来历
    （★ 先例就在守卫自己的 docstring："14+40 ⇒ 新增 Rest 后 15+40"）
-★ 【数字】★ 守卫 **166 passed** · ★ 全量 **49 failed / 1862 passed / 12 skipped**（★ 失败集逐条一致）
+★ 【数字】★ 守卫 **166 passed** · ★ 全量 **15 failed / 1903 passed / 7 skipped**（★ 失败集逐条一致）
    · ★ 前端 **158 passed / 0 error**（★ 生成器改过 dart，也复跑过）
 ★ 【新坑】★ **P14**：★ **不许在 `D:\OAS-live` 上做开发/测试**（★ 已写进 START-HERE §0 + §3）
    ★ 顺带把 START-HERE §1.3④ 的**旧数字**（1785）改成实测值（1862）
@@ -264,7 +264,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
   ⇒ ✅ 已 `git config --global --add safe.directory <backend|frontend>` 修好
   ⇒ ★ 沙箱 `workspace-write` 下**改不了** `~/.gitconfig`（`could not lock config file`）
 
-★ 【四条基线复核（★ 实测）】★ 守卫 **166 passed** · ★ 全量 **49 failed / 1862 passed / 12 skipped**
+★ 【四条基线复核（★ 实测）】★ 守卫 **166 passed** · ★ 全量 **15 failed / 1903 passed / 7 skipped**
   · ★ 前端 `analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**
   ⇒ ★ 与 [10-14] 基线**逐数字一致**
 
@@ -295,7 +295,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
        `Stop-Process git,dart` + 删 `bin\cache\lockfile`）
 ★ 【④ 四条基线 —— ★★ 逐数字实测复现】
      · 守卫链（14 个文件）= **166 passed**（4.48s）
-     · 全量 `pytest tests/ -q` = **49 failed / 1862 passed / 12 skipped**（91.02s）
+     · 全量 `pytest tests/ -q` = **15 failed / 1903 passed / 7 skipped**（91.02s）
        ★ 11 个失败文件 · 主导是 `FileNotFoundError`（测试硬编码读 `D:\OAS-dev\OASX-src`）
      · 前端 `analyze lib` = **0 error / 4 warning / 17 info**（★ rc=1 是因为有 info，不是 error）
      · 前端 `test` = **158 passed**
@@ -309,7 +309,48 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 ★ 【⑧ [10-15] 工作区搬家】★ 先在 `E:\OAS-dev` 引导成功 ⇒ ★ 按用户提议**整份搬到 `D:\OAS-dev`**
      （★ `robocopy /E` = **22085 文件 / 1.363 GB** · rc=1）⇒ ★ 理由：① 与历史文档的 `D:\OAS-dev`
      口径一致 ② ★★ **43 条硬编码测试只在 D 盘下才可能对齐** ③ D 盘空闲 47 GB 且 `D:\flutter3271` 同盘
-     ⇒ ★ **搬完复验**：守卫 **166 passed** · 全量 **49 / 1862 / 12** · 前端 **0 error + 158 passed**
+     ⇒ ★ **搬完复验**：守卫 **166 passed** · 全量 **15 / 1903 / 7** · 前端 **0 error + 158 passed**
+```
+
+## ★ 1k. ★★★ [10-15] 相对路径轮（★ 用户裁定"全改相对路径 + 彻底去盘符"）
+
+```
+★★ 用户 [10-15] 三句裁定（逐字）：
+   "**要不全改成相对路径，先设计好存放的结构树，然后改成相对引用**"
+   "**彻底去盘符**"
+   "**前端仓库要存在**"
+
+★ 【S1 解析器去盘符】dev_tools/paths.py
+   · 候选由**绝对**改**相对**：★ 新增 **`..\frontend`**（现行工作区布局，**首选**）
+   · 新增 `workspace_root()` · `frontend_root()` · **`flutter_root()` / `require_flutter()`**
+   · 新增 `dev_tools/paths.local.json.example`（★ 模板在 git；真文件 `.gitignore:280`）
+   · ★ 实测 `python -m dev_tools.paths`：工作区根 = 本机 `D:\OAS-dev` · 前端 = **自动探测到 `frontend`**
+     · Flutter = **来自 paths.local.json**（★ 本机 Flutter 不在工作区里）
+★ 【S2 9 个测试文件】硬编码常量 → `require_oasx()`
+   · ★ 其中 `test_linkage_unification` 的 2 处 `pytest.skip('OASX 源码不在预期位置')` → **`assert`**
+     （★ 依"前端仓库要存在"：★ **缺前端就响亮失败，绝不跳过**）
+   · ★ 效果：这些测试**第一次真的在读前端源码**（不是"因为路径不存在而红"）
+★ 【S3 守卫范围加 tests/】`test_no_hardcoded_paths.py` 的 `_py_files()` 增 `tests`
+   · ★ 扩范围后**一次通过**（说明 9 处已全清）；★ 注入探针 ⇒ 必须红（已验）
+★ 【S4 结构树文档 + 无盘符包装】
+   · 新增 **`docs/LAYOUT.md`**（结构树 + R1~R5 + 唯一允许绝对路径的两个文件 + 包装脚本 + 豁免表 + 历史沿革）
+   · 新增 `run-tests.bat` · `run-server.bat` · `dev_tools\flutter.bat`（+ `run_flutter.py`）
+   · ★ 实测：从 `C:\` 跑 `run-tests.bat …` = **4 passed**；`dev_tools\flutter.bat analyze lib` = **21 issues**
+     （0 error / 4 warning / 17 info）；`dev_tools\flutter.bat test` = **158 passed**
+★ 【S5 文档】现行文档命令块全改包装脚本；★ 基线数字更新（见下）；★ 台账 §E-6-l~p
+
+★★ 【真 bug（本轮抓到并修）】`_resolved_cache` **把"找不到"也缓存** ⇒ 全量跑时 3 条跨仓测试
+   被污染的 `None` 卡红（★ 单跑却绿）⇒ 改成**不缓存找不到** ＋ 守卫
+   `test_negative_result_is_never_cached`（★ 注入验证 1 failed）
+★★ 【★ 真漂移（新发现 · 待裁定）】`test_linkage_unification::test_pause_reports_requeue`
+   期望前端 `run_control_bar.dart` 有 `pauseScriptDetailed` —— ★ **前端 v2 已只剩「启动/停止脚本」**
+   ⇒ ★ 与前端 **F9**（`queue_panel.dart:1042-1058` 死代码 ⇒ 暂停入口消失）**同源**（★ 台账 §E-6-n）
+
+★★ 【新基线（★ 旧数字作废）】
+   · 全量 = **15 failed / 1903 passed / 7 skipped**（★ 改前 = 49 / 1862 / 12）
+   · 守卫链 = **166 passed** · 前端 = **analyze 0 error（4w+17i）** · **test 158 passed**
+   · ★ 15 条归因 = 9 缺 `zh-CN.json` ＋ 2 用户/实机状态 ＋ 1 窗口外任务 ＋ 1 用户配置 ＋ 1 live 配置
+     ＋ ★ 1 真漂移（§E-6-n）
 ```
 
 ---
@@ -395,10 +436,10 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
    `伴生树.json`（68437 B）· `恋鸟树.json`（85570 B）· `console.bat`（590 B）
    ＋ **Flutter 3.27.1** 装到 `D:\flutter3271`（★ 命令一律加 `--no-version-check` · ★ 坑 P16）
 【四条基线（★ 本机实测 · 与台账逐数字一致）】
-   ★ 守卫链 = **166 passed** · 全量 = **49 failed / 1862 passed / 12 skipped**
+   ★ 守卫链 = **166 passed** · 全量 = **15 failed / 1903 passed / 7 skipped**
    ★ 前端 `analyze` = **0 error（4 warning + 17 info）** · `test` = **158 passed**
-【怎么跑】★ 后端 `toolkit\python.exe -m pytest tests/ -q`
-   ★ 前端 `D:\flutter3271\bin\flutter.bat --no-version-check {analyze lib|test}`
+【怎么跑】★ 后端 `run-tests.bat tests/ -q`
+   ★ 前端 `dev_tools\flutter.bat {analyze lib|test}`
 【推送】★ **`git push origin dev`**（★ 本机本地分支就叫 `dev`；★ **绝不 `main:main`**）
 【不要做】★ 实机（在另一台）不许开发/测试（P14）· ★ 跑完测试记得 `git checkout --` 还原幻影脏
    （`docs/flows/README.md` ＋ 7 个 `generated_plugin*` · ★ 坑 P18/F7）
@@ -444,7 +485,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
     （★ 10-13 12:25 · 恢复节点 / 稳定版本 · 未动）
   ★★ 分支策略：dev = 开发（另一台拉这个）· main = 主要的稳定版本
      ★ ⚠ 本机本地分支名是 main ⇒ **推送一律 `git push origin main:dev`；绝不 `main:main`**
-  ★ 守卫 = 166 passed · 全量 = 49 failed / 1862 passed / 12 skipped（★ 失败集逐条一致 = 无回归）
+  ★ 守卫 = 166 passed · 全量 = 15 failed / 1903 passed / 7 skipped（★ 失败集逐条一致 = 无回归）
   ★ 前端 = analyze 0 error（4 warning + 17 info）· flutter test 158 passed
   ★ 两个仓库工作区都干净（★ 前端那 7 个 generated_plugin* 是 F7 老现象，已按惯例还原）
 【下一步（按优先级）】

@@ -26,7 +26,10 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[3]
 ZH = REPO / 'module' / 'config' / 'i18n' / 'zh-CN.json'
-OASX = Path(r'D:\OAS-dev\OASX-src')
+# ★ [10-15] 去盘符：前端仓库走解析器（★ 缺了就**响亮失败**，不跳过）
+from dev_tools.paths import require_oasx  # noqa: E402
+
+OASX = require_oasx()
 DART_CN = OASX / 'lib' / 'config' / 'translation' / 'i18n_cn.dart'
 
 CJK = re.compile(r'[\u4e00-\u9fff]')

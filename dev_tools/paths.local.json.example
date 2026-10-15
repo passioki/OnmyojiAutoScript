@@ -1,0 +1,13 @@
+{
+  "_说明": "★ 这是【机器私有】锚点示例。真正的文件叫 paths.local.json —— 它**不进 git**（.gitignore:280）。正常情况下【不需要】本文件：前端仓库只要在 <workspace>/frontend、Flutter 只要在 <workspace>/flutter*，解析器会自动找到。",
+  "_什么时候要填": [
+    "① 前端仓库不在 <workspace>/frontend（例如放在别的盘/别的目录）",
+    "② Flutter SDK 不在 <workspace>/flutter 或 <workspace>/flutter3271",
+    "③ 你想临时切换仓库（开发副本 / 实验副本）"
+  ],
+  "_解析优先级": "环境变量（OAS_REPO / OASX_REPO / FLUTTER_ROOT） > 本文件 > 相对推导 > 相对候选探测；★ 找不到会**报错**，绝不静默猜一个目录。",
+  "_文档": "docs/LAYOUT.md",
+  "oas": "",
+  "oasx": "",
+  "flutter": ""
+}

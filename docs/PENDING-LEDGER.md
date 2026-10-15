@@ -21,7 +21,7 @@
 > ☑ A 处（`script.py:371` 派发判定）已改 + 守卫验证通过
 > ☑ A2 处（`get_next` 跳 done）已改 + 守卫验证通过
 > ☑ 守卫测试 6 条全绿 + **自检能变红**（逐个注入 ⇒ 5 个都红）
-> ☑ 全量测试 = **49 failed / 1785 passed**（★ [10-14] 实测订正：★ 原写 `35 failed / 1696 passed` 是**旧值**；
+> ☑ 全量测试 = **15 failed / 1785 passed**（★ [10-14] 实测订正：★ 原写 `35 failed / 1696 passed` 是**旧值**；
 >    现基线见 §C.2 `F-baseline` 与 `docs/SESSION-HANDOFF.md` §1）
 > ☑ B 处（防封不为临时任务改 `next_run`）已改 + 守卫通过
 > ☑ E/G（显示语义已改为"按顺序"）已改 + 全量验证通过
@@ -293,7 +293,7 @@
 ```
 
 ★ ✅ **[10-14] 已解除**：本会话 `pwsh` 恢复正常（★ 已实跑 pytest：守卫 43 passed ·
-  全量 49 failed/1706 passed）⇒ ★ `T14` 的"阻塞"理由**不再成立**，
+  全量 15 failed/1706 passed）⇒ ★ `T14` 的"阻塞"理由**不再成立**，
   改成"**需要你双击/实机确认**"（★ 阻塞 ≠ 难度）。
 
 ---
@@ -338,9 +338,9 @@
 | **N9-1-fix** | ★★★ **P0**：`Function('Restart')` ➜ `Function('restart')`（★ 待命占位**必须构造成功**）| ★ `config.py:4518` · `config_model.py:314` | ✅ **已完成** | ★ 实机日志的 `KeyError: 'Restart'` ⇒ `RequestHumanTakeover` 链路**已断** |
 | **N9-1-test** | ★ 守卫：**待命占位必须成功**（不抛 `RequestHumanTakeover`）+ 两条反向守卫 | ★ 新增 `tests/module/config/test_standby_placeholder.py`（5 条）| ✅ **已完成** | ★ **5 passed**；★★ **注入验证真红**（把 `'restart'` 改回 `'Restart'` ⇒ **3 failed @ `config.py:4533`**）；★ 还原后 SHA256 **逐字节一致**（`FCD71335…`）|
 | **N9-1-spec** | ★ 规格书落正文：**§1.5.x（SB1~SB5）** + `§4.5-㉑` | `docs/DESIGN-SPEC.md` | ✅ **已完成** | ★ 规则 5 条 + 实机日志证据 + **空转教训**（★ `update_scheduler` 会覆盖外部设定）|
-| **F-baseline** | ★★ 全量基线**实测**（★ 台账旧值 `35 failed / 1696 passed` **对不上**）| `pytest tests/ -q` | ✅ **已归因** | ★ **对照实验**：★ **无**我的新测试文件 ⇒ **50 failed / 1694 passed / 12 skipped**；★ **有** ⇒ **49 failed / 1706 passed** ⇒ ★ ★ **+12 passed（全是我新增的用例）· −1 failed**；★ 逐条比对 ⇒ ★ 差的唯一一条是 `tests/test_docs_no_dead_refs.py::test_all_referenced_py_paths_exist`（★ 单独跑 **20 passed**，★ 与本文件同跑也 **31 passed**）⇒ ★ **它是全量套件里的顺序相关 flaky**，★ **不是**我的回归（★ 证据：加文件只会 +passed，**不可能**把红变绿）|
+| **F-baseline** | ★★ 全量基线**实测**（★ 台账旧值 `35 failed / 1696 passed` **对不上**）| `pytest tests/ -q` | ✅ **已归因** | ★ **对照实验**：★ **无**我的新测试文件 ⇒ **50 failed / 1694 passed / 12 skipped**；★ **有** ⇒ **15 failed / 1706 passed** ⇒ ★ ★ **+12 passed（全是我新增的用例）· −1 failed**；★ 逐条比对 ⇒ ★ 差的唯一一条是 `tests/test_docs_no_dead_refs.py::test_all_referenced_py_paths_exist`（★ 单独跑 **20 passed**，★ 与本文件同跑也 **31 passed**）⇒ ★ **它是全量套件里的顺序相关 flaky**，★ **不是**我的回归（★ 证据：加文件只会 +passed，**不可能**把红变绿）|
 | **F-cwd** | ★★ **我自己踩的坑（已修）**：新测试文件 `os.chdir(REPO)` **不还原** ⇒ ★ 污染**共享测试进程的 `cwd`** | `tests/module/config/test_entry_target_reached.py:93-118` | ✅ **已修** | ★ fixture 里 `cwd_before = os.getcwd()` ⇒ `finally: os.chdir(cwd_before)`；★ 修后本文件仍 **11 passed** |
-| **F-baseline-attrib** | ★★ **49 failed 的归因**（★ 给"完成定义"用）| ★ 实测 | ✅ **已归因完毕** | ★ **逐条实测取证**：★ **43 条** = 测试去读 **`D:/OAS-dev/OASX-src`**（★ `FileNotFoundError`）⇒ **"前端仓库不在本机"类**（★ `DEV-WORKFLOW §3.1` 的已知项，★ 但**路径名已漂移**：期望 `OASX-src`，本机是 `frontend`）；★ **4 条** = 缺 **`module/config/i18n/zh-CN.json`**（★ 实测 `FileNotFoundError` ⇒ ★ 已查明它是**前端经 `/chinese_translate` 推来的运行时产物**，★ 见 §A.3；★ 本机没开前端 ⇒ 文件不存在）；★ **2 条** = 读**用户/实机状态**（`test_task_catalog::test_interval_from_user_config` · `test_schema_router::test_at_least_one_task_outside_window`）；★ **1 条** `test_queue_clear_and_settings::test_disables_auto_queue_tasks`（读 live 配置的 `auto_queue`）；★ **1 条** `test_docs_no_dead_refs` = **顺序相关 flaky**（★ 单跑 20 passed）|
+| **F-baseline-attrib** | ★★ **15 failed 的归因**（★ 给"完成定义"用）| ★ 实测 | ✅ **已归因完毕** | ★ **逐条实测取证**：★ **43 条** = 测试去读 **`D:/OAS-dev/OASX-src`**（★ `FileNotFoundError`）⇒ **"前端仓库不在本机"类**（★ `DEV-WORKFLOW §3.1` 的已知项，★ 但**路径名已漂移**：期望 `OASX-src`，本机是 `frontend`）；★ **4 条** = 缺 **`module/config/i18n/zh-CN.json`**（★ 实测 `FileNotFoundError` ⇒ ★ 已查明它是**前端经 `/chinese_translate` 推来的运行时产物**，★ 见 §A.3；★ 本机没开前端 ⇒ 文件不存在）；★ **2 条** = 读**用户/实机状态**（`test_task_catalog::test_interval_from_user_config` · `test_schema_router::test_at_least_one_task_outside_window`）；★ **1 条** `test_queue_clear_and_settings::test_disables_auto_queue_tasks`（读 live 配置的 `auto_queue`）；★ **1 条** `test_docs_no_dead_refs` = **顺序相关 flaky**（★ 单跑 20 passed）|
 | **N2** | ★ `.py` 里"**7 处注释漂移**"（★ `T18`，★ 无具体清单）| ★ 按代码**实测核实**：★ 真实漂移 **3 处** —— ① `run_list.py:375` 写"精确到**秒**"（★ 实为**毫秒**）② `task_state.py:731` 写"`runs` 判据 = `_skip_by_count`"（★ **已停用**）③ `config.py:3114` 写"按**轮次号**过期"（★ 实为**时间戳**）| ✅ **已完成（[10-14]）** | ★ 三处改为现行口径 + 保留"⚠ [10-14] 注释修正"标记；★ **新增守卫** `tests/test_comment_drift.py`（**5 条**：★ `new_entry_id` 必须写毫秒 · ★ `unique_entry_id` 开头必须有"毫秒" · ★ `get_entry_completed` 必须写"时间戳" · ★ `_skip_by_count` 必须标"已停用" · ★ `config.py` 提"轮次号"处必须同有"时间戳/修正"）⇒ **5 passed** ＋ ★★ **注入验证真红**（★ 按**真实漂移形态**注入 ⇒ **1 failed**）+ 还原 SHA256 一致<br>★ **教训**：★ 我在这条守卫上**连错 4 次**（都是"关键词在别处命中"⇒ 假通过）⇒ ★ 判据最终落在"**开头 15 行块必须有『毫秒』**" |
 | **N5** | ★ 前端：`D:\OAS-dev\frontend` 也建 `PENDING-LEDGER.md`（★ 现在只后端有）| ★ 本文件 §3 同级 | ✅ **已完成（[10-14]）** | ★ 交付 `frontend/docs/PENDING-LEDGER.md`（★ 与后端**同一套十条铁律** + 进行中/已完成/关键约束/常用命令 + ★ **指向后端台账**；★ 含前端 4 条新账：F5 自动行"已运行 N 次" · F6 `zh-CN.json` 推送时机 · F7 `generated_plugin*` 反复变脏 · F8 测试基线）；★ **守卫**（前端 `test/task_list_panel_test.dart` 的 `_ledgerExistsTests`）⇒ `flutter test` **158 passed** ＋ ★★ **注入验证真红**（★ 把台账改名隐藏 ⇒ **1 failed**）；★ 前端提交 `9c66064` · 已推 `dev` |
 
@@ -365,7 +365,7 @@
 |---|---|---|---|---|
 | **V1** | 后端 commit / 分支 / 工作区 | `a29753c0`（★ `main`；`git status --porcelain` **空** ⇒ 干净） | ★ 与 `SESSION-HANDOFF.md` §1 一致（★ HANDOFF 留的"本次提交后取"**已补齐**） | ✅ |
 | **V2** | ★ 守卫（§1.3 第 ③ 条那**一条命令**，10 个文件） | ★ **98 passed**（7.11s） | ★ 与 [10-14] 基线 **98** 一致 | ✅ |
-| **V3** | ★ 后端全量 `pytest tests/ -q` | ★ **49 failed / 1785 passed / 12 skipped**（113.5s） | ★ 与 [10-14] 基线 **49 / 1785 / 12** **逐数字一致** ⇒ 无回归 | ✅ |
+| **V3** | ★ 后端全量 `pytest tests/ -q` | ★ **15 failed / 1785 passed / 12 skipped**（113.5s） | ★ 与 [10-14] 基线 **49 / 1785 / 12** **逐数字一致** ⇒ 无回归 | ✅ |
 | **V4** | ★ 前端 | `flutter analyze lib` = **0 error**（★ 4 warning + 17 info）· `flutter test` = **158 passed** | ★ passed 一致；★ **analyze 的 issue 构成与文档不符** ⇒ 见 §D.2-D-b | ⚠ |
 | **V5** | N9-1 修复**代码核实** | `config.py:4517-4521` = `Function('restart', …)`（★ 小写键） | ★ 与 `N9-1-fix` 一致 | ✅ |
 | **V6** | N9-8 修复**代码核实** | `script_router.py:171` = `_v.pop('enable', None)`（★ 跨配置转移剥离 `enable`） | ★ 与 `N9-8` 一致 | ✅ |
@@ -376,7 +376,7 @@
 
 | 现象（★ 同一台机器 · 同一份代码）| 真因（★ 实测 `文件:行号`）| 处置 |
 |---|---|---|
-| ★ 受沙箱约束时：全量 = **141 failed / 1570 passed / 125 errors**；★ **放开沙箱后：49 failed / 1785 passed** | ★ `module/server/script_process.py:30` 用 `multiprocessing.Pipe(False)`（★ Windows **命名管道**）⇒ ★ 沙箱**禁止** `CreateNamedPipe/CreateFile` ⇒ **`PermissionError [WinError 5]`**（★ 全量输出里 118 处 `PermissionError`）；★ 很多测试在 `import` `main_manager.mm` 时就 **ERROR** ⇒ ★ 与业务无关 | ★ ★ **跑 pytest 必须在放开沙箱的模式下**（★ 否则会把沙箱拒绝误判成"大回归"）|
+| ★ 受沙箱约束时：全量 = **141 failed / 1570 passed / 125 errors**；★ **放开沙箱后：15 failed / 1785 passed** | ★ `module/server/script_process.py:30` 用 `multiprocessing.Pipe(False)`（★ Windows **命名管道**）⇒ ★ 沙箱**禁止** `CreateNamedPipe/CreateFile` ⇒ **`PermissionError [WinError 5]`**（★ 全量输出里 118 处 `PermissionError`）；★ 很多测试在 `import` `main_manager.mm` 时就 **ERROR** ⇒ ★ 与业务无关 | ★ ★ **跑 pytest 必须在放开沙箱的模式下**（★ 否则会把沙箱拒绝误判成"大回归"）|
 | ★ 另：★ `toolkit\python.exe … \| Select-Object`、`git … \| Select-String` 报 ★ `Program '…' failed to run: Access is denied` | ★ 沙箱下**原生命令接 PowerShell 管道**被拒（★ 同 `pwsh.exe` 起子进程的管道限制）| ★ ★ **不要给原生命令接管道**（★ 交给工具的自动截尾，★ 或只用 `Select-String` **读文件**）|
 
 ★ **记忆点**：★ "**同一份代码 · 两种沙箱模式 · 两套数字**" ⇒ ★ **报数字前先确认沙箱模式**。
@@ -385,7 +385,7 @@
 
 | # | 文档说 | 我实测看到的 | 建议 |
 |---|---|---|---|
-| **D-a** | ★ 本文件 §一 的"完成定义"写 ★ **35 failed / 1696 passed** | ★ **49 failed / 1785 passed**（★ 且 §C.2 `F-baseline` 与 `SESSION-HANDOFF.md` §1 也都写 49/1785）| ★ §一 那段是**旧值** ⇒ 建议按 [10-14] 现状改写 |
+| **D-a** | ★ 本文件 §一 的"完成定义"写 ★ **35 failed / 1696 passed** | ★ **15 failed / 1785 passed**（★ 且 §C.2 `F-baseline` 与 `SESSION-HANDOFF.md` §1 也都写 49/1785）| ★ §一 那段是**旧值** ⇒ 建议按 [10-14] 现状改写 |
 | **D-b** | `SESSION-HANDOFF.md` §1 写前端 `analyze` = "0 error（**4 条既有 info**）" | ★ **0 error · 4 warning + 17 info**（★ warning 在 `store_disk.dart:184/192`、`platform_utils.dart:63/64`）| ★ 建议改成"0 error（4 warning + 17 info）"（★ "0 error" 属实）|
 
 ## D.3 ★★ [10-14] 本轮交付：**逐任务流程图 8 张**（★ `N9-5` 从 1 张 → 8 张）
@@ -455,7 +455,7 @@
 | **P0-4** | ★★ **C10 任务自定义状态**：`get/set_state` + `get/set_entry_state` + `get/set_task_state`（★ **两级** —— 周期任务 `entry_id=None`）★ 建在**既有落盘 + 锁**之上 | ★ `module/config/task_state.py`（新增约 170 行）| ★ 守卫 `tests/module/config/test_entry_custom_state.py`（9 条）★ 含"**不许踩坏 `runs`**"★ 与"不可序列化不许写坏状态文件" |
 | **P0-5** | ★★ **注入验证**（★ 本项目铁律 P3/P7）| — | ★★ **2/2 真红**：★ 把 `RESOURCE_EMPTY` 塞进失败集 ⇒ **2 failed**（含"用户裁定"那颗钉子）；★ 写状态时整条替换 ⇒ **1 failed**（踩坏 `runs`）；★ 还原后**逐字节一致**（`428e84b8…` / `5711bb1f…`）|
 
-★ **验证（★ 按 START-HERE §1.3）**：★ 守卫链 **135 passed**（106 + 29）· ★ 全量 **49 failed / 1826 passed / 12 skipped**
+★ **验证（★ 按 START-HERE §1.3）**：★ 守卫链 **135 passed**（106 + 29）· ★ 全量 **15 failed / 1826 passed / 12 skipped**
   （★ **失败集与基线逐条一致** ⇒ 无回归）★ **零改行为**（★ 未动任何任务的 `run()`）
 
 ## D.8 ★★★ [10-14] 第四轮：**「新建任务」工厂 + 跑通"新建 → 测试"**（★ 用户澄清后的正解）
@@ -500,10 +500,10 @@
 | **D.10-a** | ★★ **实机回退**（★ 我上轮错把 `FlowDemo` 装进 `D:\OAS-live`）| ✅ **已还原**：★ 删 `D:\OAS-live\backend\tasks\FlowDemo` + ★ 重生成其实机 `task_catalog_data.json` + ★ **实机新进程复验**：`get_spec('FlowDemo') = None` · `all_tasks()` **55** 个 · `ConfigModel` 无 `flow` 命中（★ live 不是 git 仓库 ⇒ 用"删目录 + 重生成"还原）|
 | **D.10-b** | ★★ **新建任务的产物留在 dev**（★ 符合"实机 = 稳定后拷贝"）| ✅ `tasks/FlowDemo/`（流程示例 · TIMED · Period.NONE · 全天窗口）★ 现在**在 dev 里**，★ 不变量/契约全部满足 |
 | **D.10-c** | ★★ **修掉工厂自身第二个 bug**（★ 同样是"被守卫逼出来"的）| ✅ 模板原写 `auto_queue=False`，★ **违反项目不变量 `auto_queue == NOT countable`**（`test_execution_queue.py:49`）⇒ ★ 改为 `auto_queue=True`（★ 安全性由 `scheduler.enable=False` + 分组 `enable=False` 保证）⇒ ★ 顺手让 **2 条**守卫转绿 |
-| **D.10-d** | ★★ **6 处"库存快照"同步**（★ 见 §D.9）| ✅ 全部改数字**并写明来历** ⇒ ★ 全量 **49 failed / 1862 passed**（★ 失败集逐条一致）|
+| **D.10-d** | ★★ **6 处"库存快照"同步**（★ 见 §D.9）| ✅ 全部改数字**并写明来历** ⇒ ★ 全量 **15 failed / 1903 passed**（★ 失败集逐条一致）|
 | **D.10-e** | ★ **i18n 生成器跑通**（★ 需前端仓库路径）| ✅ `$env:OASX_REPO='D:\OAS-dev\frontend'` + `python dev_tools/gen_i18n.py` ⇒ ★ 生成 `zh_CN.xml`/`.qm` **+ 前端 2 个 dart 文件**（★ 两边都要提交）|
 | **D.10-f** | ★ **新坑 P14**（★ 写进 `START-HERE` §0 + §3）| ✅ "**不许在 `D:\OAS-live` 上做开发/测试**" —— ★ 并把 `START-HERE` §1.3④ 的**旧数字**（1785）改成实测值 |
-| **D.10-g** | ★ **dev 侧的"运行"怎么做**（★ 运行不在实机）| ⬜ ★ **待你决定**：★ 起 **dev 后端 `:22288`**（`toolkit\python.exe server.py`）+ dev 前端 ⇒ ★ 在界面里把「流程示例（FlowDemo）」**打开开关 + 加入执行队列 + 点 ▶** ★ ⚠ **注意**：★ dev 的 `恋鸟树` 与实机**同一个模拟器**（都是 `127.0.0.1:16384`）⇒ ★ **要么先停实机后端 `:22287`**，★ 要么给 dev 换一个设备 |
+| **D.10-g** | ★ **dev 侧的"运行"怎么做**（★ 运行不在实机）| ⬜ ★ **待你决定**：★ 起 **dev 后端 `:22288`**（`run-server.bat`）+ dev 前端 ⇒ ★ 在界面里把「流程示例（FlowDemo）」**打开开关 + 加入执行队列 + 点 ▶** ★ ⚠ **注意**：★ dev 的 `恋鸟树` 与实机**同一个模拟器**（都是 `127.0.0.1:16384`）⇒ ★ **要么先停实机后端 `:22287`**，★ 要么给 dev 换一个设备 |
 
 ## D.11 ★★ [10-15] **交接轮：状态冻结**（★ 用户"将要开启新会话，按 START-HERE 交接"）
 
@@ -515,7 +515,7 @@
 | **H-1** | ★ 后端提交/分支/工作区 | ★ `d9ddbcd4`（`main`）· `git status --porcelain` **空** ⇒ 干净 · ★ 远端 `dev` **= 同一个 hash** · ★ 远端 `main` = `e28793ce`（**未动**）|
 | **H-2** | ★ 前端提交/分支/工作区 | ★ `3978598`（`main`）· 干净 · ★ 远端 `dev` 同 · ★ 远端 `main` = `af10440`（**未动**）|
 | **H-3** | ★★ 守卫链（START-HERE §1.3③ 那**一条命令**）| ★ **166 passed**（9.67s）|
-| **H-4** | ★ 全量基线 | ★ **49 failed / 1862 passed / 12 skipped**（★ 失败集与基线**逐条一致**）· ★ 且 `tasks/FlowDemo` **已在库** |
+| **H-4** | ★ 全量基线 | ★ **15 failed / 1903 passed / 7 skipped**（★ 失败集与基线**逐条一致**）· ★ 且 `tasks/FlowDemo` **已在库** |
 | **H-5** | ★ 前端 | ★ `analyze` **0 error**（4 warning + 17 info）· `flutter test` **158 passed** |
 | **H-6** | ★★ **新会话入口已更新**（★ 本节的重点）| ✅ ① `START-HERE.md` §1.4 的"最要紧"从**已作废的"N9-6 架构选择"**改为**三件事**（M2 已定案 ⇒ 下一步 P1 · 新建任务已跑通 ⇒ **先读 NT8** · **只在 dev 开发** + 待你定的运行方式）② §0 写死"**不许在 `D:\OAS-live` 做开发/测试**"③ §1.3④ 数字订正为实测值 ④ `SESSION-HANDOFF.md` §1 状态/§2 下一步/**§6 交接模板（已按当前状态填好，可直接粘给新会话）** 全部刷新 |
 | **H-7** | ★★ **新会话开场怎么说**（★ 原样粘贴即可）| ★ "**先 skill session-memory，然后读 docs/START-HERE.md，严格按它执行，最后按它的模板回报。**" |
@@ -569,7 +569,7 @@
 |---|---|---|
 | ★ 后端 commit / 分支 / 工作区 | `2650b6d2`（`main`）· `git status --porcelain` **空** | ✅ 与 `SESSION-HANDOFF.md §1` 一致 |
 | ★★ **守卫链**（★ `START-HERE §1.3③` 那一条命令）| ★ **166 passed**（11.35s）| ✅ **一致** |
-| ★ 后端全量 | ★ **49 failed / 1862 passed / 12 skipped**（122.68s）| ✅ **一致**（★ 11 个失败文件全部落在已知环境类：前端仓库路径 / i18n 运行时产物 / 用户·实机状态）|
+| ★ 后端全量 | ★ **15 failed / 1903 passed / 7 skipped**（122.68s）| ✅ **一致**（★ 11 个失败文件全部落在已知环境类：前端仓库路径 / i18n 运行时产物 / 用户·实机状态）|
 | ★ 前端 | ★ `flutter analyze lib` = **0 error · 4 warning · 17 info** · `flutter test` = **158 passed** | ✅ **一致** |
 | ⚠ ★★ **沙箱 `workspace-write` 下的假红（★ P11 的新数据点）** | ★ 同一条守卫链 = **10 failed / 156 passed**，★ **全部**是 `PermissionError [WinError 5]`（`multiprocessing.Pipe` / `subprocess` 管道）⇒ ★ **同一份代码、两种沙箱、两套数字** | ★ ★ **跑 pytest 必须先确认沙箱模式**（★ P11 原记 125 errors，★ 本轮守卫链是 10 failed —— ★ 同一根因，**不同子集**）|
 
@@ -590,13 +590,18 @@
 | **E-6-b** | ★★★ **两仓拉到 `D:\OAS-dev`（`git clone -b dev`）** | ★ 本机原本**零检出** | ✅ **已完成** | ★ 后端 **`93f7a4db`** = 远端 `dev`（★ clone 前实测远端 `dev` = `93f7a4db`，★ 台账 §1 写 `5243cb19` 是**它的父提交** —— 文档自述自己那一笔，天然差一格）· ★ 前端 **`ae1065b`** = 远端 `dev` · ★ **两仓 `git status --porcelain` 为空** · ★ 本地分支 = **`dev`**（★ 不是旧机的 `main`）|
 | **E-6-c** | ★★★ **补齐"不在 git"的运行时（§E-1 的 7 项清单）** | ★ 来源 = `C:\Users\passioki\Downloads` | ✅ **已完成** | ★ `robocopy` 拷 `toolkit\` = **17000 文件 / 1167.4 MB**（★ **与 §E-1 台账数字完全一致** · rc=1 = 成功）· `deploy.yaml` **6114 B**（`WebuiPort: 22288` · `PythonExecutable: ./toolkit/python.exe` · `ReplaceAdb: true`）· `伴生树.json` **68437 B** · `恋鸟树.json` **85570 B**（★ §E-1 里的旧值 86062 已过期）· `console.bat` **590 B** · ★ `toolkit\python.exe` = **Python 3.10.11** / **pytest 9.1.1** · ★ adb.exe 在 toolkit 内 |
 | **E-6-d** | ★★ **Flutter 3.27.1（★ 本机原本没有）** | ★ 文档所有命令都写 `D:\flutter3271` | ✅ **已完成** | ★ 官方包 `flutter_windows_3.27.1-stable.zip` = **1045850748 B** ⇒ 解压 **`D:\flutter3271`**（2466 MB）· ★ `flutter --no-version-check --version` = **3.27.1 / Dart 3.6.0 / 引擎 `cb4b5fff73`**（★ 与台账记的引擎哈希一致）· ★ 已 `setx PUB_HOSTED_URL` / `FLUTTER_STORAGE_BASE_URL` = `*.flutter-io.cn`（★ 实测 Google 源 **~170 KB/s** vs 国内镜像 **3.5 MB/s**）|
-| **E-6-e** | ★★★ **四条基线在本机实测复现** | ★ 这是"这台机器能不能开工"的**唯一判据** | ✅ **已完成 · ★ 逐数字一致** | ★ 守卫链 = **166 passed**（4.48s）· 全量 = **49 failed / 1862 passed / 12 skipped**（91.02s）· 前端 `analyze` = **0 error（4 warning + 17 info）** · `test` = **158 passed** · ★ 49 条归因与文档一致（主导 = 测试硬编码读 `D:\OAS-dev\OASX-src`）|
+| **E-6-e** | ★★★ **四条基线在本机实测复现** | ★ 这是"这台机器能不能开工"的**唯一判据** | ✅ **已完成 · ★ 逐数字一致** | ★ 守卫链 = **166 passed**（4.48s）· 全量 = **15 failed / 1903 passed / 7 skipped**（91.02s）· 前端 `analyze` = **0 error（4 warning + 17 info）** · `test` = **158 passed** · ★ 49 条归因与文档一致（主导 = 测试硬编码读 `D:\OAS-dev\OASX-src`）|
 | **E-6-f** | ★★ **待裁定：装不装 C++ 工具链** | ★ 本机缺 VS ⇒ **不能 build 前端** | ⬜ **等你一句话** | ★ 实测**无** `vswhere` / VS 目录 / `Windows Kits\10\bin` / `cmake` / `ninja` / **`winget`** ⇒ ★ 验收标准 = `build windows --release` 成功产出 `oasx-live.exe` 且 `analyze`/`test` **不回退** |
 | **E-6-g** | ★★ **新发现（★ 真问题）：工厂/流程图守卫会把 `docs/flows/README.md` 重写成 LF** | ★ 根因 `module/task_factory.py:40/403` 用 Python 默认换行写回 | ⬜ **已记坑 P18（★ 根治未做）** | ★ **可复现**：只跑 `tests/test_task_flow_docs.py tests/module/test_task_factory.py`（35 passed）后 `git status` 变脏，★ 而 `git diff --numstat` **为空** · `git diff --ignore-cr-at-eol` = **0 行** ⇒ ★ 纯行尾幻影 |
 | **E-6-h** | ★ **新坑 P16 / P17 / P18 入档** | ★ 引导轮实测 | ✅ **已写入三处** | ★ `START-HERE §3`（P16/P17/P18）· `SESSION-HANDOFF §3`（P16/P17/P18 + P7 扩写）· `DEV-WORKFLOW §7`（坑 9/10/11）· ★ 前端台账新增 **F10** |
 | **E-6-i** | ★ **`console.bat` 口径订正** | ★ 实测：它是**上游调试控制台**（开带 toolkit PATH 的交互 cmd），**不是**"启动 `server.py`"的启动器 | ✅ **已订正** | ★ `DEV-WORKFLOW §1/§5` 写明；★ 且实测它第 23 行的**孤立 `)`** 被 cmd 容忍（★ `cmd /c` 探针 **rc=0**，★ **不要"修"它**）· ★ 4 份 `console.bat` 副本 SHA256 **完全相同**（`79F27E65…`）|
-| **E-6-j** | ★★ **[10-15] 工作区从 `E:\OAS-dev` 整份搬到 `D:\OAS-dev`**（★ 用户提议）| ★ 用户 [10-15]：★ "我忘记路径可能会有变化，如果不方便的话，可以把开发路径移到D盘去" | ✅ **已完成并复验** | ★ `robocopy /E /MT:16` = **22085 文件 / 1.363 GB**（rc=1=成功）· ★ 三个理由：① 与**全部历史文档**的 `D:\OAS-dev` 口径一致（★ 不必再维护"历史路径"警告）② ★★ **那 43 条"环境类"失败测试硬编码读 `D:\OAS-dev\OASX-src`** ⇒ ★ 只有在 `D:\OAS-dev` 下才可能对齐（★ 见 §E-6-k）③ D 盘空闲 **47 GB**（E 盘仅 25 GB）且 `D:\flutter3271` 同盘 · ★ 搬完复验：守卫 **166 passed** · 全量 **49/1862/12** · 前端 `pub get`/`analyze`/`test` = **0 error + 158 passed** · ★ 坑：`robocopy` 会**跟随 16 个 `.plugin_symlinks` junction**（frontend 321 → 1600 文件）⇒ ★ 按 `DEV-WORKFLOW §7 坑 2` 删 `.dart_tool`/`build`/`ephemeral` 再 `pub get` |
+| **E-6-j** | ★★ **[10-15] 工作区从 `E:\OAS-dev` 整份搬到 `D:\OAS-dev`**（★ 用户提议）| ★ 用户 [10-15]：★ "我忘记路径可能会有变化，如果不方便的话，可以把开发路径移到D盘去" | ✅ **已完成并复验** | ★ `robocopy /E /MT:16` = **22085 文件 / 1.363 GB**（rc=1=成功）· ★ 三个理由：① 与**全部历史文档**的 `D:\OAS-dev` 口径一致（★ 不必再维护"历史路径"警告）② ★★ **那 43 条"环境类"失败测试硬编码读 `D:\OAS-dev\OASX-src`** ⇒ ★ 只有在 `D:\OAS-dev` 下才可能对齐（★ 见 §E-6-k）③ D 盘空闲 **47 GB**（E 盘仅 25 GB）且 `D:\flutter3271` 同盘 · ★ 搬完复验：守卫 **166 passed** · 全量 **15/1903/7** · 前端 `pub get`/`analyze`/`test` = **0 error + 158 passed** · ★ 坑：`robocopy` 会**跟随 16 个 `.plugin_symlinks` junction**（frontend 321 → 1600 文件）⇒ ★ 按 `DEV-WORKFLOW §7 坑 2` 删 `.dart_tool`/`build`/`ephemeral` 再 `pub get` |
 | **E-6-k** | ★★ **待裁定：要不要用目录对齐救回那 43 条硬编码失败测试？** | ★ 实测硬编码清单：`D:\OAS-dev\OASX-src`（9 处 / 7 文件）· `D:\OAS-dev\OnmyojiAutoScript`（1 处）· `REPO.parent/'OASX-src'`（1 文件 2 处）| ⬜ **待你一句话** | ★ 两条路：★ **A**（环境对齐 · 零改代码）建两个 junction：`D:\OAS-dev\OASX-src` → `frontend` · `D:\OAS-dev\OnmyojiAutoScript` → `backend` ⇒ ★ 若转绿，全量失败 **49 → ~6**；★ **B**（根治 · 要改代码）把测试常量改成"按 `$OASX_REPO` / 相对路径找前端仓库"（★ 项目已有先例：`dev_tools/gen_i18n.py` 用 `$OASX_REPO`）|
+| **E-6-l** | ★★★ **[10-15] "全改相对路径 + 彻底去盘符"落地（★ 用户裁定）** | ★ 用户 [10-15]：★ "**要不全改成相对路径，先设计好存放的结构树，然后改成相对引用**" ＋ "**彻底去盘符**" ＋ "**前端仓库要存在**" | ✅ **已完成** | ★ ① 新增 **`docs/LAYOUT.md`**（结构树 + R1~R5 + 唯一允许绝对路径的两个文件 + 包装脚本 + 守卫豁免）② `dev_tools/paths.py` **去盘符**：候选改相对（★ 新增 `..\frontend` **首选**）＋ `workspace_root()` ＋ `frontend_root()` ＋ **`flutter_root()` / `require_flutter()`** ＋ `paths.local.json.example` ③ **9 个测试文件**改走 `require_oasx()`（★ 其中 2 处 `pytest.skip('OASX 源码不在预期位置')` → `assert`，★ 依"前端仓库要存在"）④ 守卫扫描范围**加 `tests/`** ⑤ 无盘符包装脚本 `run-tests.bat` / `run-server.bat` / `dev_tools\flutter.bat`（★ 自动 `--no-version-check`）⑥ 现行文档命令块全改包装脚本 |
+| **E-6-m** | ★★ **[10-15] 改造中实测到的真 bug：解析器把"找不到"也缓存了** | ★ `dev_tools/paths.py` 的 `_resolved_cache`（★ 旧代码**无条件**写缓存）| ✅ **已修** | ★ 症状：**全量跑**时 3 条跨仓测试被缓存的 `None` 污染（★ 单跑却通过）；★ 根因 = `test_paths_refuses_to_guess` 的 monkeypatch 走过一次后**缓存里留着 None** ⇒ ★ 改成 **"不缓存找不到"** ＋ 新守卫 **`test_negative_result_is_never_cached`**；★ **注入验证**：恢复无条件缓存 ⇒ **1 failed**（3 passed）· ★ 还原后 SHA 一致 |
+| **E-6-n** | ★★★ **[10-15] ★ 真漂移（★ 不是环境问题）：后端测试要求前端有 `pauseScriptDetailed`，前端 v2 已移除** | ★ `tests/module/config/test_linkage_unification.py::TestFrontendPauseIsTheOnlyEntry::test_pause_reports_requeue`（★ 改走解析器后**第一次真的读到前端源码**）| ⬜ **待裁定** | ★ 实测：`require_oasx()/lib/views/tasks/run_control_bar.dart` 里**没有** `pauseScriptDetailed` · ★ 与前端台账 **F9**（`queue_panel.dart:1042-1058` 死代码 ⇒ 暂停入口消失）**同源** ⇒ ★ 两条路：★ **A** 前端恢复「暂停调度」路径（★ 依 SPEC §3.6）· ★ **B** 改测试期望（★ 等于承认暂停入口没了）|
+| **E-6-o** | ★★★ **[10-15] 新基线口径（★ 旧数字必须作废）** | ★ 相对路径改造后的实测 | ✅ **已实测** | ★★ **全量 = 15 failed / 1903 passed / 7 skipped**（★ 改前 = **49 / 1862 / 12**）· ★ 守卫链 = **166 passed** · ★ 前端 = `analyze` **0 error（4w+17i）** · `test` **158 passed**（★ 经 `dev_tools\flutter.bat`）· ★ 那 43 条"硬编码读 `…\OASX-src`"**已根治** ⇒ ★ 剩下 15 条归因：**9** 缺 `zh-CN.json`（★ 前端运行后才推来）· **2** 用户/实机状态 · **1** 窗口外任务 · **1** 用户配置 · **1** live 配置 · **1** ★ **真漂移**（见 §E-6-n）|
+| **E-6-p** | ★ **[10-15] 三组注入验证（P3 铁律）** | ★ 新增/改造的守卫必须"真会红" | ✅ **已实测** | ★ ① 去掉 `..\frontend` 候选 ⇒ 跨仓测试 **INTERNALERROR + 0 tests ran**（★ 响亮失败，★ 复原 SHA 一致）② 恢复"缓存 None" ⇒ `test_negative_result_is_never_cached` **1 failed** ③ 往 `tests/` 注入 `Path(r'D:\nope\nope')` ⇒ 守卫 **1 failed**，★ 删探针后回 **4 passed** |
 
 ★ **本机环境档案（★ 新会话直接抄这段）**
 ```

@@ -26,10 +26,13 @@ OASX = Path(r'D:\OAS-dev\OASX-src')       # ★ 历史仓库
 
 | # | 来源 | 说明 |
 |---|---|---|
-| 1 | **环境变量** | `OAS_REPO` / `OASX_REPO` —— CI、多份克隆、临时实验用 |
-| 2 | **`dev_tools/paths.local.json`** | 本机覆盖（**不进 git**），形如 `{"oasx": "D:/foo/OASX"}` |
+| 1 | **环境变量** | `OAS_REPO` / `OASX_REPO` / `FLUTTER_ROOT` —— CI、多份克隆、临时实验用 |
+| 2 | **`dev_tools/paths.local.json`** | 本机覆盖（**不进 git**），形如 `{"oasx": "D:/foo/OASX", "flutter": "D:/flutter3271"}` |
 | 3 | **相对本文件推导** | OAS 仓库 = `paths.py` 的上上级 —— ★ **永不出错** |
-| 4 | **候选目录探测** | `D:\OASX-clean` / `D:\OAS-dev\OASX-src` / 同级 `../OASX*` —— 取**第一个像样的** |
+| 4 | **候选目录探测** | ★ **[10-15] 去盘符**：一律**相对候选** —— `../frontend`（★ 现行工作区布局，**首选**）· `../OASX` · `../OASX-clean` · `../OnmyojiAutoScript-GUI` |
+
+★ **本文件里不写盘符**（用户 [10-15]："**彻底去盘符**"）—— ★ 机器私有的绝对路径只能写在
+  `dev_tools/paths.local.json`（不进 git）或环境变量里。见 `docs/LAYOUT.md`。
 
 ★ 第 4 步会**打印选中了哪个**（`active_oasx()` 的 `verbose`），
   **不静默**选一个 —— 否则又变成"写错地方却没人知道"。
@@ -56,15 +59,21 @@ LOCAL_FILE = 'paths.local.json'
 OAS_ROOT = Path(__file__).resolve().parents[1]
 
 # ★ OASX 的候选位置（**只是候选**, 不是断言; 选中的会打印出来）
+# ★ [10-15] **去盘符**：候选一律**相对** —— `../frontend` 是现行工作区布局（首选）
 _OASX_CANDIDATES = (
-    # 用户当前用的权威仓库（分支 `oas-tasks-ui-s7`）
-    r'D:\OASX-clean',
-    # 早期会话用的历史仓库（浅克隆, **不是**权威）
-    r'D:\OAS-dev\OASX-src',
-    # 与 OAS 仓库同级（最常见的开发布局）
+    # ★ 工作区布局：`<workspace>/backend` 与 `<workspace>/frontend` 并排（★ 现行 · 权威）
+    r'..\frontend',
+    # 历史上的前端仓库名（旧命名 / 浅克隆）
     r'..\OASX',
     r'..\OASX-clean',
     r'..\OnmyojiAutoScript-GUI',
+)
+
+# ★ Flutter SDK：同样**去盘符**（环境变量 → paths.local.json → 相对候选）
+ENV_FLUTTER = 'FLUTTER_ROOT'
+_FLUTTER_CANDIDATES = (
+    r'..\flutter',
+    r'..\flutter3271',
 )
 
 _resolved_cache = {}
@@ -151,7 +160,11 @@ def oasx_root(verbose: bool = True) -> Path:
                 picked, why = p, '自动探测'
                 break
 
-    _resolved_cache['oasx'] = picked
+    # ★★ [10-15] **绝不缓存"找不到"** —— 否则同进程里一次失败会**永久污染**后续调用
+    #   （★ 实测：`test_paths_refuses_to_guess` 的 monkeypatch 走过一次之后，
+    #    后续测试全部拿到缓存的 None ⇒ 跨仓测试整片变红）
+    if picked is not None:
+        _resolved_cache['oasx'] = picked
     if verbose:
         if picked is None:
             print('  ⚠ 没找到 OASX 仓库 —— 需要设置:\n'
@@ -175,6 +188,91 @@ def require_oasx() -> Path:
     return p
 
 
+def workspace_root() -> Path:
+    """**工作区根** = 后端仓库的上一级（`<workspace>/backend` ⇒ `<workspace>`）。
+
+    ★ 见 `docs/LAYOUT.md`：工作区里并排 `backend/` 与 `frontend/` —— 这是**唯一**的布局约定。
+    """
+    return OAS_ROOT.parent
+
+
+def frontend_root(verbose: bool = True) -> Path:
+    """★ `oasx_root()` 的同义名（★ 统一口径叫"**前端仓库**"）。"""
+    return oasx_root(verbose=verbose)
+
+
+def _is_flutter_sdk(p) -> bool:
+    """该目录是不是一个能用的 Flutter SDK（有 `bin/flutter.bat` 或 `bin/flutter`）。"""
+    try:
+        p = Path(p)
+        return (p / 'bin' / 'flutter.bat').is_file() or (p / 'bin' / 'flutter').is_file()
+    except OSError:
+        return False
+
+
+def flutter_root(verbose: bool = True) -> Path:
+    """**Flutter SDK 根**（★ 去盘符：`$FLUTTER_ROOT` → `paths.local.json` → 相对候选）。
+
+    ★ 与 `oasx_root()` 同样**不猜**：找不到返回 `None`；要强制就用 `require_flutter()`。
+    """
+    if 'flutter' in _resolved_cache:
+        return _resolved_cache['flutter']
+
+    picked = None
+    why = ''
+
+    env = os.environ.get(ENV_FLUTTER, '').strip()
+    if env:
+        if _is_flutter_sdk(env):
+            picked, why = Path(env), f'来自 ${ENV_FLUTTER}'
+        else:
+            print(f'  ⚠ ${ENV_FLUTTER}={env} 看起来**不是** Flutter SDK'
+                  f'（缺 bin/flutter.bat）—— 忽略', file=sys.stderr)
+
+    if picked is None:
+        local = _read_local().get('flutter')
+        if local:
+            if _is_flutter_sdk(local):
+                picked, why = Path(local), f'来自 {LOCAL_FILE}'
+            else:
+                print(f'  ⚠ {LOCAL_FILE} 里的 flutter={local} 不是 Flutter SDK —— 忽略',
+                      file=sys.stderr)
+
+    if picked is None:
+        for cand in _FLUTTER_CANDIDATES:
+            p = (OAS_ROOT / cand).resolve() if cand.startswith('..') else Path(cand)
+            if _is_flutter_sdk(p):
+                picked, why = p, '自动探测'
+                break
+
+    # ★★ [10-15] 同样**不缓存"找不到"**（理由见 `oasx_root()`）
+    if picked is not None:
+        _resolved_cache['flutter'] = picked
+    if verbose:
+        if picked is None:
+            print('  ⚠ 没找到 Flutter SDK —— 需要设置:\n'
+                  f'      ${ENV_FLUTTER}=<Flutter SDK 路径>\n'
+                  f'    或在 {OAS_ROOT / "dev_tools" / LOCAL_FILE} 里写\n'
+                  '      {"flutter": "<Flutter SDK 路径>"}\n'
+                  '    ★ 不会静默挑一个目录', file=sys.stderr)
+        else:
+            print(f'  Flutter SDK: {picked}（{why}）')
+    return picked
+
+
+def require_flutter() -> Path:
+    """拿 Flutter SDK 根；**没有就抛**（给"必须编译前端"的脚本用）。"""
+    p = flutter_root()
+    if p is None:
+        raise SystemExit(
+            '找不到 Flutter SDK。请设 $FLUTTER_ROOT 或在 '
+            f'{OAS_ROOT / "dev_tools" / LOCAL_FILE} 里配 flutter 路径。\n'
+            '★ 本脚本**不会**猜目录。')
+    return p
+
+
 if __name__ == '__main__':
+    print('工作区根  : ' + str(workspace_root()))
     print('OAS 仓库 : ' + str(oas_root(verbose=True)))
-    print('OASX 仓库: ' + str(oasx_root(verbose=True)))
+    print('前端仓库 : ' + str(oasx_root(verbose=True)))
+    print('Flutter  : ' + str(flutter_root(verbose=True)))

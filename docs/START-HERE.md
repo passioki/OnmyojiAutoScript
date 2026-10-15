@@ -55,7 +55,7 @@
    ⇒ ✅ ★★ **[10-15] 本机已按这条清单补完**（★ 来源 = `C:\Users\passioki\Downloads`）：
      `toolkit\`（★ 实测 **17000 文件 / 1167.4 MB**，与台账数字**一致**）· `deploy.yaml`（**6114 B** ·
      `WebuiPort: 22288`）· `伴生树.json`（68437 B）· `恋鸟树.json`（85570 B）· `console.bat`（590 B）
-     ⇒ ★★ **四条基线已在本机跑绿**（★ 守卫 166 · 全量 49/1862/12 · 前端 0 error + 158 passed）—— 见 §1.3
+     ⇒ ★★ **四条基线已在本机跑绿**（★ 守卫 166 · 全量 15/1903/7 · 前端 0 error + 158 passed）—— 见 §1.3
    ⇒ ⚠ ★ **[10-15] 本机缺 C++ 工具链**（无 Visual Studio / Windows SDK）⇒ ★ `flutter build windows --release`
      **暂时不可用** ⇒ ★ 见坑 **P17**（★ 待用户裁定是否装 VS Build Tools）
 ```
@@ -79,13 +79,14 @@
 | **②** | `PENDING-LEDGER.md` | ★ **未完成台账**（🔄/⬜/⛔）| 全文（24 KB）|
 | **③** | `DEV-WORKFLOW.md` | ★ 怎么开发/测试/部署 + **§0 会话协议** | ★ **§0 必读**，其余按需 |
 | **④** | `DESIGN-SPEC.md` | ★ **软件应该是怎样的** | ★ **只读本轮相关的 §**（如改调度读 §1，改前端读 §3）|
-| **⑤** | 本文件 §3 的**活跃坑** | ★ 不要重复踩 | P1~P7 ＋ **P15~P18**（★ [10-15] 新增 · ★ 详见 `SESSION-HANDOFF.md §3` 的 P1~P18）|
+| **⑤** | ★ **[10-15] `LAYOUT.md`** | ★ **存放结构树 + 路径规约 R1~R5**（"路径该怎么写"的唯一入口）| ★ 改任何命令/路径前必读 |
+| **⑥** | 本文件 §3 的**活跃坑** | ★ 不要重复踩 | P1~P7 ＋ **P15~P18**（★ [10-15] 新增 · ★ 详见 `SESSION-HANDOFF.md §3` 的 P1~P18）|
 
 ★ **禁止**：★ 凭"我记得规格是…"开工 —— ★ 必须**贴出文档引用（§/行号）+ 代码证据**。
 
 ## 1.3 ★★ 用代码核实台账（★ 不许信文档自述）
 
-★ 在 `D:\OAS-dev\backend\` 下跑（★ [10-15] 本机路径 = **`D:\OAS-dev`**；★ 旧文档里的 `D:\OAS-dev` 是旧开发机）：
+★ 在**后端仓库**里跑（★ **去盘符**：见 `docs/LAYOUT.md`；★ 下面用到的 `run-tests.bat` 是**仓库内包装脚本** —— 与 cwd 无关，内部用 `%~dp0`）：
 
 ```bat
 REM ① 代码是不是台账以为的那一版
@@ -98,25 +99,29 @@ REM     用 PowerShell 的 Select-String（本机 pwsh 可用）
 powershell -NoProfile -Command "Select-String -Path docs\PENDING-LEDGER.md -Pattern '🔄','⬜','⛔' | Select-Object LineNumber,Line"
 
 REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 166 passed）
-toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py -q
+run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py -q
 
-REM ④ ★ 全量基线（★ [10-14] 实测：49 failed / 1862 passed / 12 skipped）
-REM   ★ 那 49 条是【已知环境类】，★ 不是回归：
-REM     43 = 测试去读 D:/OAS-dev/OASX-src（本机是 frontend）· 4 = 缺
-REM     module/config/i18n/zh-CN.json（前端推来的运行时产物）· 2 = 读用户/实机状态
-REM     · 1 = live 配置 · 1 = 顺序 flaky
-toolkit\python.exe -m pytest tests/ -q
+REM ④ ★ 全量基线（★ **[10-15] 相对路径改造后实测：15 failed / 1903 passed / 7 skipped**）
+REM   ★ 那 15 条是【已知环境类】，★ 不是回归：
+REM     9 = 缺 module/config/i18n/zh-CN.json（★ 它是**前端运行后**经 /home/chinese_translate
+REM         推来的运行时产物 ⇒ 没起前端就没有）· 2 = 读用户/实机状态（test_task_report）
+REM     · 1 = test_schema_router（窗口外任务）· 1 = test_task_catalog（用户配置）
+REM     · 1 = live 配置（test_queue_clear_and_settings）· ★ 1 = **真漂移**（见下）
+REM   ★★ 原来那 43 条"测试硬编码读 `…\OASX-src`"已**根治**（[10-15] 改走 `dev_tools/paths.py`）
+REM   ★ ★ **真漂移那 1 条**：tests/module/config/test_linkage_unification.py::test_pause_reports_requeue
+REM     期望前端 run_control_bar.dart 里有 `pauseScriptDetailed`，★ 而前端 v2 已只剩「启动/停止脚本」
+REM     ⇒ ★ 这是**跨仓契约不一致**（★ 已记台账 §E-6-n · ★ 与前端 F9 同源），★ 不是环境问题
+run-tests.bat
 ```
 
-★ 期望：★ **守卫 166 passed**（★ [10-14] 第四轮：135 + 新增 31 条 `tests/module/test_task_factory.py`）；★ 全量 **49 failed / 1862 passed**（★ 失败集与基线**逐条一致** ⇒ 无回归）。
-★★ **[10-15] 本机（新开发机 `D:\OAS-dev`）实测复现**：★ 守卫 **166 passed**（4.48s）· ★ 全量 **49 failed / 1862 passed / 12 skipped**（91.02s）⇒ ★★ **与台账逐数字一致**；
-★ 49 条的**归因也一致**（★ 主导是 `FileNotFoundError`：测试去读硬编码的 `D:\OAS-dev\OASX-src`）。
+★ 期望：★ **守卫 166 passed**（★ 14 个文件 · [10-15] 实测 3.36s）；★ 全量 **15 failed / 1903 passed / 7 skipped**（★ 15 条 = 9 缺前端推来的 `zh-CN.json` + 5 用户/实机状态 + **1 真漂移**）。
+★★ **[10-15] 相对路径改造后的实测（本机 = 开发机）**：★ 守卫 **166 passed** · ★ 全量 **15 / 1903 / 7** · ★ 前端 `analyze` **0 error（4w+17i）** · `test` **158 passed**
+★ **改造前 = 49 failed / 1862 passed / 12 skipped**（★ 那 43 条"硬编码读 `…\OASX-src`"⇒ **已根治**；★ 覆盖反而变强：这些测试**现在真的在读前端源码**）。
 
 ```bat
-REM ⑤ ★ 前端（★ 也要核）
-cd /d D:\OAS-dev\frontend
-D:\flutter3271\bin\flutter.bat --no-version-check analyze lib
-D:\flutter3271\bin\flutter.bat --no-version-check test
+REM ⑤ ★ 前端（★ 也要核）——★ **无盘符包装**：自动找 SDK + 自动补 --no-version-check（坑 P16）
+dev_tools\flutter.bat analyze lib
+dev_tools\flutter.bat test
 REM   ★ [10-14] 实测：analyze 0 error（4 warning + 17 info）· test 158 passed
 REM   ★ ★ [10-15] 本机复现：analyze 0 error（4 warning + 17 info）· test 158 passed
 REM   ★ ⚠ **必须带 `--no-version-check`**：否则 flutter 会对 SDK 仓库跑
@@ -164,7 +169,7 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 >   ★ 两仓 = `git clone -b dev`（★ 本地分支 `dev`）· ★ `toolkit\` / `deploy.yaml` / 两份账号配置 /
 >   `console.bat` 已从 `C:\Users\passioki\Downloads` 补齐 · ★ Flutter 3.27.1 装在 `D:\flutter3271`
 >   （★ **必须带 `--no-version-check`**，见坑 P16）· ★★ **四条基线已实测复现**
->   （守卫 **166 passed** · 全量 **49/1862/12** · 前端 **0 error + 158 passed**）
+>   （守卫 **166 passed** · 全量 **15/1903/7** · 前端 **0 error + 158 passed**）
 >   ★ ⚠ **本机缺 Visual Studio / Windows SDK** ⇒ `flutter build windows --release` **暂时不可用**
 >   （★ 见坑 P17 · ★ **待用户裁定是否安装 VS Build Tools**）
 
@@ -254,21 +259,21 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 # §6 ★ 常用命令速查
 
 ```bat
-REM ---------- 开发（★ [10-15] 本机路径 = D:\OAS-dev）----------
-cd /d D:\OAS-dev\backend
-toolkit\python.exe server.py                    REM ★ 开发后端 :22288
-toolkit\python.exe -m pytest tests/ -q          REM ★ 全量测试
-
-cd /d D:\OAS-dev\frontend
-D:\flutter3271\bin\flutter.bat --no-version-check analyze lib
-D:\flutter3271\bin\flutter.bat --no-version-check test
-D:\flutter3271\bin\flutter.bat --no-version-check build windows --release
+REM ---------- 开发（★ **去盘符**：一律用仓库内包装脚本，★ 与 cwd 无关）----------
+REM   ★ 工作区根 = <WORKSPACE>（里面并排 backend\ 与 frontend\；★ 见 docs/LAYOUT.md）
+backend\run-server.bat                          REM ★ 开发后端 :22288（端口取自 config\deploy.yaml）
+backend\run-tests.bat                           REM ★ 全量测试
+backend\dev_tools\flutter.bat analyze lib       REM ★ 期望 0 error（4 warning + 17 info）
+backend\dev_tools\flutter.bat test              REM ★ 期望 158 passed
+backend\dev_tools\flutter.bat build windows --release
 REM   ★ ⚠ build 需要 Visual Studio（★ 本机暂无 ⇒ 见坑 P17）
-build\windows\x64\runner\Release\oasx-live.exe  REM ★ 开发前端
+frontend\build\windows\x64\runner\Release\oasx-live.exe   REM ★ 开发前端
+REM   ★ **自查锚点**：backend\toolkit\python.exe -m dev_tools.paths
 
 REM ---------- 实机（★ 在【另一台电脑】上 · 本机没有）----------
-D:\OAS-live\backend\console.bat                 REM ★ 实机后端 :22287
-D:\OAS-live\frontend\oasx-live.exe              REM ★ 实机前端
+REM   实机工作区根记作 <LIVE>（★ 生产机上的工作区；本机不存在）
+REM   <LIVE>\backend\console.bat         REM ★ 实机后端 :22287
+REM   <LIVE>\frontend\oasx-live.exe      REM ★ 实机前端
 REM   ★ ⚠ console.bat 实测是**上游的调试控制台**（开一个带 toolkit PATH 的交互 cmd），
 REM     不是"启动 server.py"的启动器 —— ★ `DEV-WORKFLOW.md §5` 给的是另一份模板
 

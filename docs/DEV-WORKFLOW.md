@@ -110,6 +110,10 @@
 
 # §1 ★ 目录结构（唯一真相 = **git**）
 
+> ★★ **[10-15] 结构树与路径规约（R1~R5）已抽到 `docs/LAYOUT.md`** —— ★ **"路径该怎么写"一律看它**；
+> ★ 本节只保留最小目录树与"哪些不进 git"的清单。★ 命令一律走**无盘符包装脚本**：
+> `run-tests.bat` / `run-server.bat` / `dev_tools\flutter.bat`（★ 内部用 `%~dp0`，与 cwd 无关）。
+
 ```
 D:\OAS-dev\                              ← ★★ **唯一开发工作区**
 │
@@ -164,15 +168,15 @@ D:\OAS-dev\                              ← ★★ **唯一开发工作区**
 
 ```bat
 REM ★ 后端（开发）
-cd /d D:\OAS-dev\backend
-toolkit\python.exe server.py
+REM ★ 去盘符：以下命令都在 backend\ 里跑（包装脚本内部用 %~dp0，与 cwd 无关）
+run-server.bat
 REM ★ 默认监听 127.0.0.1:22288（见 config\deploy.yaml 的 WebuiPort）
 ```
 
 ```bat
 REM ★ 前端（开发）—— 改完代码后重新编译
-cd /d D:\OAS-dev\frontend
-D:\flutter3271\bin\flutter.bat build windows --release
+REM ★ 去盘符：前端命令一律走 backend\dev_tools\flutter.bat（自动找 SDK）
+dev_tools\flutter.bat build windows --release
 build\windows\x64\runner\Release\oasx-live.exe
 ```
 
@@ -191,8 +195,8 @@ build\windows\x64\runner\Release\oasx-live.exe
 ## 3.1 后端自动化测试
 
 ```bat
-cd /d D:\OAS-dev\backend
-toolkit\python.exe -m pytest tests/ -q
+REM ★ 去盘符：以下命令都在 backend\ 里跑（包装脚本内部用 %~dp0，与 cwd 无关）
+run-tests.bat tests/ -q
 ```
 
 ★ **已知的非本次失败**（★ 与改动无关，读它们是"前端仓库不在本机"）：
@@ -207,9 +211,9 @@ toolkit\python.exe -m pytest tests/ -q
 ## 3.2 ★★ 改"调度/计数/循环"时**必须**跑的两组守卫
 
 ```bat
-cd /d D:\OAS-dev\backend
-toolkit\python.exe -m pytest tests/module/config/test_loop_rounds.py -q
-toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tests/tasks/test_effective_target.py -q
+REM ★ 去盘符：以下命令都在 backend\ 里跑（包装脚本内部用 %~dp0，与 cwd 无关）
+run-tests.bat tests/module/config/test_loop_rounds.py -q
+run-tests.bat tests/module/config/test_no_false_completion.py tests/tasks/test_effective_target.py -q
 ```
 
 | 测试文件 | 守什么 |
@@ -239,9 +243,9 @@ REM ③ 还原   —— ★ 必须回绿
 ## 3.4 前端
 
 ```bat
-cd /d D:\OAS-dev\frontend
-D:\flutter3271\bin\flutter.bat --no-version-check analyze lib     REM ★ 期望 0 error（★ [10-15] 本机实测：0 error / 4 warning / 17 info）
-D:\flutter3271\bin\flutter.bat --no-version-check test            REM ★ 单元测试（★ [10-15] 本机实测：158 passed）
+REM ★ 去盘符：前端命令一律走 backend\dev_tools\flutter.bat（自动找 SDK）
+dev_tools\flutter.bat analyze lib     REM ★ 期望 0 error（★ [10-15] 本机实测：0 error / 4 warning / 17 info）
+dev_tools\flutter.bat test            REM ★ 单元测试（★ [10-15] 本机实测：158 passed）
 REM ★ ⚠ **必须带 `--no-version-check`** —— 否则 flutter 对 SDK 仓库跑 `git fetch --tags`
 REM   （611285 个对象）⇒ 在当前网络下**挂死**（★ §7 坑 9）
 REM ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --release` 暂不可用（★ §7 坑 10）
@@ -362,13 +366,13 @@ pause
 
 ③ 验后端
    cd backend
-   toolkit\python.exe -m pytest tests/module/config/test_loop_rounds.py -q   REM ★ 期望 8 passed
-   toolkit\python.exe server.py                                             REM ★ 端口起来
+   run-tests.bat tests/module/config/test_loop_rounds.py -q   REM ★ 期望 8 passed
+   run-server.bat                                             REM ★ 端口起来
 
 ④ 编前端（★ 必须，因为 ephemeral/build 不在 git）
    cd frontend
-   D:\flutter3271\bin\flutter.bat --no-version-check pub get
-   D:\flutter3271\bin\flutter.bat --no-version-check build windows --release
+   dev_tools\flutter.bat pub get
+   dev_tools\flutter.bat build windows --release
    ★ [10-15] Flutter 3.27.1 SDK 获取（★ 本机实录）：
        · 包 = `flutter_windows_3.27.1-stable.zip`（**1045850748 B**，解压后 **2466 MB**）
        · ★ 用**国内镜像**下（`https://storage.flutter-io.cn/...`）：★ 实测 **3.5 MB/s**
@@ -383,7 +387,7 @@ pause
 
 ⑤ ★★ 验"无缝"（★ [10-15] 的四条基线，★ 逐数字对得上才算真的能开发）
    cd backend
-   toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py ^
+   run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py ^
        tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py ^
        tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py ^
        tests/module/server/test_profile_transfer_keeps_enables.py ^
@@ -393,7 +397,7 @@ pause
        tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py -q
        REM ★ 期望 **166 passed**（★ 且必须先放开沙箱，否则见坑 P11）
    ★★ **[10-15] 本机（新开发机 `D:\OAS-dev`）实测 = 逐数字一致**：
-       守卫 **166 passed**（4.48s）· 全量 **49 failed / 1862 passed / 12 skipped**（91.02s）
+       守卫 **166 passed**（4.48s）· 全量 **15 failed / 1903 passed / 7 skipped**（91.02s）
        · 前端 `analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**
    ★ ⚠★ 跑完 `test_task_factory` / `test_task_flow_docs` 后 `docs/flows/README.md` 会**幻影变脏**
        （★ 纯 LF/CRLF，内容不变）⇒ ★ `git checkout -- docs/flows/README.md` 还原（★ §7 坑 11）

@@ -28,7 +28,10 @@ REPO = Path(__file__).resolve().parents[3]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-OASX = Path(r'D:\OAS-dev\OASX-src')
+# ★ [10-15] 去盘符：前端仓库走解析器（★ 缺了就**响亮失败**，不跳过）
+from dev_tools.paths import require_oasx  # noqa: E402
+
+OASX = require_oasx()
 
 
 class TestBackendPreciseRemoval:

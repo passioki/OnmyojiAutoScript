@@ -68,33 +68,42 @@
 ⑥ 代码 —— ★ 与 ①~⑤ 冲突 ⇒ ★ **以 ①~⑤ 为准**，并把冲突记进 SPEC §4
 ```
 
-## 0.6 ★★ [10-15] **两台机器**（★ 用户打算 ⇒ ★ **待裁定**）
+## 0.6 ★★ [10-15] **两台机器**（★ ★★ **角色已裁定：本机 = 开发机**）
 
 > ★★ **用户原话（逐字）**：
 > > "**现在打算使用两台电脑，一台开发、测试稳定后，上传到github，另一台从git上更新，
 > >   用于实机生产。本台电脑为实机生产用，所以需要你上传dev到git，
 > >   确保另一台从git上取下来时可以无缝开发。**"
 
-| 机器 | ★ 角色（★ 按 [10-15] "另一台拉 dev" 推断 · ★ 待确认）| 目录 |
+| 机器 | ★ 角色（★ ★ **[10-15] 已裁定** · ★ 早先"按另一台拉 dev 推断"的说法**作废**）| 目录 |
 |---|---|---|
-| ★ **本台**（Win~Win~Win~）| ★ **实机生产** | `D:\OAS-live\` |
-| ★ **另一台** | ★ **开发 / 测试** | `D:\OAS-dev\`（`backend\` + `frontend\`）|
+| ★ **本台**（★ [10-15] 用户原话："**本机是开发机**"）| ★ ★ **开发 / 测试**（★ 现行）| `E:\OAS-dev\`（`backend\` + `frontend`）|
+| ★ **另一台** | ★ **实机生产** | `D:\OAS-live\`（★ 本机**没有**这个目录 ⇒ 实机验收不在本机做）|
+
+> ★ ⚠ **[10-15] 更正**：此前按"另一台拉 dev"**推断**成"本台 = 生产"，★ **该推断作废** ——
+> ★ 用户 [10-15] 明说 **本机是开发机** ⇒ ★ 角色 = **本机开发 / 另一台实机生产**。
 
 ```
 ★★ 分支策略（★ [10-15] 用户裁定 · ★ 原话：
    "**另一台可以拉dev啊，main是主要的稳定版本！**"）：
    · `dev`  = ★ **开发分支**（★ 日常提交都到这里；★ 另一台电脑拉这个）
    · `main` = ★ **主要的稳定版本**（★ **冻结点**；★ 只在"判定稳定"时把 dev 快进过来）
-   ★ ★ **本机本地分支名是 `main`，推送目标是远端 `dev`** ⇒ 一律
-        git push origin main:dev
-     ★ ⚠ **绝不 `main:main`**（★ 我 [10-15] 推错一次 ⇒ 已用
-        `--force-with-lease` 回退：后端 main=e28793ce · 前端 main=af10440）
+   ★ ★ **[10-15] 本机（新开发机）两仓的本地分支名 = `dev`**（clone 时就是）⇒ ★ **一律 `git push origin dev`**
+     ★ ⚠ **历史教训（旧开发机）**：★ 旧机本地分支叫 `main`，那时必须 `git push origin main:dev` ——
+        ★ 我 [10-15] 曾误推 `main:main` ⇒ 已 `--force-with-lease` 回退
+        （后端 main=e28793ce · 前端 main=af10440）
+     ★ ⚠ **任何机器上都绝不把本地 `main` 推到远端 `main`**（★ `main` 只在"判定稳定"时前移）
 
 ★ 交付通道（★ 取代原来的"同一台机器上 robocopy"）：
-   开发机 ──git push origin main:dev──▶ GitHub(dev) ──git pull origin dev──▶ 生产机
-          ──按 §4 拷贝──▶ D:\OAS-live
+   开发机（`E:\OAS-dev`）──git push origin dev──▶ GitHub(dev) ──git pull origin dev──▶ 生产机
+          ──按 §4 拷贝──▶ D:\OAS-live（★ 本机没有这个目录）
 ★ ⚠★ **git 只给到"源码级无缝"** —— ★ toolkit\（1.17 GB）· deploy.yaml · 账号配置 · console.bat
    **都不在 git** ⇒ ★ 清单见台账 **§E-1** 与本文 **§6**。
+★ ✅ ★★ **[10-15] 本机已按 §6 清单**补完**（★ 来源 = `C:\Users\passioki\Downloads`，★ 逐项实测：
+   `toolkit\` **17000 文件 / 1167.4 MB** · `deploy.yaml` **6114 B**（`WebuiPort: 22288`）·
+   `伴生树.json` 68437 B · `恋鸟树.json` 85570 B · `console.bat` 590 B）
+★ ⚠ ★ **[10-15] 本机缺 C++ 工具链**（无 Visual Studio / Windows SDK）⇒ ★ `flutter build windows --release`
+   **暂不可用**（★ 见 §7 坑 9）；★ `analyze` / `test` 不受影响。
 ```
 
 ---
@@ -102,9 +111,9 @@
 # §1 ★ 目录结构（唯一真相 = **git**）
 
 ```
-D:\OAS-dev\                              ← ★★ **唯一开发工作区**
+E:\OAS-dev\                              ← ★★ **唯一开发工作区**
 │
-├── backend\                             ← 后端（git 仓库 · ★ 本地分支 `main` **推送到远端 `dev`**）
+├── backend\                             ← 后端（git 仓库 · ★★ **本地分支 `dev`** ⇒ `git push origin dev`）
 │   ├── .git\                            ★ **只在这里改后端代码**
 │   ├── script.py · server.py · module\ · tasks\ · tests\ · docs\
 │   ├── config\
@@ -113,9 +122,9 @@ D:\OAS-dev\                              ← ★★ **唯一开发工作区**
 │   │   ├── 伴生树.json                   ★★ **你的账号配置**（不在 git）
 │   │   └── 恋鸟树.json                   ★★ **你的账号配置**（不在 git）
 │   ├── toolkit\                         ★★ **不在 git**（Python 运行时 + 依赖，1.1 GB）
-│   └── console.bat                      ★★ **不在 git**（启动脚本）
+│   └── console.bat                      ★★ **不在 git**（★ [10-15] 实测：**上游的"调试控制台"** —— 开一个带 toolkit PATH 的交互 cmd，★ **不是**"启动 `server.py`"的启动器；见 §5）
 │
-└── frontend\                            ← 前端（git 仓库 · ★ 本地分支 `main` **推送到远端 `dev`**）
+└── frontend\                            ← 前端（git 仓库 · ★★ **本地分支 `dev`** ⇒ `git push origin dev`）
     ├── .git\                            ★ **只在这里改前端代码**
     ├── lib\ · windows\ · pubspec.yaml
     ├── windows\flutter\ephemeral\       ★ 由 `flutter pub get` 生成（不在 git）
@@ -130,10 +139,10 @@ D:\OAS-dev\                              ← ★★ **唯一开发工作区**
 | 后端源码（`script.py` / `module/` / `tasks/` / `tests/`）| ✅ | `git clone` 即可 |
 | 后端 `config\template.json` | ✅ | 同上 |
 | 后端 `docs\` | ✅ | 同上 |
-| ★ 后端 `toolkit\` | ❌ | ★ 从 `OnmyojiAutoScript-easy-install.rar` 解压，或复制旧机器的 `toolkit\` |
+| ★ 后端 `toolkit\` | ❌ | ★ 从 `OnmyojiAutoScript-easy-install.rar` 解压，或复制旧机器的 `toolkit\`；★ **[10-15] 本机来源 = `C:\Users\passioki\Downloads\toolkit\`**（★ 实测 **17000 文件 / 1167.4 MB**，与台账**一致**）|
 | ★ 后端 `config\deploy.yaml` | ❌ | ★ **必须在每台机器上单独准备**（端口/模拟器等本机设置） |
 | ★ 后端 `config\*.json`（账号配置）| ❌ | ★ **用户数据**，只能靠备份 |
-| ★ 后端 `console.bat` | ❌ | ★ 见 §5 模板 |
+| ★ 后端 `console.bat` | ❌ | ★ 实测**上游的调试控制台**（不是启动器）⇒ 想"一键起后端"就用 §5 的模板另存一份；★ 现网用的是上游那份 |
 | ★ 前端 `windows\flutter\ephemeral\` | ❌ | ★ `flutter pub get` 自动重建 |
 | ★ 前端 `build\` | ❌ | ★ `flutter build windows --release` 重建 |
 
@@ -146,8 +155,8 @@ D:\OAS-dev\                              ← ★★ **唯一开发工作区**
 ## 2.1 只在一处改代码
 
 ```
-★ 后端：★ 只在 `D:\OAS-dev\backend\` 改
-★ 前端：★ 只在 `D:\OAS-dev\frontend\` 改
+★ 后端：★ 只在 `E:\OAS-dev\backend\` 改
+★ 前端：★ 只在 `E:\OAS-dev\frontend\` 改
 ★ ⚠ **不要**在"实机目录"里改 —— ★ 实机是 dev 的**拷贝**，改了会被下次覆盖
 ```
 
@@ -155,14 +164,14 @@ D:\OAS-dev\                              ← ★★ **唯一开发工作区**
 
 ```bat
 REM ★ 后端（开发）
-cd /d D:\OAS-dev\backend
+cd /d E:\OAS-dev\backend
 toolkit\python.exe server.py
 REM ★ 默认监听 127.0.0.1:22288（见 config\deploy.yaml 的 WebuiPort）
 ```
 
 ```bat
 REM ★ 前端（开发）—— 改完代码后重新编译
-cd /d D:\OAS-dev\frontend
+cd /d E:\OAS-dev\frontend
 D:\flutter3271\bin\flutter.bat build windows --release
 build\windows\x64\runner\Release\oasx-live.exe
 ```
@@ -182,7 +191,7 @@ build\windows\x64\runner\Release\oasx-live.exe
 ## 3.1 后端自动化测试
 
 ```bat
-cd /d D:\OAS-dev\backend
+cd /d E:\OAS-dev\backend
 toolkit\python.exe -m pytest tests/ -q
 ```
 
@@ -198,7 +207,7 @@ toolkit\python.exe -m pytest tests/ -q
 ## 3.2 ★★ 改"调度/计数/循环"时**必须**跑的两组守卫
 
 ```bat
-cd /d D:\OAS-dev\backend
+cd /d E:\OAS-dev\backend
 toolkit\python.exe -m pytest tests/module/config/test_loop_rounds.py -q
 toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tests/tasks/test_effective_target.py -q
 ```
@@ -230,9 +239,12 @@ REM ③ 还原   —— ★ 必须回绿
 ## 3.4 前端
 
 ```bat
-cd /d D:\OAS-dev\frontend
-D:\flutter3271\bin\flutter.bat analyze lib     REM ★ 期望 0 error
-D:\flutter3271\bin\flutter.bat test            REM ★ 单元测试
+cd /d E:\OAS-dev\frontend
+D:\flutter3271\bin\flutter.bat --no-version-check analyze lib     REM ★ 期望 0 error（★ [10-15] 本机实测：0 error / 4 warning / 17 info）
+D:\flutter3271\bin\flutter.bat --no-version-check test            REM ★ 单元测试（★ [10-15] 本机实测：158 passed）
+REM ★ ⚠ **必须带 `--no-version-check`** —— 否则 flutter 对 SDK 仓库跑 `git fetch --tags`
+REM   （611285 个对象）⇒ 在当前网络下**挂死**（★ §7 坑 9）
+REM ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --release` 暂不可用（★ §7 坑 10）
 ```
 
 ## 3.5 ★ 实机人工验收（★ 唯一不能自动化的部分）
@@ -255,22 +267,29 @@ D:\flutter3271\bin\flutter.bat test            REM ★ 单元测试
 ```powershell
 # ---------- ★ 后端：把 dev 拷贝成实机 ----------
 # ⚠ 先停掉正在跑的实机后端（否则文件被占用）
-robocopy D:\OAS-dev\backend D:\OAS-live\backend /E /MT:16 `
+robocopy E:\OAS-dev\backend D:\OAS-live\backend /E /MT:16 `
     /XD .git __pycache__ .pytest_cache .mypy_cache log
 # ★ 保留实机自己的运行时状态目录：
 #   log\（运行日志）—— 上面的 /XD log 就是"不覆盖"；首次部署需手动建
 
 # ---------- ★ 前端：把构建产物拷过去 ----------
-robocopy D:\OAS-dev\frontend\build\windows\x64\runner\Release `
+robocopy E:\OAS-dev\frontend\build\windows\x64\runner\Release `
          D:\OAS-live\frontend /E /MT:16
 ```
+
+> ★ ⚠★ **[10-15] 重要变化：现在开发机与实机是【两台电脑】** ⇒ ★ 上面这两条 `robocopy`
+> **不能直接跨机跑**（`D:\OAS-live` 在另一台上）。★ 两条可行路径：
+> ★ **① 推荐**：★ 生产机 `git pull origin dev` 拿源码 ⇒ ★ 在生产机上跑 `flutter build` ⇒
+>   把产物放进 `D:\OAS-live\frontend`（★ 源码同步交给 git，★ 只手动搬"不在 git 的运行时"）
+> ★ **②**：★ 开发机产出后，用共享目录 / 移动盘把 `backend`（去掉 `.git`）与前端 `Release` 目录搬过去
+> ★ ★ 无论哪条：★ **`toolkit\` / `deploy.yaml` / 两份账号配置 / `console.bat` 都要在生产机上单独准备**（§6-②）
 
 ## ★ 实机与开发**必须区分开**的 4 处
 
 | 项 | 开发（dev）| 实机（live）| 为什么 |
 |---|---|---|---|
-| ★ 后端目录 | `D:\OAS-dev\backend` | `D:\OAS-live\backend` | ★ 拷贝后互不影响 |
-| ★ 前端目录 | `D:\OAS-dev\frontend\build\...\Release` | `D:\OAS-live\frontend` | ★ 同上 |
+| ★ 后端目录 | `E:\OAS-dev\backend` | `D:\OAS-live\backend` | ★ 拷贝后互不影响 |
+| ★ 前端目录 | `E:\OAS-dev\frontend\build\...\Release` | `D:\OAS-live\frontend` | ★ 同上 |
 | ★ **端口** | **22288** | ★ **22287**（★ 建议）| ★ 同时跑时不撞（见 `config\deploy.yaml` 的 `WebuiPort`）|
 | ★ **本地存储** | `Documents\GetStorage-live.gs` | ★ **同一个**（★ 当前实现如此）| ⚠ **见下方警告** |
 
@@ -296,6 +315,12 @@ robocopy D:\OAS-dev\frontend\build\windows\x64\runner\Release `
 
 # §5 ★ `console.bat` 模板（★ 不在 git，丢了用这个）
 
+> ★ ⚠ **[10-15] 实测口径更正**：现网（旧机与 `C:\Users\passioki\Downloads`）里的 `console.bat` **不是**
+> 下面这份模板 —— 它是**上游的"调试控制台"**：设好 `toolkit\alias`/`command`/`Git`/`adb` 的 PATH 后
+> `cmd /Q /K` 开一个交互 shell（用来手敲 `adb devices` / `git log` / `python -V`）。
+> ★ 它的第 23 行有一个**孤立的 `)`** —— ★ 实测 **cmd 容忍它，rc=0，无害**（★ 别去"修"它）。
+> ★ 想"双击即起后端"就用下面这份模板（★ 另存为 `console-serve.bat` 更不易混淆）。
+
 ```bat
 @echo off
 chcp 65001 >nul
@@ -311,7 +336,7 @@ pause
 
 > ★★ **[10-15] 分发通道 = GitHub 的 `dev` 分支**（★ 两台机器模型见 §0.6 · ★ 用户裁定：
 > "**另一台可以拉dev啊，main是主要的稳定版本！**"）：
-> ★ 开发机 `git push origin main:dev` ⇒ 另一台 `git clone -b dev` / `git pull origin dev`
+> ★ 开发机（★ **[10-15] 本机 = `E:\OAS-dev`**）`git push origin dev` ⇒ 另一台 `git clone -b dev` / `git pull origin dev`
 > ★ ★ `main` = **主要的稳定版本**，★ **保持不动**；★ 只有判定稳定时才把 `dev` 快进到 `main`
 
 ```
@@ -322,12 +347,18 @@ pause
 ② 补"不在 git"的运行时（★ [10-15] 逐项实测，★ 一个都不能少）
    · ★★ 把 `toolkit\`（Python 运行时）放到 backend\toolkit\
        ★ 实测本机 = **17000 文件 / 1167.4 MB**（★ `.gitignore:18`）
-       ★ 来源：另一台机器的 backend\toolkit\，或 OnmyojiAutoScript-easy-install.rar
+       ★ 来源：★ **[10-15] 本机实测 = `C:\Users\passioki\Downloads\toolkit\`**（★ 17000/1167.4 MB，
+         **与台账一致**）；★ 另有 `OnmyojiAutoScript-easy-install.rar` 内的 `toolkit\`
+         （★ 实测 **21350 文件 / 743.7 MB**，★ **与旧机的不是同一份** ⇒ 优先用前者）
    · ★ 建 backend\config\deploy.yaml（★ 至少要有 WebuiPort；★ 实测 6114 B）
        ★ dev 机 = **22288** · live 机 = **22287**（★ 两台机器上各建一份）
-   · ★ 放 backend\console.bat（§5 模板；★ `.gitignore:269` 排除）
+       ★ [10-15] 本机实测：`WebuiPort: 22288` · `PythonExecutable: ./toolkit/python.exe` ·
+         `AdbExecutable: ./toolkit/Lib/site-packages/adbutils/binaries/adb.exe` · `ReplaceAdb: true` · `Branch: dev`
+   · ★ 放 backend\console.bat（★ 实测用的是**上游调试控制台**那份；★ 想一键起后端见 §5 模板）
    · ★★ 把账号配置（`伴生树.json` / `恋鸟树.json`）放进 backend\config\
-       ★ 实测 68437 B / 86062 B；★ **是用户数据，git 里永远不会有** ⇒ ★ 必须单独传
+       ★ 实测 68437 B / **85570 B**（★ 台账里的旧值是 86062 B —— ★ 用户 [10-15] 又更新过）；
+       ★ **是用户数据，git 里永远不会有** ⇒ ★ 必须单独传
+   · ★ [10-15] Flutter SDK（★ 见步骤 ④ 的工具链要求）
 
 ③ 验后端
    cd backend
@@ -336,8 +367,19 @@ pause
 
 ④ 编前端（★ 必须，因为 ephemeral/build 不在 git）
    cd frontend
-   D:\flutter3271\bin\flutter.bat pub get
-   D:\flutter3271\bin\flutter.bat build windows --release
+   D:\flutter3271\bin\flutter.bat --no-version-check pub get
+   D:\flutter3271\bin\flutter.bat --no-version-check build windows --release
+   ★ [10-15] Flutter 3.27.1 SDK 获取（★ 本机实录）：
+       · 包 = `flutter_windows_3.27.1-stable.zip`（**1045850748 B**，解压后 **2466 MB**）
+       · ★ 用**国内镜像**下（`https://storage.flutter-io.cn/...`）：★ 实测 **3.5 MB/s**
+         vs Google 源 **~170 KB/s**，★ 且字节数与 Google 的 `Content-Length` **精确一致**
+       · 解压到 **`D:\flutter3271`**（★ 文档里所有 `D:\flutter3271\bin\flutter.bat` 都指它）
+       · ★★ 设两个环境变量（`setx`）：`PUB_HOSTED_URL=https://pub.flutter-io.cn` ·
+         `FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn`
+       · ★★ **所有 flutter 命令都要带 `--no-version-check`**（★ 否则 `git fetch --tags` 挂死，§7 坑 9）
+   ★ ⚠★ **`build windows --release` 需要 Visual Studio**（Desktop C++ + Win10/11 SDK）：
+       ★ [10-15] 本机实测**没有**（无 `vswhere` / VS 目录 / Windows SDK / cmake / ninja / winget）
+       ⇒ ★ **本机目前只能 `analyze` + `test`，不能 build**（★ §7 坑 10）
 
 ⑤ ★★ 验"无缝"（★ [10-15] 的四条基线，★ 逐数字对得上才算真的能开发）
    cd backend
@@ -350,8 +392,14 @@ pause
        tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py ^
        tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py -q
        REM ★ 期望 **166 passed**（★ 且必须先放开沙箱，否则见坑 P11）
+   ★★ **[10-15] 本机（新开发机 `E:\OAS-dev`）实测 = 逐数字一致**：
+       守卫 **166 passed**（4.48s）· 全量 **49 failed / 1862 passed / 12 skipped**（91.02s）
+       · 前端 `analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**
+   ★ ⚠★ 跑完 `test_task_factory` / `test_task_flow_docs` 后 `docs/flows/README.md` 会**幻影变脏**
+       （★ 纯 LF/CRLF，内容不变）⇒ ★ `git checkout -- docs/flows/README.md` 还原（★ §7 坑 11）
+   ★ ⚠ 前端那 7 个 `generated_plugin*` 每次 `pub get`/`test` 后也会幻影变脏（★ F7）⇒ 同样 `git checkout --` 还原
 
-⑥ 起实机（§4 的拷贝法）
+⑥ 起实机（§4 的拷贝法 · ★ **[10-15] 实机在另一台电脑上**）
 ```
 
 ★ **恢复节点 tag**（★ 出问题回这里）：
@@ -375,6 +423,10 @@ pause
 | **6** | ★ 用"删+建同名前缀目录"混在一次清理里 | ★ 误删了实机目录 | ★ 删前**逐个核对完整路径**；★ 先建新的、验完再删旧的 |
 | **7** | ★ 清理时忘了 `adb.exe` 被 adb server 占用 | ★ 目录删不净 | ★ 先 `adb kill-server`（或结束 adb 进程）再删 |
 | **8** | ★ `pip install -r requirements.txt` 报 `UnicodeDecodeError: 'gbk'` | ★ 装依赖失败 | ★ `requirements.txt` **必须纯 ASCII**（中文注释移到 `requirements-notes.txt`）|
+| **9** | ★★ **[10-15] `flutter` 的"版本检查"跑 `git fetch --tags`（611285 个对象）** | ★ `flutter --version` 或任何不带开关的命令**卡 10+ 分钟**；后台常驻 `git fetch --tags` + `git index-pack`（★ `git remote-https origin https://github.com/flutter/flutter.git`）| ★ **命令一律加 `--no-version-check`**；★ 并设 `PUB_HOSTED_URL` / `FLUTTER_STORAGE_BASE_URL` 为国内镜像；★ 已卡的进程要 `Stop-Process git,dart` + 删 `bin\cache\lockfile` 才能重来 |
+| **10** | ★★ **[10-15] 本机没有 C++ 工具链** | ★ `flutter build windows --release` 报找不到 Visual Studio | ★ 装 **VS 2022 Build Tools**（`Microsoft.VisualStudio.Workload.VCTools` + Win10/11 SDK）；★ 本机**也没有 `winget`** ⇒ 要用官方 `vs_BuildTools.exe`；★ `analyze` / `test` 不需要它 |
+| **11** | ★ **[10-15] 跑测试后 `docs/flows/README.md` 幻影变脏** | ★ `git status` 显示 ` M`，但 `git diff --numstat` **为空** · `--ignore-cr-at-eol` **0 行** | ★ 纯 LF/CRLF（`core.autocrlf=true`）⇒ `git checkout -- docs/flows/README.md`；★ 根因 `module/task_factory.py:40/403` 用 Python 默认换行写回 |
+| **12** | ★★ **[10-15] `pwsh` 工具整个会话不可用** | ★ 每条命令都返回 `exit code 3221225794`（= `0xC0000142` STATUS_DLL_INIT_FAILED）且**零输出**（★ 连 `echo hi` 都失败）| ★ **续跑/重启 DSH 会话**（★ 不是重启电脑）；★ 期间用 `read`/`grep`/`glob` 工具继续取证 |
 
 ---
 

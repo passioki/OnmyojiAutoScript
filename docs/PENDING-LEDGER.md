@@ -573,3 +573,37 @@
 | ★ 前端 | ★ `flutter analyze lib` = **0 error · 4 warning · 17 info** · `flutter test` = **158 passed** | ✅ **一致** |
 | ⚠ ★★ **沙箱 `workspace-write` 下的假红（★ P11 的新数据点）** | ★ 同一条守卫链 = **10 failed / 156 passed**，★ **全部**是 `PermissionError [WinError 5]`（`multiprocessing.Pipe` / `subprocess` 管道）⇒ ★ **同一份代码、两种沙箱、两套数字** | ★ ★ **跑 pytest 必须先确认沙箱模式**（★ P11 原记 125 errors，★ 本轮守卫链是 10 failed —— ★ 同一根因，**不同子集**）|
 
+---
+
+# ★ §E-6 ★★★ [10-15] **引导轮**：本机（新开发机 `E:\OAS-dev`）从零到**四条基线全绿**
+
+> ★ **触发**：★ 用户 [10-15]：★ "**本机是开发机**" ＋ "一些配置在 `C:\Users\passioki\Downloads`：
+> deploy、伴生树、恋鸟树、toolkit"
+> ★ 背景：★ 本机**原本没有任何 OAS 检出**（`D:\OAS-dev` / `D:\OAS-live` **都不存在**；
+> `E:\OAS-dev` 只有空的 `backend\`/`frontend\` 占位目录）⇒ ★ 走的是 `DEV-WORKFLOW §6`「从零恢复一台机器」。
+
+| # | 事项 | 依据 | 状态 | ★ 可核查证据（★ 实测，不是文档自述）|
+|---|---|---|---|---|
+| **E-6-a** | ★★ **角色裁定：本机 = 开发机** | ★ 用户 [10-15] 原话："**本机是开发机**" | ✅ **已裁定并落地** | ★ `START-HERE §0` · `DEV-WORKFLOW §0.6` · `HANDOFF §1` 已同步改写；★ 旧推断"本台 = 生产"**标为作废**（那是我按"另一台拉 dev"推的，★ §E-1/§E-2 的推断口径作废）|
+| **E-6-b** | ★★★ **两仓拉到 `E:\OAS-dev`（`git clone -b dev`）** | ★ 本机原本**零检出** | ✅ **已完成** | ★ 后端 **`93f7a4db`** = 远端 `dev`（★ clone 前实测远端 `dev` = `93f7a4db`，★ 台账 §1 写 `5243cb19` 是**它的父提交** —— 文档自述自己那一笔，天然差一格）· ★ 前端 **`ae1065b`** = 远端 `dev` · ★ **两仓 `git status --porcelain` 为空** · ★ 本地分支 = **`dev`**（★ 不是旧机的 `main`）|
+| **E-6-c** | ★★★ **补齐"不在 git"的运行时（§E-1 的 7 项清单）** | ★ 来源 = `C:\Users\passioki\Downloads` | ✅ **已完成** | ★ `robocopy` 拷 `toolkit\` = **17000 文件 / 1167.4 MB**（★ **与 §E-1 台账数字完全一致** · rc=1 = 成功）· `deploy.yaml` **6114 B**（`WebuiPort: 22288` · `PythonExecutable: ./toolkit/python.exe` · `ReplaceAdb: true`）· `伴生树.json` **68437 B** · `恋鸟树.json` **85570 B**（★ §E-1 里的旧值 86062 已过期）· `console.bat` **590 B** · ★ `toolkit\python.exe` = **Python 3.10.11** / **pytest 9.1.1** · ★ adb.exe 在 toolkit 内 |
+| **E-6-d** | ★★ **Flutter 3.27.1（★ 本机原本没有）** | ★ 文档所有命令都写 `D:\flutter3271` | ✅ **已完成** | ★ 官方包 `flutter_windows_3.27.1-stable.zip` = **1045850748 B** ⇒ 解压 **`D:\flutter3271`**（2466 MB）· ★ `flutter --no-version-check --version` = **3.27.1 / Dart 3.6.0 / 引擎 `cb4b5fff73`**（★ 与台账记的引擎哈希一致）· ★ 已 `setx PUB_HOSTED_URL` / `FLUTTER_STORAGE_BASE_URL` = `*.flutter-io.cn`（★ 实测 Google 源 **~170 KB/s** vs 国内镜像 **3.5 MB/s**）|
+| **E-6-e** | ★★★ **四条基线在本机实测复现** | ★ 这是"这台机器能不能开工"的**唯一判据** | ✅ **已完成 · ★ 逐数字一致** | ★ 守卫链 = **166 passed**（4.48s）· 全量 = **49 failed / 1862 passed / 12 skipped**（91.02s）· 前端 `analyze` = **0 error（4 warning + 17 info）** · `test` = **158 passed** · ★ 49 条归因与文档一致（主导 = 测试硬编码读 `D:\OAS-dev\OASX-src`）|
+| **E-6-f** | ★★ **待裁定：装不装 C++ 工具链** | ★ 本机缺 VS ⇒ **不能 build 前端** | ⬜ **等你一句话** | ★ 实测**无** `vswhere` / VS 目录 / `Windows Kits\10\bin` / `cmake` / `ninja` / **`winget`** ⇒ ★ 验收标准 = `build windows --release` 成功产出 `oasx-live.exe` 且 `analyze`/`test` **不回退** |
+| **E-6-g** | ★★ **新发现（★ 真问题）：工厂/流程图守卫会把 `docs/flows/README.md` 重写成 LF** | ★ 根因 `module/task_factory.py:40/403` 用 Python 默认换行写回 | ⬜ **已记坑 P18（★ 根治未做）** | ★ **可复现**：只跑 `tests/test_task_flow_docs.py tests/module/test_task_factory.py`（35 passed）后 `git status` 变脏，★ 而 `git diff --numstat` **为空** · `git diff --ignore-cr-at-eol` = **0 行** ⇒ ★ 纯行尾幻影 |
+| **E-6-h** | ★ **新坑 P16 / P17 / P18 入档** | ★ 引导轮实测 | ✅ **已写入三处** | ★ `START-HERE §3`（P16/P17/P18）· `SESSION-HANDOFF §3`（P16/P17/P18 + P7 扩写）· `DEV-WORKFLOW §7`（坑 9/10/11）· ★ 前端台账新增 **F10** |
+| **E-6-i** | ★ **`console.bat` 口径订正** | ★ 实测：它是**上游调试控制台**（开带 toolkit PATH 的交互 cmd），**不是**"启动 `server.py`"的启动器 | ✅ **已订正** | ★ `DEV-WORKFLOW §1/§5` 写明；★ 且实测它第 23 行的**孤立 `)`** 被 cmd 容忍（★ `cmd /c` 探针 **rc=0**，★ **不要"修"它**）· ★ 4 份 `console.bat` 副本 SHA256 **完全相同**（`79F27E65…`）|
+
+★ **本机环境档案（★ 新会话直接抄这段）**
+```
+工作区：E:\OAS-dev\backend · E:\OAS-dev\frontend        （★ 两仓本地分支 = dev）
+提交：  后端 93f7a4db · 前端 ae1065b                      （★ = 远端 dev；远端 main = e28793ce / af10440 未动）
+运行时：E:\OAS-dev\backend\toolkit（Python 3.10.11 · pytest 9.1.1 · adb.exe）
+配置：  E:\OAS-dev\backend\config\{deploy.yaml, 伴生树.json, 恋鸟树.json} ＋ backend\console.bat
+前端工具链：D:\flutter3271（Flutter 3.27.1 / Dart 3.6.0）★ 命令必须带 --no-version-check
+缺失：  ★ Visual Studio / Windows SDK / cmake / ninja / winget  ⇒ 不能 build windows
+实机：  另一台电脑的 D:\OAS-live（★ 本机没有 · ★ P14：不许在那里开发/测试）
+推送：  git push origin dev        （★ 本机本地分支就叫 dev；★ 绝不 main:main）
+```
+
+

@@ -575,17 +575,19 @@
 
 ---
 
-# ★ §E-6 ★★★ [10-15] **引导轮**：本机（新开发机 `E:\OAS-dev`）从零到**四条基线全绿**
+# ★ §E-6 ★★★ [10-15] **引导轮**：本机（新开发机 `D:\OAS-dev`）从零到**四条基线全绿**
 
 > ★ **触发**：★ 用户 [10-15]：★ "**本机是开发机**" ＋ "一些配置在 `C:\Users\passioki\Downloads`：
 > deploy、伴生树、恋鸟树、toolkit"
-> ★ 背景：★ 本机**原本没有任何 OAS 检出**（`D:\OAS-dev` / `D:\OAS-live` **都不存在**；
-> `E:\OAS-dev` 只有空的 `backend\`/`frontend\` 占位目录）⇒ ★ 走的是 `DEV-WORKFLOW §6`「从零恢复一台机器」。
+> ★ 背景：★ 本机**原本没有任何 OAS 检出** —— ★ 首次实测：`D:\OAS-dev` / `D:\OAS-live` **都不存在**，
+> 当时的工作区是 `E:\OAS-dev`（★ 只有空的 `backend\`/`frontend\` 占位目录）。
+> ⇒ ★ 走的是 `DEV-WORKFLOW §6`「从零恢复一台机器」；★ **先在 `E:\OAS-dev` 引导成功**，
+> ★ **后按用户 [10-15] 的提议整份搬到 `D:\OAS-dev`**（★ 见 §E-6-j）。
 
 | # | 事项 | 依据 | 状态 | ★ 可核查证据（★ 实测，不是文档自述）|
 |---|---|---|---|---|
 | **E-6-a** | ★★ **角色裁定：本机 = 开发机** | ★ 用户 [10-15] 原话："**本机是开发机**" | ✅ **已裁定并落地** | ★ `START-HERE §0` · `DEV-WORKFLOW §0.6` · `HANDOFF §1` 已同步改写；★ 旧推断"本台 = 生产"**标为作废**（那是我按"另一台拉 dev"推的，★ §E-1/§E-2 的推断口径作废）|
-| **E-6-b** | ★★★ **两仓拉到 `E:\OAS-dev`（`git clone -b dev`）** | ★ 本机原本**零检出** | ✅ **已完成** | ★ 后端 **`93f7a4db`** = 远端 `dev`（★ clone 前实测远端 `dev` = `93f7a4db`，★ 台账 §1 写 `5243cb19` 是**它的父提交** —— 文档自述自己那一笔，天然差一格）· ★ 前端 **`ae1065b`** = 远端 `dev` · ★ **两仓 `git status --porcelain` 为空** · ★ 本地分支 = **`dev`**（★ 不是旧机的 `main`）|
+| **E-6-b** | ★★★ **两仓拉到 `D:\OAS-dev`（`git clone -b dev`）** | ★ 本机原本**零检出** | ✅ **已完成** | ★ 后端 **`93f7a4db`** = 远端 `dev`（★ clone 前实测远端 `dev` = `93f7a4db`，★ 台账 §1 写 `5243cb19` 是**它的父提交** —— 文档自述自己那一笔，天然差一格）· ★ 前端 **`ae1065b`** = 远端 `dev` · ★ **两仓 `git status --porcelain` 为空** · ★ 本地分支 = **`dev`**（★ 不是旧机的 `main`）|
 | **E-6-c** | ★★★ **补齐"不在 git"的运行时（§E-1 的 7 项清单）** | ★ 来源 = `C:\Users\passioki\Downloads` | ✅ **已完成** | ★ `robocopy` 拷 `toolkit\` = **17000 文件 / 1167.4 MB**（★ **与 §E-1 台账数字完全一致** · rc=1 = 成功）· `deploy.yaml` **6114 B**（`WebuiPort: 22288` · `PythonExecutable: ./toolkit/python.exe` · `ReplaceAdb: true`）· `伴生树.json` **68437 B** · `恋鸟树.json` **85570 B**（★ §E-1 里的旧值 86062 已过期）· `console.bat` **590 B** · ★ `toolkit\python.exe` = **Python 3.10.11** / **pytest 9.1.1** · ★ adb.exe 在 toolkit 内 |
 | **E-6-d** | ★★ **Flutter 3.27.1（★ 本机原本没有）** | ★ 文档所有命令都写 `D:\flutter3271` | ✅ **已完成** | ★ 官方包 `flutter_windows_3.27.1-stable.zip` = **1045850748 B** ⇒ 解压 **`D:\flutter3271`**（2466 MB）· ★ `flutter --no-version-check --version` = **3.27.1 / Dart 3.6.0 / 引擎 `cb4b5fff73`**（★ 与台账记的引擎哈希一致）· ★ 已 `setx PUB_HOSTED_URL` / `FLUTTER_STORAGE_BASE_URL` = `*.flutter-io.cn`（★ 实测 Google 源 **~170 KB/s** vs 国内镜像 **3.5 MB/s**）|
 | **E-6-e** | ★★★ **四条基线在本机实测复现** | ★ 这是"这台机器能不能开工"的**唯一判据** | ✅ **已完成 · ★ 逐数字一致** | ★ 守卫链 = **166 passed**（4.48s）· 全量 = **49 failed / 1862 passed / 12 skipped**（91.02s）· 前端 `analyze` = **0 error（4 warning + 17 info）** · `test` = **158 passed** · ★ 49 条归因与文档一致（主导 = 测试硬编码读 `D:\OAS-dev\OASX-src`）|
@@ -593,13 +595,15 @@
 | **E-6-g** | ★★ **新发现（★ 真问题）：工厂/流程图守卫会把 `docs/flows/README.md` 重写成 LF** | ★ 根因 `module/task_factory.py:40/403` 用 Python 默认换行写回 | ⬜ **已记坑 P18（★ 根治未做）** | ★ **可复现**：只跑 `tests/test_task_flow_docs.py tests/module/test_task_factory.py`（35 passed）后 `git status` 变脏，★ 而 `git diff --numstat` **为空** · `git diff --ignore-cr-at-eol` = **0 行** ⇒ ★ 纯行尾幻影 |
 | **E-6-h** | ★ **新坑 P16 / P17 / P18 入档** | ★ 引导轮实测 | ✅ **已写入三处** | ★ `START-HERE §3`（P16/P17/P18）· `SESSION-HANDOFF §3`（P16/P17/P18 + P7 扩写）· `DEV-WORKFLOW §7`（坑 9/10/11）· ★ 前端台账新增 **F10** |
 | **E-6-i** | ★ **`console.bat` 口径订正** | ★ 实测：它是**上游调试控制台**（开带 toolkit PATH 的交互 cmd），**不是**"启动 `server.py`"的启动器 | ✅ **已订正** | ★ `DEV-WORKFLOW §1/§5` 写明；★ 且实测它第 23 行的**孤立 `)`** 被 cmd 容忍（★ `cmd /c` 探针 **rc=0**，★ **不要"修"它**）· ★ 4 份 `console.bat` 副本 SHA256 **完全相同**（`79F27E65…`）|
+| **E-6-j** | ★★ **[10-15] 工作区从 `E:\OAS-dev` 整份搬到 `D:\OAS-dev`**（★ 用户提议）| ★ 用户 [10-15]：★ "我忘记路径可能会有变化，如果不方便的话，可以把开发路径移到D盘去" | ✅ **已完成并复验** | ★ `robocopy /E /MT:16` = **22085 文件 / 1.363 GB**（rc=1=成功）· ★ 三个理由：① 与**全部历史文档**的 `D:\OAS-dev` 口径一致（★ 不必再维护"历史路径"警告）② ★★ **那 43 条"环境类"失败测试硬编码读 `D:\OAS-dev\OASX-src`** ⇒ ★ 只有在 `D:\OAS-dev` 下才可能对齐（★ 见 §E-6-k）③ D 盘空闲 **47 GB**（E 盘仅 25 GB）且 `D:\flutter3271` 同盘 · ★ 搬完复验：守卫 **166 passed** · 全量 **49/1862/12** · 前端 `pub get`/`analyze`/`test` = **0 error + 158 passed** · ★ 坑：`robocopy` 会**跟随 16 个 `.plugin_symlinks` junction**（frontend 321 → 1600 文件）⇒ ★ 按 `DEV-WORKFLOW §7 坑 2` 删 `.dart_tool`/`build`/`ephemeral` 再 `pub get` |
+| **E-6-k** | ★★ **待裁定：要不要用目录对齐救回那 43 条硬编码失败测试？** | ★ 实测硬编码清单：`D:\OAS-dev\OASX-src`（9 处 / 7 文件）· `D:\OAS-dev\OnmyojiAutoScript`（1 处）· `REPO.parent/'OASX-src'`（1 文件 2 处）| ⬜ **待你一句话** | ★ 两条路：★ **A**（环境对齐 · 零改代码）建两个 junction：`D:\OAS-dev\OASX-src` → `frontend` · `D:\OAS-dev\OnmyojiAutoScript` → `backend` ⇒ ★ 若转绿，全量失败 **49 → ~6**；★ **B**（根治 · 要改代码）把测试常量改成"按 `$OASX_REPO` / 相对路径找前端仓库"（★ 项目已有先例：`dev_tools/gen_i18n.py` 用 `$OASX_REPO`）|
 
 ★ **本机环境档案（★ 新会话直接抄这段）**
 ```
-工作区：E:\OAS-dev\backend · E:\OAS-dev\frontend        （★ 两仓本地分支 = dev）
+工作区：D:\OAS-dev\backend · D:\OAS-dev\frontend        （★ 两仓本地分支 = dev）
 提交：  后端 93f7a4db · 前端 ae1065b                      （★ = 远端 dev；远端 main = e28793ce / af10440 未动）
-运行时：E:\OAS-dev\backend\toolkit（Python 3.10.11 · pytest 9.1.1 · adb.exe）
-配置：  E:\OAS-dev\backend\config\{deploy.yaml, 伴生树.json, 恋鸟树.json} ＋ backend\console.bat
+运行时：D:\OAS-dev\backend\toolkit（Python 3.10.11 · pytest 9.1.1 · adb.exe）
+配置：  D:\OAS-dev\backend\config\{deploy.yaml, 伴生树.json, 恋鸟树.json} ＋ backend\console.bat
 前端工具链：D:\flutter3271（Flutter 3.27.1 / Dart 3.6.0）★ 命令必须带 --no-version-check
 缺失：  ★ Visual Studio / Windows SDK / cmake / ninja / winget  ⇒ 不能 build windows
 实机：  另一台电脑的 D:\OAS-live（★ 本机没有 · ★ P14：不许在那里开发/测试）

@@ -35,13 +35,13 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 
 | 项 | 值 |
 |---|---|
-| ★ **日期** | ★ **2026-10-15**（★ 上轮 10-14 · ★★ **[10-15] 本机换成了【新开发机 `E:\OAS-dev`】**）|
-| ★ **开发工作区** | ★★ **[10-15] 本机 = 开发机** ⇒ **`E:\OAS-dev\`**（`backend\` + `frontend\`，★ 各自是 git 仓库 · ★ **两仓的本地分支都是 `dev`**）<br>★ **[10-15] 本机是【新引导的开发机】**：两仓 `git clone -b dev` ＋ `toolkit\`/`deploy.yaml`/两份账号配置/`console.bat` 从 `C:\Users\passioki\Downloads` 补齐（★ 详见 §1j）|
+| ★ **日期** | ★ **2026-10-15**（★ 上轮 10-14 · ★★ **[10-15] 本机换成了【新开发机 `D:\OAS-dev`】**）|
+| ★ **开发工作区** | ★★ **[10-15] 本机 = 开发机** ⇒ **`D:\OAS-dev\`**（`backend\` + `frontend\`，★ 各自是 git 仓库 · ★ **两仓的本地分支都是 `dev`**）<br>★ **[10-15] 本机是【新引导的开发机】**：两仓 `git clone -b dev` ＋ `toolkit\`/`deploy.yaml`/两份账号配置/`console.bat` 从 `C:\Users\passioki\Downloads` 补齐（★ 详见 §1j）|
 | ★ **实机** | `D:\OAS-live\`（★ **在【另一台电脑】上**；★ dev 的**拷贝**；端口 **22287**；开发用 **22288**）★★ **不许在它上面做开发/测试**（★ 坑 P14）<br>★ ⚠ **[10-15] 本机没有 `D:\OAS-live`** ⇒ ★ 实机验收不在本机做 |
-| ★ **后端分支/提交** | ★★ **[10-15] 本机（`E:\OAS-dev\backend`）实测**：★ 本地 **`dev` = `93f7a4db`** = ★★ **远端 `dev` = `93f7a4db`**（★ **开发分支** —— ★ 另一台拉这个）· ★★ **远端 `main` = `e28793ce`**（10-13 15:44 · ★ **主要的稳定版本 · 未动**）<br>★ ⚠★ **本机推送一律 `git push origin dev`**（★ 本地分支就叫 `dev`）；★ 旧机那种"本地 `main`"的机器才要 `git push origin main:dev`，★ **绝不 `main:main`**（★ [10-15] 误推过一次 ⇒ 已 `--force-with-lease` 回退）|
-| ★ **前端分支/提交** | ★★ **[10-15] 本机（`E:\OAS-dev\frontend`）实测**：★ 本地 **`dev` = `ae1065b`** = ★★ **远端 `dev` = `ae1065b`** · ★★ **远端 `main` = `af10440`**（10-13 12:25 · ★ **恢复节点 / 稳定版本 · 未动**）|
+| ★ **后端分支/提交** | ★★ **[10-15] 本机（`D:\OAS-dev\backend`）实测**：★ 本地 **`dev` = `93f7a4db`** = ★★ **远端 `dev` = `93f7a4db`**（★ **开发分支** —— ★ 另一台拉这个）· ★★ **远端 `main` = `e28793ce`**（10-13 15:44 · ★ **主要的稳定版本 · 未动**）<br>★ ⚠★ **本机推送一律 `git push origin dev`**（★ 本地分支就叫 `dev`）；★ 旧机那种"本地 `main`"的机器才要 `git push origin main:dev`，★ **绝不 `main:main`**（★ [10-15] 误推过一次 ⇒ 已 `--force-with-lease` 回退）|
+| ★ **前端分支/提交** | ★★ **[10-15] 本机（`D:\OAS-dev\frontend`）实测**：★ 本地 **`dev` = `ae1065b`** = ★★ **远端 `dev` = `ae1065b`** · ★★ **远端 `main` = `af10440`**（10-13 12:25 · ★ **恢复节点 / 稳定版本 · 未动**）|
 | ★ **恢复节点 tag** | 后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live` |
-| ★★ **测试基线（★★ [10-15] 本机 `E:\OAS-dev` 实测复现）** | ★ **守卫 = 166 passed**（14 个文件 · 4.48s）<br>后端全量 = **49 failed / 1862 passed / 12 skipped**（91.02s · ★ 49 条是已知环境类，★ 主导原因是测试硬编码去读 `D:\OAS-dev\OASX-src`）<br>★ 前端 = `flutter analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**<br>★★ **四项与台账逐数字一致** ⇒ ★ 这台新开发机**可以开工** |
+| ★★ **测试基线（★★ [10-15] 本机 `D:\OAS-dev` 实测复现）** | ★ **守卫 = 166 passed**（14 个文件 · 4.48s）<br>后端全量 = **49 failed / 1862 passed / 12 skipped**（91.02s · ★ 49 条是已知环境类，★ 主导原因是测试硬编码去读 `D:\OAS-dev\OASX-src`）<br>★ 前端 = `flutter analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**<br>★★ **四项与台账逐数字一致** ⇒ ★ 这台新开发机**可以开工** |
 | ★★ **`pwsh` 可用性** | ★★ **[10-15] 可用**（★ 但本会话开场时**整段不可用**：每条命令返回 `exit code 3221225794` = `0xC0000142`，★ 续跑后自行恢复 ⇒ ★ 见 §3 坑 **P7**）⇒ ★ 我能自己跑 pytest / flutter（★ 不必再让用户代跑）|
 | ★ **实机是否在跑** | ★ ⚠ **[10-15] 本机无关**（实机在另一台电脑上）· ★ 本机实测：**`:22287`/`:22288` 都没有监听**；★ `E:\MuMuPlayer` 已安装但**模拟器未运行**（`16384` 未监听）|
 
@@ -272,14 +272,14 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
   ⇒ ★ 我按**后者**执行（★ 本台 = 生产，另一台 = 开发）；★ 见台账 **§E-1** / `DEV-WORKFLOW.md §0.6`
 ```
 
-## ★ 1j. ★★★ [10-15] 引导轮：本机（新开发机 `E:\OAS-dev`）从零到**四条基线全绿**
+## ★ 1j. ★★★ [10-15] 引导轮：本机（新开发机 `D:\OAS-dev`）从零到**四条基线全绿**
 
 ```
 ★ 【前提】★ 用户 [10-15] 明说"**本机是开发机**" ⇒ ★ 角色裁定：**本机 = 开发 / 另一台 = 实机生产**
    （★ 旧推断"本台=生产"**作废**；★ §0.6 与台账 §E-1 已同步）
 ★ 【① 源码】两仓 = `git clone -b dev`（★ 本地分支 `dev`，跟踪 `origin/dev`）
-     · 后端 OnmyojiAutoScript → `E:\OAS-dev\backend`（★ `93f7a4db`）
-     · 前端 OASX            → `E:\OAS-dev\frontend`（★ `ae1065b`）
+     · 后端 OnmyojiAutoScript → `D:\OAS-dev\backend`（★ `93f7a4db`）
+     · 前端 OASX            → `D:\OAS-dev\frontend`（★ `ae1065b`）
      · ★ 本机 git = `C:\Program Files\Git\cmd\git.exe` **2.55.0** · ★ **没有** P15 的 dubious ownership
 ★ 【② 不在 git 的运行时】★ 来源 = `C:\Users\passioki\Downloads`
      · `toolkit\` → `backend\toolkit`（robocopy：★ **17000 文件 / 1167.4 MB**，与台账**一致**；rc=1=成功）
@@ -306,6 +306,10 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
      ⇒ ★ 见 §2 的 **★0d** 与坑 **P17**
 ★ 【⑦ 一个真发现】★ `test_task_factory` / `test_task_flow_docs` 会把 `docs/flows/README.md`
      **重写成 LF**（★ 内容不变）⇒ ★ 每次跑完测试工作区都显示脏 ⇒ ★ 坑 **P18**
+★ 【⑧ [10-15] 工作区搬家】★ 先在 `E:\OAS-dev` 引导成功 ⇒ ★ 按用户提议**整份搬到 `D:\OAS-dev`**
+     （★ `robocopy /E` = **22085 文件 / 1.363 GB** · rc=1）⇒ ★ 理由：① 与历史文档的 `D:\OAS-dev`
+     口径一致 ② ★★ **43 条硬编码测试只在 D 盘下才可能对齐** ③ D 盘空闲 47 GB 且 `D:\flutter3271` 同盘
+     ⇒ ★ **搬完复验**：守卫 **166 passed** · 全量 **49 / 1862 / 12** · 前端 **0 error + 158 passed**
 ```
 
 ---
@@ -351,7 +355,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | **P12** | ★ **沙箱下原生命令接 PowerShell 管道 = `Access is denied`** | 如 `python.exe … \| Select-Object` / `git … \| Select-String` ⇒ ★ **别接管道**（看工具自动截尾，或 `Select-String` 只读文件）|
 | **P13** | ★★ **核对行号不要用 `Get-Content`** | 它按 **ANSI** 解码 ⇒ 同一文件**少算行**（实测 `tasks/Tako/script_task.py` = **163** 行，`Get-Content` 只看到 **153** 行 ⇒ 行号**整体错位**）★ 用 **read/grep 工具**（与 `Select-String` 口径一致）|
 | **P14** | ★★ **不要把开发中的东西写进实机 `D:\OAS-live`** | ★ 用户原话："**不要在实机跑，现有开发基于 dev 侧，实机是版本稳定后直接从 dev 拷贝过去**"（★ `START-HERE.md` §0 已写死：★ **实机 = dev 的拷贝**）⇒ ★ 我 [10-14] 曾把新建的 `FlowDemo` 装进实机（**已还原**：删目录 + 重生成 catalog + 新进程复验 55 个任务）|
-| **P15** | ★★ **本机 `git` 报 `dubious ownership`**（★ `fatal: detected dubious ownership in repository at 'D:/OAS-dev/backend'` ⇒ **`git log`/`status`/`push` 全被拒**）| ★ 真因：仓库属主 = **`S-1-5-32-544`（Administrators）**，★ 当前用户 = `S-1-5-21-…-1000` ⇒ ★ git 2.35+ 的安全闸。★ **修**：`git config --global --add safe.directory D:/OAS-dev/backend`（★ 前端同理）；★ ⚠ **沙箱 `workspace-write` 下改不了** `~/.gitconfig`（`could not lock config file … Permission denied`）⇒ ★ **修这条必须先放开沙箱**（★ [10-15] 已修）★ ★ **[10-15] 本机（`E:\OAS-dev`）实测没有这个问题**（属主正常）⇒ ★ 若将来出现，写 **`E:/OAS-dev/backend`**|
+| **P15** | ★★ **本机 `git` 报 `dubious ownership`**（★ `fatal: detected dubious ownership in repository at 'D:/OAS-dev/backend'` ⇒ **`git log`/`status`/`push` 全被拒**）| ★ 真因：仓库属主 = **`S-1-5-32-544`（Administrators）**，★ 当前用户 = `S-1-5-21-…-1000` ⇒ ★ git 2.35+ 的安全闸。★ **修**：`git config --global --add safe.directory D:/OAS-dev/backend`（★ 前端同理）；★ ⚠ **沙箱 `workspace-write` 下改不了** `~/.gitconfig`（`could not lock config file … Permission denied`）⇒ ★ **修这条必须先放开沙箱**（★ [10-15] 已修）★ ★ **[10-15] 本机（`D:\OAS-dev`）实测没有这个问题**（属主正常）⇒ ★ 若将来出现，写 **`D:/OAS-dev/backend`**|
 | **P16** | ★★ **[10-15] `flutter` 的"版本检查"会跑 `git fetch --tags`（★ 611285 个对象）⇒ 在当前网络上**挂死** | ★ 症状：`flutter --version`（或任何不带开关的命令）卡 10+ 分钟 · 后台常驻 `git fetch --tags` + `git index-pack`（★ 实测 `git remote-https origin https://github.com/flutter/flutter.git`）⇒ ★ **正解：命令一律加 `--no-version-check`** ＋ `PUB_HOSTED_URL=https://pub.flutter-io.cn` / `FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn`（★ 实测 Google 源 **~170 KB/s** vs 国内镜像 **3.5 MB/s**）；★ 已卡的进程要 `Stop-Process git,dart` ＋ 删 `D:\flutter3271\bin\cache\lockfile` |
 | **P17** | ★★ **[10-15] 本机缺 C++ 工具链 ⇒ `flutter build windows --release` 不可用** | ★ 实测：**无 `vswhere`** · 无 `Microsoft Visual Studio` 目录 · 无 `Windows Kits\10\bin` · 无 `cmake`/`ninja` · **无 `winget`** ⇒ ★ `analyze`/`test` **不受影响**（已跑绿）· ★ 只有构建 exe 需要 VS Build Tools（`Microsoft.VisualStudio.Workload.VCTools` + Win10/11 SDK）⇒ ★ **待裁定**（★ §2 的 ★0d）|
 | **P18** | ★ **[10-15] `test_task_factory` / `test_task_flow_docs` 会重写 `docs/flows/README.md` 的行尾** | ★ 实测**可复现**：跑完测试后 `git status` 显示 ` M docs/flows/README.md`，但 `git diff --numstat` **为空** · `git diff --ignore-cr-at-eol` **0 行** ⇒ ★ 纯 LF/CRLF 幻影（`core.autocrlf=true`），★ **内容没变** ⇒ ★ `git checkout -- docs/flows/README.md` 还原；★ 根因 `module/task_factory.py:40/403` 用 Python 默认换行写回 |
@@ -383,7 +387,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 
 ```
 【本机身份】★ **开发机**（★ 用户 [10-15] 原话："本机是开发机"）⇒ ★ **开发 = 本机 · 实机生产 = 另一台**
-【工作区】`E:\OAS-dev\`（`backend` + `frontend` · ★ 两仓本地分支都是 **`dev`**）
+【工作区】`D:\OAS-dev\`（`backend` + `frontend` · ★ 两仓本地分支都是 **`dev`**）
    · 后端 = **`93f7a4db`**（= 远端 `dev`）· 远端 `main` = `e28793ce`（★ 稳定 · 未动）
    · 前端 = **`ae1065b`**（= 远端 `dev`）· 远端 `main` = `af10440`（★ 稳定 · 未动）
 【怎么起的】★ `git clone -b dev` ＋ 从 `C:\Users\passioki\Downloads` 补：

@@ -15,11 +15,12 @@
 ```
 ★ 项目：OAS（OnmyojiAutoScript）阴阳师自动化 + OASX（Flutter 前端）
 ★ ★★★ **[10-15] 本机 = 开发机**（★ 用户 [10-15] 原话："**本机是开发机**"）
-★ 开发工作区：`E:\OAS-dev\`（`backend\` + `frontend\`，★ 各自是 git 仓库）
+★ 开发工作区：`D:\OAS-dev\`（`backend\` + `frontend\`，★ 各自是 git 仓库）
    ★ ★ **[10-15] 本机是新引导的开发机**：两仓都是 `git clone -b dev` 拉下来的
      ⇒ ★ **本地分支 = `dev`**（跟踪 `origin/dev`）· ★ 不是旧机的 `main`
-   ★ ★ ⚠ **历史文件**（`SESSION-INDEX.md` / `SESSION-LEDGER.md` / `DESIGN-SPEC.md` 的旧证据）里
-     出现的 `D:\OAS-dev` 是【**旧开发机**】的路径 ⇒ ★ **那是历史记录，不要按它执行**
+   ★ ★ ✅ **[10-15] 路径与旧开发机【同名】**：★ 本机工作区也是 `D:\OAS-dev\`（★ 用户 [10-15] 提议
+     "把开发路径移到 D 盘" ⇒ ★ 已整份搬到 D 盘）⇒ ★ 历史文档/历史证据里的 `D:\OAS-dev`
+     **可以直接照做**（★ 差异只有"机器不同"：★ `D:\OAS-live` 在**另一台电脑**上）
 ★ 实机：      `D:\OAS-live\`（★ **在另一台电脑上**；★ dev 的**拷贝**；后端端口 **22287**；开发用 **22288**）
    ★ ⚠ 本机（开发机）**没有** `D:\OAS-live` ⇒ ★ **实机验收不在本机做**
 ★ ★ **唯一真相 = git**：★★ **开发分支 = 后端 `dev` · 前端 `dev`**（★ 用户 [10-15] 原话：
@@ -46,7 +47,7 @@
      ★ 后端 `main` = **`e28793ce`**（10-13 15:44）· 前端 `main` = **`af10440`**（10-13 12:25）
      ⇒ ★ **恢复节点 tag 未动**（后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live`）
    ⇒ ✅ ★ **[10-15] 角色已由用户裁定 —— 本机 = 开发机**（★ 用户原话："**本机是开发机**"）
-     ⇒ ★ **本机 = 开发 / 测试（`E:\OAS-dev`）· 另一台 = 实机生产（`D:\OAS-live`）**
+     ⇒ ★ **本机 = 开发 / 测试（`D:\OAS-dev`）· 另一台 = 实机生产（`D:\OAS-live`）**
      ⇒ ★ 此前"谁是谁"的口径矛盾**已消解**（旧推断"本台=生产"**作废**）· 见台账 **§E-1** / `DEV-WORKFLOW.md §0.6`
    ⇒ ★ ⚠★ **git 只给到"源码级无缝"** —— ★ `toolkit\`（★ 实测 **17000 文件 / 1167.4 MB**）·
      `config/deploy.yaml` · ★★ **账号配置**（`恋鸟树.json`/`伴生树.json`）· `console.bat`
@@ -70,7 +71,7 @@
 ★ 理由：它的五条铁律（常驻区块 / 台账 / 逐步法 / 完成定义 / 双向读取）在压缩后会丢
 ```
 
-## 1.2 读这 5 份文档（★ 按顺序，★ 全部在 `E:\OAS-dev\backend\docs\`）
+## 1.2 读这 5 份文档（★ 按顺序，★ 全部在 `D:\OAS-dev\backend\docs\`）
 
 | 序 | 文件 | 读它为了什么 | ★ 必须读到 |
 |---|---|---|---|
@@ -84,7 +85,7 @@
 
 ## 1.3 ★★ 用代码核实台账（★ 不许信文档自述）
 
-★ 在 `E:\OAS-dev\backend\` 下跑（★ [10-15] 本机路径 = **`E:\OAS-dev`**；★ 旧文档里的 `D:\OAS-dev` 是旧开发机）：
+★ 在 `D:\OAS-dev\backend\` 下跑（★ [10-15] 本机路径 = **`D:\OAS-dev`**；★ 旧文档里的 `D:\OAS-dev` 是旧开发机）：
 
 ```bat
 REM ① 代码是不是台账以为的那一版
@@ -108,12 +109,12 @@ toolkit\python.exe -m pytest tests/ -q
 ```
 
 ★ 期望：★ **守卫 166 passed**（★ [10-14] 第四轮：135 + 新增 31 条 `tests/module/test_task_factory.py`）；★ 全量 **49 failed / 1862 passed**（★ 失败集与基线**逐条一致** ⇒ 无回归）。
-★★ **[10-15] 本机（新开发机 `E:\OAS-dev`）实测复现**：★ 守卫 **166 passed**（4.48s）· ★ 全量 **49 failed / 1862 passed / 12 skipped**（91.02s）⇒ ★★ **与台账逐数字一致**；
+★★ **[10-15] 本机（新开发机 `D:\OAS-dev`）实测复现**：★ 守卫 **166 passed**（4.48s）· ★ 全量 **49 failed / 1862 passed / 12 skipped**（91.02s）⇒ ★★ **与台账逐数字一致**；
 ★ 49 条的**归因也一致**（★ 主导是 `FileNotFoundError`：测试去读硬编码的 `D:\OAS-dev\OASX-src`）。
 
 ```bat
 REM ⑤ ★ 前端（★ 也要核）
-cd /d E:\OAS-dev\frontend
+cd /d D:\OAS-dev\frontend
 D:\flutter3271\bin\flutter.bat --no-version-check analyze lib
 D:\flutter3271\bin\flutter.bat --no-version-check test
 REM   ★ [10-14] 实测：analyze 0 error（4 warning + 17 info）· test 158 passed
@@ -159,7 +160,7 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 >     （★ 与 `:1059` 的 `else if` **条件逐字相同** ⇒ 死代码）⇒ ★ **`[⏸] 暂停调度` 永远不显示** ——
 >     ★ 这正是用户 [10-15] 报的"**恢复调度按钮缺少了暂停调度**"（★ 前端台账 `F9`）
 >
-> ★★ **⑤ [10-15] 本机已换成新开发机（`E:\OAS-dev`）—— 环境已引导完毕** ——
+> ★★ **⑤ [10-15] 本机已换成新开发机（`D:\OAS-dev`）—— 环境已引导完毕** ——
 >   ★ 两仓 = `git clone -b dev`（★ 本地分支 `dev`）· ★ `toolkit\` / `deploy.yaml` / 两份账号配置 /
 >   `console.bat` 已从 `C:\Users\passioki\Downloads` 补齐 · ★ Flutter 3.27.1 装在 `D:\flutter3271`
 >   （★ **必须带 `--no-version-check`**，见坑 P16）· ★★ **四条基线已实测复现**
@@ -216,7 +217,7 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 | **P5** | ★ **删目录前逐个核对完整路径** | 已因"删+建同名前缀混用"误删过 `D:\OASX-Live` |
 | **P6** | ★ **删含 `adb.exe` 的目录前先 `adb kill-server`** | 否则删不净 |
 | **P7** | ★★ **`pwsh` 工具整段不可用（★ 两种症状）** | ★ ① `spawn … ENOENT`（旧）· ★★ ② **[10-15] 每条命令都返回 `exit code 3221225794`（= `0xC0000142` STATUS_DLL_INIT_FAILED）且零输出**（★ 连 `echo hi` 都失败）⇒ ★ **两种都靠"续跑/重启 DSH 会话"解决**（★ 不是重启电脑；★ [10-15] 实测下一轮自行恢复）· ★ 也可用 `pwsh -Command` 之外的原生手段（`read`/`grep`/`glob` 工具）先取证 |
-| **P15** | ★★ **[10-15] 旧开发机的 `git` 报 `dubious ownership`**（★ `git log`/`status`/`push` **全被拒**）| ★ 真因：仓库属主 = `Administrators` ≠ 当前用户 ⇒ ★ 修：`git config --global --add safe.directory D:/OAS-dev/backend`（★ 前端同理）；★ ⚠ **沙箱下改不了** `~/.gitconfig` ⇒ ★ **必须先放开沙箱**（★ [10-15] 已修 · 详见 `SESSION-HANDOFF.md §3`）★ ★ **[10-15] 本机（`E:\OAS-dev`）实测没有这个问题**（仓库属主正常，`git log`/`status` 直接可用）⇒ ★ 若将来出现，`safe.directory` 要写 **`E:/OAS-dev/backend`**（不是 `D:/…`）|
+| **P15** | ★★ **[10-15] 旧开发机的 `git` 报 `dubious ownership`**（★ `git log`/`status`/`push` **全被拒**）| ★ 真因：仓库属主 = `Administrators` ≠ 当前用户 ⇒ ★ 修：`git config --global --add safe.directory D:/OAS-dev/backend`（★ 前端同理）；★ ⚠ **沙箱下改不了** `~/.gitconfig` ⇒ ★ **必须先放开沙箱**（★ [10-15] 已修 · 详见 `SESSION-HANDOFF.md §3`）★ ★ **[10-15] 本机（`D:\OAS-dev`）实测没有这个问题**（仓库属主正常，`git log`/`status` 直接可用）⇒ ★ 若将来出现，`safe.directory` 要写 **`D:/OAS-dev/backend`**（不是 `D:/…`）|
 | **P16** | ★★ **[10-15] `flutter` 的"版本检查"会跑 `git fetch --tags`（★ 611285 个对象）⇒ 在新网络上**挂死** | ★ 症状：`flutter --version`（或任何不带开关的命令）卡 10+ 分钟，后台常驻 `git fetch --tags` + `git index-pack`（★ 实测 `git remote-https origin https://github.com/flutter/flutter.git`）⇒ ★ **正解：命令一律加 `--no-version-check`**；★ 并把包/引擎源换成国内镜像：`PUB_HOSTED_URL=https://pub.flutter-io.cn` · `FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn`（★ 实测 Google 源 **~170 KB/s** vs 国内镜像 **3.5 MB/s**，997 MB 的 SDK 包 5 分钟下完且**字节数精确一致**）|
 | **P17** | ★★ **[10-15] 本机缺 C++ 工具链 ⇒ `flutter build windows --release` 不可用** | ★ 实测：**无 `vswhere`** · 无 `Microsoft Visual Studio` 目录 · 无 `Windows Kits\10\bin` · 无 `cmake`/`ninja` · **无 `winget`** ⇒ ★ `analyze`/`test` **不受影响**（已跑绿），★ **只有构建 exe 需要** Visual Studio Build Tools（`Microsoft.VisualStudio.Workload.VCTools` + Win10/11 SDK）⇒ ★ **待用户裁定是否安装**（★ 见台账 §E-6）|
 | **P18** | ★ **[10-15] `test_task_factory` / `test_task_flow_docs` 会重写 `docs/flows/README.md` 的行尾** | ★ 实测**可复现**：跑完这两个测试后 `git status` 显示 ` M docs/flows/README.md`，但 `git diff --numstat` **为空** · `git diff --ignore-cr-at-eol` **0 行** ⇒ ★ 纯 LF/CRLF 幻影（`core.autocrlf=true`），★ **内容没变** ⇒ ★ 处置：`git checkout -- docs/flows/README.md` 还原；★ 根因在 `module/task_factory.py:40/403` 用 Python 默认换行写回（★ 根治建议未做：写入时保留原行尾）|
@@ -253,12 +254,12 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 # §6 ★ 常用命令速查
 
 ```bat
-REM ---------- 开发（★ [10-15] 本机路径 = E:\OAS-dev）----------
-cd /d E:\OAS-dev\backend
+REM ---------- 开发（★ [10-15] 本机路径 = D:\OAS-dev）----------
+cd /d D:\OAS-dev\backend
 toolkit\python.exe server.py                    REM ★ 开发后端 :22288
 toolkit\python.exe -m pytest tests/ -q          REM ★ 全量测试
 
-cd /d E:\OAS-dev\frontend
+cd /d D:\OAS-dev\frontend
 D:\flutter3271\bin\flutter.bat --no-version-check analyze lib
 D:\flutter3271\bin\flutter.bat --no-version-check test
 D:\flutter3271\bin\flutter.bat --no-version-check build windows --release

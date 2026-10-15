@@ -77,7 +77,7 @@
 
 | 机器 | ★ 角色（★ ★ **[10-15] 已裁定** · ★ 早先"按另一台拉 dev 推断"的说法**作废**）| 目录 |
 |---|---|---|
-| ★ **本台**（★ [10-15] 用户原话："**本机是开发机**"）| ★ ★ **开发 / 测试**（★ 现行）| `E:\OAS-dev\`（`backend\` + `frontend`）|
+| ★ **本台**（★ [10-15] 用户原话："**本机是开发机**"）| ★ ★ **开发 / 测试**（★ 现行）| `D:\OAS-dev\`（`backend\` + `frontend`）|
 | ★ **另一台** | ★ **实机生产** | `D:\OAS-live\`（★ 本机**没有**这个目录 ⇒ 实机验收不在本机做）|
 
 > ★ ⚠ **[10-15] 更正**：此前按"另一台拉 dev"**推断**成"本台 = 生产"，★ **该推断作废** ——
@@ -95,7 +95,7 @@
      ★ ⚠ **任何机器上都绝不把本地 `main` 推到远端 `main`**（★ `main` 只在"判定稳定"时前移）
 
 ★ 交付通道（★ 取代原来的"同一台机器上 robocopy"）：
-   开发机（`E:\OAS-dev`）──git push origin dev──▶ GitHub(dev) ──git pull origin dev──▶ 生产机
+   开发机（`D:\OAS-dev`）──git push origin dev──▶ GitHub(dev) ──git pull origin dev──▶ 生产机
           ──按 §4 拷贝──▶ D:\OAS-live（★ 本机没有这个目录）
 ★ ⚠★ **git 只给到"源码级无缝"** —— ★ toolkit\（1.17 GB）· deploy.yaml · 账号配置 · console.bat
    **都不在 git** ⇒ ★ 清单见台账 **§E-1** 与本文 **§6**。
@@ -111,7 +111,7 @@
 # §1 ★ 目录结构（唯一真相 = **git**）
 
 ```
-E:\OAS-dev\                              ← ★★ **唯一开发工作区**
+D:\OAS-dev\                              ← ★★ **唯一开发工作区**
 │
 ├── backend\                             ← 后端（git 仓库 · ★★ **本地分支 `dev`** ⇒ `git push origin dev`）
 │   ├── .git\                            ★ **只在这里改后端代码**
@@ -155,8 +155,8 @@ E:\OAS-dev\                              ← ★★ **唯一开发工作区**
 ## 2.1 只在一处改代码
 
 ```
-★ 后端：★ 只在 `E:\OAS-dev\backend\` 改
-★ 前端：★ 只在 `E:\OAS-dev\frontend\` 改
+★ 后端：★ 只在 `D:\OAS-dev\backend\` 改
+★ 前端：★ 只在 `D:\OAS-dev\frontend\` 改
 ★ ⚠ **不要**在"实机目录"里改 —— ★ 实机是 dev 的**拷贝**，改了会被下次覆盖
 ```
 
@@ -164,14 +164,14 @@ E:\OAS-dev\                              ← ★★ **唯一开发工作区**
 
 ```bat
 REM ★ 后端（开发）
-cd /d E:\OAS-dev\backend
+cd /d D:\OAS-dev\backend
 toolkit\python.exe server.py
 REM ★ 默认监听 127.0.0.1:22288（见 config\deploy.yaml 的 WebuiPort）
 ```
 
 ```bat
 REM ★ 前端（开发）—— 改完代码后重新编译
-cd /d E:\OAS-dev\frontend
+cd /d D:\OAS-dev\frontend
 D:\flutter3271\bin\flutter.bat build windows --release
 build\windows\x64\runner\Release\oasx-live.exe
 ```
@@ -191,7 +191,7 @@ build\windows\x64\runner\Release\oasx-live.exe
 ## 3.1 后端自动化测试
 
 ```bat
-cd /d E:\OAS-dev\backend
+cd /d D:\OAS-dev\backend
 toolkit\python.exe -m pytest tests/ -q
 ```
 
@@ -207,7 +207,7 @@ toolkit\python.exe -m pytest tests/ -q
 ## 3.2 ★★ 改"调度/计数/循环"时**必须**跑的两组守卫
 
 ```bat
-cd /d E:\OAS-dev\backend
+cd /d D:\OAS-dev\backend
 toolkit\python.exe -m pytest tests/module/config/test_loop_rounds.py -q
 toolkit\python.exe -m pytest tests/module/config/test_no_false_completion.py tests/tasks/test_effective_target.py -q
 ```
@@ -239,7 +239,7 @@ REM ③ 还原   —— ★ 必须回绿
 ## 3.4 前端
 
 ```bat
-cd /d E:\OAS-dev\frontend
+cd /d D:\OAS-dev\frontend
 D:\flutter3271\bin\flutter.bat --no-version-check analyze lib     REM ★ 期望 0 error（★ [10-15] 本机实测：0 error / 4 warning / 17 info）
 D:\flutter3271\bin\flutter.bat --no-version-check test            REM ★ 单元测试（★ [10-15] 本机实测：158 passed）
 REM ★ ⚠ **必须带 `--no-version-check`** —— 否则 flutter 对 SDK 仓库跑 `git fetch --tags`
@@ -267,13 +267,13 @@ REM ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --relea
 ```powershell
 # ---------- ★ 后端：把 dev 拷贝成实机 ----------
 # ⚠ 先停掉正在跑的实机后端（否则文件被占用）
-robocopy E:\OAS-dev\backend D:\OAS-live\backend /E /MT:16 `
+robocopy D:\OAS-dev\backend D:\OAS-live\backend /E /MT:16 `
     /XD .git __pycache__ .pytest_cache .mypy_cache log
 # ★ 保留实机自己的运行时状态目录：
 #   log\（运行日志）—— 上面的 /XD log 就是"不覆盖"；首次部署需手动建
 
 # ---------- ★ 前端：把构建产物拷过去 ----------
-robocopy E:\OAS-dev\frontend\build\windows\x64\runner\Release `
+robocopy D:\OAS-dev\frontend\build\windows\x64\runner\Release `
          D:\OAS-live\frontend /E /MT:16
 ```
 
@@ -288,8 +288,8 @@ robocopy E:\OAS-dev\frontend\build\windows\x64\runner\Release `
 
 | 项 | 开发（dev）| 实机（live）| 为什么 |
 |---|---|---|---|
-| ★ 后端目录 | `E:\OAS-dev\backend` | `D:\OAS-live\backend` | ★ 拷贝后互不影响 |
-| ★ 前端目录 | `E:\OAS-dev\frontend\build\...\Release` | `D:\OAS-live\frontend` | ★ 同上 |
+| ★ 后端目录 | `D:\OAS-dev\backend` | `D:\OAS-live\backend` | ★ 拷贝后互不影响 |
+| ★ 前端目录 | `D:\OAS-dev\frontend\build\...\Release` | `D:\OAS-live\frontend` | ★ 同上 |
 | ★ **端口** | **22288** | ★ **22287**（★ 建议）| ★ 同时跑时不撞（见 `config\deploy.yaml` 的 `WebuiPort`）|
 | ★ **本地存储** | `Documents\GetStorage-live.gs` | ★ **同一个**（★ 当前实现如此）| ⚠ **见下方警告** |
 
@@ -336,7 +336,7 @@ pause
 
 > ★★ **[10-15] 分发通道 = GitHub 的 `dev` 分支**（★ 两台机器模型见 §0.6 · ★ 用户裁定：
 > "**另一台可以拉dev啊，main是主要的稳定版本！**"）：
-> ★ 开发机（★ **[10-15] 本机 = `E:\OAS-dev`**）`git push origin dev` ⇒ 另一台 `git clone -b dev` / `git pull origin dev`
+> ★ 开发机（★ **[10-15] 本机 = `D:\OAS-dev`**）`git push origin dev` ⇒ 另一台 `git clone -b dev` / `git pull origin dev`
 > ★ ★ `main` = **主要的稳定版本**，★ **保持不动**；★ 只有判定稳定时才把 `dev` 快进到 `main`
 
 ```
@@ -392,7 +392,7 @@ pause
        tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py ^
        tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py -q
        REM ★ 期望 **166 passed**（★ 且必须先放开沙箱，否则见坑 P11）
-   ★★ **[10-15] 本机（新开发机 `E:\OAS-dev`）实测 = 逐数字一致**：
+   ★★ **[10-15] 本机（新开发机 `D:\OAS-dev`）实测 = 逐数字一致**：
        守卫 **166 passed**（4.48s）· 全量 **49 failed / 1862 passed / 12 skipped**（91.02s）
        · 前端 `analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**
    ★ ⚠★ 跑完 `test_task_factory` / `test_task_flow_docs` 后 `docs/flows/README.md` 会**幻影变脏**

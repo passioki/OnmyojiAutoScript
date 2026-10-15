@@ -34,19 +34,35 @@ class TestAutoQueueMetadata:
     """`auto_queue` 是任务类别属性, 落在各 `meta.py` 里。"""
 
     def test_every_spec_declares_auto_queue_explicitly(self):
-        """★ 56 个任务**都必须显式声明** —— 不许靠推导。
+        """★ **每个任务**都必须显式声明 `auto_queue` —— 不许靠推导。
 
         为什么要显式: 推导规则在 `TaskSpec` 里只能看 `category`, 而
         `countable = category in COUNTABLE_CATEGORIES and bool(count_field)`
         —— 某个 FIXED 任务若没有 `count_field`, 推导会判错。
         显式落值就不会有这种偏差。
 
-        ★ 任务数来历: 55 -> **56**: `FlowDemo`（★ [10-14] 由「新建任务」工厂
-          （`module/task_factory.py`）创建的示例任务；★ 新增任务必然 +1，
-          见 `docs/DESIGN-SPEC.md` §1.16-五 `NT8`）
+        ★★★ [10-15] **删掉了"必须恰好 56 个"那条断言**（B 方案，用户裁定）★★★
+        见下面 `test_manual_and_auto_partition_all_tasks` 的说明 —— 写死总数
+        会让**每新建一个任务都要回来改数字**。
         """
         specs = TC._load_specs()
-        assert len(specs) == 56, f'期望 56 个任务, 实际 {len(specs)}'
+        # ★★★ [10-15] B 方案：**不再写死任务总数** ★★★
+        #
+        # 写死 `== 56` 的代价：★ **每新建一个任务都要回来改这个数字**
+        # （[10-14] 建 `FlowDemo` 时就是这样 ⇒ 见 `PENDING-LEDGER.md` §D.9）。
+        # ⇒ 改成"**与 `tasks/` 目录同源**" —— 这才是真正的不变量：
+        #   `_load_specs()` 看到的任务集，必须**恰好**是磁盘上带 `meta.py` 的目录集。
+        # ★ 收益：新增任务 **零改动**；而"`meta.py` 丢了 / 目录名不对"
+        #   仍然**立刻变红**（这才是这条守卫该抓的东西）。
+        import pathlib
+        tasks_dir = pathlib.Path(TC.__file__).resolve().parents[2] / 'tasks'
+        on_disk = {d.name for d in tasks_dir.iterdir()
+                   if d.is_dir() and (d / 'meta.py').is_file()}
+        assert specs, '一个任务都没发现（catalog 坏了）'
+        assert set(specs) == on_disk, (
+            f'catalog 与 tasks/ 目录**不同源**: '
+            f'只在 catalog {sorted(set(specs) - on_disk)} · '
+            f'只在磁盘 {sorted(on_disk - set(specs))}')
         missing = sorted(t for t, s in specs.items() if s.auto_queue is None)
         assert not missing, f'这些 meta.py 没写 auto_queue（靠推导, 不可靠）: {missing}'
 
@@ -89,26 +105,40 @@ class TestAutoQueueMetadata:
             f'{len(bad)} 个任务的 auto_queue 与 countable 矛盾: {bad}'
             f'（★ 唯一允许的例外是 {sorted(_EXEMPT)}，理由是用户裁定 乙）')
 
-    def test_counts_are_15_and_41(self):
-        """实测分布: **15** 个不自动进队列（False）+ **41** 个自动（True）。
+    def test_manual_and_auto_partition_all_tasks(self):
+        """★★★ `manual` 与 `auto` 必须构成**全体任务的一个划分** ★★★
 
-        ★ 原来是 14 + 40 —— 新增 `Rest`（休息）后变成 **15 + 40**。
-        ★ `Rest` 在 **manual 边**（`auto_queue=False`）:
-          用户裁定 **乙** = 休息**由用户主动添加**, 不自动进队列。
-        ★ 注意它**不是次数任务**（`countable=False`）—— 见
-          `test_auto_queue_matches_countable` 里对这条例外的说明。
-        ★ **[10-14] 40 -> 41**: 新增 `FlowDemo`（★ 由「新建任务」工厂创建）。
-          它 **TIMED + 非次数任务** ⇒ ★ 按不变量"定时任务自动进队列"
-          ⇒ 落在 **auto 边**（★ manual 仍是 15，★ 那条断言没动）。
+        ## ★ [10-15] B 方案（用户裁定"好的"）：**不再写死 15 / 41**
+
+        原名 `test_counts_are_15_and_41` —— ★ 那条断言的历史就是一部"返工史"：
+        ★ `14 + 40` ⇒ 新增 `Rest` 后 `15 + 40` ⇒ 新增 `FlowDemo` 后 `15 + 41`
+        ⇒ ★★ **每新增一个任务都要回来改数字**（`PENDING-LEDGER.md` §D.9）。
+
+        ★★ **数量本身没有信息量** —— 真正要守的不变量是：
+        ★ **两边互斥且完备**（并集 = 全体 · 交集 = 空 · 数量之和 = 总数）。
+        ★ 收益：新增任务 **零改动**；而"某任务两边都出现 / 两边都没有"
+        （= 判据写错）**仍然立刻变红**。
         """
         specs = TC._load_specs()
         manual = [t for t, s in specs.items() if not s.auto_queue_effective]
         auto = [t for t, s in specs.items() if s.auto_queue_effective]
-        assert len(manual) == 15, f'应为 15 个, 实际 {len(manual)}: {sorted(manual)}'
-        assert len(auto) == 41, f'应为 41 个, 实际 {len(auto)}'
+        assert set(manual).isdisjoint(auto), (
+            f'manual 与 auto 竟然有交集: {sorted(set(manual) & set(auto))}')
+        assert set(manual) | set(auto) == set(specs), (
+            f'两边之并 ≠ 全体: 漏了 {sorted(set(specs) - set(manual) - set(auto))}')
+        assert len(manual) + len(auto) == len(specs)
 
-    def test_the_fifteen_manual_tasks(self):
-        """钉住这 15 个（14 个次数任务 + ★ 新增的 `Rest`）。"""
+    def test_known_manual_tasks_stay_manual(self):
+        """★ 这 15 个（14 个次数任务 + `Rest`）**必须仍在 manual 边**。
+
+        ## ★ [10-15] B 方案：由 `== expected` 改成 `expected ⊆ manual`
+
+        ★ 保留的价值：**防误翻转** —— 某个任务被误改成自动入队 ⇒ 立刻红。
+        ★ 去掉的部分：**"恰好等于"** —— 那会要求"新增一个 manual 任务也必须
+          回来改这份清单"（★ 又是一种返工）。
+        ★ 另加一条：**清单里每个名字都必须在 `tasks/` 里真实存在**
+          （★ 防"清单本身腐烂" —— 任务改名/删除后清单没人清）。
+        """
         specs = TC._load_specs()
         manual = {t for t, s in specs.items() if not s.auto_queue_effective}
         expected = {
@@ -120,8 +150,13 @@ class TestAutoQueueMetadata:
             #   （它不是次数任务, 见 test_auto_queue_matches_countable）
             'Rest',
         }
-        assert manual == expected, (
-            f'差异: 多了 {sorted(manual - expected)}, 少了 {sorted(expected - manual)}')
+        # ① 清单不许腐烂：每个名字都得真实存在
+        unknown = sorted(expected - set(specs))
+        assert not unknown, f'★ 这份清单里有 tasks/ 里不存在的任务: {unknown}'
+        # ② 防误翻转：这些必须**仍在** manual 边
+        flipped = sorted(expected - manual)
+        assert not flipped, (
+            f'★ 这些任务被改成自动入队了（要么回退，要么明确改这份清单）: {flipped}')
 
     def test_exploration_is_manual(self):
         """探索 = 次数任务（用户明确问过）。"""

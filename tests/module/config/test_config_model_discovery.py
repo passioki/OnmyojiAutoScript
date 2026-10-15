@@ -21,33 +21,67 @@
 """
 import pytest
 
+from module.config import task_catalog as TC
 from module.config.config_model import (
     EXTRA_GLOBAL, NOT_A_TASK, ConfigModel, _discover_config_classes)
 from module.config.utils import convert_to_underscore
 
+# ★★★ [10-15] B 方案（用户裁定"好的"）用的两个**结构性**集合 ★★★
+#
+# ★ 这两个集合**不随任务增减**（所以钉住它们是合理的，不产生返工）：
+#   ① `KNOWN_GLOBAL_SCALARS` = `ConfigModel` 里**手写的全局字段**
+#      （★ [10-15] 探针实测：`keys - task_keys` 的 7 个里，除
+#       `EXTRA_GLOBAL`（Script/GlobalGame）之外的 5 个）
+#   ② ★ `KNOWN_TASKS_WITHOUT_FIELD` = **有 `meta.py` 但没有配置类**的已知例外
+#      （★ [10-15] 探针实测：`goto_main` —— `GotoMain` 是**纯控制节点**，
+#        没有 `tasks/GotoMain/config.py`）★ 这正是"不许猜、必须探针取证"的收获：
+#        若照直觉写 `task_keys ⊆ keys`，这条断言**当场就会红**。
+KNOWN_GLOBAL_SCALARS = {
+    'config_name', 'running_task', 'running_entry_id',
+    'force_next_entry_id', 'orochi_moans',
+}
+KNOWN_TASKS_WITHOUT_FIELD = {'goto_main'}
+
 
 class TestDiscoveryCompleteness:
-    def test_field_count_matches_handwritten(self):
-        """
-        自动发现的字段数 == 原手写声明的 58 个。
+    def test_fields_match_task_nodes(self):
+        """★★★ 每个任务节点都必须有字段（已知例外除外）；任务之外只许有已知全局 ★★★
 
-        （= ★ **每个任务/设置节点各一个字段** + `config_name` + `running_task`；
-        ⚠ [10-14] 原来这里写死成"56 个任务/设置"，**早已过期** ⇒ 去掉数字，只留口径）
-        这是替换安全性的核心断言: 少一个字段就意味着某个任务的配置读不出来。
+        ## ★ [10-15] B 方案（用户裁定"好的"）
 
-        ★ 新增字段的来历（都要在这里说清 —— 否则下一个人不知道该改哪个数）:
-        * 58 -> **59**: `Rest`（休息）任务节点（乙-A: 休息是真正的任务）
-        * 59 -> **60**: `running_entry_id`（P-1: **正在运行的条目身份**,
-          供 `put_pause` 精确退回队首 —— 队列里同一任务可以有多条条目）
-        * 60 -> **61**: `force_next_entry_id`（片 8 / A: **播放头**,
-          队列行「▶ 播放」写它 -> `update_scheduler` 把该条目提到最前,
-          **用一次就清空**。这是"立即生效"的落盘覆盖位 ——
-          脚本跑在独立进程, 不落盘它看不见, 与 `running_entry_id` 同理）
-        * 61 -> **62**: `flow_demo`（★ [10-14] 由「新建任务」工厂
-          （`module/task_factory.py`）创建的示例任务节点 `FlowDemo`
-          —— ★ **新增一个任务必然 +1**，见 `docs/DESIGN-SPEC.md` §1.16-五 `NT8`）
+        原名 `test_field_count_matches_handwritten`，里面写死
+        `len(ConfigModel.__annotations__) == 62` —— ★ 而它的 docstring 自己
+        就是一部"返工史"：`58 → 59 → 60 → 61 → 62`，★ 每新增一个任务/字段
+        都要回来改（`PENDING-LEDGER.md` §D.9）。
+
+        ★★ 数字没有信息量。真正要守的是**两条方向相反的完备性**：
+
+        | 方向 | 若违反 | 后果 |
+        |---|---|---|
+        | ① 任务 → 字段（除已知例外）| 少了字段 | ★ **静默**：该任务的配置读不出来 |
+        | ② 字段 → 任务 ∪ 已知全局 | 多出字段 | ★ 手写脏字段 / 命名漂移 |
+
+        ★ 收益 = 新增任务 **零改动**；两条完备性仍然照抓。
         """
-        assert len(ConfigModel.__annotations__) == 62
+        keys = set(ConfigModel.__annotations__)
+        task_keys = {convert_to_underscore(t) for t in TC.all_tasks()}
+        known_globals = ({convert_to_underscore(n) for n in EXTRA_GLOBAL}
+                         | KNOWN_GLOBAL_SCALARS)
+
+        # ① 任务 → 字段（★ 除已知"纯控制节点"例外）
+        missing = sorted(task_keys - keys - KNOWN_TASKS_WITHOUT_FIELD)
+        assert not missing, (
+            f'★ 这些任务节点在 ConfigModel 里没有字段（新增任务漏注册）: {missing}')
+        # ② 字段 → 任务 ∪ 已知全局（★ 反向：防手写脏字段）
+        extra = keys - task_keys
+        assert extra == known_globals, (
+            f'★ ConfigModel 的非任务字段与已知集合不符: '
+            f'多 {sorted(extra - known_globals)} · '
+            f'少 {sorted(known_globals - extra)}')
+        # ③ 已知例外自身不许腐烂（那些任务必须真的存在）
+        stale = sorted(KNOWN_TASKS_WITHOUT_FIELD - task_keys)
+        assert not stale, (
+            f'★ 这个"无字段例外"清单已腐烂（任务不存在了）: {stale}')
 
     def test_contains_expected_globals(self):
         keys = set(ConfigModel.__annotations__)
@@ -80,7 +114,11 @@ class TestDiscoveryRobustness:
     def test_discover_returns_dict_of_classes(self):
         found = _discover_config_classes()
         assert isinstance(found, dict)
-        assert len(found) >= 56
+        # ★ [10-15] B 方案：**不再写死 `>= 56`** ⇒ 改为"发现到的类必须覆盖
+        #   每个有配置类的任务"（★ 已知的"无配置类"例外除外）
+        task_keys = {convert_to_underscore(t) for t in TC.all_tasks()}
+        missing = sorted(task_keys - set(found) - KNOWN_TASKS_WITHOUT_FIELD)
+        assert not missing, f'自动发现漏了这些任务的配置类: {missing}'
         for key, cls in found.items():
             assert isinstance(key, str) and key
             assert isinstance(cls, type)

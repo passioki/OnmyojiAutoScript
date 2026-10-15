@@ -47,10 +47,26 @@ class TestNames:
         missing = [t for t, n in TC.all_names().items() if not n]
         assert missing == [], f'这些任务缺中文名: {missing}'
 
-    def test_task_count(self):
-        # ★ [10-14] 55 -> 56: 新增 `FlowDemo`（由「新建任务」工厂创建；
-        #   ★ 每新增一个任务就 +1 —— 见 docs/DESIGN-SPEC.md §1.16-五 NT8）
-        assert len(TC.all_tasks()) == 56
+    def test_task_catalog_is_same_source_as_tasks_dir(self):
+        """★★★ catalog 看到的任务集 == `tasks/` 里有 `meta.py` 的目录集 ★★★
+
+        ## ★ [10-15] B 方案（用户裁定"好的"）
+
+        原名 `test_task_count`，里面写死 `len(TC.all_tasks()) == 56`
+        —— ★ 每新建一个任务都要改这个数字（`PENDING-LEDGER.md` §D.9）。
+
+        ★★ 数字没有信息量；真正的不变量是 **"catalog 与磁盘同源"**：
+        ★ 收益 = 新增任务 **零改动**；而"某个 `meta.py` 没被发现 /
+          目录名与类名对不上"**仍然立刻变红**。
+        """
+        import pathlib
+        tasks_dir = pathlib.Path(TC.__file__).resolve().parents[2] / 'tasks'
+        on_disk = {d.name for d in tasks_dir.iterdir()
+                   if d.is_dir() and (d / 'meta.py').is_file()}
+        assert set(TC.all_tasks()) == on_disk, (
+            f'catalog 与 tasks/ **不同源**: '
+            f'只在 catalog {sorted(set(TC.all_tasks()) - on_disk)} · '
+            f'只在磁盘 {sorted(on_disk - set(TC.all_tasks()))}')
 
 
 class TestCategories:
@@ -60,7 +76,37 @@ class TestCategories:
         fixed = {m.task for m in TC.by_category(Category.FIXED)}
         assert 'Exploration' in fixed, '用户明确: 探索也是固定任务'
         assert 'HeroTest' in fixed, '用户明确: 英杰试炼是固定任务'
-        assert len(fixed) == 13
+        # ★ [10-15] B 方案：**删掉 `len(fixed) == 13`**（写死 ⇒ 新增任务返工）
+        #   ⇒ 数量改由"同源"断言保证：见 test_categories_partition_all_tasks
+        #     （每类数量 = by_category 的实际大小）+ test_summary_totals（自洽）。
+
+    def test_categories_partition_all_tasks(self):
+        """★★★ `Category` 各值必须构成**全体任务的一个划分** ★★★
+
+        ## ★ [10-15] B 方案（用户裁定"好的"）
+
+        原来靠"写死 `fixed == 13` / `total == 56`"来守分类 —— ★ 每新增任务
+        都要改。★ 真正的不变量是：**每个任务恰好属于一个 category**
+        （互斥 + 完备 + 无重复），★ 且各类大小之和 = 全体。
+        """
+        all_tasks = set(TC.all_tasks())
+        seen: dict[str, set[str]] = {}
+        for c in Category:
+            members = {m.task for m in TC.by_category(c)}
+            # ① 类内不许重复（by_category 返回列表 ⇒ 可能重复）
+            assert len(members) == len([m.task for m in TC.by_category(c)]), (
+                f'{c.value} 里有重复任务')
+            # ② 类间必须互斥
+            for other, prev in seen.items():
+                overlap = members & prev
+                assert not overlap, (
+                    f'★ {c.value} 与 {other} 有交集（分类不是划分）: {sorted(overlap)}')
+            seen[c.value] = members
+        # ③ 必须完备：并集 = 全体
+        union = set().union(*seen.values())
+        assert union == all_tasks, (
+            f'分类不完备: 没被任何 category 覆盖 {sorted(all_tasks - union)} · '
+            f'多出非任务 {sorted(union - all_tasks)}')
 
     def test_timed_tasks(self):
         """★ S5: 原来叫 `test_charge_tasks` 并断言 `Category.CHARGE`。
@@ -84,14 +130,26 @@ class TestCategories:
         }
 
     def test_summary_totals(self):
-        # ★ [10-14] total 55 -> 56: 新增 `FlowDemo`（TIMED 类；
-        #   ★ fixed / toppa / limited 都没动）
+        """★★★ `summary()` 必须与 `by_category` / `all_tasks()` **自洽** ★★★
+
+        ## ★ [10-15] B 方案（用户裁定"好的"）：**不再写死 56 / 13 / 2 / 8**
+
+        ★ 原来 `s['total'] == 56` / `s['fixed'] == 13` / `s['toppa'] == 2` /
+        `s['limited'] == 8` —— ★ 每新增任务都要回来改（`§D.9`）。
+        ★ 改成**同一批数据的两种算法必须一致**（★ 这才是真守卫：
+          `summary()` 与 `by_category()` 若有一天算法漂移，立刻红）。
+        ★ 语义钉子（toppa = 2 个具体任务名）由 `test_toppa_is_breakthrough_subcategory`
+          与 `test_limited_activities` **以集合形式**钉住，不需要这里再钉数量。
+        """
         s = TC.summary()
-        assert s['total'] == 56
-        assert s['fixed'] == 13
-        assert s['toppa'] == 2
-        assert s['limited'] == 8
-        assert sum(s[c.value] for c in Category) == 56
+        assert s['total'] == len(TC.all_tasks()), (
+            f"summary.total={s['total']} ≠ all_tasks()={len(TC.all_tasks())}")
+        for c in Category:
+            n = len({m.task for m in TC.by_category(c)})
+            assert s[c.value] == n, (
+                f"summary['{c.value}']={s[c.value]} ≠ by_category 实际 {n}")
+        assert sum(s[c.value] for c in Category) == s['total'], (
+            '各类之和 ≠ total（summary 自己就不自洽）')
 
 
 class TestCountFieldAdaptation:
@@ -147,8 +205,23 @@ class TestCountable:
         assert TC.get('AreaBoss').countable is False
 
     def test_countable_count(self):
-        # 13 固定 + 2 结界突破 - 1(悬赏封印暂无字段) = 14
-        assert len(TC.countable_tasks()) == 14
+        """★ `countable_tasks()` 必须与 `meta.countable` **同源**。
+
+        ## ★ [10-15] B 方案（用户裁定"好的"）：**不再写死 14**
+
+        ★ 原来 `assert len(TC.countable_tasks()) == 14`（注释还写着
+        "13 固定 + 2 结界突破 - 1(悬赏封印暂无字段)"）—— ★ 新增任务就返工。
+        ★ 改成：两个入口（`countable_tasks()` 与 `all_meta()` 的 `countable`）
+          **必须给出同一批任务**（★ 算法漂移就红）。顺便钉住
+          "`countable` 的任务数 > 0"（防空集通过）。
+        """
+        from_meta = {m.task for m in TC.all_meta() if m.countable}
+        from_api = {m.task for m in TC.countable_tasks()}
+        assert from_api == from_meta, (
+            f'countable_tasks() 与 meta.countable 不同源: '
+            f'只在 api {sorted(from_api - from_meta)} · '
+            f'只在 meta {sorted(from_meta - from_api)}')
+        assert from_api, '一个 countable 任务都没有（判据坏了）'
 
 
 class TestUserConfigDerivedParams:

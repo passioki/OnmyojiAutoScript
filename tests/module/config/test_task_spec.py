@@ -131,7 +131,14 @@ class TestSpecOverridesJson:
 
     def test_json_only_task_still_visible(self):
         """即使某任务没有 meta.py, 也应能从 JSON 读到(渐进迁移不中断服务)。"""
-        # 所有任务都有 meta.py, 但机制本身要保证退路存在
-        # ★ [10-14] 55 -> 56: 新增 `FlowDemo`（由「新建任务」工厂创建）
-        assert len(TC.all_meta()) == 56
+        # ★★ [10-15] B 方案（用户裁定"好的"）：**不再写死 56** ★★
+        #   原来 `assert len(TC.all_meta()) == 56` —— ★ 每新增任务都要改数字。
+        #   ⇒ 改为"**两个入口同源**"：`all_meta()`（从 meta.py 发现）与
+        #     `all_tasks()`（JSON + 合并）必须**看到同一批任务**。
+        #   ★ 这才是本用例的本意（"没有 meta.py 也要能从 JSON 读到"）。
+        meta_names = {m.task for m in TC.all_meta()}
+        assert meta_names == set(TC.all_tasks()), (
+            f'两个入口不同源 —— JSON 退路坏了: '
+            f'只在 meta {sorted(meta_names - set(TC.all_tasks()))} · '
+            f'只在 tasks {sorted(set(TC.all_tasks()) - meta_names)}')
 

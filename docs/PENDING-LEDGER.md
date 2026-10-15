@@ -234,7 +234,7 @@
 | **T8** | `entry_target_reached()` 判据 → 临时任务"跑完即完成" | `module/config/config.py` | ✅ |
 | **T9** | 修 `script.py` 收尾（`_bound` 死代码 / 覆写 target / 0 场补记）| `script.py` | 🔄 子智能体 `73d4b2a4` |
 | **T10** | 修**两道反向守卫测试** + 新增时间戳用例 | `tests/` | ✅ **已完成**：★ 子智能体 `f171d9fb` 改了 **3 个测试文件**（`test_effective_target.py` / `test_count_wiring.py` / **`test_no_false_completion.py`** ← ★ 审计没点名的第三个必红文件）+ 新增 **5 个用例**（含 a/b/c/d 四项时间戳守卫）；★ 并用 `ast.parse` 验证语法通过 |
-| **T10b** | ★ **`entry_target_reached()` 零覆盖** | `tests/` | ⬜ **仍缺**：★ 它改语义（runs>=target → 临时任务跑完即 True）但 **`tests/` 里仍无测试**（★ 要构造真 `Config` + `build_run_list()`）|
+| **T10b** | ★ **`entry_target_reached()` 零覆盖** | `tests/` | ✅ **已完成**（★ 见本文件下方 §一之后的同名行：新增 `tests/module/config/test_entry_target_reached.py` · **11 passed** · 注入 3/3 真红）—— ★ **[10-15] 台账去陈旧**：这一行原写"⬜ 仍缺"，与已完成记录矛盾 |
 | **T25** | ★★ **队列循环「轮数只到 1」守卫测试** | `tests/module/config/test_loop_rounds.py`（★ **新增**）| ✅ **已完成**：8 条断言（递增 / 读回 / 停止判据 / 重置 / **枚举 .value 根因** / **源码级取 .value** / delta / 状态损坏不抛）|
 | **T25b** | ★★ **守卫有效性验证**（★ 防空转）| — | ✅ **已做注入验证**：改回裸枚举 ⇒ **1 failed**；`bump` 不递增 ⇒ **5 failed**；还原 ⇒ **8 passed** |
 | **T26** | ★★ **推送恢复节点 + 转 main** | GitHub 两仓库 | ✅ **已完成**（见 §B.5）|

@@ -75,16 +75,24 @@
 > >   用于实机生产。本台电脑为实机生产用，所以需要你上传dev到git，
 > >   确保另一台从git上取下来时可以无缝开发。**"
 
-| 机器 | ★ 角色（★ 按用户最后一句理解）| 目录 |
+| 机器 | ★ 角色（★ 按 [10-15] "另一台拉 dev" 推断 · ★ 待确认）| 目录 |
 |---|---|---|
 | ★ **本台**（Win~Win~Win~）| ★ **实机生产** | `D:\OAS-live\` |
 | ★ **另一台** | ★ **开发 / 测试** | `D:\OAS-dev\`（`backend\` + `frontend\`）|
 
 ```
+★★ 分支策略（★ [10-15] 用户裁定 · ★ 原话：
+   "**另一台可以拉dev啊，main是主要的稳定版本！**"）：
+   · `dev`  = ★ **开发分支**（★ 日常提交都到这里；★ 另一台电脑拉这个）
+   · `main` = ★ **主要的稳定版本**（★ **冻结点**；★ 只在"判定稳定"时把 dev 快进过来）
+   ★ ★ **本机本地分支名是 `main`，推送目标是远端 `dev`** ⇒ 一律
+        git push origin main:dev
+     ★ ⚠ **绝不 `main:main`**（★ 我 [10-15] 推错一次 ⇒ 已用
+        `--force-with-lease` 回退：后端 main=e28793ce · 前端 main=af10440）
+
 ★ 交付通道（★ 取代原来的"同一台机器上 robocopy"）：
-   开发机  ──git push main──▶  GitHub  ──git pull main──▶  生产机  ──拷贝──▶ D:\OAS-live
-★ ⚠ 用户原话里有一处自相矛盾（★ "另一台…用于实机生产" vs "本台电脑为实机生产用"）
-   ⇒ ★ 见台账 §E-1，★ **等用户裁定**；★ 若裁定相反，★ 本表两行对调即可。
+   开发机 ──git push origin main:dev──▶ GitHub(dev) ──git pull origin dev──▶ 生产机
+          ──按 §4 拷贝──▶ D:\OAS-live
 ★ ⚠★ **git 只给到"源码级无缝"** —— ★ toolkit\（1.17 GB）· deploy.yaml · 账号配置 · console.bat
    **都不在 git** ⇒ ★ 清单见台账 **§E-1** 与本文 **§6**。
 ```
@@ -96,7 +104,7 @@
 ```
 D:\OAS-dev\                              ← ★★ **唯一开发工作区**
 │
-├── backend\                             ← 后端（git 仓库 · 分支 main）
+├── backend\                             ← 后端（git 仓库 · ★ 本地分支 `main` **推送到远端 `dev`**）
 │   ├── .git\                            ★ **只在这里改后端代码**
 │   ├── script.py · server.py · module\ · tasks\ · tests\ · docs\
 │   ├── config\
@@ -107,7 +115,7 @@ D:\OAS-dev\                              ← ★★ **唯一开发工作区**
 │   ├── toolkit\                         ★★ **不在 git**（Python 运行时 + 依赖，1.1 GB）
 │   └── console.bat                      ★★ **不在 git**（启动脚本）
 │
-└── frontend\                            ← 前端（git 仓库 · 分支 main）
+└── frontend\                            ← 前端（git 仓库 · ★ 本地分支 `main` **推送到远端 `dev`**）
     ├── .git\                            ★ **只在这里改前端代码**
     ├── lib\ · windows\ · pubspec.yaml
     ├── windows\flutter\ephemeral\       ★ 由 `flutter pub get` 生成（不在 git）
@@ -301,14 +309,15 @@ pause
 
 # §6 ★ 从零恢复一台机器（★ 完整步骤）
 
-> ★★ **[10-15] 分发通道 = GitHub 的 `main` 分支**（★ 两台机器模型见 §0.6）：
-> ★ 开发机 `git push origin main:main` ⇒ 另一台 `git pull origin main`
-> ★ ★ 实测（[10-15]）：后端 `e28793ce..2650b6d2` · 前端 `af10440..3978598`（★ **都是纯快进**）
+> ★★ **[10-15] 分发通道 = GitHub 的 `dev` 分支**（★ 两台机器模型见 §0.6 · ★ 用户裁定：
+> "**另一台可以拉dev啊，main是主要的稳定版本！**"）：
+> ★ 开发机 `git push origin main:dev` ⇒ 另一台 `git clone -b dev` / `git pull origin dev`
+> ★ ★ `main` = **主要的稳定版本**，★ **保持不动**；★ 只有判定稳定时才把 `dev` 快进到 `main`
 
 ```
-① 拉源码（★ 唯一真相 = git）
-   git clone -b main https://github.com/passioki/OnmyojiAutoScript.git backend
-   git clone -b main https://github.com/passioki/OASX.git               frontend
+① 拉源码（★ 唯一真相 = git · ★★ **拉 `dev`**）
+   git clone -b dev https://github.com/passioki/OnmyojiAutoScript.git backend
+   git clone -b dev https://github.com/passioki/OASX.git               frontend
 
 ② 补"不在 git"的运行时（★ [10-15] 逐项实测，★ 一个都不能少）
    · ★★ 把 `toolkit\`（Python 运行时）放到 backend\toolkit\

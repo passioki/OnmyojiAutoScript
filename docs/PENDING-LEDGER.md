@@ -736,6 +736,8 @@
 | **7** | `E-6-n` 真漂移收敛 | `run-tests.bat tests/module/config/test_linkage_unification.py -q` | ★ **16 passed**（★ 改前该文件是 15 passed + **1 failed**）|
 | **8** | `.bat` 纯 ASCII（坑 P19）| `dev_tools\flutter.bat …` | ★ **假报错消失**（★ 改前每条命令都多 `'sts.bat' is not recognized` 之类）|
 | **9** | `__pycache__` 清理（坑 P20）| 实测 `.pyc` 字节含 `E:\OAS-dev` | ★ **清掉 342 个 `__pycache__`** ⇒ ★ 输出路径不再出现 `E:\…` |
-| **10** | 两仓推送纪律（★ 绝不 force）| `fetch` ⇒ `log dev..origin/dev` ⇒ `pull --rebase` ⇒ `push` | ★ 见 §E-8-l（提交后补）|
+| **10** | 两仓推送纪律（★ 绝不 force）| `fetch` ⇒ `log dev..origin/dev` ⇒ `pull --rebase` ⇒ `push` | ✅ **已推**（★ 无 force · ★ 全程 `dev..origin/dev` 为空 ⇒ 无需 rebase）**后端 `7459e1ad → caa11b3a`**（2 提交）· **前端 `1a31709 → 8da0f2a`**（1 提交）· ★ 两仓 `git status --porcelain` **空** |
+
+| **11** | ★★ **[10-15] dev 侧真跑一次「流程示例（FlowDemo）」（★ 用户裁定："你可以直接运行"）** | ★ `PUT /{script}/manual_run` + `GET /{script}/start`（★ 见 §E-8-k）| 🔄 **已启动 · 等任务边界** | ★ 实测环境**全绿**：★ `127.0.0.1:22288` **在听**（`/home/schema` 200 · `/{script}/overview` 200 · `/openapi.json` 200）· ★ `adb connect 127.0.0.1:16384` ⇒ **`device`** · ★ **游戏 `com.netease.onmyoji` 在前台**（`mCurrentFocus=…/Client`）· ★ `oasx-live.exe` 已构建。★★ **已把 FlowDemo 排进「运行一次」**（`{"tasks":["FlowDemo"],"count":1,"head":"FlowDemo"}`）＋ **已 `GET /start`** ⇒ ★ 脚本**真的在跑**（日志实录：`battle_wait.py: Battle completion process` · ★★ 且 [10-15] 刚修的 `N9-9` 守卫在**真机日志里生效**：`切换御魂：跳过本次切换（任务继续跑）… 组/队超出范围（-1,-1）`）。★ ⚠ **当前正在跑的是配置里的 `RealmRaid`**（`running_entry_id=20261011T050202-RealmRaid` · `target=200`）⇒ ★ **FlowDemo 要等它的任务边界**才会被插队执行（★ 用户裁定过的语义："**不是立即打断，插队点在任务边界**"）|
 
 

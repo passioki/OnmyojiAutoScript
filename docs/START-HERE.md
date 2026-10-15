@@ -69,9 +69,18 @@
 ```
 ★ 调用 `skill` 工具，name = `session-memory`
 ★ 理由：它的五条铁律（常驻区块 / 台账 / 逐步法 / 完成定义 / 双向读取）在压缩后会丢
-★ ⚠ **[10-15] 若当前 harness 的技能目录里没有 `session-memory`**（★ 实测 DSH Web harness 就没有）
-  ⇒ ★ **跳过这一步、不要卡住**：★ 直接读本文件 + `SESSION-HANDOFF.md` + `docs/LAYOUT.md`，
-  这三份已经把那五条铁律与"读什么/做什么/回报什么"写死在磁盘上。
+★ ⚠ ★★ **[10-15] 若技能目录里没有 `session-memory`**（★ 它是**用户级技能**，不在项目仓库里）：
+  ⇒ ★ **装它**（★ 一次性，之后 `git pull` 即同步；★ **不需要重启 DSH**，会热加载）：
+     ```
+     ① 克隆技能仓库（★ 路径随你）：git clone https://github.com/passioki/dsh-skills.git <位置>\dsh-skills
+     ② 确认 DSH 配置根：echo $env:DSH_HOME        （★ 本机 = C:\Users\passioki\.dsh）
+     ③ 一键安装（★ 建 Junction，**不需要管理员**）：cd <位置>\dsh-skills  ⇒  .\install.bat
+     ④ 自检：python verify.py                     （★ 期望 ALL CHECKS PASSED）
+     ```
+     ★ 装完技能扫描目录里会出现：`%DSH_HOME%\skills\session-memory\SKILL.md`
+     ★ ⚠ 别把它拷进 `backend\` / `frontend\`（★ DSH **不扫描**项目目录）。
+  ⇒ ★ **实在装不上时才跳过**（★ 不要卡住）：直接读本文件 + `SESSION-HANDOFF.md` + `docs/LAYOUT.md`，
+    这三份已把要读什么/做什么/回报什么写死在磁盘上。
 ★ ⚠ **[10-15] 新会话请把工作目录设成 `D:\OAS-dev`**（★ 项目在 D 盘；★ 上轮会话的 workspace
   `E:\OAS-dev` 已清空）—— ★ 否则各工具的**相对路径**会落到空目录上。
 ```

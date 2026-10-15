@@ -432,8 +432,10 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 【本机身份】★ **开发机**（★ 用户 [10-15]："本机是开发机"）⇒ ★ 开发 = 本机 · 实机生产 = 另一台
 【★★ 新会话第一步】★ **工作目录设成 `D:\OAS-dev`**（★ 项目在 D 盘；★ 上轮会话的 workspace
    `E:\OAS-dev` **已清空**）—— ★ 否则各工具的**相对路径**会落到空目录
-   ★ ⚠ 若 harness 里**没有** `session-memory` skill ⇒ **跳过、别卡住**，直接用本文件 +
-   `START-HERE.md` + `docs/LAYOUT.md` 当锚点（★ 流程已写死在磁盘上）
+   ★ ✅ **[10-15] `session-memory` 已装好**（★ 它是**用户级技能**，不在项目仓库里）：
+   `%DSH_HOME%\skills\session-memory` → **Junction** → `D:\tools\dsh-skills`（★ 仓库 `passioki/dsh-skills`）
+   ⇒ ★ **新会话直接 `skill session-memory`** 即可（★ DSH 会热加载）；★ 同步 = `cd D:\tools\dsh-skills; git pull`
+   ★ 换机器要重装（★ 步骤见 `START-HERE §1.1` / `DEV-WORKFLOW §6`-⓪）
 【工作区】`D:\OAS-dev\`（`backend` + `frontend` · ★ 两仓本地分支都是 **`dev`**）
    · 后端 = **`fe2bbd67`**（= 远端 `dev`）· 远端 `main` = `e28793ce`（★ 稳定 · 未动）
    · 前端 = **`daf493c`**（= 远端 `dev`）· 远端 `main` = `af10440`（★ 稳定 · 未动）

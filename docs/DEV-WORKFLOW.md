@@ -347,6 +347,15 @@ pause
 > ★ ★ `main` = **主要的稳定版本**，★ **保持不动**；★ 只有判定稳定时才把 `dev` 快进到 `main`
 
 ```
+⓪ ★★ [10-15] **装用户级技能 `session-memory`**（★ 它**不在任何项目仓库里**，`git clone` 带不过来）
+   · 仓库：`https://github.com/passioki/dsh-skills` ⇒ 克隆到任意位置（★ 本机 = `D:\tools\dsh-skills`）
+   · 安装：`cd <位置>\dsh-skills` ⇒ `.\install.bat`（★ 建 **Junction**，**不需要管理员**；
+     ★ 直接跑 `install.ps1` 会报 "not digitally signed" —— 那是执行策略，用 `.bat` 或 `-ExecutionPolicy Bypass`）
+   · 自检：`python verify.py`（★ 期望 **ALL CHECKS PASSED**）
+   · 目标：`%DSH_HOME%\skills\session-memory\SKILL.md`（★ 本机 `DSH_HOME = C:\Users\passioki\.dsh`）
+   · ★ 之后同步只需 `git pull`（★ Junction 模式立即生效，不用重装）
+   · ⚠ ★ **别把技能拷进 `backend\` / `frontend\`** —— DSH 只扫描 `%DSH_HOME%\skills\` 与 `~\.agents\skills\`
+
 ① 拉源码（★ 唯一真相 = git · ★★ **拉 `dev`**）
    git clone -b dev https://github.com/passioki/OnmyojiAutoScript.git backend
    git clone -b dev https://github.com/passioki/OASX.git               frontend

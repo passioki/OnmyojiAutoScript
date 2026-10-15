@@ -36,10 +36,10 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | 项 | 值 |
 |---|---|
 | ★ **日期** | ★ **2026-10-15**（★ 上轮 10-14）|
-| ★ **开发工作区** | `D:\OAS-dev\`（`backend\` + `frontend\`，★ 各自是 git 仓库）|
+| ★ **开发工作区** | `D:\OAS-dev\`（`backend\` + `frontend\`，★ 各自是 git 仓库）★★ **[10-15] 用户打算把它挪到【另一台电脑】**（★ 见 §1i 与台账 §E）|
 | ★ **实机** | `D:\OAS-live\`（★ dev 的**拷贝**；端口 **22287**；开发用 **22288**）★★ **不许在它上面做开发/测试**（★ 坑 P14）|
-| ★ **后端分支/提交** | `main` · ★ **`d9ddbcd4`**（★ 交接轮的文档提交见 `git log -1`）；★ **远端 `dev` 已含全部提交**（★ **远端 `main` 未动** = `e28793ce`）|
-| ★ **前端分支/提交** | `main` · ★ **`3978598`**（★ 远端 `dev` 同；★ **远端 `main` 未动** = `af10440`）|
+| ★ **后端分支/提交** | `main` · ★ **`2650b6d2`** · ★ **远端 `dev` = 同** · ★★ **远端 `main` = `2650b6d2`**（★ [10-15] **已快进** `e28793ce..2650b6d2`，纯快进 rc=0）|
+| ★ **前端分支/提交** | `main` · ★ **`3978598`** · ★ **远端 `dev` = 同** · ★★ **远端 `main` = `3978598`**（★ [10-15] **已快进** `af10440..3978598`，纯快进 rc=0）|
 | ★ **恢复节点 tag** | 后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live` |
 | ★★ **测试基线（★ 实测 [10-14] 第五轮 · ★ 且 `tasks/FlowDemo` 已在库）** | ★ **守卫 = 166 passed**（★ 135 + 新增 31：`tests/module/test_task_factory.py`）<br>后端全量 = **49 failed / 1862 passed / 12 skipped**（★ **失败集与基线逐条一致** = 无回归）· ★ 前端 = `flutter test` **158 passed** · `flutter analyze` **0 error**（4 warning + 17 info）|
 | ★★ **`pwsh` 可用性** | ★★ **可用** ⇒ ★ 我能自己跑 pytest / flutter（★ 不必再让用户代跑）|
@@ -228,10 +228,51 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
    ⇒ ★ 要么先停实机后端 `:22287`，★ 要么给 dev 换设备
 ```
 
+## ★ 1i. ★★★ [10-15] 第七轮：**两台机器分工 + dev 已推上 git + `F9`（暂停调度按钮缺失）**
+
+```
+★ 【用户两项指令（★ 逐字见台账 §E 与前端台账 F9）】
+  ① "恢复调度按钮缺少了暂停调度，请添加到台账"
+  ② "现在打算使用两台电脑，一台开发、测试稳定后，上传到github，另一台从git上更新，
+     用于实机生产。本台电脑为实机生产用，所以需要你上传dev到git，
+     确保另一台从git上取下来时可以无缝开发。"
+
+★ 【① 的真因 = ★★ 死代码（★ 不是"忘了做"）】
+  `frontend/lib/views/tasks/queue_panel.dart` 的两个 `else if` 条件【逐字相同】：
+     `:1042`  `else if (isTask && e['running'] == true)`  → `[▶]` 恢复调度
+     `:1059`  `else if (isTask && e['running'] == true)`  → `[⏸]` 暂停调度   ← ★ **永不执行**
+  ⇒ ★ 佐证：全仓 `pause_circle_filled` **只 1 处**（`:1072`）· `_pauseSchedule` **只 1 处**（`:1071`）
+  ⇒ ★ **界面上根本没有"暂停调度"入口**（★ 用户看到的正是"只有恢复、没有暂停"）
+  ⇒ ★ 与 SPEC **§3.6 现行口径**不符（★ 设计只有三条：暂停中 `[▶]` / 运行中 `[⏸]` / 未运行 `[▶]` 描边）
+  ⇒ ★ 修法 = **删掉 `:1042-1058` 这个多余分支**（★ `:1059` 自然可达）
+  ⇒ ★★ **本轮按用户要求：只记进台账（前端 `F9`），未改代码**
+
+★ 【② 的实测】
+  · ★ 远端 `dev` **本来就 = 本地 `main`**（后端 `2650b6d2` · 前端 `3978598`）⇒ ★ 只需**快进 `main`**
+  · ★ 已推（★ 都 rc=0 · **纯快进**）：后端 `e28793ce..2650b6d2` · 前端 `af10440..3978598`
+  · ★★ **但 git 只给"源码级无缝"**：`toolkit\`（★ 实测 **17000 文件 / 1167.4 MB**）·
+    `config/deploy.yaml` · **账号配置**（`恋鸟树.json`/`伴生树.json`）· `console.bat`
+    —— ★ **全都不在 git** ⇒ ★ 清单见台账 **§E-1**（7 项）
+
+★ 【新坑 **P15**】本机 `git` 报 `dubious ownership`（★ 仓库属主 = `Administrators`，当前用户不同）
+  ⇒ ✅ 已 `git config --global --add safe.directory <backend|frontend>` 修好
+  ⇒ ★ 沙箱 `workspace-write` 下**改不了** `~/.gitconfig`（`could not lock config file`）
+
+★ 【四条基线复核（★ 实测）】★ 守卫 **166 passed** · ★ 全量 **49 failed / 1862 passed / 12 skipped**
+  · ★ 前端 `analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**
+  ⇒ ★ 与 [10-14] 基线**逐数字一致**
+
+★ 【⚠ 用户口径里有一处矛盾（★ 待裁定）】"另一台…用于实机生产" vs "本台电脑为实机生产用"
+  ⇒ ★ 我按**后者**执行（★ 本台 = 生产，另一台 = 开发）；★ 见台账 **§E-1** / `DEV-WORKFLOW.md §0.6`
+```
+
 ## ★ 2. ★★ 下一步（★ 按优先级）
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
+| **★0** | ★★★ **[10-15] 待你裁定：两台机器的角色** —— ★ 你原话里"**另一台…用于实机生产**"与"**本台电脑为实机生产用**"**互相矛盾**；★ 我按后者执行（★ 本台 = 生产 · 另一台 = 开发）| **台账 §E-1** · **`DEV-WORKFLOW.md §0.6`** | ⬜ **等你一句话** |
+| **★0b** | ★★ **[10-15] 待你定：非 git 的运行时怎么传给另一台** —— `toolkit\`（**17000 文件 / 1167.4 MB**）· `config/deploy.yaml` · ★ **账号配置**（`恋鸟树`/`伴生树`）· `console.bat` ★★ **光 git 不足以"无缝开发"** | **台账 §E-1**（★ 7 项实测清单）| ⬜ **等你选方式**（★ U 盘 / 网盘 / 私密仓库 / 打包）|
+| **★0c** | ★★★ **[10-15] `F9`：删掉 `queue_panel.dart:1042-1058` 的多余分支** ⇒ 让 `[⏸] 暂停调度` 可达（★ 真因 = 与 `:1059` **条件逐字相同** ⇒ 死代码）。★ 用户本轮只要求"**先记台账**" | **前端台账 `F9`** · **SPEC §3.6 现行口径 · §3.4-L3 · §1.4-Z3** | ⬜ **建议立刻做**（★ 删 1 段 + 1 条"可达性"守卫 + 注入验证）|
 | **★1** | ★★★ **接口模块化的方案已定案（[10-14] 用户）**：★ **`M2`**（= §1.17 的 **A/A+ 受控指令集**，**不用 `eval`**）＋ ★ **annotator 可以"深度拆解"进任务实现器** | **SPEC §1.17 一（分歧块⑫）· §1.18-五/八** | ✅ **已定案 ⇒ 可开工** |
 | **★1b** | ★ **[10-14] `FL-*` 新发现的处置**：★ `FL-1` ✅ **已修**（㉜）· ★ `FL-9` ✅ **已修**（㉝）· ★ `FL-2` ✅ **查清 = 误报** · ★ `FL-6`/`FL-8` ⏸ **用户裁定"待定"**（★ 原话："待定，后续可能会重构代码"）| 台账 **§D.4** · SPEC **㉜/㉝** | ✅ / ⏸ |
 | **★1c** | ★★ **`P0` 已落地**（★ 见 §1f）：★ `module/flow/`（C1/C4/C6/C7）+ ★ C10 状态入口；★ 守卫 29 条 + ★★ 注入验证 2/2 | **SPEC §1.19-七 · 台账 §D.7** | ✅ **已完成** |
@@ -265,6 +306,7 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
 | **P12** | ★ **沙箱下原生命令接 PowerShell 管道 = `Access is denied`** | 如 `python.exe … \| Select-Object` / `git … \| Select-String` ⇒ ★ **别接管道**（看工具自动截尾，或 `Select-String` 只读文件）|
 | **P13** | ★★ **核对行号不要用 `Get-Content`** | 它按 **ANSI** 解码 ⇒ 同一文件**少算行**（实测 `tasks/Tako/script_task.py` = **163** 行，`Get-Content` 只看到 **153** 行 ⇒ 行号**整体错位**）★ 用 **read/grep 工具**（与 `Select-String` 口径一致）|
 | **P14** | ★★ **不要把开发中的东西写进实机 `D:\OAS-live`** | ★ 用户原话："**不要在实机跑，现有开发基于 dev 侧，实机是版本稳定后直接从 dev 拷贝过去**"（★ `START-HERE.md` §0 已写死：★ **实机 = dev 的拷贝**）⇒ ★ 我 [10-14] 曾把新建的 `FlowDemo` 装进实机（**已还原**：删目录 + 重生成 catalog + 新进程复验 55 个任务）|
+| **P15** | ★★ **本机 `git` 报 `dubious ownership`**（★ `fatal: detected dubious ownership in repository at 'D:/OAS-dev/backend'` ⇒ **`git log`/`status`/`push` 全被拒**）| ★ 真因：仓库属主 = **`S-1-5-32-544`（Administrators）**，★ 当前用户 = `S-1-5-21-…-1000` ⇒ ★ git 2.35+ 的安全闸。★ **修**：`git config --global --add safe.directory D:/OAS-dev/backend`（★ 前端同理）；★ ⚠ **沙箱 `workspace-write` 下改不了** `~/.gitconfig`（`could not lock config file … Permission denied`）⇒ ★ **修这条必须先放开沙箱**（★ [10-15] 已修）|
 
 ## ★ 4. ★ 文档权威顺序（★ 冲突时）
 
@@ -305,13 +347,25 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
   ⑦ ★ 实测出「新建任务的完整合同」= 6 类（SPEC §1.16-五 NT8）：建一个任务会撞红 14 条守卫
   ⑧ FL-1（RyouToppa 没票记失败）已修 + FL-9（守卫时红时绿）已查清并修 + FL-2 = 误报
   ⑨ 纠错：曾把 FlowDemo 装进实机 ⇒ 按用户要求【已还原】+ 新增坑 P14
+  ⑩ ★★★ [10-15]【两台机器分工】用户打算"一台开发 / 另一台实机生产" ⇒ ★ **已把两仓
+     `main` 快进到 dev 最新并推上 GitHub**（后端 e28793ce..2650b6d2 · 前端 af10440..3978598，
+     都是纯快进）★ ＋ ★ **实测出"无缝开发"缺口清单**（toolkit 17000 文件/1167.4MB 等 7 项
+     都不在 git，台账 §E-1）★ ＋ ★ 新坑 **P15**（本机 git dubious ownership 已修）
+  ⑪ ★★★ [10-15]【前端 F9】用户报"恢复调度按钮缺少了暂停调度" ⇒ ★ **查出真因 = 死代码**：
+     `queue_panel.dart:1042` 与 `:1059` 的 `else if` 条件**逐字相同** ⇒ ★ `[⏸] 暂停调度`
+     **永不显示**（全仓 `pause_circle_filled` 只 1 处、`_pauseSchedule` 只 1 处）
+     ⇒ ★ **已记进前端台账 F9**（★ 用户只要求记台账 ⇒ **未改代码**）
 【当前代码状态】
-  ★ 后端 main = d9ddbcd4（★ 交接轮文档提交见 git log -1）· 远端 dev 同 · 远端 main 未动 e28793ce
-  ★ 前端 main = 3978598 · 远端 dev 同 · 远端 main 未动 af10440
+  ★ 后端 main = 2650b6d2 · 远端 dev = 同 · ★★ 远端 main = **2650b6d2**（[10-15] 已快进推上）
+  ★ 前端 main = 3978598 · 远端 dev = 同 · ★★ 远端 main = **3978598**（[10-15] 已快进推上）
   ★ 守卫 = 166 passed · 全量 = 49 failed / 1862 passed / 12 skipped（★ 失败集逐条一致 = 无回归）
   ★ 前端 = analyze 0 error（4 warning + 17 info）· flutter test 158 passed
   ★ 两个仓库工作区都干净（★ 前端那 7 个 generated_plugin* 是 F7 老现象，已按惯例还原）
 【下一步（按优先级）】
+  0. ★★ 【等你两句话】① 两台机器的**角色**（台账 §E-1：你原话自相矛盾）② 非 git 运行时
+     （toolkit 1.17GB / deploy.yaml / 账号配置 / console.bat）**怎么传给另一台**
+  0b. ★★★ 【建议立刻做】前端 F9：删掉 queue_panel.dart:1042-1058 的多余分支 ⇒ 让
+     `[⏸] 暂停调度` 可达（★ 1 段删除 + 1 条"可达性"守卫 + 注入验证）
   1. ★★ 【等用户一句话】dev 侧把「流程示例（FlowDemo）」真跑一次：A 先停实机 :22287 /
      B 给 dev 换设备 / C 等稳定后拷实机再跑（★ dev 与实机是同一台模拟器 127.0.0.1:16384）
   2. ★★ P1（推荐开工）：C5 补 5 个空缺原语（返回键/键盘/文本/滚动/拖拽）+ C9 的
@@ -322,15 +376,20 @@ toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_do
   7. ★ 前端 F5~F8 · 8. ★ 旧账 S3b/D7.4/D43/D45/F4/DOC4/DOC5/O1/O2/T9/T11/T14
 【已知坑 / 不要做的事】
   ★★ 实机（D:\OAS-live）**不许开发/测试**（P14；★ 它是 dev 稳定后的拷贝）
+  ★★ [10-15] 本机 git 若报 dubious ownership ⇒ `git config --global --add safe.directory …`
+     （P15；★ **必须先放开沙箱**，否则改不了 ~/.gitconfig）
   ★ 核对行号别用 Get-Content（P13，少算 10 行）· 注入验证一律用 Python（P7）
-  ★ 提交信息走 git commit -F 文件（P8）· 沙箱 workspace-write 会把 125 条测试打成假红（P11）
+  ★ 提交信息走 git commit -F 文件（P8）· 沙箱 workspace-write 会把测试打成假红（P11）
+     （★ [10-15] 实测：同一条守卫链在沙箱内 = 10 failed / 156 passed，放开 = 166 passed）
   ★ 原生命令别接 PowerShell 管道（P12）· 不要给"播放模式"加标题（P1）
   ★ annotator 写端点无鉴权（P9）—— ★ 深度拆解前必须先加鉴权
   ★ 守卫必须做注入验证（P3）· 新建任务前先读 SPEC §1.16-五 NT8（6 类合同）
 【需要用户裁定的事】
-  ① ★ dev 侧"运行"怎么跑（A/B/C，见上第 1 条）
-  ② ⏸ 三红灯 + FL-6/FL-8（★ 用户已说"待定，后期可能重构，暂不处理"）
-  ③ ⚠ 建议（非阻塞）：把"库存快照"类守卫改成读实际清单（台账 §D.9 的 B 方案）
+  ① ★ [10-15] 两台机器的**角色**（★ 你原话自相矛盾 → 台账 §E-1 / DEV-WORKFLOW §0.6）
+  ② ★ [10-15] 非 git 运行时**传递方式**（U 盘 / 网盘 / 私密仓库 / 打包）
+  ③ ★ dev 侧"运行"怎么跑（A/B/C，见上第 1 条）
+  ④ ⏸ 三红灯 + FL-6/FL-8（★ 用户已说"待定，后期可能重构，暂不处理"）
+  ⑤ ⚠ 建议（非阻塞）：把"库存快照"类守卫改成读实际清单（台账 §D.9 的 B 方案）
 ```
 
 ---

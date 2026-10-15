@@ -520,3 +520,52 @@
 | **H-6** | ★★ **新会话入口已更新**（★ 本节的重点）| ✅ ① `START-HERE.md` §1.4 的"最要紧"从**已作废的"N9-6 架构选择"**改为**三件事**（M2 已定案 ⇒ 下一步 P1 · 新建任务已跑通 ⇒ **先读 NT8** · **只在 dev 开发** + 待你定的运行方式）② §0 写死"**不许在 `D:\OAS-live` 做开发/测试**"③ §1.3④ 数字订正为实测值 ④ `SESSION-HANDOFF.md` §1 状态/§2 下一步/**§6 交接模板（已按当前状态填好，可直接粘给新会话）** 全部刷新 |
 | **H-7** | ★★ **新会话开场怎么说**（★ 原样粘贴即可）| ★ "**先 skill session-memory，然后读 docs/START-HERE.md，严格按它执行，最后按它的模板回报。**" |
 
+---
+
+# §E ★★★ [10-15] **两台机器分工**（★ 用户裁定/打算）+ **dev 已推上 git**
+
+> ★★ **用户原话（逐字）**：
+> > "**现在打算使用两台电脑，一台开发、测试稳定后，上传到github，另一台从git上更新，
+> >   用于实机生产。本台电脑为实机生产用，所以需要你上传dev到git，
+> >   确保另一台从git上取下来时可以无缝开发。**"
+
+| # | 事项 | 实测 / 内容 | 状态 |
+|---|---|---|---|
+| **E-1** | ★★ **分工口径** | ★ 用户同一句里给了两条**互相冲突**的说法：★ ① "**另一台从git上更新，用于实机生产**"（⇒ 另一台 = 生产）· ★ ② "**本台电脑为实机生产用**…**确保另一台…可以无缝开发**"（⇒ 本台 = 生产，另一台 = 开发）| ⬜ **待用户裁定**（★ 我按 ② 理解并执行，★ 见下） |
+| **E-2** | ★★★ **推送（★ 用户明确要求）** | ✅ **前端**：`af10440..3978598  main -> main`（★ **纯快进**，rc=0）· ✅ **后端**：`e28793ce..2650b6d2  main -> main`（★ **纯快进**，rc=0）<br>★ 说明：★ 两仓**远端 `dev` 本来就 = 本地 `main`**（后端 `2650b6d2` · 前端 `3978598`）⇒ ★ **一句话：`main` 之前落在恢复节点上，现在已快进到 dev 的最新**（★ `dev` 分支未动、也无需动）<br>★ 佐证：`git merge-base --is-ancestor e28793ce HEAD` ⇒ rc=0；前端 `af10440` 同 ⇒ ★ **无强推、无历史改写** | ✅ **已完成**（rc=0） |
+| **E-3** | ★★ **"无缝开发"清单**（★ 另一台从 git 取下**仍然缺**的东西 —— ★ [10-15] 逐项实测）| ★ 见下表 | 🔄 **待办（★ 需用户定传递方式）** |
+| **E-4** | ★★ **新坑 P15**（★ 本机 git 不可用的真因）| ★ 见下 | ✅ **已修** |
+
+## E-1 ★★ "无缝开发"清单（★ git 里**没有**、但**必须**有的 7 项）
+
+| 项 | 在 git？ | ★ [10-15] 本机实测 | 另一台怎么补 |
+|---|---|---|---|
+| 后端源码 / `docs\` / `tests\` / `tasks\` | ✅ | — | ★ `git clone -b main` |
+| 前端源码（`lib\` · `windows\` · `pubspec.yaml`）| ✅ | — | ★ 同上 |
+| ★ 后端 `toolkit\`（Python 运行时 + 依赖）| ❌ ★ `.gitignore:18`（`/toolkit`）| ★★ **17000 文件 / 1167.4 MB** | ★ **只能拷**（★ 或 `OnmyojiAutoScript-easy-install.rar`）⇒ ★ **这是"无缝"的最大障碍** |
+| ★ 后端 `config\deploy.yaml` | ❌ ★ `.gitignore:6`（`config/*.yaml`）| ★ 6114 B（★ 含 `WebuiPort` 等**本机设置**）| ★ **每台机器单独建**（★ dev 机用 **22288**，★ live 机用 **22287**）|
+| ★★ **账号配置** `config\恋鸟树.json` / `伴生树.json` | ❌ ★ `.gitignore:8`（`config/*.json`）| ★ 86062 B / 68437 B | ★ **用户数据，git 里永远不会有** ⇒ ★ **必须单独传**（★ 待你定：U 盘 / 网盘 / 私密仓库）|
+| ★ 后端 `console.bat` | ❌ ★ `.gitignore:269`（`console.bat`）| ★ 存在 | ★ `DEV-WORKFLOW.md §5` 模板 |
+| ★ `module\config\i18n\zh-CN.json` | ❌ ★ `.gitignore:28` | ★ 本机**不存在**（★ 前端推来的**运行时产物**，见 §A.3）| ★ 起一次前端即自动生成 |
+| ★ 前端 `windows\flutter\ephemeral\` + `build\` | ❌ | — | ★ `flutter pub get` + `flutter build windows --release` |
+
+★ **结论**：★ **`git clone` 只能给到"源码级无缝"** —— ★ 要**真能跑**，★ 还必须补上 **`toolkit\`（1.17 GB）+ `deploy.yaml` + 两个账号配置 + `console.bat`**
+  ⇒ ★ **光"上传 dev 到 git"不足以让另一台无缝开发**（★ 这一条**必须显式告知**）。
+
+## E-2 ★★ 新坑 **P15**：本机 `git` 报 `dubious ownership`（★ [10-15] 实测）
+
+| 现象 | 真因（★ 实测）| 处置 |
+|---|---|---|
+| ★ 一切 `git` 命令都 `fatal: detected dubious ownership in repository at 'D:/OAS-dev/backend'`（★ `git log` / `status` / `push` **全被拒**）| ★ 仓库属主 = **`S-1-5-32-544`（Administrators）**，★ 当前用户 = `S-1-5-21-2217696017-…-1000` ⇒ ★ git 2.35+ 的**安全闸** | ✅ **已修**：`git config --global --add safe.directory D:/OAS-dev/backend` ＋ `…/frontend` |
+| ★ ⚠ 在沙箱 `workspace-write` 下**修不了**：`error: could not lock config file C:/Users/<user>/.gitconfig: Permission denied` | ★ `~/.gitconfig` 在**工作区之外** ⇒ ★ 沙箱拒绝写入 | ★ ★ **修这条必须放开沙箱**（★ 与 P11 同一类：**不是代码问题，是环境闸门**）|
+
+## E-3 ★★ [10-15] 本机四条基线**复核实测**（★ 与 [10-14] 基线**逐数字一致**）
+
+| 项 | ★ 实测 | 与基线对照 |
+|---|---|---|
+| ★ 后端 commit / 分支 / 工作区 | `2650b6d2`（`main`）· `git status --porcelain` **空** | ✅ 与 `SESSION-HANDOFF.md §1` 一致 |
+| ★★ **守卫链**（★ `START-HERE §1.3③` 那一条命令）| ★ **166 passed**（11.35s）| ✅ **一致** |
+| ★ 后端全量 | ★ **49 failed / 1862 passed / 12 skipped**（122.68s）| ✅ **一致**（★ 11 个失败文件全部落在已知环境类：前端仓库路径 / i18n 运行时产物 / 用户·实机状态）|
+| ★ 前端 | ★ `flutter analyze lib` = **0 error · 4 warning · 17 info** · `flutter test` = **158 passed** | ✅ **一致** |
+| ⚠ ★★ **沙箱 `workspace-write` 下的假红（★ P11 的新数据点）** | ★ 同一条守卫链 = **10 failed / 156 passed**，★ **全部**是 `PermissionError [WinError 5]`（`multiprocessing.Pipe` / `subprocess` 管道）⇒ ★ **同一份代码、两种沙箱、两套数字** | ★ ★ **跑 pytest 必须先确认沙箱模式**（★ P11 原记 125 errors，★ 本轮守卫链是 10 failed —— ★ 同一根因，**不同子集**）|
+

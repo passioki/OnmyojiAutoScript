@@ -68,6 +68,27 @@
 ⑥ 代码 —— ★ 与 ①~⑤ 冲突 ⇒ ★ **以 ①~⑤ 为准**，并把冲突记进 SPEC §4
 ```
 
+## 0.6 ★★ [10-15] **两台机器**（★ 用户打算 ⇒ ★ **待裁定**）
+
+> ★★ **用户原话（逐字）**：
+> > "**现在打算使用两台电脑，一台开发、测试稳定后，上传到github，另一台从git上更新，
+> >   用于实机生产。本台电脑为实机生产用，所以需要你上传dev到git，
+> >   确保另一台从git上取下来时可以无缝开发。**"
+
+| 机器 | ★ 角色（★ 按用户最后一句理解）| 目录 |
+|---|---|---|
+| ★ **本台**（Win~Win~Win~）| ★ **实机生产** | `D:\OAS-live\` |
+| ★ **另一台** | ★ **开发 / 测试** | `D:\OAS-dev\`（`backend\` + `frontend\`）|
+
+```
+★ 交付通道（★ 取代原来的"同一台机器上 robocopy"）：
+   开发机  ──git push main──▶  GitHub  ──git pull main──▶  生产机  ──拷贝──▶ D:\OAS-live
+★ ⚠ 用户原话里有一处自相矛盾（★ "另一台…用于实机生产" vs "本台电脑为实机生产用"）
+   ⇒ ★ 见台账 §E-1，★ **等用户裁定**；★ 若裁定相反，★ 本表两行对调即可。
+★ ⚠★ **git 只给到"源码级无缝"** —— ★ toolkit\（1.17 GB）· deploy.yaml · 账号配置 · console.bat
+   **都不在 git** ⇒ ★ 清单见台账 **§E-1** 与本文 **§6**。
+```
+
 ---
 
 # §1 ★ 目录结构（唯一真相 = **git**）
@@ -280,17 +301,24 @@ pause
 
 # §6 ★ 从零恢复一台机器（★ 完整步骤）
 
+> ★★ **[10-15] 分发通道 = GitHub 的 `main` 分支**（★ 两台机器模型见 §0.6）：
+> ★ 开发机 `git push origin main:main` ⇒ 另一台 `git pull origin main`
+> ★ ★ 实测（[10-15]）：后端 `e28793ce..2650b6d2` · 前端 `af10440..3978598`（★ **都是纯快进**）
+
 ```
-① 拉源码
+① 拉源码（★ 唯一真相 = git）
    git clone -b main https://github.com/passioki/OnmyojiAutoScript.git backend
    git clone -b main https://github.com/passioki/OASX.git               frontend
 
-② 补"不在 git"的运行时
-   · 把 `toolkit\`（Python 运行时）放到 backend\toolkit\
+② 补"不在 git"的运行时（★ [10-15] 逐项实测，★ 一个都不能少）
+   · ★★ 把 `toolkit\`（Python 运行时）放到 backend\toolkit\
+       ★ 实测本机 = **17000 文件 / 1167.4 MB**（★ `.gitignore:18`）
        ★ 来源：另一台机器的 backend\toolkit\，或 OnmyojiAutoScript-easy-install.rar
-   · 建 backend\config\deploy.yaml（★ 至少要有 WebuiPort）
-   · 放 backend\console.bat（§5 模板）
-   · 把账号配置（`伴生树.json` / `恋鸟树.json`）放进 backend\config\
+   · ★ 建 backend\config\deploy.yaml（★ 至少要有 WebuiPort；★ 实测 6114 B）
+       ★ dev 机 = **22288** · live 机 = **22287**（★ 两台机器上各建一份）
+   · ★ 放 backend\console.bat（§5 模板；★ `.gitignore:269` 排除）
+   · ★★ 把账号配置（`伴生树.json` / `恋鸟树.json`）放进 backend\config\
+       ★ 实测 68437 B / 86062 B；★ **是用户数据，git 里永远不会有** ⇒ ★ 必须单独传
 
 ③ 验后端
    cd backend
@@ -302,7 +330,19 @@ pause
    D:\flutter3271\bin\flutter.bat pub get
    D:\flutter3271\bin\flutter.bat build windows --release
 
-⑤ 起实机（§4 的拷贝法）
+⑤ ★★ 验"无缝"（★ [10-15] 的四条基线，★ 逐数字对得上才算真的能开发）
+   cd backend
+   toolkit\python.exe -m pytest tests/test_comment_drift.py tests/test_task_flow_docs.py ^
+       tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py ^
+       tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py ^
+       tests/module/server/test_profile_transfer_keeps_enables.py ^
+       tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py ^
+       tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py ^
+       tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py ^
+       tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py -q
+       REM ★ 期望 **166 passed**（★ 且必须先放开沙箱，否则见坑 P11）
+
+⑥ 起实机（§4 的拷贝法）
 ```
 
 ★ **恢复节点 tag**（★ 出问题回这里）：

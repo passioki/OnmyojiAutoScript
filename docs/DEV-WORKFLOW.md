@@ -407,6 +407,16 @@ pause
    ★ ⚠ 前端那 7 个 `generated_plugin*` 每次 `pub get`/`test` 后也会幻影变脏（★ F7）⇒ 同样 `git checkout --` 还原
 
 ⑥ 起实机（§4 的拷贝法 · ★ **[10-15] 实机在另一台电脑上**）
+
+⑦ ★★ 装 DSH 技能（★ [10-15] 新增 —— ★ **技能不在项目仓库里，必须单独拉**）
+   git clone https://github.com/passioki/dsh-skills.git <任意位置>\dsh-skills
+   cd /d <那个位置>\dsh-skills
+   install.bat                      REM ★ 默认 Junction：以后 git pull 即同步
+                                    REM ★ 想要独立副本 ⇒ install.bat -Copy
+                                    REM ★ 干跑看看 ⇒ install.bat -WhatIf
+   REM ★ 原理：技能放在 %DSH_HOME%\skills\ 下（空则默认 %USERPROFILE%\.dsh\skills\）
+   REM ★ 放进去即生效，**不用重启 DSH**（DSH 热加载技能目录）
+   REM ★ 台账依据：§E-7-a（★ 含三条实测坑：UTF-8 BOM / 执行策略 / rmdir 删联接）
 ```
 
 ★ **恢复节点 tag**（★ 出问题回这里）：

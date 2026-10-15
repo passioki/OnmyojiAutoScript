@@ -540,9 +540,9 @@
 | **E-4** | ★★ **新坑 P15**（★ 本机 git 不可用的真因）| ★ 见下 | ✅ **已修** |
 | **E-5** | ★★★ **分支策略裁定（★ [10-15] 用户纠正）** | ★★ **用户原话（逐字）**："**另一台可以拉dev啊，main是主要的稳定版本！**"<br>⇒ ★ **现行口径**：★ `dev` = **开发分支**（★ **另一台电脑拉这个**）· ★ `main` = **主要的稳定版本**（★ **冻结点**，★ 只在"判定稳定"时把 `dev` 快进过来）<br>⇒ ★ **本机本地分支名是 `main`，推送目标是远端 `dev`** ⇒ ★ 一律 **`git push origin main:dev`** —— ★⚠ **绝不 `main:main`**<br>⇒ ✅ **回退已执行**：★ 后端 `git push --force-with-lease=refs/heads/main:5243cb19… origin e28793ce:refs/heads/main` ⇒ `+ 5243cb19...e28793ce (forced update)`（rc=0）· ★ 前端同 ⇒ `+ ae1065b...af10440`（rc=0）<br>⇒ ★ 复核：★ 远端 `main` = 后端 **`e28793ce`**（10-13 15:44）· 前端 **`af10440`**（10-13 12:25）；★ **恢复节点 tag 未动**<br>⇒ ★ **顺带裁定 E-1**：★ "另一台拉 `dev`" ⇒ ★ **本台 = 生产 · 另一台 = 开发**（★ 待一句确认）| ✅ **已裁定并落地** |
 
-## E-1 ★★ "无缝开发"清单（★ git 里**没有**、但**必须**有的 7 项）
+## E-1 ★★ "无缝开发"清单（★ git 里**没有**、但**必须**有的 8 项）
 
-| 项 | 在 git？ | ★ [10-15] 本机实测 | 另一台怎么补 |
+| 项 | 在 git？ | ★ [10-15] 实测 | 另一台怎么补 |
 |---|---|---|---|
 | 后端源码 / `docs\` / `tests\` / `tasks\` | ✅ | — | ★ `git clone -b dev`（★ **不是 main** —— ★ `main` 是稳定版本）|
 | 前端源码（`lib\` · `windows\` · `pubspec.yaml`）| ✅ | — | ★ 同上（`git clone -b dev`）|
@@ -552,8 +552,9 @@
 | ★ 后端 `console.bat` | ❌ ★ `.gitignore:269`（`console.bat`）| ★ 存在 | ★ `DEV-WORKFLOW.md §5` 模板 |
 | ★ `module\config\i18n\zh-CN.json` | ❌ ★ `.gitignore:28` | ★ 本机**不存在**（★ 前端推来的**运行时产物**，见 §A.3）| ★ 起一次前端即自动生成 |
 | ★ 前端 `windows\flutter\ephemeral\` + `build\` | ❌ | — | ★ `flutter pub get` + `flutter build windows --release` |
+| ★★ **DSH 技能**（`session-memory`）| ❌ ★ 在 **`%DSH_HOME%\skills\`**（★ **不属于任何项目仓库** ⇒ ★ **项目 `git pull` 带不过来**）| ★ 5 文件 / 22.9 KB | ✅ **[10-15] 已单独建仓库解决** ⇒ ★ 公开仓库 `dsh-skills`：★ `git clone` ＋ **`install.bat`**（★ 详见 **§E-7-a**）|
 
-★ **结论**：★ **`git clone` 只能给到"源码级无缝"** —— ★ 要**真能跑**，★ 还必须补上 **`toolkit\`（1.17 GB）+ `deploy.yaml` + 两个账号配置 + `console.bat`**
+★ **结论**：★ **`git clone` 只能给到"源码级无缝"** —— ★ 要**真能跑**，★ 还必须补上 **`toolkit\`（1.17 GB）+ `deploy.yaml` + 两个账号配置 + `console.bat` + ★ DSH 技能**
   ⇒ ★ **光"上传 dev 到 git"不足以让另一台无缝开发**（★ 这一条**必须显式告知**）。
 
 ## E-2 ★★ 新坑 **P15**：本机 `git` 报 `dubious ownership`（★ [10-15] 实测）
@@ -619,5 +620,66 @@
 |---|---|---|---|---|
 | **E-6-q** | ★★★ **[10-15] 实机**不需要**前端源码（★ 用户裁定："不参与运行的不应该存在"）** | ★ 用户 [10-15] 原话：★ "**不参与运行的不应该存在，有解决方法吗。**" | ✅ **已裁定并写进文档** | ★ **真因**：跨仓契约测试（9 个文件）要读前端源码 ⇒ ★ 我上轮据此说"实机也留一份 frontend" —— ★ **那是错的**（★ 那份源码在实机上确实不参与运行）。★★ **解法**：① 实机只放**运行产物**（backend 拷贝 + `oasx-live.exe`），★ **不在实机跑 pytest**（★ 这本来就是 P14 的既有口径）② ★ **跨仓测试只在【开发机】跑**；★ 开发机上 `frontend\` **必须存在**（★ 用户另一条裁定"前端仓库要存在" ⇒ `require_oasx()` 缺了就抛）③ ★ 已改 `LAYOUT.md §1` + `DEV-WORKFLOW §4` 撤掉错误建议 | 
 | **E-6-r** | ★ **可选加固（★ 未做 · 等指令）**：给跨仓测试加 `@pytest.mark.frontend_contract` | ★ 供"**非开发机**上也必须跑后端测试"的场景 | ⬜ **未做** | ★ 设计：① `pytest.ini` 注册 marker ② 9 个文件加 `pytestmark`，并把模块级 `require_oasx()` 改成**延迟解析**（★ 否则 `-m "not frontend_contract"` 也会在 import 期抛）③ 实机侧用 `run-tests.bat -m "not frontend_contract"`（★ 全量只剩那 6 条"用户/实机状态"类）★ **验收**：★ 临时把 `D:\OAS-dev\frontend` 改名 ⇒ 带 marker 的命令 **全绿**、不带 marker 的命令 **响亮报错**（注入验证）|
+
+---
+
+# ★ §E-7 ★★★ [10-15] **实机（生产机）侧**：角色消歧 + DSH 技能仓库 + 并发写入的教训
+
+> ★★ **触发**：★ 用户在**实机这台电脑**上给的指令：
+> > "**现在打算使用两台电脑，一台开发、测试稳定后，上传到github，另一台从git上更新，
+> >   用于实机生产。本台电脑为实机生产用……确保另一台从git上取下来时可以无缝开发。**"
+> > "**做成单独小git仓库吧，两边都能快速同步**"（★ 指 DSH 技能）
+
+## E-7-0 ★★★ 角色消歧（★ 一台机器上的"本机" ≠ 另一台上的"本机"）
+
+| 机器 | Windows 用户 | ★ 角色 | ★ 判定证据（实测）|
+|---|---|---|---|
+| ★ **实机（生产）** | `Win~Win~Win~` | ★ **实机生产** | ★ `D:\OAS-live\backend`（`toolkit\` · `console.bat` · `deploy.yaml` 的 `WebuiPort: 22287` · 两份账号配置 **都在**）＋ `D:\OAS-live\frontend\oasx-live.exe` **在** ⇒ ★ 这就是用户说的"**本台电脑为实机生产用**" |
+| ★ **开发机** | `passioki` | ★ **开发 / 测试** | ★ 见 **§E-6**（★ 该机 `D:\OAS-live` **不存在**；★ 用户原话"**本机是开发机**"）|
+
+★★ **消歧义结论（★ 重要）**：★ **§E-6-a 的"本机 = 开发机"（开发机视角）与实机侧写过的"本台 = 生产"（实机视角）【两句都对】** ——
+   ★ 它们说的是**两台不同的机器**；★ `§E-6-a` 把后者标成"作废"是**跨机器的误伤**（★ 因为文档里"本机"没有限定词）。
+⇒ ★ **今后写法**：★ 一律带机器名 ⇒ ★ **"实机（`Win~Win~Win~`）"** / **"开发机（`passioki`）"**；★ ★ **禁止裸用"本机"**。
+
+## E-7-a ★★★ DSH 技能仓库（★ 用户裁定："做成单独小git仓库吧，两边都能快速同步"）
+
+| # | 事项 | 内容 | 状态 | ★ 可核查证据（实测）|
+|---|---|---|---|---|
+| **E-7-a-1** | ★★ **真因：技能不在任何项目仓库里** | ★ `session-memory` 在 **`%DSH_HOME%\skills\`**（★ DSH 的扫描根），★ **不属于 `backend\` / `frontend\`** ⇒ ★ **项目 `git pull` 永远带不过来** | ✅ 已查清 | ★ 依据 = `@deepseek-ai/dsh-skill-filesystem` 的扫描根：`<dshHome>/skills` · `<projectRoot>/.dsh/skills` · `~/.agents/skills` |
+| **E-7-a-2** | ★★ **新仓库已建并推送** | ★ 公开仓库 **`dsh-skills`**（★ 只有 `main` 一个分支）· ★ 提交 `39cc50b` | ✅ **已完成** | ★ `git ls-remote`：`HEAD` = `refs/heads/main` = `39cc50b…` |
+| **E-7-a-3** | ★ 仓库内容（9 文件 / 34.0 KB）| `skills\session-memory\`（`SKILL.md` + `scripts\{extract.py, seg.ps1, index_gen.py, prog_gen.py}`）· `install.ps1` · `install.bat` · `README.md` · `.gitattributes`（`* text=auto eol=lf`）| ✅ | ★ 5 个技能文件与实机现役技能 **SHA256 逐字节一致（5/5）** |
+| **E-7-a-4** | ★★ **两种安装方式** | ★ **Junction（默认）**：DSH 目录里**只是一个联接** ⇒ ★ **`git pull` 之后免再跑脚本**<br>★ **`-Copy`**：真文件副本 ⇒ ★ 每次 pull 后要**再跑一次** | ✅ 已实测 | ★ 两台机器命令：`git clone` ⇒ **`install.bat`**（★ 可加 `-Copy` / `-WhatIf`）★ 不重启 DSH 也生效 |
+| **E-7-a-5** | ★★★ **实测 5 项（全部通过）** | ① junction 装到空 DSH 根 ⇒ 自检 OK ② `-Copy` ⇒ OK ③ **重复跑幂等**（移除旧联接后重建，**不产生备份**）④ **junction 覆盖真目录** ⇒ 改名备份 + 建联接，★ **备份 5 文件完好** ⑤ `-WhatIf` ⇒ **一个文件都没动** | ✅ | ★ 另：★ **透过联接逐字节比对 5/5 一致** · `LinkType=Junction` · `Target` 指向仓库 |
+| **E-7-a-6** | ★★ **三条实测坑（★ 已规避 · 已写进该仓库 README §五）** | ★ ① **Windows PowerShell 5.1 读「无 BOM 的 UTF-8 `.ps1`」会按 GBK 解码中文** ⇒ ★ 脚本**直接解析失败**（★ 实测：`复制` → `澶嶅埗`）⇒ ★ 已加 **UTF-8 BOM**（★ 复核**提交里也是** `EF BB BF`）<br>★ ② **执行策略**（`CurrentUser=RemoteSigned`）直接跑 `.ps1` 报 **`not digitally signed`** ⇒ ★ 走 **`install.bat`**（自带 `-ExecutionPolicy Bypass`），★ **不去改全局策略**<br>★ ③ **删联接只能用 `cmd /c rmdir`** —— ★ **`Remove-Item -Recurse` 会顺着联接删掉【指向的真实内容】**（★ 脚本已规避）| ✅ | ★ ①②③ 均在实机上**实测复现**过 |
+| **E-7-a-7** | ⬜ **实机现役技能是否改成联接** | ★ 实机的 `%DSH_HOME%\skills\session-memory` **仍是真目录**（★ **没有动它** —— 它正被当前会话使用）| ⬜ **等用户定** | ★ 改法 = 跑一次 `install.bat`（★ 会**先改名备份**，可回退）|
+
+## E-7-b ★★★ 教训：**两台机器同时改同一份台账 ⇒ 推送被拒**（★ 本项目第一次真实撞上）
+
+| 时间 | 事件 | 处置 |
+|---|---|---|
+| 22:2x | ★ 实机侧提交 `3738f24a` ⇒ `git push origin main:dev` **被拒**：`! [rejected] main -> dev (fetch first)` | ★ ★ **没有强推**（★ 这是对的）|
+| — | ★ 查真因（★ 两条）：★ ① ★ **`remote.origin.fetch` 只配了 `main`** ⇒ ★ **`git fetch` 根本不更新 `origin/dev`** —— ★ 我一度看到的 `origin/dev` **全是旧快照**，害我一度误判"远端被回退"；★ ② ★ 远端 `dev` 的真实值 = **`727ece59`** —— ★ **开发机在 21:35~22:14 推了 4 个提交**（`12d42532` / `b410b7f0` / `fe2bbd67` / `727ece59`）| ★ **显式抓**：`git fetch origin refs/heads/dev:refs/remotes/origin/dev` |
+| — | ★ 处置：★ **在最新之上重做**（★ **不是**硬合、不是覆盖）—— `git reset --hard origin/dev` ⇒ ★ 再把那一小段记录按**新规约 R4（★ 文档不写盘符）**重新加进新版文档 | ✅ |
+
+★ **可复用结论（★ 写进文档，防下次再撞）**：
+```
+★ ① 两台机器同时开发同一个仓库 ⇒ ★ push 被拒是【正常】的，★ 【绝不】--force
+★ ② ★ 本项目 remote.origin.fetch 只配了 main ⇒ ★ 想更新 origin/dev 必须显式 fetch：
+      git fetch origin refs/heads/dev:refs/remotes/origin/dev
+★ ③ ★ 推之前的固定动作：★ fetch ⇒ 看 main..origin/dev 有没有别人的提交 ⇒ 有就在其上重做
+```
+
+## E-7-c ★★★ 实机侧**独立复现**开发机的新基线（★ 跨机器验证 · [10-15] 实测）
+
+> ★ 目的：★ 证明「**相对路径改造后，换一台机器数字不变**」—— ★ 这是 R1~R5 价值的**最强证据**。
+
+| 项 | ★ 实机（`Win~Win~Win~`）实测 | ★ 开发机 §E-6-o 自述 | 对照 |
+|---|---|---|---|
+| ★★ 守卫链（★ START-HERE §1.3③ 那一条 ＋ ★ 他们的新守卫 `test_no_hardcoded_paths`）| ★ **170 passed**（14.21s）| ★ 166 passed（★ 那是**不含**新守卫的旧清单）| ✅ **170 = 166 + 4**（新守卫 4 条）⇒ ★ **一致** |
+| ★★ 全量 | ★ **15 failed / 1903 passed / 7 skipped**（125.68s）| ★ **15 / 1903 / 7** | ✅ **逐数字一致** |
+| ★ 那 15 条 | ★ 与开发机**逐条一致**（★ 含 §E-6-n 的**真漂移** `test_linkage_unification.py::TestFrontendPauseIsTheOnlyEntry::test_pause_reports_requeue`）| 同 | ✅ |
+| ★ 「43 条硬编码失败」| ★ **已消失**（★ 实机也有 `frontend\` ⇒ `require_oasx()` 解析成功）| ★ 已根治 | ✅ |
+
+⇒ ★ **结论**：★ 相对路径化**真的做到了"换机器数字不变"**；★ 全量失败从 **49 → 15**。
 
 

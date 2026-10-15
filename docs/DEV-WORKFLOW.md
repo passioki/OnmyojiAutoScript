@@ -68,6 +68,27 @@
 ⑥ 代码 —— ★ 与 ①~⑤ 冲突 ⇒ ★ **以 ①~⑤ 为准**，并把冲突记进 SPEC §4
 ```
 
+## 0.7 ★★★ [10-15] 两台机器**并发写 `dev`** 的规矩（★ 已真实撞上）
+
+> ★ 实测：★ [10-15] 22:2x~22:5x，★ **实机侧与开发机侧同时在改 `docs/PENDING-LEDGER.md`**
+> ⇒ ★ 两边的 `git push origin dev` **都被拒**（`! [rejected] … (fetch first)`）
+> —— ★ 台账 **§E-7-b**（实机侧）· **§E-6-t**（开发机侧）
+
+★ **固定动作（推之前，★ 一条都不许省）**：
+```
+git fetch origin                              # ★ 先看别人推了什么
+git log --oneline dev..origin/dev             # ★ 有别人的提交 ⇒ 不许硬推
+git pull --rebase origin dev                  # ★ 在最新之上**重做**（★ 不是合并覆盖）
+git push origin dev
+```
+★ **铁律**：★ **绝不 `--force` / `--force-with-lease` 到共享分支**（★ 除非是"回退误推"那种**已裁定**的场景）。
+★ ⚠ **`remote.origin.fetch` 必须是通配**：`+refs/heads/*:refs/remotes/origin/*`
+  —— ★ 实测：**实机侧的 clone 只配了 `main`** ⇒ ★ `git fetch` **根本不更新 `origin/dev`**
+  （★ 会看到**旧快照**、误判"远端被回退"）；★ **开发机侧实测是通配**（正常）。
+  修：`git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'`
+★ ★ **分工建议（防冲突）**：★ 台账/交接类文档**由一台机器主写**（★ 建议 = 开发机），
+  另一台**只追加自己的小节**（★ 如实机侧的 `§E-7-*`），★ **别同时改同一张表**。
+
 ## 0.6 ★★ [10-15] **两台机器**（★ ★★ **角色已裁定：本机 = 开发机**）
 
 > ★★ **用户原话（逐字）**：

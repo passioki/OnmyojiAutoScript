@@ -363,6 +363,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 | **★0b** | ★★ **[10-15] 待你定：非 git 的运行时怎么传给另一台** —— `toolkit\`（**17000 文件 / 1167.4 MB**）· `config/deploy.yaml` · ★ **账号配置**（`恋鸟树`/`伴生树`）· `console.bat` ★★ **光 git 不足以"无缝开发"** | **台账 §E-1**（★ 7 项实测清单）| ⬜ **等你选方式**（★ U 盘 / 网盘 / 私密仓库 / 打包）|
 | **★0c** | ★★★ **[10-15] `F9`：删掉 `queue_panel.dart:1042-1058` 的多余分支** ⇒ 让 `[⏸] 暂停调度` 可达（★ 真因 = 与 `:1059` **条件逐字相同** ⇒ 死代码）。★ 用户本轮只要求"**先记台账**" | **前端台账 `F9`** · **SPEC §3.6 现行口径 · §3.4-L3 · §1.4-Z3** | ⬜ **建议立刻做**（★ 删 1 段 + 1 条"可达性"守卫 + 注入验证）|
 | **★0d** | ★★ **[10-15] 待你裁定：装不装 C++ 工具链** —— ★ 本机缺 Visual Studio / Windows SDK ⇒ ★ `flutter build windows --release` **不可用**（★ `analyze`/`test` 已跑绿）· ★ 本机**也没有 `winget`** ⇒ ★ 要用官方 `vs_BuildTools.exe` ＋ `Microsoft.VisualStudio.Workload.VCTools`（★ 约 2~6 GB）| **§1j-⑥** · **DEV-WORKFLOW §7 坑 10** · **START-HERE P17** | ⬜ **等你一句话** |
+| **★0e** | ★★★ **[10-15] 待你裁定：真漂移** —— `tests/module/config/test_linkage_unification.py::test_pause_reports_requeue` 期望前端 `run_control_bar.dart` 有 `pauseScriptDetailed`，★ **而前端 v2 已只剩「启动/停止脚本」**（★ 改走解析器后**第一次真的读到前端源码**才暴露出来）⇒ ★ 与前端 **F9**（`queue_panel.dart:1042-1058` 死代码 ⇒ 暂停入口消失）**同源** | **台账 §E-6-n** · **前端台账 F9** · **SPEC §3.6** | ⬜ **等你一句话**（A 前端恢复暂停路径 / B 改测试期望）|
 | **★1** | ★★★ **接口模块化的方案已定案（[10-14] 用户）**：★ **`M2`**（= §1.17 的 **A/A+ 受控指令集**，**不用 `eval`**）＋ ★ **annotator 可以"深度拆解"进任务实现器** | **SPEC §1.17 一（分歧块⑫）· §1.18-五/八** | ✅ **已定案 ⇒ 可开工** |
 | **★1b** | ★ **[10-14] `FL-*` 新发现的处置**：★ `FL-1` ✅ **已修**（㉜）· ★ `FL-9` ✅ **已修**（㉝）· ★ `FL-2` ✅ **查清 = 误报** · ★ `FL-6`/`FL-8` ⏸ **用户裁定"待定"**（★ 原话："待定，后续可能会重构代码"）| 台账 **§D.4** · SPEC **㉜/㉝** | ✅ / ⏸ |
 | **★1c** | ★★ **`P0` 已落地**（★ 见 §1f）：★ `module/flow/`（C1/C4/C6/C7）+ ★ C10 状态入口；★ 守卫 29 条 + ★★ 注入验证 2/2 | **SPEC §1.19-七 · 台账 §D.7** | ✅ **已完成** |
@@ -427,25 +428,39 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 ## ★ 6b. ★★★ [10-15] 本机引导轮交接（★ **新会话优先读这一节**）
 
 ```
-【本机身份】★ **开发机**（★ 用户 [10-15] 原话："本机是开发机"）⇒ ★ **开发 = 本机 · 实机生产 = 另一台**
+【本机身份】★ **开发机**（★ 用户 [10-15]："本机是开发机"）⇒ ★ 开发 = 本机 · 实机生产 = 另一台
+【★★ 新会话第一步】★ **工作目录设成 `D:\OAS-dev`**（★ 项目在 D 盘；★ 上轮会话的 workspace
+   `E:\OAS-dev` **已清空**）—— ★ 否则各工具的**相对路径**会落到空目录
+   ★ ⚠ 若 harness 里**没有** `session-memory` skill ⇒ **跳过、别卡住**，直接用本文件 +
+   `START-HERE.md` + `docs/LAYOUT.md` 当锚点（★ 流程已写死在磁盘上）
 【工作区】`D:\OAS-dev\`（`backend` + `frontend` · ★ 两仓本地分支都是 **`dev`**）
-   · 后端 = **`93f7a4db`**（= 远端 `dev`）· 远端 `main` = `e28793ce`（★ 稳定 · 未动）
-   · 前端 = **`ae1065b`**（= 远端 `dev`）· 远端 `main` = `af10440`（★ 稳定 · 未动）
-【怎么起的】★ `git clone -b dev` ＋ 从 `C:\Users\passioki\Downloads` 补：
-   `toolkit\`（**17000 文件 / 1167.4 MB**）· `deploy.yaml`（**6114 B** · `WebuiPort: 22288`）·
-   `伴生树.json`（68437 B）· `恋鸟树.json`（85570 B）· `console.bat`（590 B）
-   ＋ **Flutter 3.27.1** 装到 `D:\flutter3271`（★ 命令一律加 `--no-version-check` · ★ 坑 P16）
-【四条基线（★ 本机实测 · 与台账逐数字一致）】
-   ★ 守卫链 = **166 passed** · 全量 = **15 failed / 1903 passed / 7 skipped**
-   ★ 前端 `analyze` = **0 error（4 warning + 17 info）** · `test` = **158 passed**
-【怎么跑】★ 后端 `run-tests.bat tests/ -q`
-   ★ 前端 `dev_tools\flutter.bat {analyze lib|test}`
+   · 后端 = **`fe2bbd67`**（= 远端 `dev`）· 远端 `main` = `e28793ce`（★ 稳定 · 未动）
+   · 前端 = **`daf493c`**（= 远端 `dev`）· 远端 `main` = `af10440`（★ 稳定 · 未动）
+【★★ 怎么跑 —— 一律【无盘符包装脚本】】
+   · 后端全量：`backend\run-tests.bat`      · 起开发后端：`backend\run-server.bat`（`:22288`）
+   · 前端：`backend\dev_tools\flutter.bat {analyze lib|test|build windows --release}`
+     （★ 自动找 SDK + 自动补 `--no-version-check` · ★ 坑 P16）
+   · ★ **自查锚点**：`backend\toolkit\python.exe -m dev_tools.paths`（★ 四行都要指对）
+【四条基线（★ [10-15] 相对路径改造后 · 本机实测）】
+   ★ 守卫链 = **166 passed**（★ 14 文件的完整命令见 `START-HERE §1.3③`）
+   ★ 全量 = **15 failed / 1903 passed / 7 skipped**（★★ 旧的 49/1862/12 **已作废**）
+   ★ 前端 = `analyze` **0 error（4 warning + 17 info）** · `test` **158 passed**
+   ★ 15 条归因：**9** 缺 `zh-CN.json`（★ 前端**运行后**才推来的运行时产物）· **2** 用户/实机状态
+     · **1** 窗口外任务 · **1** 用户配置 · **1** live 配置 · ★ **1 真漂移**（见下）
+【★ 路径规约（必读）】`docs/LAYOUT.md`（R1~R5）：仓库内相对仓库根 · 跨仓走 `dev_tools/paths.py`
+   · 绝对路径**只允许**在 `config\deploy.yaml` 与 `dev_tools\paths.local.json`（★ 都不进 git）
+   · 守卫 `test_no_hardcoded_paths` 的扫描范围**含 `tests/`**
 【推送】★ **`git push origin dev`**（★ 本机本地分支就叫 `dev`；★ **绝不 `main:main`**）
-【不要做】★ 实机（在另一台）不许开发/测试（P14）· ★ 跑完测试记得 `git checkout --` 还原幻影脏
-   （`docs/flows/README.md` ＋ 7 个 `generated_plugin*` · ★ 坑 P18/F7）
-【待你裁定】① ★ **装不装 VS Build Tools**（没它就不能 `build windows` · ★ 坑 P17）
-   ② ★ **下一步做什么**：★ `F9`（删 `queue_panel.dart:1042-1058` ＋ 可达性守卫 ＋ 注入验证）
-   还是 ★ `P1`（C5 五个原语 ＋ C9 的 `LoopBudget/StuckGuard/RetryPolicy`）
+【不要做】★ 实机（在另一台）不许开发/测试（P14）· ★ **实机不带前端源码、也不跑 pytest**
+   （★ 用户："不参与运行的不应该存在" ⇒ ★ 跨仓测试只在开发机跑 · ★ 台账 §E-6-q）
+   · ★ 跑完测试 `git checkout --` 还原幻影脏（`docs/flows/README.md` ＋ 7 个 `generated_plugin*`）
+【待你裁定（★ 新会话开头就问这三条）】
+   ① ★★ **真漂移怎么修**：`tests/module/config/test_linkage_unification.py::test_pause_reports_requeue`
+      期望前端 `run_control_bar.dart` 有 `pauseScriptDetailed`，★ 而前端 v2 已只剩「启动/停止脚本」
+      ⇒ ★ **A** 前端恢复「暂停调度」路径（SPEC §3.6）· **B** 改测试期望（★ 台账 §E-6-n）
+   ② ★ **装不装 VS Build Tools**（★ 没它就不能 `build windows` · ★ 坑 P17 · ★ 台账 §E-6-f）
+   ③ ★ **下一步做什么**：★ `F9`（删 `queue_panel.dart:1042-1058` 死代码 ＋ 可达性守卫 ＋ 注入验证，
+      ★ 与①**同源**）还是 ★ `P1`（C5 五个原语 ＋ C9 的 `LoopBudget/StuckGuard/RetryPolicy`）
 ```
 
 ---

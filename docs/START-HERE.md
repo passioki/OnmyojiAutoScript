@@ -69,6 +69,11 @@
 ```
 ★ 调用 `skill` 工具，name = `session-memory`
 ★ 理由：它的五条铁律（常驻区块 / 台账 / 逐步法 / 完成定义 / 双向读取）在压缩后会丢
+★ ⚠ **[10-15] 若当前 harness 的技能目录里没有 `session-memory`**（★ 实测 DSH Web harness 就没有）
+  ⇒ ★ **跳过这一步、不要卡住**：★ 直接读本文件 + `SESSION-HANDOFF.md` + `docs/LAYOUT.md`，
+  这三份已经把那五条铁律与"读什么/做什么/回报什么"写死在磁盘上。
+★ ⚠ **[10-15] 新会话请把工作目录设成 `D:\OAS-dev`**（★ 项目在 D 盘；★ 上轮会话的 workspace
+  `E:\OAS-dev` 已清空）—— ★ 否则各工具的**相对路径**会落到空目录上。
 ```
 
 ## 1.2 读这 5 份文档（★ 按顺序，★ 全部在 `D:\OAS-dev\backend\docs\`）

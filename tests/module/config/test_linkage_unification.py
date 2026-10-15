@@ -320,14 +320,60 @@ class TestFrontendPauseIsTheOnlyEntry:
         assert 'cancelRunning' not in code, (
             '★ 不该再调 `cancelRunning`')
 
-    def test_pause_reports_requeue(self):
-        """★ 暂停按钮必须**如实报告**退回队首（否则用户不知道任务去哪了）。"""
+    def test_pause_entry_lives_on_the_queue_row(self):
+        """★★★ 暂停入口**长在队列行上**（SPEC §3.6「现行口径」）★★★
+
+        ## ★ [10-15] 本用例被**改写**（原名 `test_pause_reports_requeue`）
+
+        它原来要求 `run_control_bar.dart` 里有 `pauseScriptDetailed`，
+        且文案含"退回" / "队首" —— ★★ **两个断言都是已被推翻的旧口径**：
+
+        | 时间 | 谁 | 说法 | 状态 |
+        |---|---|---|---|
+        | [10-10 23:17:09] | 用户 | "点击暂停调度，正在运行的任务**自动回退到队列首位**" | ❌ **已作废** |
+        | [10-11 19:21:05] | 用户 | "`[⏸ 暂停调度]` 应该和队列中任务点击运行那个按钮**是一个东西**，**放在外边就冗余了**" | ✅ 现行 |
+        | [10-11 20:53:44] | 用户 | "这个暂停调度/恢复调度**不是集成到任务运行行里的按钮上了吗**，**这应该是 bug**" | ✅ 现行 |
+
+        * ★ "回退到队列首位" 已被**推翻**：用户选 **甲 = 原地不动**
+          （见本文件 `TestPauseDoesNotTouchQueue` 的 docstring 与
+          SPEC §3.6 分歧块⑨）⇒ 后端 `put_pause` 的 `requeued` **恒为空**。
+        * ★ 暂停**不在** `run_control_bar.dart`（那是"共用顶部"= 状态+计数+
+          启停脚本）—— ★ 前端自己的守卫（`task_list_panel_test.dart` 的
+          `_runControlV2Tests` 第 3 条）**明确断言**那里**不该**有
+          `label: const Text('暂停调度')`。
+
+        ⇒ ★ 两个仓库的守卫若都保留，就是**互相矛盾**；★ 按
+          `DEV-WORKFLOW.md §0.5` 的权威顺序（SPEC §1~§3 正文 > 测试）
+          ⇒ ★ **改这一条**。
+
+        ★★ 注意：这**不是** `E-6-n` 里那个"B 方案（= 承认暂停入口没了）"——
+        入口**没有消失**，它在**队列行**上；★ 而且 `F9`（[10-15]）修好了
+        `queue_panel.dart` 里那段"条件逐字重复的死分支"⇒ `[⏸]` **真的可达**
+        （★ 运行时守卫：前端 `_f9PauseReachableTests()`）。
+        """
         # ★ [10-15] 去盘符：前端仓库走解析器（★ 必须存在；缺了就响亮失败，**不跳过**）
         from dev_tools.paths import require_oasx
-        src = (require_oasx() / 'lib' / 'views' / 'tasks' / 'run_control_bar.dart')
+        src = (require_oasx() / 'lib' / 'views' / 'tasks' / 'queue_panel.dart')
         assert src.is_file(), f'★ 前端仓库里缺少 {src} —— 前端仓库必须存在'
         t = src.read_text(encoding='utf-8')
-        assert 'pauseScriptDetailed' in t, (
-            '★ 要走能拿到 `message`/`requeued` 的那个方法')
-        assert '退回' in t or '队首' in t, (
-            '★ 提示里要说明"退回队列首位"')
+        # 注释里提到旧口径是允许的（甚至是必要的说明），所以剥注释再看
+        code = '\n'.join(l.split('//')[0] for l in t.split('\n'))
+
+        # ① 队列行的暂停必须走**能拿到 `message`** 的那个方法（暂停的唯一实现入口）
+        assert 'pauseScriptDetailed' in code, (
+            '★ 队列行的暂停按钮要走能拿到 `message`/`requeued` 的 '
+            '`pauseScriptDetailed`（否则用户看不到"停手了"的说明）')
+        # ② 文案必须是**现行口径**：明确"队列顺序没有被改动"
+        assert ('队列顺序不会被改动' in t) or ('队列顺序没有被改动' in t), (
+            '★ 提示里要说明"**队列顺序没有被改动**"（现行口径）')
+        # ③ ★ 反向：**不许**再对用户承诺"退回队首"（那已被推翻）
+        assert '自动回退到队列首位' not in code, (
+            '★ [10-10 23:17] 的"自动回退到队列首位"已被推翻（甲：原地不动），'
+            '★ 不许留在现行代码里')
+        # ④ ★ 反向：暂停**不该**再长在"共用顶部"（那是启停脚本的地方）
+        top = (require_oasx() / 'lib' / 'views' / 'tasks' / 'run_control_bar.dart')
+        assert top.is_file(), f'★ 前端仓库里缺少 {top}'
+        tcode = '\n'.join(
+            l.split('//')[0] for l in top.read_text(encoding='utf-8').split('\n'))
+        assert "label: const Text('暂停调度')" not in tcode, (
+            '★ 「暂停调度」按钮不该回到共用顶部 —— 依 SPEC §3.6 L3/L5')

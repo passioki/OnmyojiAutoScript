@@ -474,6 +474,9 @@ pause
 | **10** | ★★ **[10-15] 本机没有 C++ 工具链** | ★ `flutter build windows --release` 报找不到 Visual Studio | ★ 装 **VS 2022 Build Tools**（`Microsoft.VisualStudio.Workload.VCTools` + Win10/11 SDK）；★ 本机**也没有 `winget`** ⇒ 要用官方 `vs_BuildTools.exe`；★ `analyze` / `test` 不需要它 |
 | **11** | ★ **[10-15] 跑测试后 `docs/flows/README.md` 幻影变脏** | ★ `git status` 显示 ` M`，但 `git diff --numstat` **为空** · `--ignore-cr-at-eol` **0 行** | ★ 纯 LF/CRLF（`core.autocrlf=true`）⇒ `git checkout -- docs/flows/README.md`；★ 根因 `module/task_factory.py:40/403` 用 Python 默认换行写回 |
 | **12** | ★★ **[10-15] `pwsh` 工具整个会话不可用** | ★ 每条命令都返回 `exit code 3221225794`（= `0xC0000142` STATUS_DLL_INIT_FAILED）且**零输出**（★ 连 `echo hi` 都失败）| ★ **续跑/重启 DSH 会话**（★ 不是重启电脑）；★ 期间用 `read`/`grep`/`glob` 工具继续取证 |
+| **13** | ★★ **[10-15] `.bat` 里写中文 ⇒ cmd 把 REM 行**误解析成命令**** | ★ 每条命令都多出**假报错**（`'去盘符：靠' is not recognized` · `'sts.bat' is not recognized`），★ 且 `cmd /c` 的**退出码被污染成 1**（★ 明明 `16 passed`）| ★ **`run-tests.bat` / `run-server.bat` / `dev_tools\flutter.bat` 一律【纯 ASCII】**（★ 与 `session-memory` 技能同一条教训：★ **通用脚本 = 纯 ASCII**，不是"记得加 BOM"）；★ [10-15] 已全部改写并复验 |
+| **14** | ★★ **[10-15] `__pycache__` 残留**旧盘符路径** ⇒ 测试输出路径是错的** | ★ 换机器/换盘（`robocopy`）会把 `__pycache__` 一起搬 ⇒ `.pyc` 里 `co_filename` 仍是旧盘符 ⇒ ★ pytest 的 SKIPPED/FAILED 行显示 `E:\OAS-dev\backend\tests\…`（★ 会让人**误判"测试不是在 D 盘跑的"**）| ★ **换机器/换盘后清一遍 `__pycache__`**（★ [10-15] 实测清掉 **342** 个）；★ 判据：输出路径必须与 `%~dp0` **一致** |
+| **15** | ★ **[10-15] Python 在 GBK 控制台 print 中文会**乱码** | ★ `dev_tools\flutter.bat` 的输出里 `★ Flutter SDK :` 全成 `��` ⇒ ★ **会让人看漏真正的报错** | ★ 工具里 ① `sys.stdout.reconfigure(encoding='utf-8', errors='replace')` ② **提示语只用 ASCII**（★ `dev_tools/run_flutter.py` 已按此改）|
 
 ---
 

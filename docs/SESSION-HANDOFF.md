@@ -38,12 +38,26 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 | ★ **日期** | ★ **2026-10-15**（★ 上轮 10-14 · ★★ **[10-15] 本机换成了【新开发机 `D:\OAS-dev`】**）|
 | ★ **开发工作区** | ★★ **[10-15] 本机 = 开发机** ⇒ **`D:\OAS-dev\`**（`backend\` + `frontend\`，★ 各自是 git 仓库 · ★ **两仓的本地分支都是 `dev`**）<br>★ **[10-15] 本机是【新引导的开发机】**：两仓 `git clone -b dev` ＋ `toolkit\`/`deploy.yaml`/两份账号配置/`console.bat` 从 `C:\Users\passioki\Downloads` 补齐（★ 详见 §1j）|
 | ★ **实机** | `D:\OAS-live\`（★ **在【另一台电脑】上**；★ dev 的**拷贝**；端口 **22287**；开发用 **22288**）★★ **不许在它上面做开发/测试**（★ 坑 P14）<br>★ ⚠ **[10-15] 本机没有 `D:\OAS-live`** ⇒ ★ 实机验收不在本机做 |
-| ★ **后端分支/提交** | ★★ **[10-15] 本机（`D:\OAS-dev\backend`）实测**：★ 本地 **`dev` = `93f7a4db`** = ★★ **远端 `dev` = `93f7a4db`**（★ **开发分支** —— ★ 另一台拉这个）· ★★ **远端 `main` = `e28793ce`**（10-13 15:44 · ★ **主要的稳定版本 · 未动**）<br>★ ⚠★ **本机推送一律 `git push origin dev`**（★ 本地分支就叫 `dev`）；★ 旧机那种"本地 `main`"的机器才要 `git push origin main:dev`，★ **绝不 `main:main`**（★ [10-15] 误推过一次 ⇒ 已 `--force-with-lease` 回退）|
-| ★ **前端分支/提交** | ★★ **[10-15] 本机（`D:\OAS-dev\frontend`）实测**：★ 本地 **`dev` = `ae1065b`** = ★★ **远端 `dev` = `ae1065b`** · ★★ **远端 `main` = `af10440`**（10-13 12:25 · ★ **恢复节点 / 稳定版本 · 未动**）|
+| ★ **后端分支/提交** | ★★ **[10-15] 开发机（`passioki` / `D:\OAS-dev\backend`）实测**：★ 本地 **`dev` = 见 §1 末「本轮入口实测」** · ★★ 远端 `dev` **与本地同 hash**（★ **开发分支** —— ★ 另一台拉这个）· ★★ **远端 `main` = `e28793ce`**（10-13 15:44 · ★ **主要的稳定版本 · 未动**）<br>★ ⚠★ **一律 `git push origin dev`**（★ 本机本地分支就叫 `dev` —— ★ **不是**旧机的 `main`）；★ 旧机那种"本地 `main`"的机器才要 `git push origin main:dev`，★ **绝不 `main:main`**（★ [10-15] 误推过一次 ⇒ 已 `--force-with-lease` 回退）|
+| ★ **前端分支/提交** | ★★ **[10-15] 开发机（`D:\OAS-dev\frontend`）实测**：★ 本地 **`dev` = 见 §1 末「本轮入口实测」** · ★★ 远端 `dev` **与本地同 hash** · ★★ **远端 `main` = `af10440`**（10-13 12:25 · ★ **恢复节点 / 稳定版本 · 未动**）|
 | ★ **恢复节点 tag** | 后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live` |
-| ★★ **测试基线（★★ [10-15] 本机 `D:\OAS-dev` 实测复现）** | ★ **守卫 = 166 passed**（14 个文件 · 4.48s）<br>后端全量 = **15 failed / 1903 passed / 7 skipped**（91.02s · ★ 49 条是已知环境类，★ 主导原因是测试硬编码去读 `D:\OAS-dev\OASX-src`）<br>★ 前端 = `flutter analyze` **0 error（4 warning + 17 info）** · `flutter test` **158 passed**<br>★★ **四项与台账逐数字一致** ⇒ ★ 这台新开发机**可以开工** |
+| ★★ **测试基线（★★ [10-15] 开发机 `D:\OAS-dev` 实测复现）** | ★ **守卫 = 170 passed**（**15 个文件** —— ★ [10-15] 把 `test_no_hardcoded_paths.py` 并进清单 · 5.03s）<br>后端全量 = **14 failed / 1904 passed / 7 skipped**（85.80s · ★ **14 条 = 已知环境/用户状态类**：**9** 缺 `module/config/i18n/zh-CN.json`（★ 前端**运行后**经 `/chinese_translate` 推来的运行时产物）＋ **2** 用户/实机状态（`test_task_report`）＋ **1** 窗口外任务（`test_schema_router`）＋ **1** 用户配置（`test_task_catalog`）＋ **1** live 配置（`test_queue_clear_and_settings`）⇒ ★★ **真漂移已修**，那 1 条不再红）<br>★ 前端 = `flutter analyze` **0 error（4 warning + 17 info）** · `flutter test` **160 passed**（★ [10-15] 新增 2 条 F9 可达性守卫）<br>★★ **与台账 §E-6-o 的旧口径差异只在于"真漂移已修 + F9 守卫 +2"** ⇒ ★ 这台开发机**可以开工** |
 | ★★ **`pwsh` 可用性** | ★★ **[10-15] 可用**（★ 但本会话开场时**整段不可用**：每条命令返回 `exit code 3221225794` = `0xC0000142`，★ 续跑后自行恢复 ⇒ ★ 见 §3 坑 **P7**）⇒ ★ 我能自己跑 pytest / flutter（★ 不必再让用户代跑）|
-| ★ **实机是否在跑** | ★ ⚠ **[10-15] 本机无关**（实机在另一台电脑上）· ★ 本机实测：**`:22287`/`:22288` 都没有监听**；★ `E:\MuMuPlayer` 已安装但**模拟器未运行**（`16384` 未监听）|
+| ★ **实机是否在跑** | ★ ⚠ **[10-15] 与开发机无关**（实机在另一台电脑上）· ★ 开发机实测：**`:22287`/`:22288` 都没有监听**；★ `E:\MuMuPlayer` 已安装但**模拟器未运行**（`16384` 未监听）|
+
+### ★★★ 本轮入口实测（★ [10-15] 第二次开工 · ★ **可核查**）
+
+```
+★ 开发机（passioki）· D:\OAS-dev
+【入口实测（本轮开工那一刻）】
+  后端：本地 dev = 7459e1ad = 远端 dev · 远端 main = e28793ce（未动）
+  前端：本地 dev = 1a31709 = 远端 dev · 远端 main = af10440（未动）
+  两仓 worktree 均干净（跑完测试的"幻影脏"已按 P18/F7 还原）
+  守卫（15 文件）= 170 passed · 全量 = 14 failed / 1904 passed / 7 skipped
+  前端 = analyze 0 error（4w+17i）· test = 160 passed
+★ 本轮改了代码 ⇒ 提交后上面的 hash 会**前移**（★ 文档自述自己那一笔天然差一格，
+  见台账 §E-6-b；★ 以 `git log -1` 为准）
+```
 
 ## ★ 1b. ★★★ [10-14] 本轮做完的（★ 供交接，★ 不必重做）
 

@@ -89,8 +89,8 @@
 
 | 序 | 文件 | 读它为了什么 | ★ 必须读到 |
 |---|---|---|---|
-| **①** | `SESSION-HANDOFF.md` | ★ **当前在哪、下一步干什么、有哪些坑** | 全文（5 KB）|
-| **②** | `PENDING-LEDGER.md` | ★ **未完成台账**（🔄/⬜/⛔）| 全文（24 KB）|
+| **①** | `SESSION-HANDOFF.md` | ★ **当前在哪、下一步干什么、有哪些坑** | 全文（★ [10-15] 实测 **57 KB** —— ★ 旧写"5 KB"是**改造前**的旧值）|
+| **②** | `PENDING-LEDGER.md` | ★ **未完成台账**（🔄/⬜/⛔）| 全文（★ [10-15] 实测 **104 KB** —— ★ 旧写"24 KB"是旧值）|
 | **③** | `DEV-WORKFLOW.md` | ★ 怎么开发/测试/部署 + **§0 会话协议** | ★ **§0 必读**，其余按需 |
 | **④** | `DESIGN-SPEC.md` | ★ **软件应该是怎样的** | ★ **只读本轮相关的 §**（如改调度读 §1，改前端读 §3）|
 | **⑤** | ★ **[10-15] `LAYOUT.md`** | ★ **存放结构树 + 路径规约 R1~R5**（"路径该怎么写"的唯一入口）| ★ 改任何命令/路径前必读 |
@@ -112,24 +112,28 @@ REM   ⚠ 不要用 findstr 查 emoji（GBK 下匹配不到，会静默输出空
 REM     用 PowerShell 的 Select-String（本机 pwsh 可用）
 powershell -NoProfile -Command "Select-String -Path docs\PENDING-LEDGER.md -Pattern '🔄','⬜','⛔' | Select-Object LineNumber,Line"
 
-REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 166 passed）
-run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py -q
+REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 **170 passed**）
+REM   ★ [10-15] 去陈旧：第 15 个文件 test_no_hardcoded_paths.py 是**路径规约 R5 的守卫**
+REM     （★ 旧清单只有 14 个文件 = 166 条；★ 实机侧 §E-7-c 早已按 170 = 166 + 4 对照）
+run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py tests/module/config/test_no_hardcoded_paths.py -q
 
-REM ④ ★ 全量基线（★ **[10-15] 相对路径改造后实测：15 failed / 1903 passed / 7 skipped**）
-REM   ★ 那 15 条是【已知环境类】，★ 不是回归：
+REM ④ ★ 全量基线（★ **[10-15] 相对路径改造 + F9/真漂移修复后实测：14 failed / 1904 passed / 7 skipped**）
+REM   ★ 那 14 条是【已知环境类】，★ 不是回归：
 REM     9 = 缺 module/config/i18n/zh-CN.json（★ 它是**前端运行后**经 /home/chinese_translate
 REM         推来的运行时产物 ⇒ 没起前端就没有）· 2 = 读用户/实机状态（test_task_report）
 REM     · 1 = test_schema_router（窗口外任务）· 1 = test_task_catalog（用户配置）
-REM     · 1 = live 配置（test_queue_clear_and_settings）· ★ 1 = **真漂移**（见下）
+REM     · 1 = live 配置（test_queue_clear_and_settings）
 REM   ★★ 原来那 43 条"测试硬编码读 `…\OASX-src`"已**根治**（[10-15] 改走 `dev_tools/paths.py`）
-REM   ★ ★ **真漂移那 1 条**：tests/module/config/test_linkage_unification.py::test_pause_reports_requeue
-REM     期望前端 run_control_bar.dart 里有 `pauseScriptDetailed`，★ 而前端 v2 已只剩「启动/停止脚本」
-REM     ⇒ ★ 这是**跨仓契约不一致**（★ 已记台账 §E-6-n · ★ 与前端 F9 同源），★ 不是环境问题
+REM   ★ ★ **[10-15] 那 1 条"真漂移"已修**：tests/module/config/test_linkage_unification.py
+REM     的 `test_pause_reports_requeue` 原要求前端 run_control_bar.dart 有
+REM     `pauseScriptDetailed` + 文案含"退回/队首" ⇒ ★ 那是 **P-1 旧口径**（已被两次裁定推翻，
+REM     且与前端自己的守卫**互相矛盾**）⇒ ★ 已按 SPEC §3.6 现行口径**改写为
+REM     `test_pause_entry_lives_on_the_queue_row`**（★ 16 passed）
 run-tests.bat
 ```
 
-★ 期望：★ **守卫 166 passed**（★ 14 个文件 · [10-15] 实测 3.36s）；★ 全量 **15 failed / 1903 passed / 7 skipped**（★ 15 条 = 9 缺前端推来的 `zh-CN.json` + 5 用户/实机状态 + **1 真漂移**）。
-★★ **[10-15] 相对路径改造后的实测（本机 = 开发机）**：★ 守卫 **166 passed** · ★ 全量 **15 / 1903 / 7** · ★ 前端 `analyze` **0 error（4w+17i）** · `test` **158 passed**
+★ 期望：★ **守卫 170 passed**（★ **15 个文件** · [10-15] 实测 5.03s）；★ 全量 **14 failed / 1904 passed / 7 skipped**（★ 14 条 = 9 缺前端推来的 `zh-CN.json` + 5 用户/实机状态 —— ★★ **那 1 条真漂移 [10-15] 已修**）。
+★★ **[10-15] 相对路径改造后的实测（开发机 = `passioki`）**：★ 守卫 **170 passed** · ★ 全量 **14 / 1904 / 7** · ★ 前端 `analyze` **0 error（4w+17i）** · `test` **160 passed**
 ★ **改造前 = 49 failed / 1862 passed / 12 skipped**（★ 那 43 条"硬编码读 `…\OASX-src`"⇒ **已根治**；★ 覆盖反而变强：这些测试**现在真的在读前端源码**）。
 
 ```bat
@@ -137,7 +141,8 @@ REM ⑤ ★ 前端（★ 也要核）——★ **无盘符包装**：自动找 S
 dev_tools\flutter.bat analyze lib
 dev_tools\flutter.bat test
 REM   ★ [10-14] 实测：analyze 0 error（4 warning + 17 info）· test 158 passed
-REM   ★ ★ [10-15] 本机复现：analyze 0 error（4 warning + 17 info）· test 158 passed
+REM   ★ ★ [10-15] 开发机复现：analyze 0 error（4 warning + 17 info）· test **160 passed**
+REM     （★ 158 → 160 = [10-15] 新增 2 条 **F9 可达性**运行时守卫）
 REM   ★ ⚠ **必须带 `--no-version-check`**：否则 flutter 会对 SDK 仓库跑
 REM     `git fetch --tags`（要拉 611285 个对象）⇒ 在当前网络下**挂死**（★ 坑 P16）
 REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --release` 暂不可用（★ 坑 P17）
@@ -169,23 +174,26 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 >     **同一个模拟器** `127.0.0.1:16384`）⇒ ★ **A** 先停实机 `:22287` · **B** 给 dev 换设备 ·
 >     **C** 等稳定后拷到实机再跑。
 >
-> ★★ **④ [10-15] 新增：两件"待裁定" + 一件"建议立刻修"** ——
->   ★ ① **两台机器的角色**（★ 用户原话自相矛盾：★ "另一台…用于实机生产" vs "本台电脑为实机生产用"）
->     ⇒ ★ 台账 **§E-1** · `DEV-WORKFLOW.md §0.6`
->   ★ ② **非 git 的运行时怎么传给另一台**（★ `toolkit\` = **17000 文件 / 1167.4 MB** ·
->     `deploy.yaml` · ★★ **账号配置** · `console.bat`）⇒ ★ 台账 **§E-1**（★ 7 项实测清单）
->     —— ★★ **光"上传 dev 到 git"不足以让另一台无缝开发**
->   ★ ③ ★★ **前端 `F9`（★ 建议立刻修）**：★ `queue_panel.dart:1042-1058` 是**多余分支**
->     （★ 与 `:1059` 的 `else if` **条件逐字相同** ⇒ 死代码）⇒ ★ **`[⏸] 暂停调度` 永远不显示** ——
->     ★ 这正是用户 [10-15] 报的"**恢复调度按钮缺少了暂停调度**"（★ 前端台账 `F9`）
+> ★★ **④ [10-15] 三件"待裁定" —— ★★ 逐条处置状态（[10-15] 第二次开工后更新）** ——
+>   ★ ① **两台机器的角色** ⇒ ✅ **已裁定**（★ 用户："**本机是开发机**" ＋ ★ 实机侧"对了。"）
+>     ⇒ ★ **开发机（`passioki`）= 开发/测试** · **实机（`Win~Win~Win~`）= 生产**
+>     ★ 台账 **§E-1 / §E-7-0** · `DEV-WORKFLOW.md §0.6`（★ **禁止裸用"本机"**）
+>   ★ ② **非 git 的运行时怎么传给另一台** ⇒ ✅ **已定（[10-15]）**：★ **`dsh-skills` 走 git**
+>     （★ 已推 `passioki/dsh-skills`）· ★ **其余（`toolkit\` 17000 文件/1167.4 MB · `deploy.yaml` ·
+>     两份账号配置 · `console.bat`）由用户【手动传】**
+>   ★ ③ ★★ **前端 `F9`**：★ `queue_panel.dart:1042-1058` 是**多余分支**（★ 与 `:1059` 条件**逐字相同**
+>     ⇒ 死代码）⇒ ★ **`[⏸] 暂停调度` 永远不显示** ⇒ ✅ **[10-15] 已修**（★ 删该段 + ★★ **2 条
+>     runtime 可达性守卫** `_f9PauseReachableTests()` + **注入验证 1 failed → 还原逐字节一致 → 回绿**）
+>     · ★ 与之**同源**的 `E-6-n` **真漂移**也已按 SPEC §3.6 现行口径解决（★ 见 §3 与台账 §E-8）
 >
-> ★★ **⑤ [10-15] 本机已换成新开发机（`D:\OAS-dev`）—— 环境已引导完毕** ——
+> ★★ **⑤ [10-15] 开发机已换成新机器（`D:\OAS-dev`）—— 环境已引导完毕** ——
 >   ★ 两仓 = `git clone -b dev`（★ 本地分支 `dev`）· ★ `toolkit\` / `deploy.yaml` / 两份账号配置 /
 >   `console.bat` 已从 `C:\Users\passioki\Downloads` 补齐 · ★ Flutter 3.27.1 装在 `D:\flutter3271`
->   （★ **必须带 `--no-version-check`**，见坑 P16）· ★★ **四条基线已实测复现**
->   （守卫 **166 passed** · 全量 **15/1903/7** · 前端 **0 error + 158 passed**）
->   ★ ⚠ **本机缺 Visual Studio / Windows SDK** ⇒ `flutter build windows --release` **暂时不可用**
->   （★ 见坑 P17 · ★ **待用户裁定是否安装 VS Build Tools**）
+>   （★ **必须带 `--no-version-check`**，见坑 P16）· ★★ **四条基线已实测**
+>   （★★ [10-15] 现行：守卫 **170 passed** · 全量 **14/1904/7** · 前端 **0 error + 160 passed**）
+>   ★ ✅ **[10-15] VS Build Tools 已装**（★ 用户裁定"装" ⇒ VS 2022 Build Tools `17.14.37806.7` +
+>   Windows SDK `10.0.26100.0`）⇒ `flutter build windows --release` **可用**（★ 见坑 P17 · 台账 §E-8-j）
+>   ★ ⚠ 仍要记住两条新坑：**P19**（`.bat` 必须纯 ASCII）· **P20**（换盘后清 `__pycache__`）
 
 ---
 
@@ -201,9 +209,9 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 【2. 代码与我核实的台账】
    后端 commit = <hash> · 分支 = <branch> · worktree 干净 = 是/否
    前端 commit = <hash> · 分支 = <branch>
-   ★ 守卫（§1.3 的第 ③ 条那一条命令）= __ passed（★ [10-14] 基线 = 98）
-   ★ 全量 = __ failed / __ passed（★ [10-14] 基线 = 49 / 1785，★ 49 条是已知环境类）
-   ★ 前端 = flutter analyze __ error · flutter test __ passed（★ [10-14] 基线 = 0 / 158）
+   ★ 守卫（§1.3 的第 ③ 条那一条命令）= __ passed（★ [10-15] 现行基线 = **170**；★ 旧值 166/98 已作废）
+   ★ 全量 = __ failed / __ passed（★ [10-15] 现行基线 = **14 / 1904 / 7 skipped**；★ 旧值 49/1785、15/1903 已作废）
+   ★ 前端 = flutter analyze __ error · flutter test __ passed（★ [10-15] 现行基线 = **0 / 160**）
 
 【3. 差异（★ 文档说 A、代码是 B 的地方）】
    | 台账/文档说 | 我看到的 | 差异 |
@@ -238,8 +246,10 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 | **P7** | ★★ **`pwsh` 工具整段不可用（★ 两种症状）** | ★ ① `spawn … ENOENT`（旧）· ★★ ② **[10-15] 每条命令都返回 `exit code 3221225794`（= `0xC0000142` STATUS_DLL_INIT_FAILED）且零输出**（★ 连 `echo hi` 都失败）⇒ ★ **两种都靠"续跑/重启 DSH 会话"解决**（★ 不是重启电脑；★ [10-15] 实测下一轮自行恢复）· ★ 也可用 `pwsh -Command` 之外的原生手段（`read`/`grep`/`glob` 工具）先取证 |
 | **P15** | ★★ **[10-15] 旧开发机的 `git` 报 `dubious ownership`**（★ `git log`/`status`/`push` **全被拒**）| ★ 真因：仓库属主 = `Administrators` ≠ 当前用户 ⇒ ★ 修：`git config --global --add safe.directory D:/OAS-dev/backend`（★ 前端同理）；★ ⚠ **沙箱下改不了** `~/.gitconfig` ⇒ ★ **必须先放开沙箱**（★ [10-15] 已修 · 详见 `SESSION-HANDOFF.md §3`）★ ★ **[10-15] 本机（`D:\OAS-dev`）实测没有这个问题**（仓库属主正常，`git log`/`status` 直接可用）⇒ ★ 若将来出现，`safe.directory` 要写 **`D:/OAS-dev/backend`**（不是 `D:/…`）|
 | **P16** | ★★ **[10-15] `flutter` 的"版本检查"会跑 `git fetch --tags`（★ 611285 个对象）⇒ 在新网络上**挂死** | ★ 症状：`flutter --version`（或任何不带开关的命令）卡 10+ 分钟，后台常驻 `git fetch --tags` + `git index-pack`（★ 实测 `git remote-https origin https://github.com/flutter/flutter.git`）⇒ ★ **正解：命令一律加 `--no-version-check`**；★ 并把包/引擎源换成国内镜像：`PUB_HOSTED_URL=https://pub.flutter-io.cn` · `FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn`（★ 实测 Google 源 **~170 KB/s** vs 国内镜像 **3.5 MB/s**，997 MB 的 SDK 包 5 分钟下完且**字节数精确一致**）|
-| **P17** | ★★ **[10-15] 本机缺 C++ 工具链 ⇒ `flutter build windows --release` 不可用** | ★ 实测：**无 `vswhere`** · 无 `Microsoft Visual Studio` 目录 · 无 `Windows Kits\10\bin` · 无 `cmake`/`ninja` · **无 `winget`** ⇒ ★ `analyze`/`test` **不受影响**（已跑绿），★ **只有构建 exe 需要** Visual Studio Build Tools（`Microsoft.VisualStudio.Workload.VCTools` + Win10/11 SDK）⇒ ★ **待用户裁定是否安装**（★ 见台账 §E-6）|
+| **P17** | ✅ **[10-15] 缺 C++ 工具链 —— ★ 已解决（用户裁定"装"）** | ★ [10-15] 实测**原本没有** `vswhere` · 无 `Microsoft Visual Studio` 目录 · 无 `Windows Kits\10\bin` · 无 `cmake`/`ninja` · **无 `winget`** ⇒ ★ 只有构建 exe 需要它 | ★★ **已装**：**VS 2022 Build Tools**（`17.14.37806.7` · 组件 `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` · **Windows SDK 10.0.26100.0**）⇒ ★ `flutter build windows --release` **可用**（★ 验收见台账 §E-8-j）|
 | **P18** | ★ **[10-15] `test_task_factory` / `test_task_flow_docs` 会重写 `docs/flows/README.md` 的行尾** | ★ 实测**可复现**：跑完这两个测试后 `git status` 显示 ` M docs/flows/README.md`，但 `git diff --numstat` **为空** · `git diff --ignore-cr-at-eol` **0 行** ⇒ ★ 纯 LF/CRLF 幻影（`core.autocrlf=true`），★ **内容没变** ⇒ ★ 处置：`git checkout -- docs/flows/README.md` 还原；★ 根因在 `module/task_factory.py:40/403` 用 Python 默认换行写回（★ 根治建议未做：写入时保留原行尾）|
+| **P19** | ★★ **[10-15] `.bat` 里写中文 ⇒ cmd 按 GBK 解码后把 REM 行**误解析成命令** | ★ 实测：`run-tests.bat` / `run-server.bat` / `dev_tools\flutter.bat` 的 REM 里带中文 ⇒ ★ 每条命令都多出**假报错**：`'去盘符：靠' is not recognized` · `'sts.bat' is not recognized` · `'n-tests.bat' is not recognized`（★ 且 `cmd /c` 的**退出码被污染成 1** —— 明明 `16 passed`）| ★ **正解：这三个 `.bat` 一律【纯 ASCII】**（★ 与 `session-memory` 技能同一条教训：★ **通用脚本 = 纯 ASCII**，不是"记得加 BOM"；★ [10-15] 已全部改写并复验）|
+| **P20** | ★★ **[10-15] `__pycache__` 里残留**旧盘符路径** ⇒ 测试输出里的路径是错的** | ★ 实测：工作区从 `E:\OAS-dev` 搬到 `D:\OAS-dev` 时 `robocopy` **把 `__pycache__` 一起搬了**，而 `.pyc` 里记的 `co_filename` **仍是 `E:\…`**（★ 实测某 `.pyc` 字节里含 `E:\OAS-dev`）⇒ ★ pytest 的 SKIPPED/FAILED 行显示 `E:\OAS-dev\backend\tests\…` ⇒ ★★ **会让人误判"测试不是在 D 盘跑的"** | ★ **正解：换机器/换盘后清一遍**（★ 实测 **342** 个 `__pycache__` 目录 ⇒ 全删，Python 自动重建）；★ 判据：输出里的路径必须与 `%~dp0` **一致** |
 
 ---
 

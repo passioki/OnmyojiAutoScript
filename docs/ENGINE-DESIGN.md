@@ -398,6 +398,7 @@ pub enum InputBackend { EmulatorIpc, AdbInput, Minitouch, Scrcpy, RootSystem, Ui
 |  | ★ `Expire`（Session/Daily/Weekly/Monthly/Never）—— ★ **周期/临时统一的第一块砖** | ✅ | 同上 |
 |  | ★ `ScreenSource` / `InputSink` 两个端口 trait（★ core 唯一允许的平台边界）| ✅ | 同上 |
 |  | ★ **依赖红线**：`oas-types` **零依赖**（无 winapi/JNI/opencv）| ✅ | `Cargo.toml` |
-| **P0-2** | ★ 纯 Rust NCC 模板匹配 | ⬜ 下一步 | 判据：≤50ms/帧（50 模板）|
+| **P0-2** | ★ 纯 Rust NCC 模板匹配（`crates/oas-perceive`）| ✅ **已完成（正确性）/ ⚠ 性能待优化** | ★★ **等价性已验证**：`cargo test --release` ⇒ **`equivalence OK: 4 cases match OpenCV within 1e-4`**（★ 分数差 <1e-4、★ 最佳位置**完全一致**）—— ★ 参照值由 `tools/refgen_cv2.py` 用 **cv2 4.7.0 `TM_CCOEFF_NORMED`** 生成（synthetic 4 例：exact / noisy / absent / crop）<br>★ 实现方式：**精确整数形式**（无浮点舍入）+ **积分图**（窗口 `ΣI/ΣI²` O(1)）+ 行内 `i32` 累加<br>★★ **修掉一个自己引入的性能 bug**：最初**每个模板都重建一次全帧积分图** ⇒ 12.00ms/模板；★ 改为 **`Matcher` 每帧建一次、所有模板复用** ⇒ **3.72ms/模板**（50 模板 186ms）<br>⚠ **与 OpenCV 仍有差距**：★ cv2 同工作量 **0.29ms/模板**（50 模板 14.3ms）⇒ Rust 约 **12.8×** 慢 ⇒ ★ **P0-2b：AVX2（x86）/ NEON（ARM）SIMD 点积 + 粗到精搜索** |
+| **P0-2b** | ★ SIMD / 粗到精优化（目标：≤1ms/模板）| ⬜ 下一步 | ★ 判据：50 模板 ≤50ms（即 ≤1ms/模板）；★ **优化后等价性测试必须仍然通过** |
 | **P0-3** | ★ 录制回放 | ⬜ | 判据：动作序列逐条一致 |
 | **P0-4** | ★ PC adapter（模拟器 IPC 截图+点击）| ⬜ | 判据：对当前运行中设备真点一次 |

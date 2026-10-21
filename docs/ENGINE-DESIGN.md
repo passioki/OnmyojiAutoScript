@@ -400,8 +400,9 @@ pub enum InputBackend { EmulatorIpc, AdbInput, Minitouch, Scrcpy, RootSystem, Ui
 |  | ★ **依赖红线**：`oas-types` **零依赖**（无 winapi/JNI/opencv）| ✅ | `Cargo.toml` |
 | **P0-2** | ★ 纯 Rust NCC 模板匹配（`crates/oas-perceive`）| ✅ **已完成（正确性）/ ⚠ 性能待优化** | ★★ **等价性已验证**：`cargo test --release` ⇒ **`equivalence OK: 4 cases match OpenCV within 1e-4`**（★ 分数差 <1e-4、★ 最佳位置**完全一致**）—— ★ 参照值由 `tools/refgen_cv2.py` 用 **cv2 4.7.0 `TM_CCOEFF_NORMED`** 生成（synthetic 4 例：exact / noisy / absent / crop）<br>★ 实现方式：**精确整数形式**（无浮点舍入）+ **积分图**（窗口 `ΣI/ΣI²` O(1)）+ 行内 `i32` 累加<br>★★ **修掉一个自己引入的性能 bug**：最初**每个模板都重建一次全帧积分图** ⇒ 12.00ms/模板；★ 改为 **`Matcher` 每帧建一次、所有模板复用** ⇒ **3.72ms/模板**（50 模板 186ms）<br>⚠ **与 OpenCV 仍有差距**：★ cv2 同工作量 **0.29ms/模板**（50 模板 14.3ms）⇒ Rust 约 **12.8×** 慢 ⇒ ★ **P0-2b：AVX2（x86）/ NEON（ARM）SIMD 点积 + 粗到精搜索** |
 | **P0-2b** | ★ SIMD / 粗到精优化（目标：≤1ms/模板）| ⬜ 下一步 | ★ 判据：50 模板 ≤50ms（即 ≤1ms/模板）；★ **优化后等价性测试必须仍然通过** |
-| **P0-3** | ★ 录制回放 | ⬜ | 判据：动作序列逐条一致 |
-| **P0-4** | ★ PC adapter（模拟器 IPC 截图+点击）| ⬜ | 判据：对当前运行中设备真点一次 |
+| **P0-3** | ★ 录制回放 | ⬜ 下一步 | 判据：动作序列逐条一致 |
+| **P0-3a** | ★ **`oas-adapter-pc`**：`AdbCapture`（`exec-out screencap -p` + **纯 Rust `png` 解码**）+ `AdbInput`（`input tap/swipe/keyevent`）+ 设备枚举**去重** | ✅ **已完成** | ★★ **真机实测（`cargo run -p oasd -- probe`）**：★ `device: serial=127.0.0.1:16384 unique=android_id:657eef8300229911` · ★ **`of 1 deduped endpoint(s)`**（★ 两个 adb 入口正确合并成 1 台）· ★ `captured frame: 1280x720 rgba_bytes=3686400` · ★ 回写 PNG 与 adb 直采一致 · ★ 单元测试 **2 passed** |
+| **P0-4** | ★ PC adapter（模拟器 IPC 截图+点击）| ✅ **已完成**（★ 用 adb 通道，见 §14.5） | ★ 判据满足：★ 对当前运行设备**真点一次**且**可逆复原**（`tap(1183,192)` → 分组2 高亮，`tap(1183,124)` → 复原，与基线差 0.39%）|
 
 ---
 
@@ -467,7 +468,8 @@ fn find_text_in_list(&mut self, text: &str, scroll: ScrollPolicy) -> Result<Poin
 
 | 项 | ★ 实测 | 说明 |
 |---|---|---|
-| 设备 | MuMu · serial **`V2284A`** | ★ `127.0.0.1:16384` 与 `emulator-5554` **是同一台**（窗口句柄相同）⇒ ★ **适配器必须按 serial/句柄去重** |
+| 设备 | MuMu · ★ **`ro.product.model = V2284A`**（★ 这是**机型**，**不是** serial！）| ★ `ro.serialno` / `ro.boot.serialno` 在 MuMu 上**都是空** ⇒ ★★ **不能拿它们做唯一键** |
+| ★★ **去重键（实测修正）** | ★ `127.0.0.1:16384` 与 `emulator-5554` **是同一台**：★ `android_id` 都是 **`657eef8300229911`** · `boot_id` 都是 `24f8007e-…` · `wlan0 MAC` 都是 `08:2e:9b:c3:a4:ab` | ★★ **正确去重顺序**：★ ① `settings get secure android_id` ② `wlan0 MAC` ③ `boot_id` ④ adb serial · ★ **绝不能用 `ro.product.model`**（同型号多台会误合并）|
 | 包名 / 前台 | **`com.netease.onmyoji`** · `mCurrentFocus=…/Client` | ★ 可作为"游戏在不在前台"的判据 |
 | ★ **截图尺寸** | ★★ **1280×720（横向）** | ★ `wm size` 报 **`Physical size: 720x1280`（竖）** ⇒ ★★ **引擎必须按【截图实际尺寸】，绝不能信 `wm size`**（旋转差）|
 | 当前界面 | ★ **式神录 → 队伍预设** | ★ 右侧 **「默认分组」高亮**；★ 中间 **「通用阵容」已选中** ✓ 与用户说法一致 |

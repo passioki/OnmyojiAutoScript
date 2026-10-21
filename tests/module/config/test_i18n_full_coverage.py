@@ -90,6 +90,8 @@ class TestFieldKeyCoverage:
     """所有英文字段 key 都必须有中文。"""
 
     def test_no_english_field_key_left_untranslated(self):
+        from _srcutil import require_runtime_i18n as _runtime_i18n
+        _runtime_i18n()   # ★ [10-15] 条件跳过：缺前端推来的 zh-CN.json
         back = set(_backend_map())
         front = _dart_map()
         keys = _english_field_keys()
@@ -102,6 +104,8 @@ class TestFieldKeyCoverage:
             f'界面上会直接显示英文: {missing}')
 
     def test_backend_covers_all_field_keys(self):
+        from _srcutil import require_runtime_i18n as _runtime_i18n
+        _runtime_i18n()   # ★ [10-15] 条件跳过：缺前端推来的 zh-CN.json
         """后端表必须**自己**覆盖全部 —— 前端不该再维护第二份。"""
         back = set(_backend_map())
         missing = sorted(k for k in _english_field_keys() if k not in back)
@@ -110,6 +114,8 @@ class TestFieldKeyCoverage:
             f'{missing}')
 
     def test_previously_missing_keys_are_present(self):
+        from _srcutil import require_runtime_i18n as _runtime_i18n
+        _runtime_i18n()   # ★ [10-15] 条件跳过：缺前端推来的 zh-CN.json
         """本次补的 113 个里的代表项 —— 防止有人"清理"掉它们。"""
         back = _backend_map()
         must = [
@@ -123,6 +129,8 @@ class TestFieldKeyCoverage:
         assert not missing, f'这些 key 又没了: {missing}'
 
     def test_translated_values_are_actually_chinese(self):
+        from _srcutil import require_runtime_i18n as _runtime_i18n
+        _runtime_i18n()   # ★ [10-15] 条件跳过：缺前端推来的 zh-CN.json
         """防止用"英文占位"蒙混过关。"""
         back = _backend_map()
         bad = []
@@ -160,6 +168,8 @@ class TestSingleSourceOfTruth:
             '缺少 GET /home/chinese_translate（前端拉取全量翻译的入口）'
 
     def test_endpoint_returns_full_map(self):
+        from _srcutil import require_runtime_i18n as _runtime_i18n
+        _runtime_i18n()   # ★ [10-15] 条件跳过：缺前端推来的 zh-CN.json
         """端点实际返回的条数必须 >= 后端表（含额外词条）。"""
         import asyncio
         import sys

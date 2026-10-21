@@ -163,6 +163,8 @@ def test_config_defaults_unchanged_for_existing_fields(name, mod_name, cls_name,
 
 def test_i18n_has_text_for_the_new_fields():
     """新字段需要在 i18n 里有中文文案, 否则 UI 显示为英文键名。"""
+    from _srcutil import require_runtime_i18n as _runtime_i18n
+    _runtime_i18n()   # ★ [10-15] 条件跳过：缺前端推来的 zh-CN.json
     import io
     import json
 

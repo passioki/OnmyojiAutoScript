@@ -95,3 +95,34 @@ def code_of(path, def_line: str) -> str:
 def module_source(path) -> str:
     """别名 —— 语义更清楚的写法（"这个模块的代码"）。"""
     return code_only(path)
+
+
+# ---------------------------------------------------------------------------
+# ★★ [10-15] 环境前提的**条件跳过**（★ 让基线可读：0 failed）
+#
+# ## 为什么需要它（重要）
+#
+# ★ `module/config/i18n/zh-CN.json` **不是仓库产物** —— 它是**前端运行一次**后
+#   经 `/home/chinese_translate` 推给后端的**运行时文件**（台账 §A.3 实测）。
+# ★ 所以"开发机没起前端"时**必然没有它** ⇒ 那 9 条 i18n 守卫**不是真红**，
+#   而是**前提不具备**。
+# ★★ 但以前它们被算进"13 条已知失败"里 ⇒ ★ **基线不可读**：
+#   改调度核心时分不清"是我改坏了"还是"那 13 条老红"。
+#
+# ## ★ 纪律：条件 skip，**不是**永久 skip
+#
+# * ★ 前提**不具备** ⇒ `pytest.skip(带原因)`；
+# * ★ 前提**具备**（起过一次前端 / 文件已生成）⇒ ★ **必须真跑，且必须绿**。
+#   ★ 这样才能既让基线干净，又不把守卫变成摆设。
+def require_runtime_i18n() -> None:
+    """★ 缺前端推来的 `zh-CN.json` ⇒ 条件跳过（理由写进 skip 报告）。"""
+    path = (Path(__file__).resolve().parents[1]
+            / 'module' / 'config' / 'i18n' / 'zh-CN.json')
+    if not path.is_file():
+        import pytest
+        pytest.skip(
+            '缺运行时产物 module/config/i18n/zh-CN.json '
+            '（★ 它由前端运行一次后经 /home/chinese_translate 推来，见台账 §A.3）')
+
+
+__all__ += ['require_runtime_i18n']

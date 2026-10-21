@@ -21,6 +21,8 @@ class TestPeriodOptionTranslations:
     """
 
     def test_enum_values_have_translation(self):
+        from _srcutil import require_runtime_i18n as _runtime_i18n
+        _runtime_i18n()   # ★ [10-15] 条件跳过：缺前端推来的 zh-CN.json
         from tasks.Component.config_scheduler import TaskPeriod
         d = json.loads(
             (REPO / 'module' / 'config' / 'i18n' / 'zh-CN.json')
@@ -31,6 +33,8 @@ class TestPeriodOptionTranslations:
             f'界面会显示英文（踩过: 只查了 *_help, 漏了选项值）')
 
     def test_translation_is_chinese(self):
+        from _srcutil import require_runtime_i18n as _runtime_i18n
+        _runtime_i18n()   # ★ [10-15] 条件跳过：缺前端推来的 zh-CN.json
         from tasks.Component.config_scheduler import TaskPeriod
         d = json.loads(
             (REPO / 'module' / 'config' / 'i18n' / 'zh-CN.json')
@@ -100,6 +104,8 @@ class TestWindowFieldsAreUserEditable:
                 f'{dead} 已废弃, 不该还在（单一数据源）'
 
     def test_window_help_translated(self):
+        from _srcutil import require_runtime_i18n as _runtime_i18n
+        _runtime_i18n()   # ★ [10-15] 条件跳过：缺前端推来的 zh-CN.json
         d = json.loads(
             (REPO / 'module' / 'config' / 'i18n' / 'zh-CN.json')
             .read_text(encoding='utf-8'))

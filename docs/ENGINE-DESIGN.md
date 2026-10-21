@@ -343,6 +343,61 @@ pub enum InputBackend { EmulatorIpc, AdbInput, Minitouch, Scrcpy, RootSystem, Ui
 | **6** | ★ 输入通道（新增）| ★ 用户问"有没有不用无障碍的系统注入" | ★ 有（见 **§10**）：★ PC 模拟器走后端 **A**（最干净）；★ 真机可选 **D scrcpy / C minitouch / E root 系统注入**；★ `UiAutomation` 才是无障碍路线 ⇒ 默认不用 |
 
 ★ **剩余待确认（不阻塞 P0）**：
-1. ★ **GitHub 仓库名**（推的时候需要）：建议 `oas-core`。
-2. ★ **编辑器技术栈**：★ 建议 Flutter（★ 你已有 Dart 经验 + 跨平台）；★ 若你想换（如 Tauri/Web），现在说还来得及。
-3. ★ **P0 先录哪个任务**：★ 建议 `Tako`（单轮直线、无主循环）—— ★ 它也是 SPEC 里推荐的第一个样板。
+1. ★ **GitHub 仓库名**（推的时候需要）：建议 `oas-core`。★ **[10-15] 用户已确认："1好的"** ⇒ 仓库名 = **`oas-core`**。
+2. ★ **编辑器技术栈** ⇒ ★★ **[10-15] 已定案：Tauri v2 + 静态 HTML/JS**（见 **§12**）。
+3. ★ **P0 先录哪个任务**：★ **[10-15] 用户"3你看着办"** ⇒ ★ **`Tako`（石距）** —— 单轮直线、无主循环。
+
+---
+
+## 12. ★★★ 编辑器技术栈（★ [10-15] 用户："我其实零经验，看哪种更好用就用哪种吧，你介绍下"）
+
+### 12.1 ★ 本机实测约束（★ 选型必须先看这个）
+
+| 项 | 实测 | 影响 |
+|---|---|---|
+| ★ `node` / `npm` / `pnpm` / `npx` | ★ **全部缺失** | ★ 任何需要 Node 的方案都要**额外装一条工具链** |
+| ★ **WebView2** | ★ **已存在**（`C:\Program Files (x86)\Microsoft\EdgeWebView\Application`）| ★ Tauri **开箱可用** |
+| ★ Rust | ★ **已装**（`cargo/rustc 1.99.1` · MSVC）| ★ 引擎侧就绪 |
+| ★ Flutter 3.27.1 | ★ 已装（`D:\flutter3271`）| ★ 但旧 `OASX` 被冻结，无复用价值 |
+| 磁盘 | D 45.5 GB · E 26.2 GB | ★ 充裕 |
+
+### 12.2 ★ 候选对比
+
+| 方案 | 额外依赖 | 与 Rust 集成 | UI 表达力（ROI/截图/日志）| Android 路线 | 结论 |
+|---|---|---|---|---|---|
+| ★★ **Tauri v2 + 静态 HTML/JS** | ★ **零**（WebView2 已有）| ★★ **Tauri command 就是 Rust 函数**，★ **零 FFI 代码生成** | ★★ web canvas 最强 | ★ v2 官方支持（需 Android SDK/NDK）| ✅ **选它** |
+| Tauri v2 + React/Vite | ★ 需 Node | ★★ 同上 | ★★ 同上 + 组件生态 | ★ 同上 | ⏸ 以后想升级再加构建链 |
+| Flutter + flutter_rust_bridge | ★ Flutter 已有 | ⚠ 需 **代码生成 + 每平台 FFI 构建** | ★ 中上（CustomPaint）| ★★ 最成熟 | ⏸ 备选 |
+| egui / eframe | ★ 零 | ★★ 纯 Rust | ★ 中（UI 朴素，★ **中文 IME 弱**）| ★ 可用但小众 | ⏸ 只适合内部调试工具 |
+| Electron | ★ 需 Node + 体积大 | ⚠ 需 sidecar/stdio | ★★ | ⚠ 弱 | ❌ 否决 |
+
+### 12.3 ★★ 定案与理由
+
+> ★★ **编辑器 = Tauri v2 + 静态 HTML/JS（不引 Node/npm）**
+
+1. ★★ **引擎本来就是 Rust** ⇒ ★ Tauri 的 command **直接就是 Rust 函数**，★ **省掉整整一层 FFI 代码生成**
+   （对比 Flutter 需要 `flutter_rust_bridge` codegen + 每平台构建配置）。
+2. ★★ **UI 是 web** ⇒ ★ **框选 ROI / 缩放平移 / 日志面板 / 指令表格** 都是 canvas+DOM 的强项，
+   ★ 而且 ★ **未来 Android 可以把同一份静态 UI 原样包进 WebView** ⇒ ★ **UI 资产跨端不重写**。
+3. ★★ **依赖最少**：★ 本机 **只有 Rust + WebView2**，★ **不需要 Node / 不需要 Flutter 桌面构建**。
+
+### 12.4 ★ 风险与回退
+
+* ⚠ ★ **Tauri v2 的 Android 支持较新** ⇒ ★ P4 才需要（且要装 Android SDK/NDK）。
+  ★ **回退路径**：★ UI 是纯静态 web ⇒ ★ 最坏情况用"极简 Android WebView 壳 + Rust 引擎经 JNI"包装，★ **UI 不用重写**。
+* ⚠ ★ 无框架 ⇒ 手写 DOM 略啰嗦 ⇒ ★ 若后期真需要组件生态，★ **加 Vite/React 只是构建链变化，架构不变**。
+
+---
+
+## 13. ★★ P0 进度（★ 已开工）
+
+| 步 | 内容 | 状态 | 证据 |
+|---|---|---|---|
+| **P0-1** | ★ 本地 `oas-core` 仓库 + cargo workspace + `oas-types`（数据契约）| ✅ **已完成** | ★ `cargo build` 通过 · `cargo test` **2 passed** · ★ 首次提交 **`7588c96`**（`git init -b main`，本地先行）|
+|  | ★★ **`Exit`（8 类）→ `Outcome`（3 态）唯一映射**（★ 已落地：`Exhausted ≠ Done`，★ 直接堵死旧的 `except TaskEnd: return True`）| ✅ | `crates/oas-types/src/lib.rs` |
+|  | ★ `Expire`（Session/Daily/Weekly/Monthly/Never）—— ★ **周期/临时统一的第一块砖** | ✅ | 同上 |
+|  | ★ `ScreenSource` / `InputSink` 两个端口 trait（★ core 唯一允许的平台边界）| ✅ | 同上 |
+|  | ★ **依赖红线**：`oas-types` **零依赖**（无 winapi/JNI/opencv）| ✅ | `Cargo.toml` |
+| **P0-2** | ★ 纯 Rust NCC 模板匹配 | ⬜ 下一步 | 判据：≤50ms/帧（50 模板）|
+| **P0-3** | ★ 录制回放 | ⬜ | 判据：动作序列逐条一致 |
+| **P0-4** | ★ PC adapter（模拟器 IPC 截图+点击）| ⬜ | 判据：对当前运行中设备真点一次 |

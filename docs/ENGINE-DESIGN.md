@@ -504,7 +504,7 @@ fn find_text_in_list(&mut self, text: &str, scroll: ScrollPolicy) -> Result<Poin
 | 步 | 内容 | 状态 | 证据 |
 |---|---|---|---|
 | **P1-a** | ★ **任务 DSL**：表达式 parser（Pratt）+ flow schema + **load-time 校验** | ✅ **已完成**（`e0e56c9`） | ★ `crates/oas-flow` **11 tests** ⇒ ★ 全工作区 **23 tests 全绿**<br>★★ **无 `eval` 是构造上的**：★ 只有 4 个内置函数（`appear`/`ocr`/`ocr_digit`/`page`），★ **无变量/无赋值/无任意调用**<br>★ **结构化控制流**（嵌套 `then`/`else`/`body`，**无 goto**）<br>★★ **load-time 拒绝**：★ 未知指令 · 缺参 · ★ **`wait_until` 必须有 `timeout_s`** · ★ **`while` 必须有 `max_iters`** · 未知 exit · 错误 `schema_version` · ★ **引用未声明的素材（拼错就保存时报错）**<br>★ 错误带 **JSON 路径**（如 `steps[0].then[0]`）|
-| **P1-b** | ★ **解释器**（用回放驱动，不需要真机）| ⬜ 下一步 | ★ 在 3 帧真机 bundle 上跑通一条 flow；★ 步日志齐全 |
+| **P1-b** | ★ **解释器**（用回放驱动，不需要真机）| ✅ **已完成**（`b560637`） | ★ `crates/oas-runtime`：★ **每步一条结构化事件**（`seq/depth/op/detail/result/elapsed_ms`）<br>★★ **`Budget{max_wall_s,max_steps}` + `while(max_iters)` ⇒ 耗尽 = `RunResult::Exhausted` ⇒ `Outcome::Exhausted`** —— ★★ **绝不映射成 `Done`**（★ 正面堵死旧引擎 `except TaskEnd: return True`）<br>★ **没有 `finish(<exit>)` 的 flow = 失败**（★ 不许隐式成功）<br>★ 选择器缺失/未声明 ⇒ **响亮失败**，且步日志带 **score + 坐标**<br>★★ **OCR 不返回 0/""**：P1-c 之前 `ocr()` **显式报错** ⇒ ★ 需要 OCR 的 flow **不可能静默通过**<br>★ 每帧只建一次积分图（`Matcher` 改为**拥有帧**，运行时不需 unsafe）<br>★★ **集成测试证明整条链**：★ 录 3 帧 → bundle → `ReplaySource` → 解释器 → 事件；★ 且**跑过 bundle 末尾 ⇒ 响亮 "replay exhausted"**<br>★ 全工作区 **33 tests** |
 | **P1-c** | ★ **OCR 落地**（ONNX/RapidOCR）| ⬜ | ★ 在录制帧上认出「分组2」「通用阵容」|
 | **P1-d** | ★ **编辑器 MVP**（Tauri + 静态 HTML/JS）| ⬜ | ★ 界面里拼 10 步并跑通 |
 | **P1-e** | ★ **S1 样板**（切预设流程）| ⬜ | ★ 回放 + 真机各一次 |

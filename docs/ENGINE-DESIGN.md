@@ -265,11 +265,84 @@ oas-core/                 ← ★ 与 OS 无关（不允许出现 win32/android 
 
 ---
 
-## 10. ★★ 开放问题（需用户裁定）
+## 10. ★★★ 输入 / 截屏通道矩阵（★ 用户提问后新增）
 
-1. ★★ **新仓库位置**：★ 建议 `<WORKSPACE>/oas-core`（新 git 仓库）⇒ ★ 需要你建 GitHub 仓库（或先本地建、后推）。
-2. ★ **Rust 工具链**：★ 本机需装 `rustup` + VS Build Tools（★ 已装 VS 2022）⇒ ★ 我可自查安装。
-3. ★ **Flutter 复用**：★ 编辑器沿用现有 `OASX`（Flutter 3.27.1）还是新起一个精简 App？
-   ★ 建议：★ **新起精简 App**（★ 旧前端 1.9k 行 UI 与旧后端 schema 深度耦合）。
-4. ★ **旧仓库的处置**：★ 建议 ★ `backend` **只读冻结**（不再提交新功能），★ 保留其 git 历史与 `docs/flows/*.md` 作为知识源。
-5. ★ **P0 的样板设备**：★ 用本机 MuMu（`127.0.0.1:16384`）还是等你准备好账号？（★ 回放可用**旧截图**做种子，不必等账号）
+> ★★ **用户原话**：
+> > "**对于安卓自动化检测，我记得有一种是通过系统注入实现，可以不用无障碍服务，是否有这样的。**"
+>
+> ★ **答：有，而且不止一种。** ★ 这直接决定 `InputSink` 不能只做一种实现，必须是**可插拔后端 + 能力协商**。
+
+### 10.1 ★ 输入后端（★ 按"是否需要无障碍"分类）
+
+| # | 后端 | 实现位置 | 依赖 | 延迟/精度 | ★ 无障碍? |
+|---|---|---|---|---|---|
+| **A** | ★★ **模拟器自身接口**（nemu_ipc / 窗口消息）| **PC 侧** | 模拟器 | ★ 最好（毫秒级、多点）| ★ ✗ 且 **Android 侧看不到注入痕迹** |
+| **B** | **adb `input`**（tap/swipe/text/keyevent）| PC → adb → Android InputManager | adb 调试 | ★ 差（★ 每次拉起进程 ~100-300ms）| ★ ✗ |
+| **C** | ★ **minitouch / `sendevent`**（写 `/dev/input/event*`）| 设备内 native 二进制 + socket | shell（或 root） | ★ 好（低延迟、多点/压力）| ★ ✗ |
+| **D** | ★ **scrcpy-server**（内部 `InputManager.injectInputEvent`）| 设备内 java(`app_process`) + adb | shell | ★ 好 | ★ ✗（走隐藏 API，不是无障碍）|
+| **E** | ★★ **系统注入 / root**（Xposed / Frida / Magisk 模块 / 系统签名 app 持 `INJECT_EVENTS`）| 设备内 | ★ **root / 定制 ROM / 系统签名** | ★ 最好，可无 adb 常驻 | ★ ✗ —— ★★ **这就是你记的"系统注入"** |
+| **F** | UiAutomation（uiautomator2 / atx-agent）| 设备内 | shell | ★ 中 | ⚠ ★ **底层就是 AccessibilityManager** ⇒ ★ **属于无障碍路线，不是你要的** |
+
+### 10.2 ★ 截屏后端（同理）
+
+| # | 后端 | 依赖 | 备注 |
+|---|---|---|---|
+| **a** | ★ 模拟器 IPC 帧（nemu_ipc / 共享内存）| 模拟器 | ★ PC 首选，最快 |
+| **b** | adb `exec-out screencap -p` | adb | ★ 通用但慢（~100ms+）|
+| **c** | scrcpy 视频流 | adb | ★ 最快之一（H.264 解码）|
+| **d** | Android `MediaProjection` | 用户授权一次 | ★ 原生 App 用；★ 授权弹窗需处理 |
+| **e** | root framebuffer（`/dev/graphics/fb0`）| root | ★ 兜底 |
+
+### 10.3 ★ 引擎设计结论（★ 落到代码结构）
+
+```rust
+/// ★ 不是"一个 InputSink"，而是"后端集合 + 能力协商"
+pub trait InputSink {
+    fn caps(&self) -> InputCaps;      // 多点? 压力? 文本? 按键? 延迟?
+    fn click(&mut self, p: Point) -> Result<()>;
+    fn swipe(&mut self, from: Point, to: Point, ms: u32) -> Result<()>;
+    fn drag(&mut self, from: Point, to: Point, ms: u32) -> Result<()>;
+    fn key(&mut self, key: Key) -> Result<()>;
+    fn text(&mut self, s: &str) -> Result<()>;
+}
+/// ★ 启动时按"优先级 + 可用性"探测并选择；★ 后端可在 UI 里显式指定
+pub enum InputBackend { EmulatorIpc, AdbInput, Minitouch, Scrcpy, RootSystem, UiAutomation }
+```
+
+* ★★ **`flow.json` 里不写"用哪个后端"** —— ★ 后端是**部署配置**，不是任务逻辑
+  ⇒ ★ 同一份 flow 在 PC/模拟器/真机都能跑（★ 满足 G3）。
+* ★ **探测顺序（建议）**：★ `EmulatorIpc` → `Scrcpy` → `Minitouch` → `AdbInput` → `RootSystem` → `UiAutomation`（★ 最后才用无障碍）。
+* ★ **UI 必须能显示"当前用的是哪个后端 + 它的能力"**（★ 排查问题时第一句话就是这个）。
+
+### 10.4 ★ 风险因子（★ 实现前必须评估，不是"绕过指南"）
+
+★ 不同后端在**可观测性**上不同，风险因子包括（★ 仅列出，供选型时权衡）：
+
+| 因子 | 会被谁看到 |
+|---|---|
+| 无障碍服务已启用 | ★ 系统设置 / 部分应用会读 `enabled_accessibility_services` |
+| adb 调试已开启 / adb 常驻 | ★ `ADB_ENABLED` 等系统设置 |
+| 注入事件来自"虚拟设备" | ★ 事件对象上的 `deviceId` / `source` 等属性 |
+| 设备已 root / 装框架 | ★ root 检测、完整性检测 |
+| 截屏方式 | ★ `MediaProjection` 授权会留痕 |
+
+★ **工程结论**：★ **PC + 模拟器（后端 A/a）在可观测面上最干净、也最快** ⇒ ★
+**P0~P3 全部走模拟器**；★ **真机 Android（P4）再在这几个后端里按你的设备条件选**。
+
+---
+
+## 11. ★★ 开放问题 —— ★★ [10-15] 用户已全部裁定（存档）
+
+| # | 问题 | ★★ 用户裁定（逐字/要点） | 落地动作 |
+|---|---|---|---|
+| **1** | 新仓库位置 | ★ "**1先本地、后推**" | ★ 本地建 `<WORKSPACE>/oas-core`（`git init`），★ 稳定后再推 GitHub |
+| **2** | Rust 工具链 | ★ "**2你装**" | ★ 我装：`rustup` + `stable-x86_64-pc-windows-msvc`（★ 依赖已装的 VS 2022 BuildTools）· ★ **本机原本没有 cargo/rustc**（实测 False/False）|
+| **3** | 编辑器是否复用 OASX | ★ "**3新写**" | ★ 新起精简 Flutter App；★ 旧 `frontend` 不再演进 |
+| **4** | 旧仓库处置 | ★ "**4好的**" | ★ `backend`/`frontend` **只读冻结**（★ 保留 git 历史 + `docs/flows/*.md` 作为需求文档）|
+| **5** | P0 样板设备 | ★ "**5账号已备好，现在运行着的就是**" | ★ P0 直接对**当前运行中的设备**做录制（★ 不必等账号、也不必用旧截图做种子）|
+| **6** | ★ 输入通道（新增）| ★ 用户问"有没有不用无障碍的系统注入" | ★ 有（见 **§10**）：★ PC 模拟器走后端 **A**（最干净）；★ 真机可选 **D scrcpy / C minitouch / E root 系统注入**；★ `UiAutomation` 才是无障碍路线 ⇒ 默认不用 |
+
+★ **剩余待确认（不阻塞 P0）**：
+1. ★ **GitHub 仓库名**（推的时候需要）：建议 `oas-core`。
+2. ★ **编辑器技术栈**：★ 建议 Flutter（★ 你已有 Dart 经验 + 跨平台）；★ 若你想换（如 Tauri/Web），现在说还来得及。
+3. ★ **P0 先录哪个任务**：★ 建议 `Tako`（单轮直线、无主循环）—— ★ 它也是 SPEC 里推荐的第一个样板。

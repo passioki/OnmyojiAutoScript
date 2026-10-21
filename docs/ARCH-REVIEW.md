@@ -162,17 +162,18 @@ Select-String -Path (Get-ChildItem module -Recurse -Filter *.py).FullName -Patte
 |---|---|---|---|---|---|
 | **1** | ★ **B 启动自检 Doctor** | ★★★ | **S** | 无 | ★ 让"游戏更新坏了"**立刻可见** |
 | **2** | ★★ **G 失败语义显式化（禁静默 0）** | ★★★★ | **S~M** | 无 | ★★ **静默错值比崩溃危险** —— 见 §7.4 |
-| **3** | ★★ **A 回放台** | ★★★★ | **M** | 无（加法）| ★ 解锁**全部**离线验证 |
-| **4** | ★ **E 守夜人** | ★★ | **S~M** | 心跳已有 | ★ 无人值守的兜底 |
-| **5** | ★ **C 强制护栏** | ★★★ | **M**（分批）| **A 先就绪** | ★ 把采用率从 2% 拉到默认 |
-| **6** | **D UI 地图数据化**（含 §7.5 的阈值分级 / 素材外置）| ★★★★ | **L** | B + A + C | ★ 适配更新的**终局** |
-| **7** | **F 测试升级** | ★★ | **M** | A | ★ 随 A 渐进 |
+| **3** | ★ **I 素材声明即校验** | ★★★ | **S** | 无 | ★ "东西没了"从**静默 False** 变 **CI 红灯** —— 见 §8.7 |
+| **4** | ★★ **A 回放台** | ★★★★ | **M** | 无（加法）| ★ 解锁**全部**离线验证 |
+| **5** | ★★★ **H 战斗骨架声明化** | ★★★★ | **M~L** | ★ **必须 A 之后** | ★★ **33/56 任务 → 3 组骨架**（9 个组队任务近乎逐行复制）—— 见 §8.7 |
+| **6** | ★ **E 守夜人** | ★★ | **S~M** | 心跳已有 | ★ 无人值守的兜底 |
+| **7** | ★ **C 强制护栏**（★ 含"**`script.py` 必须消费 `run()` 的 `Outcome`**"）| ★★★ | **M**（分批）| **A 先就绪** | ★ 把采用率从 2% 拉到默认；★ 否则 `Outcome` 统一了也**没人消费**（`script.py:890` 丢弃返回值）|
+| **8** | **D UI 地图数据化**（含 §7.5 的阈值分级 / 素材外置）| ★★★★ | **L** | B + A + C | ★ 适配更新的**终局** |
+| **9** | **F 测试升级** | ★★ | **M** | A | ★ 随 A 渐进 |
 
-★★ **一句话建议**：★ **先做 B（2~3 步）证明"能看见"，再做 G（2~4 步）让"错值变响亮"，
-然后 A（4~6 步）证明"能验证"** ——
-★ 这三件做完，"适配游戏更新"的周期会从"上机半小时"降到"离线几秒钟"，
-★ 而且"跑错了"会**立刻炸出来**而不是继续跑错；
-★ 之后 C/D 才有意义（否则又是在没有验证的情况下大改）。
+★★ **一句话建议**：★ **B（能看见）→ G（错值会炸）→ I（东西没了会炸）→ A（能离线验证）
+→ H（把 9~15 份复制品收成 1 份）** ——
+★ 前四件都是 **S~M**，★ 做完之后"适配游戏更新"的周期会从"上机半小时"降到"离线几秒钟"，
+★ 而且"跑错了 / 素材没了"都会**立刻炸出来**；★ 再往后 H/C/D 才是**结构性收益**。
 
 ---
 
@@ -194,6 +195,11 @@ Select-String -Path (Get-ChildItem module -Recurse -Filter *.py).FullName -Patte
 2. ★★ **回放 bundle 存哪、进不进 git？**（★ 建议：★ `D:\OAS-dev\_replay\`（**不进 git**，只留"关键帧 + 断言帧"），★ 生成脚本进 git）
 3. ★★ **是否同意「强制护栏」（禁止新写裸 `while 1` / 硬编码坐标）？**（★ 会要求改老代码，★ 但有自动改写脚本 + 分批验收）
 4. ★★ **[10-15] 新增第 4 问：先修「OCR 静默 0」吗？**（★ 见 §7.4 提案 G —— ★ 它是"无人值守"的隐形杀手，★ 工作量 S~M，★ 我建议**排在 B 之后、A 之前**）
+5. ★★ **[10-15] 新增第 5 问：`I`（素材声明即校验）与 B 同批做吗？**（★ 见 §8.7 —— ★ 工作量 **S**，★ 效果：★ 素材没了/改名了从"静默 False"变 **CI 红灯**）
+6. ★★★ **[10-15] 新增第 6 问（★ 最重要的一笔长期投资）：`H` 战斗骨架声明化做不做？**
+   （★ 见 §8.7 —— ★ **33/56 任务可由 3 组骨架表达**，★ 9 个组队任务**近乎逐行复制**
+   （`Orochi:233-280` vs `EvoZone:237-283`）⇒ ★ 战斗流程改一次要动 **9~15 个文件**。
+   ★ 但 ★★ **必须等 A（回放台）就绪**，否则没法证明"重构前后等价"）
 
 ---
 
@@ -257,3 +263,101 @@ Select-String -Path (Get-ChildItem module -Recurse -Filter *.py).FullName -Patte
 * ★ 顺带发现的**文档漂移**（★ 低优先，可随手修）：`zh_CN.xml:167` 与 `:241` **重复**两条
   `<source>Orochi</source>` · `zh_CN.xml:487` 的 `layer_help` 译文是**一个空格**（等于空帮助）·
   `dev_tools/gen_task_catalog.py:2` 的 docstring 写"**54 个任务**"而实际 **56**。
+
+---
+
+## 8. ★★★ 深度取证：任务骨架重复度与返回值（★ 第 2 路只读审计 · [10-15]）
+
+### 8.1 ★★ 骨架形状 = 5 种（+1 变体），★ 而 **33/56** 可由 **3 组** 表达
+
+| 形状 | 任务数 | 代表（`文件:行号`）|
+|---|---|---|
+| ① **计数×时间双闸门 `while 1` 战斗循环** | ★ **15** | `Orochi:294-312`（暂停 307 / 次数 / 时间 310）· 同形 `EvoZone:297-315` · `RealmRaid:169-231` · `Sougenbi:87-99` · `RyouToppa:192-222` |
+| ② **单轮直线（无主循环）** | ★ ~5 | `Tako:23-103`（`docs/flows/README.md:29` 自述"没有主循环"）· `AreaBoss:41-91` · `Pets:14-34` · `TalismanPass:18-32` · `KittyShop:27-44` |
+| ③ **子项串行** | ★ ~15 | `DailyTrifles:26-43`（29-41 六个 if → 42 `set_next_run` → 43 `TaskEnd`）|
+| ④ **手写场景状态机** | 少量 | `Exploration/solo.py:67-128`（scene 枚举 + 5 个 elif）· `Dokan:98-105`（★ 自造 `DokanSceneDetector`，★ 注释自认该用 `ui_get_current_page`）|
+| ⑤ **委托 / 空壳** | 少量 | `Exploration/script_task.py:21-22`（`pass`）· `FlowDemo:28-44` · `GotoMain:12-14` · `Rest:83-213` |
+| ⑥ 变体：**自我重排** | 少量 | `GuildBanquet:37-65`（`:61` `target=+5min`）· `DemonEncounter:651-657` · `FindJade:105-111` |
+
+### 8.2 ★★★ 三组可合并的骨架（★ 这是最大的维护性收益点）
+
+| 组 | 任务数 | 成员 | ★ 最硬的证据 |
+|---|---|---|---|
+| **A 组队四角色** | ★ **9** | `BondlingFairyland` / `EternitySea` / `EvoZone` / `ExperienceYoukai` / `FallenSun` / `GoldYoukai` / `Orochi` / `OtherWorldTwilight` / `Tako` | ★★ **`Orochi:233-280` 与 `EvoZone:237-283` 几乎逐行同构（连注释都一样）**；`Orochi:294-332` 与 `EvoZone:297-335` 同构 |
+| **B 次数×时间 header** | ★ **15** | 上述 + `RealmRaid` / `RyouToppa` / `Sougenbi` / `GoryouRealm` / `HeroTest` / `ActivityShikigami` / `BudokaiTournament` / `Duel` / `Hyakkiyakou` | 同上 header 被 15 个任务各抄一遍 |
+| **C 进页面→点按钮→领奖→退出** | ★ ~**15** | `DailyTrifles` / `Pets` / `TalismanPass` / `KittyShop` / `FloatParade` / `Delegation` / `MysteryShop` / `SoulsTidy` … | ★ `Delegation:46` **自己重定义 `ui_click`** 覆盖 `BaseTask.ui_click`（`base_task.py:1643`）|
+
+★ **近克隆对（★ 语义还分叉）**：`RealmRaid` ↔ `RyouToppa` —— `is_ticket:35-46` 与 `has_ticket:285-299` **同一判据**，
+★ `RyouToppa:14` 直接 `import RealmRaidAssets`、`:109-110` 复用 `I_MEDAL_*`，
+★★ 但"没票"的**成功/失败语义相反**（★ 就是台账 `FL-1` 那条，已在 `RyouToppa:199-216` 打补丁说明）。
+
+### 8.3 ★★ 返回值"无语义保证"（★ 7 条证据）
+
+1. ★★ **`run()` 的返回值根本没人消费** —— `script.py:890` 直接 `task_obj.run()`，**丢弃返回值**；
+   ★ 注解还三分：`-> bool` **5 个**（`AreaBoss:41` 等）· `-> None` **10 个**（`Rest:83`/`FlowDemo:28`/`GotoMain:12`）· **无注解 40 个**。
+2. ★ `general_battle.py:663` 写成 **`-> bool or None`**（★ 求值即 `bool`，注解等于没说），docstring 却写三态；
+   ★ `Orochi:264` 把 `None` 与 `False` **合并处理**。
+3. ★★ **同一个 `.ocr()` 返回 3 种类型**，根因 `atom/ocr.py:31-40`：`RealmRaid:367`(tuple) / `:487`(str) / `:473`(int)。
+4. ★ `DailyTrifles:111-125` 对同一个 ocr 结果做 **`None` / `''` / 正则 / int 四重兜底**。
+5. ★★ **`appear(interval=)` 在节流点直接返回 `False`**（`base_task.py:1010-1017`）⇒ ★ **"看不见"被当成"不许看"** —— ★ 659 处 `self.appear(` 全受影响。
+6. ★ 哨兵元组：`RealmRaid:408-442` `return None, None` ← 消费点 `:233`；`AreaBoss:484-495` **返回 1/0 当 bool**。
+7. ★ `navigator.py:769` 注解 `-> bool | None`，实际只 `return True`（`:766/:829`）或抛（`:818`）。
+
+### 8.4 ★★ GameUi：**53/56 采用，但被当"瞬移"用**（★ 最关键的一句）
+
+* ★ **采用面很好**：**53/56** `script_task.py` 都 `from tasks.GameUi…`；★ **43 个直接继承** GameUi。
+  ★ 不用它的只有 3 个：`AutoCheckinBigGod` / `Restart` / `RichMan`。
+* ★ **它确实是声明式页面图**：`Page(recognizer, priority, cost)`（`page_definition.py:75/101`，★ `cost` 就是给 Dijkstra 用的）
+  + `Transition` 边（`:31`）+ `connect`（`:146`）+ `default_pages.py` **48 节点 / 78 边** + `heapq` Dijkstra（`navigator.py:403/427/444`）。
+* ★★ **但它只被当"瞬移"用**：
+  * ★ 只有 **4 个任务**自建页面（`Orochi/page.py:8` · `OtherWorldTwilight/page.py:7` · `DailyTrifles/page.py:6` · `ActivityShikigami/page.py:21`）；
+  * ★ 只有 `HeroTest:309-335` 碰 navigator 内部 API；
+  * ★ **188 处 `goto_page` 几乎全部忽略返回值**；
+  * ★ `Dokan:101` 注释自认"该用 `ui_get_current_page`"，**却自造了 `DokanSceneDetector`**。
+* ★ ⇒ ★ **图有了，但只用来算"怎么过去"，没有用来算"我现在在哪 / 该不该重规划"**。
+
+### 8.5 ★★ 素材：自动生成，但**失效不响亮**
+
+* ★ `dev_tools/assets_extract.py:23-24` 写明"automatically generated… **Don't modify manually**"；
+  ★ 输入 = `tasks/<Name>/**/*.json`（`:271-276`）→ `class <Name>Assets`（`:264`）→ **整文件覆写**（`:366`）。
+* ★★ **可以是空壳**：`Tako/assets.py:10-11` = `class TakoAssets: pass`（★ 借用别的任务的素材），
+  ★ **没有任何引用校验** ⇒ ★ "空壳"与"真素材"在类型上无法区分。
+* ★★ **缺失 = 晚失败**：懒加载（`image.py:70-79`），`np.fromfile` 要到**首次 `match()`** 才 `FileNotFoundError` ⇒ **启动期不报**。
+* ★★ **过期 = 静默空转**：`match` → `False`（`image.py:263-265`）→ `appear` 静默 `False`（`base_task.py:1026`）→ ★ 直到 `GameStuckError`。
+* ★ 现有工具**全是事后审计**（`assets_audit.py:9` 死资产 / `assets_roi_audit.py` / `assets_test.py`）⇒ ★ **没有导入期断言**。
+
+### 8.6 ★ 新增任务要改几处（★ 与 `§1.16-NT8` 对齐）
+
+* ★ **必做 6 项**：① `meta.py`（`TaskSpec`，`list_pos` 全局唯一 + `window` 显式）② `config.py`（★ 顶层必须嵌套分组，否则 GUI `KeyError`）
+  ③ `script_task.py`（类名 `ScriptTask` + `run()`）④ `assets.py`（annotator 或 `assets_extract.py`，★ 空壳亦可）
+  ⑤ `docs/flows/README.md` 登记（漏登 ⇒ `test_task_flow_docs` 红；工厂自动登记）⑥ `gen_task_catalog.py --check`。
+* ★ **不必改**：`config_model.py`（`NOT_A_TASK` 只 `{Component, General}`）· `i18n_data.py` · 前端 schema · `task_catalog_data.json`（工厂清两套缓存）。
+* ★ **仍逐任务手写（真正的改动面）**：`bind_counter` / `limit_time`（12 / 11 处）· `raise_if_paused`（**19/56**）· `set_next_run`（`Exploration`/`GotoMain`/`Rest` **没有**）· **出口 `success` 语义**。
+
+### 8.7 ★★★ 由此新增两个提案
+
+#### **H. 战斗骨架声明化（BattleLoopSpec）—— ★ 最大的维护性收益**
+
+* **为什么**：★ **33/56 可由 3 组骨架表达**，其中 **9 个组队任务近乎逐行复制**、
+  ★ 15 个任务各抄一遍同样的"计数×时间 header" ⇒ ★ **战斗流程改一次要动 9~15 个文件**。
+* **怎么做**：★ 在 `tasks/template/battle_loop.py` 暴露
+  `BattleLoopSpec(entry_page, fire_widget, team_roles, count_source, time_source, exit_map)` + 一个通用 `run()`；
+  ★ **每次迁移都留旧 `run()` 当 wrapper**（★ 回退零成本），★ 用 `docs/flows` 的行号锚 + 守卫做等价性检查。
+* **迁移顺序**：★ `Sougenbi:52-137`（最短）→ `EvoZone` → `Orochi.run_alone/run_member`。
+* **工作量**：★ **M~L（5~8 步）**；★ **依赖 A（回放台）** —— ★ 没有回放，没法证明"重构前后等价"。
+* **风险**：★ 组队四角色涉及 `UserStatus` 分派（`create_room` 8 / `run_invite` 6 / `is_in_room` 9）⇒ ★ **先只做"单人/房主"两条路**。
+
+#### **I. 素材"声明即校验"（导入期断言）—— ★ 便宜且立刻见效**
+
+* **为什么**：★ 现状"空壳 + 懒加载 + 静默 False" ⇒ ★ 素材没了/改名了，**只有跑到那一步才知道**。
+* **怎么做**：★ 扩 `dev_tools/assets_audit.py` 或新增 `assets_check.py` + **pytest 断言**：
+  (a) 每个 `file=` **真实存在**；(b) `<Name>Assets` **非空**，除非 `meta.py` 显式写 `assets_shared=True`
+  （★ 把 `Tako/assets.py:11`、`KittyShop:13` 这类"借用"**显式化**）。
+* **工作量**：★ **S（1~2 步）**；★ 效果：★ **素材没标从"静默 False"变成 CI 红灯**。
+* ★ **与 G 的关系**：★ G 管"值错了"，★ I 管"东西没了" —— ★ 两者合起来 = **"识别层不再静默"**。
+
+### 8.8 ★ 一处数字口径需要更正（★ 自查）
+
+★ 第 3 路审计报 `appear(` **1201** 处，第 2 路报 `self.appear(` **659** 处 —— ★ **两者不矛盾**：
+★ `1201` 是**宽匹配**（含 `wait_until_appear` / `appear_then_click` 等），★ `659` 是**严格 `self.appear(`**。
+★ 引用时**必须带口径**，否则数字会看起来打架（★ 这正是本项目 `FL-9` 那类"数字时红时绿"的教训）。

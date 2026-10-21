@@ -884,4 +884,25 @@
 ★ ⇒ ★ 统一后想"重启不重打"，只须把该单元的 `expire` 改成 `daily`/`never`（★ R1-b 接线）
 —— ★ **不需要单独修断点续跑**。
 
+---
+
+# ★ §E-13 ★★★ [10-15] **步骤 0：让基线可读（13 failed → 0 failed）**
+
+> ★ **为什么必须先做**：★ R1-b / R2 要动**调度核心**（`config.py` 的 `entry_target_reached` / `get_next`），
+> ★ 没有干净基线就分不清"**是我改坏了**"还是"**那 13 条老红**"。
+
+★ **纪律（★ 很重要）**：★ 全部用**条件 skip**，★ **绝不永久 skip** ——
+★ 前提**具备**时**必须真跑、必须绿**（否则就是把守卫变摆设）。
+
+| # | 用例 | ★ 处置 | 依据 |
+|---|---|---|---|
+| 1 | ★ **9 条 i18n**（`test_i18n_full_coverage` ×5 · `test_window_ui_contract` ×3 · `test_team_modes` ×1）| ★ 条件 skip（共享工具 `tests/_srcutil.py::require_runtime_i18n()`）| ★ `module/config/i18n/zh-CN.json` 是**前端运行一次后经 `/home/chinese_translate` 推来的运行时产物**（台账 §A.3）⇒ 没起前端必然没有 |
+| 2 | `test_task_catalog::test_interval_from_user_config` | ★ 条件 skip + **形状断言**（★ **不删**）| ★★ **查清结论**：`success_interval` **不是无效字段** —— `#4c`（10-10 用户"**如果没有用到那么就删掉**"）删的是 **`Scheduler.success_interval`**；★ **`TaskMeta.success_interval` 是保留的数据字段**（迁移桥），★ 由 `test_success_interval_removed.py::test_task_meta_field_kept` **守着"必须存在"**（该文件 **7 passed**）；★ 其值由 `dev_tools/gen_task_catalog.py:225-259` **从用户配置 `config/*.json` 读** ⇒ 本机已清空 ⇒ 原用例写死的历史值**必然红** ⇒ 改为"有数据就验、无数据 skip" |
+| 3 | `test_queue_clear_and_settings::test_disables_auto_queue_tasks` | ★ 条件 skip | ★ 本机账号配置里**没有"已启用且自动入队"的任务** ⇒ 无可停用项（环境前提，不是回归）|
+| 4 | `test_task_report::test_names_are_chinese` | ★ 条件 skip | ★ 本次运行记录里**没有 `runs>0` 的任务** ⇒ 无中文名可校验（运行态前提）|
+| 5 | `test_schema_router::test_at_least_one_task_outside_window` | ★★ **修判据（★ 不是 skip）** | ★★ **测试本身错了**：原写法把**未启用**的窗口任务也算进 `specs_outside` ⇒ 那些任务本来就不该进 `pending/waiting` ⇒ **断言必然红**。★ 实测失败样本 `['AbyssShadows','DemonRetreat','Dokan','Secret']` **全是未启用的** ⇒ 修为**只比较已启用**的窗口任务 ⇒ **现在通过** |
+
+★ **新基线（★ 见下方实测）**：★ 全量 **0 failed** · ★ skip 全部**带原因**（★ 可核查）
+★ **旧基线作废**：`13 failed / 1934 passed / 6 skipped`（★ 其中 9 条是**前提不具备**、1 条是**测试判据错**、3 条是环境/运行态）
+
 

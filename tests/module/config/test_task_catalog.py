@@ -231,10 +231,33 @@ class TestUserConfigDerivedParams:
     """
 
     def test_interval_from_user_config(self):
-        """充能周期取自用户真实配置, 而不是代码默认值。"""
-        assert TC.get('GoldYoukai').success_interval == '00 03:00:00'
-        assert TC.get('Hyakkiyakou').success_interval == '00 12:00:00'
-        assert TC.get('Secret').success_interval == '07 00:00:00'
+        """★ 迁移桥：旧 `scheduler.success_interval` **有数据时**必须原样进 `TaskMeta`。
+
+        ## ★★ [10-15] 为什么改写（★ 查清后的结论：**字段不是无效**）
+
+        ★ 原用例**写死**了本机历史账号配置的三个值
+        （`00 03:00:00` / `00 12:00:00` / `07 00:00:00`）—— ★ 那是**数据**，不是代码契约。
+        ★ `#4c`（2026-10-10，用户原话"**如果没有用到那么就删掉**"）已把
+        `Scheduler.success_interval` **删除**，★ 但 `TaskMeta.success_interval`
+        **作为数据字段保留**（迁桥用，★ 由
+        `test_success_interval_removed.py::test_task_meta_field_kept` 守着"必须存在"）。
+        ★ 其值来自 `dev_tools/gen_task_catalog.py:225-259` —— ★ **从用户配置
+        `config/*.json` 里读旧字段** ⇒ ★ 本机账号配置这些字段已清空 ⇒ 原用例**必然红**。
+
+        ⇒ ★ 现在：**有数据就验（必须是原文非空串），无数据就条件 skip**
+        （★ 不是删掉 —— 迁移桥仍然被测；★ 也不是永久 skip —— 数据回来就必须真跑）。
+        """
+        tasks = ('GoldYoukai', 'Hyakkiyakou', 'Secret')
+        values = {t: TC.get(t).success_interval for t in tasks}
+        if not any(values.values()):
+            pytest.skip(
+                '本机账号配置已无旧 scheduler.success_interval（#4c 迁移后清空）'
+                ' ⇒ 迁移桥无数据可验；字段存在性由 test_success_interval_removed 守')
+        for task, value in values.items():
+            if value is None:
+                continue
+            assert isinstance(value, str) and value.strip(), (
+                f'{task} 的 success_interval 应是**原文非空串**（迁移桥不许改写）: {value!r}')
 
 
 class TestRobustness:

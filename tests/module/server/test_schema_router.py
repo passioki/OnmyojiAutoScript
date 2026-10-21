@@ -283,13 +283,22 @@ class TestOverview:
         if not withw:
             pytest.skip('还没有任何任务声明窗口')
         # 只要"有窗口的任务"里存在当前不在窗口内的, 就必须出现在 waiting
-        specs_outside = [t for t in withw if not TC.get_spec(t).in_window(now)]
+        # ★★ [10-15] 修**判据错**：原写法把**未启用**的窗口任务也算进 `specs_outside`
+        #   ⇒ ★ 那些任务本来就不该进 pending/waiting ⇒ 断言**必然红**。
+        #   ★ 实测失败样本：`['AbyssShadows','DemonRetreat','Dokan','Secret']` 全是未启用的。
+        #   ⇒ 现在只比较**已启用**的窗口任务（这才是 `update_scheduler` 真该分流的集合）。
+        from module.config.config_model import convert_to_underscore as _ctu
+
+        def _enabled(task: str) -> bool:
+            node = getattr(cfg.model, _ctu(task), None)
+            sch = getattr(node, 'scheduler', None) if node else None
+            return bool(getattr(sch, 'enable', False))
+
+        specs_outside = [t for t in withw
+                         if not TC.get_spec(t).in_window(now) and _enabled(t)]
         if specs_outside:
-            assert outside or any(
-                f.command in specs_outside for f in (cfg.pending_task or [])
-            ) or True, 'diagnostic only'
             assert outside, (
-                f'这些任务此刻不在窗口内, 却没进 waiting: {specs_outside}\n'
+                f'这些**已启用**的任务此刻不在窗口内, 却没进 waiting: {specs_outside}\n'
                 f'（说明 update_scheduler 没有按窗口分流）')
 
     def test_teams_present(self, overview):

@@ -962,5 +962,17 @@
 | **N4** | ★ 编辑器内嵌点击分布视图 + `oasd run` 落 CD2 点击 JSONL | ENGINE §21 · §22.2 | ⬜ 未开始 | ★ 界面里直接看 `clicks/distinct` |
 | 新债 | ★ 解释器 `ocr()` 仍未接线（S1 的识别在编辑器侧，flow 用表达式坐标）· ★ 真机出现过「悬赏封印」弹窗（需弹窗原语）| ENGINE §22.3 | ⬜ 明账 | — |
 
+---
+
+# ★ §E-16 ★★★ [10-22 02:1x] **新引擎第二轮：N2 + N4 完成（引擎提交 `0e61999`）**
+
+| # | 事项 | 依据 | 状态 | 验证（可核查）|
+|---|---|---|---|---|
+| **N2** | ★ 编辑器「生成点击指令」（选中识别区块 ⇒ 框中心 ⇒ 可用步骤）| ENGINE §19.2 · §22.2 | ✅ **已完成** | ★ 选中框 ⇒ 结果区 `{"op":"click_point","args":{"x":149,"y":124}}` + 复制；「追加到 flow」仅可解析时追加、非法 JSON 一字不动；证据 `_verify/n4/n2-flow.png` |
+| **N4** | ★ 编辑器内嵌点击分布（常设）+ CD2 点击 JSONL 落盘 | ENGINE §21 · §22.2 | ✅ **已完成** | ★ runtime `ClickRecord` · `oasd run --clicks-out`（7 行，seed=12345）· `GET /runs`=`clicks:7 distinct:7` · 编辑器实拍 `_verify/n4/ui_n4_deeplink.png`（画布 `clicks=7 distinct=7`）· `tools/click_heatmap.py` 同源 `clicks=7 distinct_points=7` |
+| 验证 | ★ 全工作区测试 + 铁律注入 | — | ✅ | ★ `cargo test --workspace` **117 passed**（default 与 `--features oasd/ocr` 各 117）· 注入 **20/20 真红**（runtime 6 / run 4 / serve 10，逐字节还原）|
+| 新债 | ★ 解释器 `ocr()` 接线 · 弹窗原语 · 点击分布 base 帧 | ENGINE §22.4 下一步 | ⬜ 下一会话 | ★ 尤其 `ocr()`：验收 = 用 `_verify/n5/s1_recording2` 离线回放跑含 `ocr()` 的 flow |
+
+
 
 

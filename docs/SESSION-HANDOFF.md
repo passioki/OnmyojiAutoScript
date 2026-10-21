@@ -414,6 +414,54 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 ---
 
+## ★ 1m. ★★★ [10-22 02:1x] **新引擎第二轮 N2 + N4 完成 —— 下一个会话从这里开始**
+
+```
+【引擎位置/提交】★ D:\OAS-dev\oas-core（独立 git 仓 · 本地 main · 无远端）
+  42ecd2d = N1 click_point + N3 TaskBundle/编辑器落盘 + N5 S1 样板
+  0e61999 = N2 生成点击指令 + N4 点击分布（CD2 JSONL）+ runs/ 忽略
+  文档：backend docs（§22.3/§22.4/§E-15/§E-16）已 push origin/dev
+
+【本轮实测基线（★ 不是抄文档）】
+  oas-core: cargo test --workspace = 117 passed / 0 failed（default 与 --features oasd/ocr 各 117）
+  旧仓（本轮未动代码）：守卫 171 passed · 全量 1935 passed / 0 failed / 18 skipped · 前端 0 error + 160 passed
+
+【编辑器闭环（已全部落地）】
+  截图 → /lines 识别 → 点区块 →「生成点击指令」（或 /task/save_asset 存素材）
+       → flow.json 保存（保存即校验引用）→ oasd run（--record/--replay/--seed/--clicks-out）
+       → 编辑器「点击分布」叠加看实际落点（clicks=N distinct=K）
+  常用：oasd run --task tasks\S1切预设 --seed 12345 --record ..\_verify\n5\rec --events-out ...
+        oasd run --task ... --replay ... --seed 12345 --clicks-out runs\s1-replay.clicks.jsonl
+
+【环境（本机 = 开发机）】
+  MuMu adb = 127.0.0.1:16384（1280x720）· adb.exe 在 backend\toolkit\Lib\site-packages\adbutils\binaries\
+  oasd serve 建议常驻 :8787：--tasks-dir tasks --runs-dir runs + OCR 模型（完整命令见 §1l）
+  ⚠ serve 会锁 target\debug\oasd.exe：要 rebuild 先停 serve，build 完再起
+  ⚠ headless Edge 截图必须用**新的 --user-data-dir**（否则偶发 0 字节；后备 = 自写 CDP 脚本）
+  ⚠ 本机没有 node/npm（UI 校验用 headless Edge/CDP）
+
+【下一个会话从这里开始（按建议顺序）】
+  1. ★★ 解释器 ocr() 接线（最大一块；ENGINE-DESIGN §22.4 下一步 1）
+     · EvalContext 已在；给 Interpreter 注入 OcrProvider（trait + onnx feature 门控）
+     · 验收（不碰设备）：用 _verify/n5/s1_recording2 回放跑含 ocr()/wait_until(ocr(...)) 的 flow，
+       文字/分数与真机一致（P1-c 已有真机基线：默认分组 0.9987 / 分组2 0.9912）
+  2. ★ 弹窗原语（真机 S1 曾出现「悬赏封印」弹窗；建议 dismiss_popup / on_interrupt 钩子）
+  3. ★ 点击分布 base 帧（跨屏 run 目前只能叠当前帧）
+  4. ★ 旧仓台账中与本主线无关的项**不动**（引擎线以 ENGINE-DESIGN 为准）
+
+【证据（都在磁盘，不进 git）】
+  _verify/n5/N5_EVIDENCE.md · _verify/n5/s1_recording2/（真机 8 帧 + meta）
+  _verify/n4/ui_n4_deeplink.png（N4 编辑器实拍）· _verify/n4/n2-flow.png（N2）
+  _verify/n4/s1_clicks_heatmap.png（click_heatmap.py 兼容）· _verify/n4/（N4 截图/日志）
+
+【不要做】
+  · 不要把 _verify/ 里的大文件（录制帧）提交进 git
+  · 不要把旧仓 pytest 基线当引擎验收
+  · oasd run 真机会点游戏（S1 可逆）⇒ 跑前确认设备在**庭院**；跑后设备应自动回庭院
+```
+
+---
+
 ## ★ 2. ★★ 下一步（★ 按优先级）
 
 | # | 事项 | 依据 | 状态 |

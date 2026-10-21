@@ -643,6 +643,10 @@ fn find_text_in_list(&mut self, text: &str, scroll: ScrollPolicy) -> Result<Poin
 ```
 ★ 坐标 = `框中心`（★ 已加 ROI 偏移，★ 帧绝对坐标）。
 
+★ **[10-22] 已实现（N2）**：★ 编辑器**选中识别区块 ⇒ 点「生成点击指令」** ⇒ 结果区直接给出上面这种
+紧凑单行步骤（整数、帧绝对坐标）+ 复制到剪贴板；★ 同屏还有「追加到 flow」（只在 flow.json 文本可解析时
+追加，失败**一字不动**）。★ 证据见 §22.4。
+
 ### 19.3 ★ task bundle 结构（★ 落盘前定稿，请确认）
 
 ```text
@@ -698,6 +702,17 @@ tasks/<任务名>/
 ★ **实现**：★ `oas-core/tools/click_heatmap.py`（★ 读 JSONL → PNG，★ 可选 `--base 画面.png` 叠底图）
 ★ **首次实测**：★ 200 条合成点击 ⇒ **`clicks=199 distinct_points=193`** ⇒ ★ 分布分散（★ 不是固定点）★ 证明可用。
 
+★ **[10-22] CD2 已落地（N4）**：
+1. ★★ **数据源 = `oasd run --clicks-out <file.jsonl>`**：每次**成功点击**一行
+   `{"ts_ms":…,"x":…,"y":…,"target_x":…,"target_y":…,"sel":<资产id|null>,"seed":…}`
+   （★ `x/y` = **实际落点**；★ `target_*` 是审计补充：模板点击取模板矩形中心、`click_point` 取求值目标；
+   ★ `sel=null` 表示按坐标点击；失败点击/滑动不记行）。
+2. ★ `tools/click_heatmap.py` **直接可读**（★ 实测 S1 回放：**`clicks=7 distinct_points=7`**，`_verify/n4/s1_clicks_heatmap.png`）。
+3. ★★ **编辑器内嵌视图（N4 常设）**：`oasd serve --runs-dir runs` 提供
+   `GET /runs`（列表 + clicks/distinct）与 `GET /runs/clicks?file=…`（点集；文件名**防路径穿越**）；
+   ★ UI 面板「点击分布（常设）」下拉运行记录 ⇒ 在当前画面上**叠加热力图 + 散点**，
+   ★ 画布角上标 **`clicks=N distinct=K`**；★ 支持深链 `/?run=<file>`（截图可复现）。见 §22.4。
+
 ---
 
 ## 22. ★★★ 进度快照与下一步（[10-22 01:25] · 交接用）
@@ -722,9 +737,9 @@ tasks/<任务名>/
 | 序 | 内容 | 判据 | 状态 |
 |---|---|---|---|
 | **N1** | ★ DSL `click_point`（★ 参数为表达式）+ 解释器走 `Humanize` | ★ 越界点击**注入验证真红**；★ 步日志记实际坐标 | ✅ **已完成**（`42ecd2d` · §22.3）|
-| **N2** | ★ 编辑器「生成点击指令」（★ 选中区块 ⇒ box 中心）| ★ 点一下出可用步骤 | ⬜ 未开始 |
+| **N2** | ★ 编辑器「生成点击指令」（★ 选中区块 ⇒ box 中心）| ★ 点一下出可用步骤 | ✅ **已完成**（`0e61999` · §22.4）|
 | **N3** | ★ 素材落盘（★ 中文 `id` + **序号文件名** + `assets.json` + `task bundle`，见 §19.3）| ★ id 查重；★ 保存即校验引用 | ✅ **已完成**（`42ecd2d` · §22.3）|
-| **N4** | ★ 编辑器内嵌「点击分布」视图（★ 常设功能，别只留在命令行）| ★ 界面里能直接看 | ⬜ 未开始 |
+| **N4** | ★ 编辑器内嵌「点击分布」视图（★ 常设功能，别只留在命令行）| ★ 界面里能直接看 | ✅ **已完成**（`0e61999` · §22.4）|
 | **N5** | ★★ **S1 样板**：庭院 → 队伍预设 → 识别「分组2」→ **真点一次** | ★ 回放 + 真机各一次 | ✅ **已完成**（`42ecd2d` · 证据 `_verify/n5/N5_EVIDENCE.md` · §22.3）|
 
 ★ **技术债（明账）**：
@@ -788,9 +803,50 @@ tasks/<任务名>/
 
 #### ★ 剩余（明账）
 
-1. ★ **N2** 编辑器「生成点击指令」仍 ⬜ —— 本轮「识别→坐标表达式」是编辑器外一步手工（证据见 §22.3 N5），N2 把它变成一键。
-2. ★ **N4** 编辑器内嵌点击分布视图仍 ⬜；★ 且 **CD2 的点击 JSONL 还没由 `oasd run` 落盘**（目前是步日志 JSONL）⇒ N4 时一起补。
+1. ★ **N2** 编辑器「生成点击指令」⇒ ✅ **[10-22] 已完成**（见 §22.4）。
+2. ★ **N4** 编辑器内嵌点击分布视图 + CD2 点击 JSONL ⇒ ✅ **[10-22] 已完成**（见 §22.4）。
 3. ★ **解释器 `ocr()` 仍未接线**（P1-c）：本轮 S1 的「识别」在编辑器侧完成，flow 里是**表达式坐标**；
    ★ 真正 in-flow OCR（`wait_until(ocr('X')=='分组2')` 之类）待接线。
 4. ★ **弹窗干扰**：真机跑 S1 时出现过「悬赏封印」弹窗（手动关掉了）⇒ 未来 flow 需要「弹窗处理」原语（不在本轮）。
+
+---
+
+### 22.4 ★★★ [10-22 02:1x] 本轮交付：N2 + N4（★ 编辑器闭环 · 引擎提交 `0e61999`）
+
+> ★ 结果：★ **「选中识别块 → 一键出 click_point → 跑 → 看点击分布」在同一个编辑器界面里闭环。**
+
+#### N2 · 编辑器「生成点击指令」（§19.2）
+
+- ★ 点选 `/lines` 的识别区块（框已是**帧绝对坐标**）⇒ 新按钮 **「生成点击指令」** ⇒ 结果区直接给
+  `{"op":"click_point","args":{"x":<框中心取整>,"y":<…>}}`（★ §19.2 紧凑单行）+ 复制到剪贴板；
+- ★ 同屏 **「追加到 flow」**：只在 `flow.json` 文本**可解析且 `steps` 是数组**时追加；
+  ★ 非法 JSON ⇒ 结果区报错、**textarea 一字不动**（实测）。
+- ★ 证据：`_verify/n4/n2-flow.png`（框 `[109,109,80,30]` ⇒ 生成 `{"x":149,"y":124}`）；
+  ★ served HTML 有 `生成点击指令` / `追加到 flow` marker。
+
+#### N4 · 点击分布内嵌视图（§21 CD1~CD5 常设）
+
+| 层 | 实现 |
+|---|---|
+| 数据 | ★ runtime **`ClickRecord{ts_ms,x,y,target_x,target_y,sel,seed}`**（**每次成功点击**一行；模板点击 `target`=模板矩形中心、`click_point` `target`=求值目标、`sel=null`；失败/滑动不记；`run()` 重开清空）|
+| 落盘 | ★ `oasd run --clicks-out <file.jsonl>` ⇒ CD2 JSONL（★ 比 §21 多 `target_*` 审计字段；读侧可选，最小行仍能解析）· 打印 `clicks_out=<path> count=N` · 失败也写（排障用）|
+| 服务 | ★ `oasd serve --runs-dir runs` ⇒ `GET /runs`（列表 + `clicks/distinct/mtime`，坏文件只标 `error` 不炸整表）+ `GET /runs/clicks?file=`（点集；★ 文件名**防路径穿越**=400；坏行报行号；缺失 404）|
+| 视图 | ★ UI「点击分布（常设）」面板：下拉运行记录/刷新/叠加/清除 + 状态；★ 当前画面上叠 **热力图（离屏径向渐变累加 + blur）+ 高对比散点**，★ 画布角铭牌 **`clicks=N distinct=K`** + 图例；★ 绘制顺序 帧→ROI/框→分布；★ 深链 **`/?run=<file>`** 自动叠加（截图可复现）|
+
+★ **实测（可核查）**：
+1. ★ S1 回放 `--clicks-out runs/s1-replay.clicks.jsonl` ⇒ **7 行**（seed=12345；`sel`=结界突破/式神录/预设/null/null/返回/关闭）；
+2. ★ `GET /runs` ⇒ `{"clicks":7,"distinct":7}`；`GET /runs/clicks?file=…` ⇒ 7 点（字段与契约一致）；穿越名 ⇒ 400；
+3. ★ **编辑器实拍**：`_verify/n4/ui_n4_deeplink.png`（headless Edge，1400×1000）——真机帧上 7 个热区、画布 `clicks=7 distinct=7`、面板/图例齐全；
+4. ★ `tools/click_heatmap.py` 直接读同一 JSONL ⇒ **`clicks=7 distinct_points=7`**（`_verify/n4/s1_clicks_heatmap.png`）⇒ CD2 格式与既有工具兼容；
+5. ★ 测试：`cargo test --workspace` **117 passed**（runtime 22→27、oasd 13→22；default 与 `--features oasd/ocr` 各 117）；
+6. ★★ **注入 20/20 真红**（runtime 6 / run 4 / serve 10，逐字节还原）——含「记录在失败前就写入」「distinct 按 target 算」「mtime 升序」「不做文件名消毒」等。
+
+#### ★ 下一步（★ 交接给下一个会话）
+
+1. ★★ **解释器 `ocr()` 接线**（最大一块）：让 flow 里能用 `wait_until(ocr('分组2') == '分组2')`，
+   不再需要“编辑器先识别 → 写死表达式坐标”。★ 设计要点：`oas-flow::EvalContext` 已就位，
+   缺的是给 `Interpreter` 注入一个 OCR 提供者（trait + feature 门控，`oas-ocr` 的 rec/det 在 `onnx` feature 后）；
+   ★ 验收建议：用 `_verify/n5/s1_recording2` 离线回放跑一个含 `ocr()` 的 flow，文字/分数与真机一致。
+2. ★ **弹窗原语**（真机出现过「悬赏封印」）：★ 建议 `dismiss_popup(sel | ocr_text)` 或全局 `on_interrupt` 钩子。
+3. ★ 点击分布：★ 支持**按 run 的 base 帧**叠底（跨屏 run 现在只能叠当前帧）；★ `clicks=0` 空 run 已有铭牌。
 

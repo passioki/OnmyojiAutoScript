@@ -370,6 +370,48 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
      ＋ ★ 1 真漂移（§E-6-n）
 ```
 
+## ★ 1l. ★★★ [10-22 02:0x] **新引擎主线：N1 + N3 + N5 完成（交接用）**
+
+```
+【新引擎位置】★ D:\OAS-dev\oas-core（独立 git 仓 · 本地 main · 无远端）
+  ★ [10-22] 引擎提交 = 42ecd2d（N1 click_point + N3 TaskBundle/编辑器 API + N5 S1 样板/`oasd run`）
+  ★ 文档依据 = backend\docs\ENGINE-DESIGN.md §19/§20/§22（旧仓 backend/frontend 冻结，只作资产/知识源）
+
+【入口核对（本轮实测）】
+  后端 dev = 1258c400（干净）· 前端 dev = 8da0f2a（干净）· oas-core = 1a0ae8c -> 42ecd2d（干净）
+  守卫链（15 文件） = 171 passed（7s）
+  后端全量 = 1935 passed / 0 failed / 18 skipped（102s）  ★ 旧 14 failed 已被 §E-13 收敛
+  前端 = analyze 0 error（4w+17i）· test 160 passed
+  引擎 = cargo test --workspace = 103 passed / 0 failed（default 与 --features oasd/ocr 都是 103）
+  新引擎 **编译基线已修**：无 ocr feature 时默认 `cargo build/test --workspace` 原本失败（已修）
+
+【N1 判据（注入验证真红）】越界 click_point => Failed 且不下发点击；删 CP3 => 越界点击被当 Done（红）；
+  删 click 后 invalidate_frame => 第二击仍用旧帧 target=(12,10) 期望 (40,20)（红）
+【N3 判据】中文 id + 序号文件名 aNNN.png（id 不落地成路径）；重复 id => 400「nothing written」；
+  flow 拼错引用 => 400；两文件 SHA256 不变；编辑器 UI 有 任务名/保存素材到任务/保存 flow（校验引用）
+【N5 判据】真机 outcome=Done（7 点 + 1 滑，设备回庭院）；回放同 seed outcome=Done，
+  clicks 与逐步 detail 逐字相同（结构 diff=0）· 证据 _verify/n5/N5_EVIDENCE.md
+  ★ 「识别分组2」= 编辑器 /lines（9 行 ≥0.9994）→ 框中心表达式 "1131 + 69 / 2" 写进 click_point
+  ★ 新增 swipe 指令（列表默认停底部，必须滚到顶才看得到分组2）
+
+【下一步（引擎主线）】
+  1. N2 编辑器「生成点击指令」（选中识别块 => 直接出 click_point 步骤）
+  2. N4 编辑器内嵌点击分布视图 + oasd run 落 CD2 点击 JSONL（现在是步日志 JSONL）
+  3. 解释器 ocr() 接线（真正 in-flow 识别；本轮 S1 的识别在编辑器侧）
+  4. 弹窗原语（真机出现过「悬赏封印」弹窗，手动关掉）
+
+【常用命令（新引擎）】
+  ★ 起编辑器/OCR 服务（本会话已起在 8787，restart 时用）：
+    cd oas-core
+    $env:ADB_PATH='D:\OAS-dev\backend\toolkit\Lib\site-packages\adbutils\binaries\adb.exe'
+    .\target\debug\oasd.exe serve --port 8787 --tasks-dir tasks `
+      --model D:\OAS-dev\backend\toolkit\Lib\site-packages\rapidocr\models\PP-OCRv6_rec_small.onnx `
+      --det-model D:\OAS-dev\backend\toolkit\Lib\site-packages\rapidocr\models\PP-OCRv6_det_small.onnx
+  ★ 跑任务（真机 / 回放；seed 必看打印值）：
+    .\target\debug\oasd.exe run --task tasks\S1切预设 --seed 12345 --record _verify\n5\rec --events-out _verify\n5\live.jsonl
+    .\target\debug\oasd.exe run --task tasks\S1切预设 --replay _verify\n5\rec --seed 12345 --events-out _verify\n5\replay.jsonl
+```
+
 ---
 
 ## ★ 2. ★★ 下一步（★ 按优先级）

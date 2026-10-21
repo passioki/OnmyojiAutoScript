@@ -944,4 +944,23 @@
 2. ★ 依赖的通用原语：★ **`find_text_in_list(text, scroll_until_found)`**（★ 这是个**通用能力**：在可滚动列表里按文字找项并点击）；
 3. ★ **测试**默认「默认分组-通用阵容」，★ **产品**允许玩家改（★ 配置里写名字）
 
+---
+
+# ★ §E-15 ★★★ [10-22 02:0x] **新引擎主线：N1 + N3 + N5 已完成（引擎提交 `42ecd2d`）**
+
+> ★ 背景：★ [10-22] 用户裁定「从 `ENGINE-DESIGN.md` §22.2 的 **N1** 开始 ⇒ 再 **N3** ⇒ 再 **N5**」。
+> ★ 设计依据 = `docs/ENGINE-DESIGN.md` §19/§20/§22（★ 旧仓 `backend`/`frontend` 冻结，只作资产/知识源）。
+
+| # | 事项 | 依据 | 状态 | 验证（可核查）|
+|---|---|---|---|---|
+| **N1** | ★ DSL `click_point`（参数为**表达式**）+ 解释器走 `Humanize` + 步日志记**实际坐标** | ENGINE §19 CP1~CP4 · §20 HB2/HB3/HB6 · §22.2 | ✅ **已完成** | ★ `oas-flow` 21 tests · `oas-runtime` 22 · ★ **注入 3/3 真红**（越界=点屏幕外被当成功 / swipe 越界 / 帧缓存不失效）★ 步日志含 `target=… point=…` |
+| **N3** | ★ 素材落盘：中文 `id` + **序号文件名** + `assets.json` + task bundle；**id 查重**；**保存即校验引用** | ENGINE §19.3 · §18.1 · §22.2 | ✅ **已完成** | ★ 新 crate `oas-task` 16 tests · ★ 真 bundle 上实测：重复 id ⇒ 400「nothing written」· flow 拼错引用 ⇒ 400 · 两文件 SHA256 前后不变 · `/task/save_asset|save_flow|assets|list` + UI |
+| **N5** | ★★ **S1 样板**：庭院 → 式神录 → 队伍预设 → 识别「分组2」→ **真点一次**（回放 + 真机各一次） | ENGINE §22.2 · §6 · §20 HB5 | ✅ **已完成** | ★ 真机 `outcome=Done`（7 点+1 滑，设备回庭院，可逆）· ★ 回放同 seed=12345 `outcome=Done`，`clicks` 与逐步 detail **逐字相同**（结构 diff = 0，只差 elapsed_ms）· 证据 `_verify/n5/N5_EVIDENCE.md` |
+| 顺带 | ★ 修两个真 bug：① click 后帧缓存不失效（会点旧位置）② HB1 目标框原为「模板左上角 11×11」（大按钮点角） | ENGINE §22.3 | ✅ | ★ 各有回归测试 + 注入真红 |
+| 顺带 | ★ 新增 `swipe` 指令（§3.2 动作类）；★ 抽 `parse_query()`（还 DRY-3 的债）；★ 修默认构建失败（无 ocr feature 时无条件调 enable_ocr/enable_det） | ENGINE §22.3 | ✅ | ★ 全工作区 **default 103 / ocr 103** 全绿 · `cargo build --workspace` 两种 feature 都绿 |
+| **N2** | ★ 编辑器「生成点击指令」（选中区块 ⇒ box 中心）| ENGINE §19.2 · §22.2 | ⬜ 未开始 | ★ 一键出可用步骤 |
+| **N4** | ★ 编辑器内嵌点击分布视图 + `oasd run` 落 CD2 点击 JSONL | ENGINE §21 · §22.2 | ⬜ 未开始 | ★ 界面里直接看 `clicks/distinct` |
+| 新债 | ★ 解释器 `ocr()` 仍未接线（S1 的识别在编辑器侧，flow 用表达式坐标）· ★ 真机出现过「悬赏封印」弹窗（需弹窗原语）| ENGINE §22.3 | ⬜ 明账 | — |
+
+
 

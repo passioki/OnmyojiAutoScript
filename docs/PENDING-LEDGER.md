@@ -843,4 +843,45 @@
 ★ **我的建议顺序**：**T0-1 → T0-2 → T0-4（清账）→ 然后全力 §E-10（S1、S2、S3…）**；
 ★ `T2（F6）` 放主线中间做一次（★ 它能一次性把红从 14 压到 5，对"看得见的进展"最划算）。
 
+---
+
+# ★ §E-12 ★★★ [10-15] **`L3-0`：周期任务 / 临时任务的统一架构（`TaskUnit` → `ScheduleUnit`）**
+
+> ★★ **用户原话（逐字）**：
+> > "**L3的周期任务和临时任务在底层实现上是否能够统一架构来表达。
+> >   这样每次创建新的任务只需要用一种架构就行。对L2也会有影响**"
+>
+> ★ 随后裁定（逐字）：★ "**好的，都按你的建议来**" ⇒ ★ **L3-0 提到 L2 之前 · R1 先做**。
+> ★ 设计见 `docs/GRIND-REDUCTION.md` §3.3；规格见 `DESIGN-SPEC.md` **§4.5-㊴**。
+
+## E-12-a ★★ 现状诊断（★ 实测 · 这是"两套架构"的真相）
+
+| 关注点 | ★ 周期任务（`period != none`）| ★ 临时任务（`period == none`）|
+|---|---|---|
+| 记账 | `task_state.record_success()`（`:189`）| `task_state.mark_entry_completed()`（`:994`）|
+| 过期判定 | `is_completed_in_period()`（`:219`）| `get_entry_completed()`（`:891`）|
+| ★ 存储布局 | ★ `data[config][<key>]` = `{last_success, period, period_key}` | ★ `data[config][ENTRIES_KEY][eid]` = `{completed, completed_session, …}` |
+| 过期作用域 | 日/周/月（`period_key`）| **本次启动**（`completed_session == session_start`）|
+| 入队 | `auto_queue_of()`（`config.py:2579`）⇒ **自动补齐** | **手动**进 `run_list` |
+
+★★ ⇒ ★ **差异只有 2 个策略参数**（★ 过期作用域 + 入队策略），★ **不是机制不同**
+⇒ ★ 统一可行；★ 而且**统一所需的两级状态入口 C10 早已实现（`get/set_entry_state` + `get/set_task_state`，当前 0 采用）**。
+
+## E-12-b ★ 迁移批次
+
+| 批 | 内容 | 状态 | 可核查证据 |
+|---|---|---|---|
+| **R1-a** | ★ **等价层（纯新增、零行为变更）**：`module/config/schedule_unit.py` = `ScheduleUnit(task, entry_id, expire)` + **可逆映射** `expire<->period` + ★ **只委托** `record_outcome()`/`is_due()` + `unit_for()` 迁移入口 | ✅ **已完成** | ★ **守卫 23 条**（`tests/module/config/test_schedule_unit.py`）：映射可逆 · `unit.key` 与 `_state_key` 同口径 · **委托参数逐项核对** · 失败不许记完成 · 真往返；★★ **注入验证真红**（去掉 `is_due` 周期取反 ⇒ **2 failed** → 还原 SHA256 一致 → **23 passed**；探针 `dev_tools/_probes/inject_schedule_unit.py`）· ★ 守卫链 **171 passed** |
+| **R1-b** | ★ 把方向翻过来：旧函数变**薄别名** · 切 `config.py:3997 entry_target_reached` / `script.py` 调用点 · ★ 让 `expire` 真正**可配**（含 `never`/时间戳）| ⬜ **未开始** | ★ 需"等价性"守卫：切换后全量 + 行为对比（★ 建议先有回放台）|
+| **R2** | ★ 统一**候选生成**：`get_next()`（`config.py:4350`）两分支收成一个循环（条件全走 `expire/quota`）| ⬜ 未开始 | 调度候选集等价性用例 |
+| **R3** | ★ `auto_queue` 从"推导"变**显式字段**（`enqueue`）| ⬜ 未开始 | 显式字段守卫 + 注入 |
+| **R4** | ★ `task_factory` / 前端只暴露**一个调度单元**概念 | ⬜ 未开始 | 前端 analyze + 建任务端到端 |
+
+## E-12-c ★★★ 顺带证明：`L1-a 断点续跑` **不是独立 bug**
+
+★ 守卫 `test_real_roundtrip_session_expires_on_new_start` 实测：
+★ **换一次 `session_start` ⇒ 临时单元重新可跑** ⇒ ★★ **"重启重打"就是 `expire='session'` 的策略副作用**。
+★ ⇒ ★ 统一后想"重启不重打"，只须把该单元的 `expire` 改成 `daily`/`never`（★ R1-b 接线）
+—— ★ **不需要单独修断点续跑**。
+
 

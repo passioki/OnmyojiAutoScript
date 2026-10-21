@@ -160,7 +160,7 @@ TaskUnit:
 
 | 批 | 内容 | 工作量 | 风险 |
 |---|---|---|---|
-| **R1** | ★ 统一"**记账 + 过期**"：`record_success/is_completed_in_period` 与 `mark/get_entry_completed` ⇒ 收成 `record_outcome(unit, outcome)` + `is_due(unit)`；★ **旧函数保留为薄别名**（不破坏调用方）| **M** | ★ 中（两套键不同：task 名 vs entry_id ⇒ ★ 用 C10 两级键）|
+| **R1** | ★ 统一"**记账 + 过期**"：`record_success/is_completed_in_period` 与 `mark/get_entry_completed` ⇒ 收成 `record_outcome(unit, outcome)` + `is_due(unit)`；★ **旧函数保留为薄别名**（不破坏调用方）| **M** | ★ 中（两套键不同：task 名 vs entry_id ⇒ ★ 用 C10 两级键）<br>★★ **[10-15] R1-a 已落地**：新增 `module/config/schedule_unit.py`（`ScheduleUnit` + `expire` 映射 + **只委托、零行为变更**）+ 守卫 **23 条** + 注入验证真红（2 failed→还原 SHA 一致→23 passed）· ★ **R1-b 待做**：把方向翻过来（旧函数变薄别名）+ 切 `config.py`/`script.py` 调用点 |
 | **R2** | ★ 统一"**候选生成**"：`get_next()`（`config.py:4350`）里两个分支收成一个循环，条件全走 `expire/quota` 参数 | **M** | ★ 中（这是调度核心）|
 | **R3** | ★ `auto_queue` 从"推导"变"**显式字段**"（★ `enqueue`）| **S** | ★ 低 |
 | **R4** | ★ `task_factory` / 前端只暴露**一个"调度单元"**概念（不再让用户选"周期/临时"）| **S~M** | ★ 低 |

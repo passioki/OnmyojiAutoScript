@@ -368,7 +368,7 @@ Select-String -Path (Get-ChildItem module -Recurse -Filter *.py).FullName -Patte
 
 * **为什么**：★ **33/56 可由 3 组骨架表达**，其中 **9 个组队任务近乎逐行复制**、
   ★ 15 个任务各抄一遍同样的"计数×时间 header" ⇒ ★ **战斗流程改一次要动 9~15 个文件**。
-* **怎么做**：★ 在 `tasks/template/battle_loop.py` 暴露
+* **怎么做**：★ 在 **`tasks/template/`（★ 拟新增目录，当前**不存在**）** 里暴露
   `BattleLoopSpec(entry_page, fire_widget, team_roles, count_source, time_source, exit_map)` + 一个通用 `run()`；
   ★ **每次迁移都留旧 `run()` 当 wrapper**（★ 回退零成本），★ 用 `docs/flows` 的行号锚 + 守卫做等价性检查。
 * **迁移顺序**：★ `Sougenbi:52-137`（最短）→ `EvoZone` → `Orochi.run_alone/run_member`。

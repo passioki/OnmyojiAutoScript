@@ -408,7 +408,22 @@ def _register_in_flow_index(name: str, name_zh: str,
     path = Path(index_path) if index_path else FLOW_INDEX
     if not path.is_file():
         return False
-    lines = path.read_text(encoding='utf-8').split('\n')
+
+    # ★★★ [10-15] T0-1（★ 坑 **P18 根治**）：**必须保留原行尾** ★★★
+    #
+    # 旧代码 = `path.read_text(encoding='utf-8')` + `f.write('\n'.join(lines))`：
+    #   * `read_text` 默认 `newline=None` ⇒ **universal newlines** ⇒ 读进来时
+    #     **所有 `CRLF` 已被翻译成 `LF`**；
+    #   * 写回又用 `newline=''`（不翻译）⇒ 于是**整份文件每一个换行都变成 LF**。
+    #   * `core.autocrlf=true` 的仓库里 ⇒ ★ `git status` **只要跑过这两个守卫
+    #     就显示 ` M docs/flows/README.md`**，而 `git diff --numstat` **为空**
+    #     （★ 纯行尾幻影）⇒ ★ 每轮都要手动 `git checkout --`。
+    # ⇒ ★ 现在：以 `newline=''` 读**原始字节对应的文本**（不翻译），
+    #    先测出本文件用的行尾，再按**同一个行尾**拼回去。
+    with open(path, 'r', encoding='utf-8', newline='') as f:
+        raw = f.read()
+    eol = '\r\n' if '\r\n' in raw else ('\r' if '\r' in raw else '\n')
+    lines = raw.split(eol)
     row = (f'| `{name}`（{name_zh}）| ⬜ **新建任务待补** | '
            f'★ [10-14] 由「新建任务」创建 ⇒ ★ 流程图待补'
            f'（★ 先看 `RealmRaid.md` 样板：五段结构 + 每个判断带 `文件:行号`）|')
@@ -430,6 +445,7 @@ def _register_in_flow_index(name: str, name_zh: str,
         elif j > start:
             break
     lines.insert(last + 1, row)
+    # ★ 写回时同样 `newline=''`（不翻译）+ 用**原行尾**拼 ⇒ 字节级只有"多了一行"这一个差异
     with open(path, 'w', encoding='utf-8', newline='') as f:
-        f.write('\n'.join(lines))
+        f.write(eol.join(lines))
     return True

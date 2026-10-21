@@ -182,12 +182,25 @@ def test_dry_run_does_not_touch_disk(tmp_root):
 # ────────────────────────────────────────── ④ ★★ 真·系统发现（"测试"的实质）
 @pytest.fixture()
 def probe():
-    """★ 在**真 `tasks/`** 下建一个探针任务，跑完**必删**（含台账那行）。"""
+    """★ 在**真 `tasks/`** 下建一个探针任务，跑完**必删**（含台账那行）。
+
+    ★★★ [10-15] T0-1（坑 **P18 的真正根因**）：备份/还原必须**按字节** ★★★
+
+    ★ 旧代码：`before = index.read_text(encoding='utf-8')` ＋ 收尾
+      `write(before)` —— ★ `read_text` 默认 **universal newlines** ⇒ 备份里
+      **CRLF 已经变成 LF**；收尾再 `newline=''` 写回
+      ⇒ ★ **整份 `docs/flows/README.md` 被还原成 LF**。
+    ★ 在 `core.autocrlf=true` 下 ⇒ ★ **每跑一次这个文件，`git status` 就多一个
+      ` M docs/flows/README.md`**（而 `git diff --numstat` **为空**）——
+      ★ 也就是说：**幻影脏的真正来源是这个 fixture 的还原**，不只是
+      `task_factory._register_in_flow_index` 的写入。
+    ⇒ ★ 现在改 `read_bytes()` / `write_bytes()` ⇒ **逐字节**还原。
+    """
     from module.config import task_catalog as TC
 
     d = TF.TASKS_ROOT / PROBE
     index = TF.FLOW_INDEX
-    before = index.read_text(encoding='utf-8') if index.is_file() else ''
+    before = index.read_bytes() if index.is_file() else b''
     try:
         res = TF.create_task(PROBE, PROBE_ZH, 'TIMED', 'NONE', register_flow=True)
         assert res.ok is True, f'★ 创建探针失败：{res.error}'
@@ -195,8 +208,8 @@ def probe():
     finally:
         shutil.rmtree(d, ignore_errors=True)
         if index.is_file():
-            with open(index, 'w', encoding='utf-8', newline='') as f:
-                f.write(before)
+            # ★ 按字节还原（★ 不许经过任何换行翻译）
+            index.write_bytes(before)
         try:
             TC.reload_specs()
         except Exception:
@@ -267,3 +280,42 @@ def test_probe_registration_keeps_flow_guard_green(probe):
     assert r.returncode == 0, (
         '★★★ 新建任务之后流程图守卫变红了 —— '
         '★ 说明"登记"这一步没做对：\n' + (r.stdout or '')[-1500:] + (r.stderr or '')[-500:])
+
+
+# ---------------------------------------------------------------- 行尾保留（坑 P18）
+def test_flow_index_registration_keeps_line_endings(tmp_path):
+    """★★★ [10-15] T0-1 / 坑 **P18 根治**：登记新任务时**必须保留原行尾**。
+
+    ## 缺陷（[10-15] 实测，可复现）
+
+    ★ 旧实现 `path.read_text(encoding='utf-8')` 走的是 **universal newlines**
+    （`CRLF → LF`），而写回用的是 `newline=''`（不翻译）
+    ⇒ ★ **整份 `docs/flows/README.md` 的每一个换行都被改成了 LF**。
+    ★ 在 `core.autocrlf=true` 的仓库里 ⇒ ★ **每跑一次**
+    `tests/test_task_flow_docs.py` ＋ `tests/module/test_task_factory.py`，
+    `git status` 就多一个 ` M docs/flows/README.md`，而 `git diff --numstat`
+    **为空**（★ 纯行尾幻影）⇒ ★ 每轮都要手动 `git checkout --`。
+
+    ## 这条守卫
+
+    ★ 造一个 **CRLF** 的临时台账 ⇒ 登记一行 ⇒ ★ **文件必须仍然是纯 CRLF**
+    （★ 既不许变 LF，也不许变成"混行尾"）。
+    ★ 注入验证：把读/写改回"`read_text` + `\\n` 拼接" ⇒ 本条**必须变红**。
+    """
+    index = tmp_path / 'README.md'
+    # ★ 与真台账同形：表头必须同时含「状态」「待补理由」（`__register_in_flow_index` 靠它定位）
+    index.write_bytes(
+        ('# 流程图台账\r\n'
+         '\r\n'
+         '| 任务 | 状态 | 待补理由 |\r\n'
+         '|---|---|---|\r\n'
+         '| `RealmRaid`（个人突破）| ✅ 已完成 | — |\r\n').encode('utf-8'))
+
+    ok = TF._register_in_flow_index('ProbeTask', '探针', index_path=index)
+    assert ok, '★ 没找到台账表 ⇒ 登记失败（表头形状变了？）'
+
+    raw = index.read_bytes()
+    assert b'\r\n' in raw, '★★ P18 复发：登记后 CRLF 全没了（整份文件被改成 LF）'
+    assert b'\n' not in raw.replace(b'\r\n', b''), (
+        '★★ 登记后出现**裸 LF**（混合行尾）—— 行尾保住了，但"一致性"没保住')
+    assert '`ProbeTask`' in raw.decode('utf-8'), '★ 没登记进去'

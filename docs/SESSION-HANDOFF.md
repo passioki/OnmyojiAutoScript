@@ -477,6 +477,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ bb770e1 = **N10 多边形框选一期**（点击区 = 多边形最大内接矩形 LAAR；编辑器多边形模式）
   ★ 6abb816 = **N11 定位冗余链一期**（click_target：图片 > 文字 > 坐标记忆 + state/coords.json + locator 审计）
   ★ 3d705c7 = **N12 点击后验证**（expect：appear/vanish/ocr_text，轮询超时=步失败）
+  ★ 实机验收 [10-22 21:0x]：S1 连续 4 跑全 Done（7 击/跑、miss 0）；实机录制同 seed 回放 7/7 逐点一致；`expect appear(预设)` 真机 verified=true ⇒ 下一步**页面守卫**（S1 起始页是"探索/御魂"，不是庭院）
   文档：backend docs（§22.5 / §E-17 / §1n）已 push origin/dev
 
 【本轮实测基线（★ 不是抄文档）】

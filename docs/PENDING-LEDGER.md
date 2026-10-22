@@ -1028,6 +1028,17 @@
 | **N11** | ★★ `click_target`（`find` 列表：template → ocr_text → coord_memory）+ `state/coords.json` + `locator` 审计 | ENGINE §22.11 · 用户 [10-22 19:5x] | ✅ **已完成（一期）**（`6abb816`） | ★ flow 23 · runtime 52 · task 22 · oasd 25 · 全工作区 **153 passed** · ★ 注入 **2/2 真红** · ★ 离线 replay 验收：OCR 回退点 (1173,189) / 记忆回退点 (1176,185) 且 coords 未被改写 |
 | 补充 | ★ 多模板变体 · 相对锚点 · 页面守卫 · 无障碍(uiautomator) · 取色断言 · 多帧投票 · OCR+模板互证 | ENGINE §22.11 表 | ⬜ 待排期 | 按性价比分批 |
 | **N12** | ★★ **点击后验证**（`expect`：appear / vanish / ocr_text；轮询超时=步失败） | ENGINE §22.11 补充层 · 用户 [10-22 20:3x] "好的" | ✅ **已完成**（`3d705c7`） | ★ flow 25 · runtime 56 · task 22 · oasd 25 · 全工作区 **159 passed** · ★ 注入 **3/3 真红** · ★ 3 帧 replay 验收 `verified=true`（第 2 帧才满足） |
+
+---
+
+# ★ §E-22 ★★ [10-22 21:0x] 实机验收（用户选"先跑实机"）
+
+| # | 事项 | 结果 |
+|---|---|---|
+| **N13** | ★ S1 任务实机连续 4 跑（seed 20261022~25） | ✅ 全 `Done`、7 点击/跑、miss 0 |
+| **N14** | ★ 实机录制 + 同 seed 回放 | ✅ 7/7 点击逐点一致（含 target/sel/locator/miss）；不同 seed 点位不同 |
+| **N15** | ★ 实机 `expect` 验证 | ✅ `expect appear(预设)` 真机通过 `verified=true`（2385ms 含轮询）|
+| 发现 | ★ S1 起始页是"探索/御魂"界面，不是庭院；从庭院直接跑会第一步失配 ⇒ **下一步优先做页面守卫** | ⬜ N16 待排期 |
 | 待调 | ★ 权重 / `comet_contrast` / miss 区间（现为 `Humanize` 字段，可编程覆盖）是否挂配置 | ENGINE §22.9 建议 | ⬜ 待裁定 | — |
 | **N6b** | ★ 素材更新（同 id 覆盖，`rev+1`）：`POST /task/save_asset {replace:true}` + UI 确认框 | ENGINE §22.5 · §4 rev | ✅ **已完成**（`8558ac3`）| ★ `oas-task` **20 passed**（+4 更新路径）· ★ 全工作区 **127 passed** · ★ 注入 **3/3 真红** · ★ HTTP 实测 create→rev1 / dup→400 / replace→rev2 + 旧图删除 |
 | **N7** | ★ 10k 点击模拟工具 `examples/click_sim.rs`（HB1/HB2，CD2 JSONL） | ENGINE §22.5 · §20 | ✅ **已完成**（`8558ac3`）| ★ 10k：`distinct=2558`（97.9% 覆盖）· `x_std=19.36`/`y_std=11.32`（理论 19.34/11.26）· 证据 `_verify/n7/` · `runs/sim-10k.clicks.jsonl` |

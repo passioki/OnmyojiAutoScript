@@ -1301,3 +1301,34 @@ tasks/<任务名>/
 | 判据 | ★ `oas-flow` **25** · `oas-runtime` **56** · `oas-task` **22** · `oasd` **25** · 全工作区 **159 passed**；★ **注入 3/3 真红**（验证恒真 ⇒ 超时守卫红；定位链两条见 N11） |
 | 验收 | ★ 3 帧 replay（列表 / 列表无关闭 / 关闭出现）：`click_target`(OCR) + `expect appear(关闭)` ⇒ `verified=true`（★ 轮询到**第 2 帧**才满足，证明真的在轮询而不是点完就过） |
 
+---
+
+### 22.12 ★★ [10-22 21:0x] 实机验收（MuMu · emulator-5554 · 1280×720）
+
+> ★ 用户选择"先把现状跑一段实机，再回来排期"（§22.11 补充层选项 4）。
+
+| 项 | 结果 |
+|---|---|
+| 实机跑 | ★ S1 任务（`tasks/S1切预设`）**连续 4 跑**（seed 20261022~25）：全部 `Done`、每次 **7 点击**、**miss 0** |
+| 记录+回放 | ★ 实机录制 8 帧（`_verify/n18/live_rec`）；**同 seed 回放与实机点击逐点一致**（7/7，含 target/sel/locator/miss），不同 seed 点位不同（HB5）|
+| 实机验证 | ★ 带 `expect appear(预设)` 的点击在真机通过：`clicked 式神录 … verified=true`（步耗时 2385ms，含轮询）|
+| 发现 | ★ S1 flow 的**起始页是"探索/御魂"界面**，不是庭院：从庭院直接跑会在第一步 `结界-target 结界突破` 匹配失败（score -0.034）。必须先点「探索」进入该页 ⇒ ★ 这就是**页面守卫**（§22.11 补充层）要解决的问题 |
+| 证据 | `_verify/n18/`（live_rec 帧 + 4 份 live clicks JSONL + replay JSONL + live_verify）；`live_stats.py` 汇总 |
+
+★ 结论：**现状可以跑实机**（模板点击/点击点/HB1/HB7/记录回放都正常）；下一步建议优先「**页面守卫**」，把"在错误页面直接点"堵住。
+
+---
+
+### 22.11 附录：`click_target` / `expect` 速查
+
+```json
+{"op":"click_target","args":{
+  "find":[
+    {"kind":"template","sel":"返回按钮","threshold":0.9},
+    {"kind":"ocr_text","sel":"分组列表","text":"分组2"},
+    {"kind":"coord_memory","key":"分组2记忆"}
+  ],
+  "expect":{"kind":"appear","sel":"关闭","timeout_ms":1500}
+}}
+```
+

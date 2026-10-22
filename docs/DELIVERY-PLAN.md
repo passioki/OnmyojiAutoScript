@@ -219,17 +219,37 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 
 # §7 完成判据（DoD，可勾选）
 
-- [ ] D1 模板契约 + lint 落地，旧任务零破坏（N36）
-- [ ] D2 编辑器新建任务 → 素材 → flow → 保存 lint 全通（N38）
-- [ ] D3 编辑器「运行任务」在模拟器/实机跑出 Done（N38）
-- [ ] D4 调度 v3 跑 periodic + temp，前后重置、重置记忆可用（N37）
-- [ ] D5 release zip 在干净目录启动，显式设备运行（N39）
-- [ ] D6 实机创建任务并手动运行 Done（V0.9 gate）
-- [ ] D7 实机调度 2 轮 + 重启恢复（V1.0 gate）
-- [ ] D8 实机 24h 长跑通过（N40）
-- [ ] D9 文档/台账/证据/升级手册齐全
-- [ ] **D10 探索任务**：在 Android 客户端（阴阳师 2.8.84）完整跑通一次，Done + 点击审计
-- [ ] **D11 个人突破任务**：同上；无票时有明确 resource 出口
-- [ ] **D12 Android 证据**：release 包在 Android 12 / x86_64 / 阴阳师 2.8.84 上完成创建 + 运行，版本写入 BUILD-INFO/交付报告
-- [ ] **D13 调度包含两个任务**：scheduler.json 至少各一条（periodic 或 temp），自动跑 ≥2 轮
-- [ ] **D14 APK 边界**：交付报告明确"APK 引擎=P4，本次不含"（用户已确认）
+- [x] D1 模板契约 + lint 落地，旧任务零破坏（N36）
+- [x] D2 编辑器新建任务 → 素材 → flow → 保存 lint 全通（N38）
+- [x] D3 编辑器「运行任务」在模拟器/实机跑出 Done（N38）
+- [x] D4 调度 v3 跑 periodic + temp，前后重置、重置记忆可用（N37）
+- [x] D5 release zip 在干净目录启动，显式设备运行（N39）
+- [x] D6 实机创建任务并手动运行 Done（V0.9 gate）
+- [x] D7 实机调度 2 轮 + 重启恢复（V1.0 gate）
+- [ ] D8 实机 24h 长跑通过（N40）— **进行中**：soak pid=1268 于 2026-10-23T03:11:45+08:00 启动（loop_interval_s=900）
+- [x] D9 文档/台账/证据/升级手册齐全
+- [x] **D10 探索任务**：在 Android 客户端（阴阳师 2.8.84）完整跑通一次，Done + 点击审计
+- [x] **D11 个人突破任务**：同上；无票时有明确 resource 出口
+- [x] **D12 Android 证据**：release 包在 Android 12 / x86_64 / 阴阳师 2.8.84 上完成创建 + 运行，版本写入 BUILD-INFO/交付报告
+- [x] **D13 调度包含两个任务**：scheduler.json 至少各一条（periodic 或 temp），自动跑 ≥2 轮
+- [x] **D14 APK 边界**：交付报告明确"APK 引擎=P4，本次不含"（用户已确认）
+
+---
+
+# §8 交付结果（[10-23 03:1x] · 引擎提交 `7a4c58c`）
+
+| 项 | 结果 |
+|---|---|
+| 引擎 | `oas-core` 本地 `main` = `7a4c58c`（V1.0 实现提交，52 files / +12152）|
+| 测试 | `cargo test --workspace` = **312 passed / 0 failed**（21 suites）|
+| 包 | `dist/oasd-v1.0.0-win64.zip` · **59.7MB** · SHA256 `CF463445DB119AC05780A36E9637981B9C58E8E6A8F866A9DC7E4B87C5B53EC3` |
+| 实机（模拟器）| Android 12 / x86_64 / 阴阳师 2.8.84 / MuMu vmindex=0 / adb 127.0.0.1:16384 |
+| 创建闭环 | 解压包编辑器「新建任务」→ 创建「实机验收任务」200；运行「探索」**Done / exit 0 / 14 clicks** |
+| 探索 | 实机 Done（真实战斗胜利→结算→回庭院，13 击，≈31s）|
+| 个人突破 | 实机 Done（选目标→进攻→准备→真实战斗→结算→回庭院，15 击，≈43s；本场战败但流程完整）|
+| 调度 | 实机 2 轮：探索 quota 2/2（第二轮 quota_exhausted）、个人突破 temp 每轮执行；跨进程重启状态延续 |
+| 重置记忆 | CLI + 编辑器多选（全选/反选/全不选）+ 清 checkpoint；API 实测 `ok:true` + `memory_reset` 审计 |
+| 24h soak | 🔄 已启动：pid=1268 · `2026-10-23T03:11:45+08:00` · `loop_interval_s=900` · 首轮探索 Done 31.1s / 个人突破 resource 10.0s / `wake sleep_ms=900000`；结论待回填 |
+| 证据 | `_verify/n42/REPORT-V1.0.md`（工作区，不提交）|
+
+**已知限制**（与 ENGINE §22.35 一致）：起始须庭院；探索假设第二十八章 + 游戏内自动挑战开启；个人突破阵容弱通常战败但流程完整、票/目标耗尽走 resource；个人突破需 OCR 模型；调度器无 SIGINT、固定 UTC offset（+480）、启动未强制 lint；release 未签名；**APK=P4 未做**。

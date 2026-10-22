@@ -27,12 +27,12 @@
 
 | 项 | 状态 |
 |---|---|
-| 引擎 | `oasd`（serve/run/queue/stats/schedule）+ 编辑器 UI + 素材库；测试 **213 passed** |
-| 引擎特性 | flow DSL、素材/掩膜/多边形、点击定位链、HB1/HB7、整帧搜索、双 ROI、库、queue、stats、checkpoint/resume、reconnect、多帧投票、OCR+模板互证 |
-| 编辑器 | 三栏 IDE（素材/图片/任务/流程/点击分布）、标题行常驻结果/日志窗口、调试页 `/dashboard.html` |
-| 纵向 | ① 弹窗 ② 重试/恢复 ③ queue ④ 流程编辑器 ⑤ 统计 ⑥ 周期调度（**v1 原型，将被 v3 替换**）|
+| 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **312 passed** · `oasd --version` = **1.0.0** |
+| 引擎特性 | flow DSL、素材/掩膜/多边形、点击定位链、HB1/HB7、整帧搜索、双 ROI、库、queue、stats、checkpoint/resume、reconnect、多帧投票、OCR+模板互证、**统一任务模板/task lint、任务创建/编辑器运行、调度 v3、交付包** |
+| 编辑器 | 三栏 IDE（素材/图片/任务/流程/点击分布/调度）、标题行常驻结果/日志窗口、新建任务对话框、重置记忆多选、调试页 `/dashboard.html` |
+| 纵向 | ① 弹窗 ② 重试/恢复 ③ queue ④ 流程编辑器 ⑤ 统计 ⑥ 周期调度（v1 原型）· **V1.0 已交付**（模板+创建+调度 v3+实机包）|
 | 横向 | H1/H2 暂停；H4/H5 已完成；H3 暂缓 |
-| 调度设计 | ★ **v3 设计已定稿（见 §1.5 与 ENGINE §22.34）**；实现**尚未开始** |
+| V1.0 交付 | ★ 提交 `7a4c58c` · 包 `dist/oasd-v1.0.0-win64.zip`（SHA256 `CF4634…`）· 探索/个人突破实机 Done · 调度 2 轮实机通过 · 24h soak 已启动（pid=1268，待回填）|
 
 ---
 

@@ -37,11 +37,15 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 | 项 | 值 |
 |---|---|
-| 引擎 HEAD | ★ `oas-core` 本地 `main` = `8b252a6`（2026-10-23 00:36 · 纵向⑥ v1 schedule）· worktree 干净 · 无远端 |
-| 引擎测试 | ★ `cargo test --workspace` = **213 passed / 0 failed**（最新实测）· OCR 构建 `cargo build -p oasd --features ocr` 绿 |
+| 引擎 HEAD | ★ `oas-core` 本地 `main` = `7a4c58c`（V1.0 实现提交：M0~M3）· worktree 干净 · 无远端 |
+| 引擎测试 | ★ `cargo test --workspace` = **312 passed / 0 failed**（21 suites）· `oasd --version` = 1.0.0 · release `oasd-v1.0.0-win64.zip` SHA256 `CF4634…` |
+| 本轮设计 | ★ **统一任务模板 + 调度 v3（ENGINE §22.34）已实现**；临时任务 = B（每轮执行、前后重置、无完成记忆）；重置记忆 CLI+UI 多选（全选/反选）|
+| 本轮交付 | ★ V1.0：编辑器新建/运行任务 · `tasks/探索` + `tasks/个人突破` 实机 Done · 调度 2 轮实机通过 · 交付包/配置/启停脚本 · 24h soak 已启动（pid=1268，待回填）|
+| 下一步 | ★ 等 24h soak 完成回填 D8；后续 V1.1 可选：录制→flow、任务包导入导出、webhook 告警、Windows 服务/看门狗 |
 | 编辑器 | ★ serve 8787：三栏 IDE（素材/图片/任务/流程/点击分布）+ 标题行下常驻结果/日志 + `/dashboard.html` 点击分布页 |
-| 本轮设计 | ★ **统一任务模板 + 调度 v3 已定稿（ENGINE §22.34）**；临时任务 = B（每轮按 entries 顺序跑一次、执行前后重置、无 one_shot/continue）；重置记忆清调度状态+任务 state，UI 多选/全选/反选 |
-| 下一步 | ★ **P0/M0：任务模板 schema + `oasd task lint` + 模板目录 + 旧任务零破坏迁移** → **M1 任务创建闭环** → M3 实机包 → M2 调度 v3 → M4 实机验收（N36/N38/N39/N37/N40）|
+| 本轮设计 | ★ **统一任务模板 + 调度 v3（ENGINE §22.34）已实现**；临时任务 = B（每轮执行、前后重置、无完成记忆）；重置记忆 CLI+UI 多选（全选/反选）|
+| 本轮交付 | ★ V1.0：编辑器新建/运行任务 · `tasks/探索` + `tasks/个人突破` 实机 Done · 调度 2 轮实机通过 · 交付包/配置/启停脚本 · 24h soak 已启动（pid=1268，待回填）|
+| 下一步 | ★ 等 24h soak 完成回填 D8；后续 V1.1 可选：录制→flow、任务包导入导出、webhook 告警、Windows 服务/看门狗 |
 | 交付路线 | ★ `docs/DELIVERY-PLAN.md`：到"实机可创建任务 + 手动运行 + 调度自动运行"的 M0~M5、部署/升级/风险/DoD |
 | 入口文档 | ★ `docs/START-HERE.md` 已于 [10-24] 重写为引擎版（旧仓段落归档为资源库说明）|
 

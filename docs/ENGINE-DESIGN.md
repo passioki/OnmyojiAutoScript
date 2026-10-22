@@ -1812,3 +1812,22 @@ tasks/<任务名>/
 
 ★ **从当前到"实机可创建任务并运行"的完整交付路线**：见 `docs/DELIVERY-PLAN.md`（M0~M5、DoD、部署/升级/风险）。
 
+---
+
+### 22.35 ★★★ [10-23 03:1x] **V1.0 实机可用交付记录**（引擎提交 `7a4c58c`）
+
+> ★ 用户 [10-23] 裁定：V1.0 = 实机可创建任务 + 手动运行 + 调度自动运行；任务必须包含 **探索 + 个人突破**，在 **Android 客户端** 验收；**APK 不做**（用户确认按原计划）。当前模拟器（MuMu Android 12 / 阴阳师 2.8.84）作为实机验收对象。
+> ★ 仓库内证据：`_verify/n42/REPORT-V1.0.md`（不提交，工作区）；交付包 `dist/oasd-v1.0.0-win64.zip`。
+
+| 项 | 结果 |
+|---|---|
+| 实现 | M0 统一任务模板（meta 契约/`param()`/`task lint/new`）· M1 `POST /task/create` + `POST /task/run` + 编辑器新建/运行 · M1b `tasks/探索`/`tasks/个人突破` · M2 调度 v3（periodic+temp B/重置记忆/面板）· M3 `config/live.json` + 全局 `--config` + 显式 serial + release 打包/启停/升级 |
+| 测试 | `cargo test --workspace` = **312 passed / 0 failed**（21 suites；基线 213，+99）· `oasd --version` = 1.0.0 |
+| 交付包 | `oasd-v1.0.0-win64.zip`（59.7MB）· SHA256 `CF463445DB119AC05780A36E9637981B9C58E8E6A8F866A9DC7E4B87C5B53EC3` · 含 exe/ui/models/adb/tasks/library/config/启停脚本/README-DEPLOY |
+| Android 验收 | 解压 zip 后：编辑器创建「实机验收任务」→ 运行「探索」**Done/exit 0/14 clicks**；调度 2 轮：探索 Done（quota 2/2，第二轮 quota_exhausted）+ 个人突破 temp 每轮执行（首轮 Done 真实挑战、后续 resource 出口）|
+| 任务验收 | 探索：庭院→探索→真实战斗（胜利）→结算→回庭院，13 击 ≈31s；个人突破：庭院→结界突破→个人突破→挑战→真实战斗→结算→回庭院，15 击 ≈43s（本场战败，流程完整）|
+| 重置记忆 | CLI `scheduler reset-memory` + 编辑器调度面板「重置记忆」多选/全选/反选/全不选 + 清 checkpoint 勾选；实测 API `ok:true`、审计 `memory_reset` |
+| 24h soak | 🔄 已启动（pid=1268，`2026-10-23T03:11:45+08:00`，`loop_interval_s=900`）；首轮探索 Done 31.1s、个人突破 resource 10.0s、`wake sleep_ms=900000`；24h 结论待回填 |
+| 已知限制 | 起始须庭院；探索假设第二十八章+游戏内自动挑战开启；个人突破阵容弱通常战败但流程完整、目标/票耗尽走 resource；个人突破需 OCR 模型；调度器无 SIGINT 处理/固定 UTC offset；启动未强制 lint；release 未签名；**APK=P4 未做** |
+
+

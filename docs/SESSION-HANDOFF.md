@@ -490,6 +490,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 点击模拟：cargo run -p oas-runtime --example click_sim -- rect 10000 12345 330 69 95 55 out.jsonl
   ★ 点击分布：HB1 = **20% 钟形 / 5% 完全随机 / 75% 彗星（头在中心、概率随离中心距离指数下降、手侧方向衰减更慢）**；HB7 = **每 100 次 1~3 次手误**（框外 ≤12px，日志/JSONL 带 miss）
   ★ 待实现：多边形框选（点击区 = 多边形最大内接矩形，识别一期仍外接矩形）→ ENGINE §22.10，待裁定
+  ★ 待实现：点击定位冗余链（图片>文字>坐标记忆 + 10 条补充层）→ ENGINE §22.11，待裁定；建议先于多边形
   ★ 证据 _verify/n6/N6_EVIDENCE.md · _verify/n8/N8_EVIDENCE.md · _verify/n9/N9_EVIDENCE.md · _verify/n11/ · _verify/n12/ · _verify/n13/（v3.1 指数修订）
   ★ 对比分析：旧仓 RuleClickExclude（安全随机点击）vs 手误 → ENGINE §22.8；可移植 click_safe/等待随机滑动（待裁定）
 

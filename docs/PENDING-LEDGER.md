@@ -1043,6 +1043,7 @@
 | **N17** | ★★ **多模板变体**（`click.alts`：主图失败后逐张试变体；审计命中的变体 id） | ENGINE §22.11 补充层 · 用户 [10-22 21:2x] | ✅ **已完成**（`c3c4237`）| ★ flow 27 · runtime 60 · 全工作区 **165 passed** · ★ 注入 **1/1 真红** · ★ 离线 replay：主模板噪声 → variant 命中 score 1.000，7 击完成 |
 | **N18** | ★★ **每次点击匹配日志 + 异常截图**（CD2 `match` 字段；失败存帧 PNG） | ENGINE §22.13 · 用户 [10-22 21:4x] | ✅ **已完成**（`11ae6b2`）| ★ runtime 60 · oasd 26 · 全工作区 **166 passed** · ★ 注入 **1/1 真红** · ★ 实机失败 shot=…png / 成功 7 行 CD2 全带 match |
 | **N19** | ★★ **相对锚点**（anchor 模板 + dx,dy；换参照物/布局平移；可作降级链一环） | ENGINE §22.14 · 用户 [10-22 21:4x] 提问 | ⬜ **横向待开发记录（不阻塞纵向）** | 估算 ~1 天；用户裁定：先不插队 |
+| **N20** | ★★ **弹窗/中断处理**（`interrupts` 自动消弹 + `dismiss_popup` 显式关弹；纵向第①项） | ENGINE §22.15 · 用户 [10-22 21:5x] "好的" | ✅ **已完成**（`1cb7397`）| ★ flow 29 · runtime 65 · task 22 · oasd 26 · 全工作区 **171 passed** · ★ 注入 **1/1 真红** · ★ 离线 replay：dismiss_popup 命中 / on_interrupt 先消弹再执行 |
 
 ---
 
@@ -1060,7 +1061,7 @@
 | H5 | OCR+模板互证（文字区域内必须含某图标）| 同文案不同按钮去歧义 | ⬜ 待开发记录 |
 
 ★ **纵向基线（已具备，可支撑继续纵向开发）**：flow DSL（if/loop/while/wait_until/appear/表达式）· 任务包（assets/flow/meta）· 三分布手化+HB7 手误 · 多边形 LAAR 点击区 · 定位冗余链（图片>文字>坐标记忆）+ coords.json · 点击后验证 `expect` · 页面守卫 `requires` · 多模板变体 `alts` · 逐击审计（locator/match）+ 失败截图 · 记录/回放（HB5 seed 可复现）· 编辑器（框选/多边形/OCR 调试/点击分布）。
-★ **纵向缺口（建议按序）**：① 弹窗/中断处理（`dismiss_popup` / `on_interrupt`）→ ② 步级重试与失败恢复（retry/backoff、断线重连）→ ③ 多任务调度/supervisor（队列、长时间挂机、资源调度）→ ④ 任务编排/流程编辑器（可视化编辑 flow）→ ⑤ 运行统计与告警（长跑报表）。
+★ **纵向缺口（建议按序）**：① 弹窗/中断处理（`dismiss_popup` / `on_interrupt`）→ ✅ N20 已完成；② 步级重试与失败恢复（retry/backoff、断线重连）→ ③ 多任务调度/supervisor（队列、长时间挂机、资源调度）→ ④ 任务编排/流程编辑器（可视化编辑 flow）→ ⑤ 运行统计与告警（长跑报表）。
 | 待调 | ★ 权重 / `comet_contrast` / miss 区间（现为 `Humanize` 字段，可编程覆盖）是否挂配置 | ENGINE §22.9 建议 | ⬜ 待裁定 | — |
 | **N6b** | ★ 素材更新（同 id 覆盖，`rev+1`）：`POST /task/save_asset {replace:true}` + UI 确认框 | ENGINE §22.5 · §4 rev | ✅ **已完成**（`8558ac3`）| ★ `oas-task` **20 passed**（+4 更新路径）· ★ 全工作区 **127 passed** · ★ 注入 **3/3 真红** · ★ HTTP 实测 create→rev1 / dup→400 / replace→rev2 + 旧图删除 |
 | **N7** | ★ 10k 点击模拟工具 `examples/click_sim.rs`（HB1/HB2，CD2 JSONL） | ENGINE §22.5 · §20 | ✅ **已完成**（`8558ac3`）| ★ 10k：`distinct=2558`（97.9% 覆盖）· `x_std=19.36`/`y_std=11.32`（理论 19.34/11.26）· 证据 `_verify/n7/` · `runs/sim-10k.clicks.jsonl` |

@@ -1353,6 +1353,18 @@ tasks/<任务名>/
 
 ---
 
+### 22.15 ★★ [10-22 21:5x] **弹窗/中断处理**（纵向第①项 · 引擎提交 `1cb7397`）
+
+| 项 | 落地 |
+|---|---|
+| `on_interrupt` | ★ flow 顶层 `"interrupts":[{"sel":"公告关闭"},{"sel":"网络异常"}]`：★ **每步执行前**按顺序匹配，命中即点击消弹（写 `event op=interrupt`），然后**重新检查**再跑该步；★ 单步最多消 5 次，超限**响亮失败**（防"永远匹配"的规则死循环）|
+| `dismiss_popup` | ★ 显式步骤：`{"op":"dismiss_popup","args":{"sel":"关闭","timeout_ms":0,"required":false}}`；轮询 `timeout_ms`（0=只查一次）；出现则点击；未出现时 `required=false` ⇒ `no popup`（成功），`required=true` ⇒ **失败** |
+| 审计 | ★ 两种消弹都进 CD2：`locator=interrupt` / `dismiss_popup`，`match=interrupt:关闭:1.000` / `dismiss_popup:关闭:1.000`；失败截图仍由 `--shots-dir` 覆盖 |
+| 判据 | ★ `oas-flow` **29** · `oas-runtime` **65** · `oas-task` **22** · `oasd` **26** · 全工作区 **171 passed**；★ 注入 **1/1 真红**（禁用自动消弹 ⇒ 中断守卫红）|
+| 验收 | ★ 离线 replay：① `dismiss_popup`（单帧关闭可见）⇒ dismissed score=1.000；② `on_interrupt`（帧0 有弹窗/帧1 干净）⇒ **先 interrupt 消弹，再执行 click_point**，2 击 |
+
+---
+
 ### 22.12 ★★ [10-22 21:0x] 实机验收（MuMu · emulator-5554 · 1280×720）
 
 > ★ 用户选择"先把现状跑一段实机，再回来排期"（§22.11 补充层选项 4）。

@@ -1365,6 +1365,20 @@ tasks/<任务名>/
 
 ---
 
+### 22.16 ★★ [10-22 22:0x] **步级重试与退避**（纵向第②项上半 · 引擎提交 `cafe5f0`）
+
+| 项 | 落地 |
+|---|---|
+| DSL | ★ action 步（`click` / `click_point` / `click_target` / `dismiss_popup`）可带 `retry`：`{"times":1..=10,"delay_ms":0..=60000,"backoff":"constant"|"exponential"}`；★ 指数退避 = `base × 2^(n-1)`，上限 30s；★ 控制流步骤（if/loop/while/finish…）**不允许** retry（避免重放整块副作用）|
+| 语义 | ★ 步骤失败后按延迟重试；每次失败记 `event result=retry`（含 attempt/延迟/错误）；成功 detail 追加 `(retried N)`；次数耗尽记 `failed` 并报 `retries exhausted: N/N`；重试前强制重新抓帧 |
+| 审计 | ★ retry 事件进 events JSONL；失败截图走 `--shots-dir`（`--events-out` 可留证）|
+| 判据 | ★ `oas-flow` **31** · `oas-runtime` **69** · `oas-task` **22** · `oasd` **26** · 全工作区 **177 passed**；★ 注入 **1/1 真红**（禁用 retry ⇒ 重试守卫红）|
+| 验收 | ★ CLI replay：① 第 1 帧无「关闭」、第 2 帧有 ⇒ `retry` 事件 + 成功 `(retried 1)`；② 单帧一直无 ⇒ `retry 1/1` 后 `failed (retries exhausted)`，**0 次误点** |
+
+★ **纵向第②项剩余（N21b，待开发记录）**：断线重连（adb 掉线后重连并继续）、检查点恢复（从失败步骤/最近成功点续跑）。
+
+---
+
 ### 22.12 ★★ [10-22 21:0x] 实机验收（MuMu · emulator-5554 · 1280×720）
 
 > ★ 用户选择"先把现状跑一段实机，再回来排期"（§22.11 补充层选项 4）。

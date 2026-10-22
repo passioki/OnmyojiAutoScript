@@ -1401,6 +1401,19 @@ tasks/<任务名>/
 
 ---
 
+### 22.18 ★★ [10-22 22:3x] **可视化流程编辑器**（纵向第④项 · 引擎提交 `449a6e5`）
+
+| 项 | 落地 |
+|---|---|
+| serve | ★ `GET /task/flow?task=<name>` 返回任务 flow.json（编辑器输入）；`GET /flow_model.js` |
+| 模型 | ★ `ui/flow_model.js`（纯函数、可测）：`parseFlow` / `buildFlow` / `validateModel` / `defaultArgs`；模型 `{name, steps:[{op,argsText}], interrupts:[{detect,action}]}`；★ `if/loop/while` 嵌套**明确拒绝**并提示改用 JSON 文本模式（不 flatten，避免丢内容）|
+| UI | ★ 步骤下拉 + 添加；每步 **op + args 就地 JSON 编辑 + ↑/↓/✕**；弹窗规则 `detect/action` 增删；**从 JSON 载入 / 生成 JSON / 生成并保存**（服务端仍做完整 schema+引用校验）；任务切换自动载入该任务 flow；`?task=<name>` 深链 |
+| 测试 | ★ `ui/flow_model_test.html` **7 个浏览器内断言**（headless Edge）：`FLOW_MODEL_TESTS PASS` |
+| 验收 | ★ `/task/flow` 返回 S1 flow；`?task=S1切预设` 页面渲染 **19 步 + 弹窗规则区**（截图 `_verify/n26_editor_final.png`）；全工作区 **187 passed** |
+| 已知限制 | ★ 可视化仅支持**扁平步骤**（if/loop/while 用 JSON 文本模式）；无拖拽排序（用 ↑/↓）；深链依赖任务名 |
+
+---
+
 ### 22.12 ★★ [10-22 21:0x] 实机验收（MuMu · emulator-5554 · 1280×720）
 
 > ★ 用户选择"先把现状跑一段实机，再回来排期"（§22.11 补充层选项 4）。

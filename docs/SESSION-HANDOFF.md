@@ -485,6 +485,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ cafe5f0 = **N21 步级重试与退避**（retry:{times,delay_ms,backoff}；纵向第②项上半）
   ★ 61bb19c = **N21b 断线重连 + 检查点恢复**（ProgressSink/--resume + OAS_ADB_RECONNECT_ENDPOINTS；纵向②完成）
   ★ 174800f = **N22 多任务调度/supervisor**（`oasd queue`：串行任务队列/重试/轮次/JSON 报告；纵向③）
+  ★ 449a6e5 = **N23 可视化流程编辑器**（/task/flow + flow_model.js + 步骤/参数/弹窗规则可视化；纵向④）
   ★ 实机验收 [10-22 21:0x]：S1 连续 4 跑全 Done（7 击/跑、miss 0）；实机录制同 seed 回放 7/7 逐点一致；`expect appear(预设)` 真机 verified=true ⇒ 下一步**页面守卫**（S1 起始页是"探索/御魂"，不是庭院）
   文档：backend docs（§22.5 / §E-17 / §1n）已 push origin/dev
 
@@ -512,6 +513,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 纵向第②项上半已完成（cafe5f0 步级重试+退避）；剩余：断线重连/检查点恢复（N21b）→ 再做 ③ 多任务调度
   ★ 纵向第②项已完成（61bb19c 断线重连+检查点恢复）；下一步 ③ 多任务调度/supervisor
   ★ 纵向第③项已完成（174800f `oasd queue`：串行队列/重试/轮次/报告）；下一步 ④ 任务编排/流程编辑器 或 ⑤ 运行统计与告警
+  ★ 纵向第④项已完成（449a6e5 可视化流程编辑器）；下一步 ⑤ 运行统计与告警（长跑报表）
   ★ 多边形一期已完成（bb770e1：编辑器多边形框选 + 点击区=LAAR，匹配/OCR 仍外接矩形）；二期掩膜/自交/顶点编辑待排
   ★ 证据 _verify/n6/N6_EVIDENCE.md · _verify/n8/N8_EVIDENCE.md · _verify/n9/N9_EVIDENCE.md · _verify/n11/ · _verify/n12/ · _verify/n13/（v3.1 指数修订）
   ★ 对比分析：旧仓 RuleClickExclude（安全随机点击）vs 手误 → ENGINE §22.8；可移植 click_safe/等待随机滑动（待裁定）

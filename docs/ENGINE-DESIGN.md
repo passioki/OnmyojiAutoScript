@@ -1553,3 +1553,17 @@ tasks/<任务名>/
 | 验收 | ★ 实机：`save_asset` → list → `match?lib=预设入口` ⇒ **score=1 @ (330,69) 168ms**；★ 库引用 flow 保存成功、`lib:不存在` ⇒ 400 `library asset(s) not found`；★ `oasd run` 输出 `library=1 asset(s)`；★ 截图 `_verify/n30/editor_library2.png` |
 | 二期（记录）| ★ OCR/坐标/anchor 库、库素材改名/删除的受影响任务提示、编辑器流程下拉直接插入 `lib:` |
 
+---
+
+### 22.24 ★★ [10-23 23:5x] **编辑器分页：编辑页 / 调试面板**（引擎提交 `4ba650e`）
+
+> ★ 用户："**当前功能页面过长，需要合理调整分布。……把点击分布/运行统计单独切换到另一页面。……参考旧仓库，他那个用来调试就挺方便的。**"
+
+| 项 | 落地 |
+|---|---|
+| 编辑页 `/` | ★ 画面 + ROI/OCR/图识别/多边形/素材/任务/flow/流程编辑器；★ header 新增 **「调试面板 →」** 入口；**移除**原「点击分布」「运行统计」两段（页面明显变短）|
+| 调试面板 `/dashboard.html` | ★ 一屏集中：画面预览 + 运行记录（选择/刷新/叠加分布/清除）+ 点击分布统计与图例 + 长跑统计 + 日志；★ `?run=<file>` 深链；★「← 返回编辑器」|
+| 服务 | ★ serve 白名单新增 `/dashboard.html`、`/dashboard.js`；★ 数据接口不变：`/runs`、`/runs/clicks`、`/stats`、`/frame.png`、`/state`、`/capture` |
+| 判据 | ★ 路由 200；★ headless 截图 `_verify/n31/editor_split.png`（编辑页 + 导航）、`_verify/n31/dashboard.png`（画面 + 热力叠加 + 统计 + 日志）|
+| 后续（记录）| ★ 流程编辑器/任务素材仍偏长，可再做折叠（`<details>`）或第三页「任务/flow 管理」；调试面板可加失败截图时间线 |
+

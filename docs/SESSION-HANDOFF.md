@@ -487,6 +487,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 点击模拟：cargo run -p oas-runtime --example click_sim -- rect 10000 12345 330 69 95 55 out.jsonl
   ★ 点击分布：HB1 = 钟形 Irwin–Hall(3)（同旧仓库，不再均匀）；★ [10-22 18:4x] **手误已按用户裁定移除**（无 miss 字段）
   ★ 证据 _verify/n6/N6_EVIDENCE.md · _verify/n8/N8_EVIDENCE.md · _verify/n9/N9_EVIDENCE.md · _verify/n11/（钟形 only）
+  ★ 对比分析：旧仓 RuleClickExclude（安全随机点击）vs 手误 → ENGINE §22.8；可移植 click_safe/等待随机滑动（待裁定）
 
 【下一个会话从这里开始（按建议顺序）】
   1. ★★ 弹窗原语（真机 S1 曾出现「悬赏封印」弹窗）：dismiss_popup(sel|ocr_text) 或 on_interrupt 钩子

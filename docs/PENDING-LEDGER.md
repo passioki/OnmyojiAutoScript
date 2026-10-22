@@ -1058,7 +1058,10 @@
 | **N34** | ★★ **结果/日志窗口移到截图上方、rail 左侧** | ENGINE §22.32 · 用户 [10-24 01:0x] 位置要求 | ✅ **已完成**（`fa69d1d`）| ★ headless 截图 `_verify/n36/editor_windows_left.png` |
 | **N35** | ★★★ **纵向⑥：周期调度/守护运行**（`oasd schedule`：plan/状态持久化/到期串行执行/重试/dry-run/报告）| ENGINE §22.33 · 用户 [10-24 01:2x] "横向暂停，开始纵向" | ✅ **已完成**（`8b252a6`）· ⚠ **v1 原型，将由 N37 替换** | ★ schedule 3 / 全工作区 **213 passed** · ★ dry-run 不落状态；S1 replay once ⇒ runs=1 done、next_run=+3600s；立刻再跑 runs=0 |
 | **N36** | ★★★ **统一任务模板**（`meta.json` 契约：params/entry/exits/capabilities/resources/schedule_hint；flow 骨架 preflight→main→settle→finish；`task lint`；`templates/`；旧任务零破坏）| ENGINE §22.34 · 用户 [10-24] "统一的任务模板" | ⬜ **待实现（P0）** | 现行任务 lint 全绿；新任务可由模板生成；exit/params 校验注入真红 |
-| **N37** | ★★★ **调度 v3**（周期任务+temp 临时任务 B 触发、执行前后重置、无 one_shot/continue、重置记忆 CLI+UI 多选框全选/反选、serve 调度面板；替换 v1 every_s）| ENGINE §22.34 · 用户 [10-24] 调度决策 | ⬜ **待实现（P1~P3）** | 纯函数单测；合成模板 replay 端到端；杀进程恢复；headless 面板验收 |
+| **N37** | ★★★ **调度 v3**（周期任务+temp 临时任务 B 触发、执行前后重置、无 one_shot/continue、重置记忆 CLI+UI 多选框全选/反选、serve 调度面板；替换 v1 every_s）| ENGINE §22.34 · 用户 [10-24] 调度决策 | ⬜ **待实现（M2）** | 纯函数单测；合成模板 replay 端到端；杀进程恢复；headless 面板验收 |
+| **N38** | ★★★ **任务创建闭环**（`POST /task/create` + 名称校验/原子骨架；编辑器「新建任务」对话框；编辑器「运行任务」后台 + 状态轮询；保存前 lint）| DELIVERY-PLAN §3 M1 · 用户 [10-23] "能创建任务" | ⬜ **待实现（M1）** | 单测/注入；新建→标注→flow→运行 Done；headless 截图 |
+| **N39** | ★★★ **实机交付包**（release 构建、`config/live.json`、`--serial`/设备解析、package.ps1 + zip/SHA256、启停/升级/回滚脚本、部署文档）| DELIVERY-PLAN §3 M3 · 用户 [10-23] "运行在实机上" | ⬜ **待实现（M3）** | 干净目录启动；probe 指定设备；解压即可用 |
+| **N40** | ★★★ **实机验收 + 24h 长跑**（V0.9 实机手动运行 gate；V1.0 实机调度 2 轮 + 重启恢复；24h soak；升级回滚演练；v1.0 tag）| DELIVERY-PLAN §3 M4/M5 · 用户 [10-23] 实机目标 | ⬜ **待实现（M4）** | 实机日志/截图/report 回传；DoD D1~D9 全勾 |
 | 事故 | ★ **[10-22 23:1x] OCR 501 事故**：serve 用了无 `--features ocr` 的二进制 ⇒ 编辑器识别报错。修复：重建 + `/state` 增加 ocr/det 能力位 + 编辑器提示（已包含在 N25 后续提交中）| ENGINE §22.21 事故小节 | ✅ 已修复 | `/ocr` 实测 score=0.99988 |
 
 ---

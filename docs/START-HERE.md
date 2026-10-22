@@ -257,6 +257,7 @@ run-tests.bat …                                  REM 旧仓守卫基线 171 pa
 | **长任务断点/续接（先读）** | `RESUME.md` · `RESUME-INDEX.md`（skill 强制 6） |
 | 引擎规格/进度 | `ENGINE-DESIGN.md` §22 |
 | **调度 v3 + 统一任务模板设计定稿** | `ENGINE-DESIGN.md` **§22.34** |
+| **到实机可用的交付路线（M0~M5/DoD/部署）** | `DELIVERY-PLAN.md` |
 | 当前状态/下一步/坑 | `SESSION-HANDOFF.md` |
 | 台账/证据 | `PENDING-LEDGER.md` §E-24（N36/N37）|
 | 旧仓历史（冻结）| `backend/docs/SESSION-HANDOFF.md` 历史段 · `frontend/docs/scheduler-architecture.md`（旧调度设计，参考）|

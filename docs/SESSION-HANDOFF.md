@@ -488,6 +488,9 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 449a6e5 = **N23 可视化流程编辑器**（/task/flow + flow_model.js + 步骤/参数/弹窗规则可视化；纵向④）
   ★ e7a5b11 = **N24 运行统计与告警**（oasd stats + HTML 仪表盘 + ALERT + /stats 编辑器面板；纵向⑤）
   ★ d919e13 = **N25 整帧模板搜索 + 图识别试匹配 + 点击区改匹配外接矩形**（用户三项裁决；§22.10 修订 / §22.20 / §22.21）
+  ★ [10-22 23:1x] OCR 501 事故修复：serve 必须 `cargo build -p oasd --features ocr` 且带 --model/--det-model；`/state` 现返回 ocr/det 能力位；编辑器状态栏显示 OCR=on/off
+  ★ [10-22 23:1x] 用户裁决：点击区=bbox；OCR 区域=bbox+多边形掩膜；匹配=掩膜 NCC；LAAR 废弃（裁字风险）。N10b 子项=掩膜 NCC/OCR 掩膜/自交/顶点编辑
+  ★ [10-22 23:1x] 用户提出**全局素材库**（跨任务调用素材用于匹配等用途）→ ENGINE §22.22 设计已记录，台账 N26 待开工（一期模板库 ~1 天）
   ★ 实机验收 [10-22 21:0x]：S1 连续 4 跑全 Done（7 击/跑、miss 0）；实机录制同 seed 回放 7/7 逐点一致；`expect appear(预设)` 真机 verified=true ⇒ 下一步**页面守卫**（S1 起始页是"探索/御魂"，不是庭院）
   文档：backend docs（§22.5 / §E-17 / §1n）已 push origin/dev
 

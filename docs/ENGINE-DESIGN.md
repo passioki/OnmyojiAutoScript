@@ -877,11 +877,15 @@ tasks/<任务名>/
    `outcome=Done` · `ocr 分组2 = "分组2" score=0.9998` · `Str("默认分组")`；与 det+rec 的 `examples/lines` 结果一致。
    ★ 证据：`_verify/n6/N6_EVIDENCE.md` · `acceptance.txt` · `acceptance.events.jsonl`。
 
-#### 遗留（★ 明账）
+#### 遗留（★ 明账 · [10-22 13:3x] **已订正**）
 
-1. ★ **本步只接 rec**：`ocr(sel)` 的 ROI 必须是**单行**。★ `tasks/S1切预设/assets.json` 的 `ocr_line` ROI 是**整列**[1080,80,200,600]（给未来的 det 用）⇒ 直接喂 rec 会压扁；本轮验收另建**行级 ROI** 探针包。
-   ⇒ ★ **编辑器保存 `ocr_line` 时应按行框写 ROI**（待办）。
-2. ★ **in-flow det / `find_text_in_list`** 仍未做（§14.2 的通用原语；P1-c2 范围）。
+> ★★ **订正**：下面第 1 条**是错的** —— 曾把 `ocr_lines` 写成"本步只接 rec、ROI 必须单行"，
+> 并在验收里把 S1 的整列 ROI 判成"资产写错"。**真因是**：我沿用了 §16.4 自己定的 P1-c 临时范围
+> （"先只做 rec"），**没有对齐用户 §17.1 的现行裁定**（"rec 与 det+rec 两条都保留"）。
+> ⇒ ★ **已按 §17.1 接上 det+rec（见 N6c）**；★ **"整列 ROI 是错的"这一说法作废**。
+
+1. ✅ **已解决（N6c）**：`ocr_lines` 资产走 **det+rec**；`ocr_line` 资产走 rec 快路径。
+2. ★ **`find_text_in_list`** 仍未做（§14.2 通用原语：把 det 结果用于"按文字找项并点击"）。
 3. ★ `assets=` 汇总行仍只统计模板数；`serve` 的 `/ocr`、`/lines` 未改（编辑器路径不变）。
 
 #### N6b · 素材更新（同 id 覆盖 · [10-22 13:0x] · 引擎提交 `8558ac3`）
@@ -906,4 +910,41 @@ tasks/<任务名>/
   - **click_point**（HB2 ±6px）：`distinct=169/169`（13×13 全覆盖）、`x_std=3.72` / `y_std=3.74`（理论 3.75）。
 - ★ 证据：`_verify/n7/click_10k_rect.png` · `click_10k_point.png` · `clicks_10k_*.jsonl`；
   ★ 已复制 `runs/sim-10k.clicks.jsonl`，编辑器「点击分布」可直接选它（clicks=10000 distinct=2558）。
+
+#### N6c · ★★ 纠正：`ocr_lines` 走 det+rec（[10-22 13:3x] · 引擎提交 `598d4c5`）
+
+> ★ 用户质问（逐字）：**"为什么ocr() 只做 rec，det很好用啊，我什么时候说过让你只做单行ocr了？请找出原因。"**
+
+- ★★ **根因（三条原文，可核查）**：
+  ① `§16.4`（10-15）"★ **P1-c 的范围（我定的，为了先跑通）**：先只做 rec，不做 det" —— ★ **AI 自己定的临时范围**；
+  ② `§17.1`（10-22 用户现行）"**那算了，回滚到rec保留吧，我可以选择用** … **只保留rec+det**"；
+  ③ `§22.4`（交接）"给 `Interpreter` 注入一个 OCR 提供者（trait + feature 门控，`oas-ocr` 的 **rec/det** 在 `onnx` feature 后）"。
+  ⇒ ★ **N6 照抄了旧范围、漏了 §17.1 ⇒ 是我的错，不是用户说过"只做单行"。**
+- ★ **落地**：`AssetSet` 按 kind 分派（`ocr_line` → rec；`ocr_lines` → `recognize_lines`）；
+  `OcrLine{rect,text,score}`（帧绝对框）；`Step::Ocr` 逐行入日志；`ocr()` 多行 = `\n` 连接 + score 取**最小**；
+  `oasd run --det-model`；`ocr_lines` 缺 det ⇒ **响亮失败**（"pass --det-model"）。
+- ★★ **验收**（`_verify/n8/det_probe` 回放，S1 原整列 ROI `[1080,80,200,600]`）：
+  `ocr 分组列表 = 9 line(s): "默认分组"@(1111,106,106,29)=0.9999 | "分组2"@(1131,175,69,30)=0.9998 | … | "管理分组"=0.9999` ⇒ `outcome=Done`。
+  ⇒ ★ **S1 的整列 ROI 用 det 完全正常**（旧"资产写错"结论作废）。
+- ★ 测试：`oas-runtime` **35**（+2 多行守卫）· 全工作区 **129 passed** · ★ **注入 2/2 真红**（强制单行路径 / 多行只取第一行；还原 SHA256 `5F64ACBC…F7B668` 一致）。
+
+#### N7b · ★★ 整任务 1000 次点击模拟（同一提交 `598d4c5`）
+
+- ★ 新示例 `apps/oasd/examples/task_sim.rs`：把 **S1 整个点击序列**（4 模板点击 + 2 click_point）在回放上跑 **1000 次**（seed 1..1000），聚合全部点击。
+  ★ 支持 `--shard/--shards` 并行；★ 帧只解码一次（`VecScreen`）；★ 资产只加载一次（`AssetSet: Clone`）；
+  ★ 模拟时 HB3 延迟置 0（`with_humanize`），**HB1/HB2 不变**。
+- ★ 结果：**7000 次点击 / 3860 个不同像素**；每个点击目标 n=1000：
+
+  | 点击 | xσ | yσ |
+  |---|---|---|
+  | 关闭 | 10.7 | 10.3 |
+  | 式神录 | 9.1 | 8.7 |
+  | 点击分组2（click_point） | 3.8 | 3.8 |
+  | 点击默认分组（click_point） | 3.8 | 3.7 |
+  | 结界突破 | 10.2 | 7.5 |
+  | 返回 | 11.4 | 10.2 |
+  | 预设 | 19.2 | 11.2 |
+
+- ★ 证据：`_verify/n8/s1_1000_task.png` · `s1_1000.clicks.jsonl`；
+  ★ 已复制 `runs/s1-1000.clicks.jsonl`（编辑器「点击分布」可选：clicks=7000 distinct=3860）。
 

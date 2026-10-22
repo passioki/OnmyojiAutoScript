@@ -468,6 +468,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 【引擎位置/提交】★ D:\OAS-dev\oas-core（独立 git 仓 · 本地 main · 无远端）
   42ecd2d = N1 + N3 + N5 · 0e61999 = N2 + N4 · ★ 05e497f = **N6 ocr() 接线**
   ★ 8558ac3 = **N6b 素材更新（rev+1）** + **N7 10k 点击模拟工具**
+  ★ 598d4c5 = **N6c det+rec 纠正（ocr_lines）** + **N7b 整任务 1000 次模拟**
   文档：backend docs（§22.5 / §E-17 / §1n）已 push origin/dev
 
 【本轮实测基线（★ 不是抄文档）】
@@ -477,18 +478,18 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 【N6 落地了什么（详情见 ENGINE-DESIGN §22.5）】
   ★ flow 里可以用 wait_until(ocr('分组2') == '分组2') / ocr_digit(...)
-  ★ OcrProvider trait 在 oas-runtime（运行时不含 ort）；oasd 侧 OnnxOcr 适配器 + run --model
+  ★ OcrProvider trait 在 oas-runtime（运行时不含 ort）；oasd 侧 OnnxOcr 适配器 + run --model/--det-model
+  ★ ocr_line = rec 快路径；ocr_lines = det+rec（ENGINE §17.1 现行 · 缺 det 响亮失败）
   ★ 空文本 => Null；无 provider / 未声明 / 模板资产 => 响亮失败
   ★ 素材更新：同名 id 再存 = 覆盖并 rev+1（旧图删除；UI 弹确认；失败 nothing written）
   ★ 点击模拟：cargo run -p oas-runtime --example click_sim -- rect 10000 12345 330 69 95 55 out.jsonl
-  ★ 证据 _verify/n6/N6_EVIDENCE.md（验收 output：分组2 = "分组2" score=0.9998）
+  ★ 证据 _verify/n6/N6_EVIDENCE.md · _verify/n8/N8_EVIDENCE.md（det 9 行 ≥0.9998 · 1000 跑 7000 点击）
 
 【下一个会话从这里开始（按建议顺序）】
   1. ★★ 弹窗原语（真机 S1 曾出现「悬赏封印」弹窗）：dismiss_popup(sel|ocr_text) 或 on_interrupt 钩子
   2. ★ 点击分布 base 帧（跨屏 run 现在只能叠当前帧）
-  3. ★ 编辑器保存 ocr_line 时写**行级 ROI**（S1 旧资产是整列 ROI，直接喂 rec 会压扁）
-  4. ★ in-flow det / find_text_in_list（列表内按文字找项，§14.2）
-  5. ★ 旧仓台账中与本主线无关的项**不动**（旧仓已冻结，只作资源库）
+  3. ★ find_text_in_list（列表内按文字找项并点击，§14.2；det 结果已可用）
+  4. ★ 旧仓台账中与本主线无关的项**不动**（旧仓已冻结，只作资源库）
 
 【不要做】
   · 不要把 _verify/ 里的大文件（录制帧）提交进 git

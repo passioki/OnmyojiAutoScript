@@ -980,7 +980,9 @@
 | # | 事项 | 依据 | 状态 | 验证（可核查）|
 |---|---|---|---|---|
 | **N6** | ★★ 解释器 `ocr()`/`ocr_digit()`/`Step::Ocr` 接线：`OcrProvider` trait + OCR 资产 ROI + `oasd run --model` | ENGINE §16.4 · §22.4-1 · §22.5 | ✅ **已完成** | ★ `cargo test --workspace` **123 passed / 0 failed**（旧 117 ⇒ 新增 6 条 OCR 守卫）· ★ **注入 4/4 真红**（还原 SHA256 = `0DA7DB51…CBB00FB` 一致）· ★ 离线回放验收 `outcome=Done`，`ocr 分组2 = "分组2" score=0.9998` · 证据 `_verify/n6/N6_EVIDENCE.md` |
-| 遗留 | ★ 编辑器保存 `ocr_line` 资产时应写**行级 ROI**（S1 旧资产是整列 ROI `[1080,80,200,600]`，直接喂 rec 会压扁）| ENGINE §22.5 遗留 1 | ⬜ 未开始 | 证据 `_verify/n6/N6_EVIDENCE.md` §5 |
+| ~~遗留~~ | ★ **已作废**：曾提"编辑器保存 `ocr_line` 应写行级 ROI" —— ★ 真因是**只接了 rec**；按 §17.1 接上 det+rec 后整列 ROI 正常（见 N6c）| ENGINE §22.5 订正 | ✅ **已解决（旧建议作废）** | `_verify/n8/N8_EVIDENCE.md` §1 |
+| **N6c** | ★★ `ocr_lines` 走 **det+rec**：`OcrLine` + `recognize_lines` + `--det-model` + 逐行日志 | ENGINE §17.1 · §22.5 | ✅ **已完成**（`598d4c5`）| ★ `oas-runtime` **35** · 全工作区 **129 passed** · ★ 注入 **2/2 真红** · det_probe 回放 **9 行全 ≥0.9998** |
+| **N7b** | ★★ 整任务 1000 次点击模拟（`examples/task_sim.rs`，7 个点击目标） | ENGINE §22.5 · §20 | ✅ **已完成**（`598d4c5`）| ★ **7000 次点击 / 3860 像素** · 图 `_verify/n8/s1_1000_task.png` · `runs/s1-1000.clicks.jsonl` |
 | 遗留 | ★ in-flow det / `find_text_in_list`（列表内按文字找项）| ENGINE §14.2 · §22.5 遗留 2 | ⬜ 未开始 | 后续 P1-c2 |
 | 下一步 | ★ 弹窗原语（`dismiss_popup` / `on_interrupt`）· ★ 点击分布 base 帧 | ENGINE §22.4 下一步 2/3 | ⬜ 未开始 | 见 HANDOFF §1n |
 | **N6b** | ★ 素材更新（同 id 覆盖，`rev+1`）：`POST /task/save_asset {replace:true}` + UI 确认框 | ENGINE §22.5 · §4 rev | ✅ **已完成**（`8558ac3`）| ★ `oas-task` **20 passed**（+4 更新路径）· ★ 全工作区 **127 passed** · ★ 注入 **3/3 真红** · ★ HTTP 实测 create→rev1 / dup→400 / replace→rev2 + 旧图删除 |

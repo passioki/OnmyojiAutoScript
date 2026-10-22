@@ -669,18 +669,20 @@ tasks/<任务名>/
 
 | # | 规则 | ★ 口径 |
 |---|---|---|
-| **HB1** | ★★ **点击不做固定点** | ★ 目标框内**随机取点**：★ 先把框**内缩 15%**（★ 避开边框/圆角，★ 那里常是装饰不是可点区），★ 再在剩余区域内均匀随机 |
+| **HB1** | ★★ **点击不做固定点** | ★ 目标框内**随机取点**：★ 先把框**内缩 15%**（★ 避开边框/圆角），★ 再在剩余区域内按 **Irwin–Hall(3) 钟形**取点（★ **[10-22] 修正**：★ 旧口径"均匀随机"在大样本下会**铺满整个矩形、像遍历**；★ 旧仓库本来就是钟形 —— `module/base/utils/utils.py::random_normal_distribution_int` = `mean(randint(a,b,3))`）|
 | **HB2** | ★ **按坐标点击**（`click_point`）| ★ 同样加 **±`jitter_px`**（默认 **±6px**）的随机偏移 |
 | **HB3** | ★ **动作间隔随机** | ★ 点击前随机等待 **30~120ms**（★ 不是精确到毫秒的机械节奏）|
 | **HB4** | ★★ **默认开启** | ★ `humanize.enabled = true` 为**默认值**；★ 可关（★ 调试/回放需要严格复现时）|
 | **HB5** | ★★★ **必须可复现**（★ 本条最关键的工程约束） | ★★ **随机必须由 seed 驱动**：★ 每次运行有一个 `seed`，★ 写入**录制 bundle 的 meta**；★ 回放时**用同一 seed** ⇒ ★ **动作序列才能逐条一致**（★ 否则 P0-3 的回放断言**必红**）|
 | **HB6** | ★ **可审计** | ★ 步日志记录**实际点击坐标**（★ CP3）+ 本次随机值，★ 事后能复现"为什么点在这儿" |
+| **HB7** | ★★ **[10-22 用户裁定] 手误（区域外点击）** | ★ 每次点击以 `miss_chance`（默认 **2%**）落**目标框外**、偏移 ≤ `miss_px`（默认 **12px**）；★ **仍然执行点击**（人类点偏也是点了）⇒ ★ 步日志 `miss=true` + CD2 行带 `"miss"`；★ 旧仓库的对应能力是 `RuleClickExclude`（全屏随机、排除已知区域，用于伪装点击）|
 
 ★ **默认参数（可配）**：
 ```json
-{"humanize":{"enabled":true,"inset_ratio":0.15,"jitter_px":6,"delay_ms":[30,120],"seed":0}}
+{"humanize":{"enabled":true,"inset_ratio":0.15,"jitter_px":6,"delay_ms":[30,120],"seed":0,"miss_chance":0.02,"miss_px":12}}
 ```
 ★ `seed = 0` ⇒ ★ 运行开始时**自动取时间戳**并**写入 bundle**（★ 一旦写入就不再变，★ 保证可复现）。
+★ **[10-22] HB1 的采样 = 钟形（Irwin–Hall(3)，同旧仓库），不再是均匀** —— ★ 均匀在 1 万次点击下会把整个矩形填满（用户验收原话："**更像是遍历而非随机**"）。
 
 ★ **为什么 HB5 是硬约束**：★ "随机"与"可回放"天然冲突 —— ★ 解法不是二选一，★ 而是 **伪随机 + 固定 seed**：★ 对游戏看起来是随机的，★ 对我们自己是**完全确定**的。
 
@@ -704,7 +706,7 @@ tasks/<任务名>/
 
 ★ **[10-22] CD2 已落地（N4）**：
 1. ★★ **数据源 = `oasd run --clicks-out <file.jsonl>`**：每次**成功点击**一行
-   `{"ts_ms":…,"x":…,"y":…,"target_x":…,"target_y":…,"sel":<资产id|null>,"seed":…}`
+   `{"ts_ms":…,"x":…,"y":…,"target_x":…,"target_y":…,"sel":<资产id|null>,"miss":<bool>,"seed":…}`
    （★ `x/y` = **实际落点**；★ `target_*` 是审计补充：模板点击取模板矩形中心、`click_point` 取求值目标；
    ★ `sel=null` 表示按坐标点击；失败点击/滑动不记行）。
 2. ★ `tools/click_heatmap.py` **直接可读**（★ 实测 S1 回放：**`clicks=7 distinct_points=7`**，`_verify/n4/s1_clicks_heatmap.png`）。
@@ -947,4 +949,55 @@ tasks/<任务名>/
 
 - ★ 证据：`_verify/n8/s1_1000_task.png` · `s1_1000.clicks.jsonl`；
   ★ 已复制 `runs/s1-1000.clicks.jsonl`（编辑器「点击分布」可选：clicks=7000 distinct=3860）。
+
+---
+
+### 22.6 ★★★ [10-22 13:45] N8：**点击人类化 v2 —— 钟形（对齐旧仓库）+ HB7 手误**（引擎提交 `f671bfa`）
+
+> ★ 用户验收原话：**"点击结果并不满意……现有点击在次数多的时候会填充整个矩形框，更像是遍历而非随机。
+> 另外应该加入区域外的随机点击，模拟正常人手操作的失误。"**
+
+#### 旧仓库点击逻辑（只读分析 · `backend` 冻结为知识源）
+
+| 位置 | 逻辑 | 结论 |
+|---|---|---|
+| `module/atom/click.py:26-34` | `RuleClick.coord()`：x/y 各取 `random_normal_distribution_int(x, x+w)` | ★ 模板点击**不是均匀采样** |
+| `module/base/utils/utils.py:12-28` | `random_normal_distribution_int(a,b,n=3)` = `int(round(mean(np.random.randint(a,b,3))))` | ★ **Irwin–Hall(3)**：三个均匀数的均值 ⇒ **中心高、边缘低** |
+| `module/atom/click.py:78-196` | `RuleClickExclude`：**全屏随机点**但**排除已知点击区域**（策略/分布随机；耗尽走补集矩形） | ★ 旧引擎的"区域外点击"= **伪装点击**（战斗等待时用，`tasks/Component/GeneralBattle/battle_wait.py:408/1637`），不是目标点击的手误 |
+| `module/device/method/scrcpy/scrcpy.py:96-107` · `nemu_ipc.py:516-521` · `minitouch.py:584-589` | 设备层 ±2px 抖动 + 按压时长/dwell/pressure 随机（45~130ms） | ★ 旧引擎的抖动比我们小（±2 vs ±6） |
+
+#### 差异与原因
+
+| 维度 | 旧仓库 | 新引擎（改前） | 新引擎（改后 `f671bfa`） |
+|---|---|---|---|
+| 模板点击采样 | Irwin–Hall(3) 钟形 | ★ 均匀 | ★ Irwin–Hall(3) 钟形 |
+| 采样区间 | 全框 | 内缩 15% 后均匀 | 内缩 15% 后钟形 |
+| 区域外点击 | `RuleClickExclude`（独立伪装动作） | 无 | ★ **HB7 手误**：2% 落框外 ≤12px（仍是真点击、记 `miss`） |
+| 动作间隔 | 45~130ms + dwell/pressure | 30~120ms | 30~120ms |
+
+★ **"像遍历"的机理**：均匀采样每个像素等概率 ⇒ 1000 次覆盖 2613 格子的 ~32%、10000 次 ~98% ⇒ 热图**铺满整框**；钟形是中心密、边缘疏。
+
+#### 落地
+
+- ★ `Humanize::point_in` 由 `range_i32`（均匀）改 **`bell_i32`（Irwin–Hall(3)）**；区间仍内缩 15%。
+- ★ 新 `ClickPlan{point, miss}` + `plan_click()` / `plan_point_click()`；HB7 参数 `miss_chance=0.02` / `miss_px=12`（可编程覆盖）。
+- ★ `ClickRecord.miss` · 步日志 `miss=true` · CD2 JSONL 增 `"miss"` · `oasd run` 输出 `misses=N`。
+- ★ 可复现性不变（HB5）：miss 也由 seed 驱动。
+
+#### 判据与证据（★ 实测）
+
+1. ★ `cargo test --workspace` = **135 passed / 0 failed**（`oas-runtime` **41**，+6 条钟形/手误/审计守卫）。
+2. ★★ **注入 2/2 真红**（还原 SHA256 `1EB6AC0B…ED4A99` 一致）：① 改回均匀 ⇒ 钟形守卫红（中心 25.2% < 60%）；② 屏蔽 miss ⇒ 手误/审计 4 条红。
+3. ★★ **10k 模板点击**（seed=12345 · 95×55 @330,69）：xσ **19.36 → 12.49**、yσ **11.32 → 7.76**、
+   distinct **2558 → 1786**、miss **0 → 208（2.08%）**。
+4. ★★ **整任务 1000 跑**（S1 全流程）：7000 点击、distinct **3860 → 2865**、miss **144（2.06%）**；
+   预设 σ **19.2/11.2 → 11.8/7.4**。
+5. ★ 证据：`_verify/n9/click_10k_rect.png`（钟形+手误）· `click_10k_point.png` · `s1_1000_task.png` · `N9_EVIDENCE.md`；
+   ★ 已复制 `runs/sim-10k.clicks.jsonl` / `runs/s1-1000.clicks.jsonl`（编辑器点击分布可直接选）。
+
+#### 遗留（明账）
+
+1. ★ 旧仓库的 **`RuleClickExclude` 全屏伪装点击**未做（那是"额外动作"而非"目标手误"，需 flow/调度层决定何时插入）。
+2. ★ `miss_chance` / `miss_px` 目前是 `Humanize` 默认值（可编程覆盖），尚未挂到任务/配置。
+3. ★ 编辑器点击分布暂不区分 miss 颜色（JSON 已带 `miss` 字段，UI 可后续加）。
 

@@ -469,10 +469,11 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   42ecd2d = N1 + N3 + N5 · 0e61999 = N2 + N4 · ★ 05e497f = **N6 ocr() 接线**
   ★ 8558ac3 = **N6b 素材更新（rev+1）** + **N7 10k 点击模拟工具**
   ★ 598d4c5 = **N6c det+rec 纠正（ocr_lines）** + **N7b 整任务 1000 次模拟**
+  ★ f671bfa = **N8 点击人类化 v2：钟形（对齐旧仓库）+ HB7 手误**
   文档：backend docs（§22.5 / §E-17 / §1n）已 push origin/dev
 
 【本轮实测基线（★ 不是抄文档）】
-  oas-core: cargo test --workspace = 123 passed / 0 failed（default）
+  oas-core: cargo test --workspace = 135 passed / 0 failed（default）
             cargo test -p oasd --features ocr = 22 passed · cargo build -p oasd --features ocr 绿
   旧仓（★ 已冻结为资源库 · 本轮未动代码）：守卫 171 · 全量 0/1935/18 · 前端 0 error + 160 passed
 
@@ -483,7 +484,8 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 空文本 => Null；无 provider / 未声明 / 模板资产 => 响亮失败
   ★ 素材更新：同名 id 再存 = 覆盖并 rev+1（旧图删除；UI 弹确认；失败 nothing written）
   ★ 点击模拟：cargo run -p oas-runtime --example click_sim -- rect 10000 12345 330 69 95 55 out.jsonl
-  ★ 证据 _verify/n6/N6_EVIDENCE.md · _verify/n8/N8_EVIDENCE.md（det 9 行 ≥0.9998 · 1000 跑 7000 点击）
+  ★ 点击分布：HB1 = 钟形 Irwin–Hall(3)（同旧仓库，不再均匀）· HB7 = 2% 落框外 ≤12px 手误（日志/JSONL 带 miss）
+  ★ 证据 _verify/n6/N6_EVIDENCE.md · _verify/n8/N8_EVIDENCE.md · _verify/n9/N9_EVIDENCE.md
 
 【下一个会话从这里开始（按建议顺序）】
   1. ★★ 弹窗原语（真机 S1 曾出现「悬赏封印」弹窗）：dismiss_popup(sel|ocr_text) 或 on_interrupt 钩子

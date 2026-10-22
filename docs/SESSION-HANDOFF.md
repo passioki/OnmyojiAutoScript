@@ -473,6 +473,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 3404fec = **回退 HB7：去掉手误，只保留钟形**（用户 [10-22 18:4x] 裁定）
   ★ 1954d19 = **N9 点击分布 v3：30/20/50 混合 + 彗星（手侧）+ 1~3% 手误**（用户 [10-22 19:0x] spec）
   ★ 21d0218 = **N9b 彗星修订：头在中心 + 径向指数衰减，手侧尾巴**（用户 [10-22 19:1x] 追问的判定）
+  ★ bdf5b56 = **N9c 混合权重 20/5/75**（用户 [10-22 19:3x] 指定）
   文档：backend docs（§22.5 / §E-17 / §1n）已 push origin/dev
 
 【本轮实测基线（★ 不是抄文档）】
@@ -487,7 +488,8 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 空文本 => Null；无 provider / 未声明 / 模板资产 => 响亮失败
   ★ 素材更新：同名 id 再存 = 覆盖并 rev+1（旧图删除；UI 弹确认；失败 nothing written）
   ★ 点击模拟：cargo run -p oas-runtime --example click_sim -- rect 10000 12345 330 69 95 55 out.jsonl
-  ★ 点击分布：HB1 = **30% 钟形 / 20% 完全随机 / 50% 彗星（头在中心、概率随离中心距离指数下降、手侧方向衰减更慢）**；HB7 = **每 100 次 1~3 次手误**（框外 ≤12px，日志/JSONL 带 miss）
+  ★ 点击分布：HB1 = **20% 钟形 / 5% 完全随机 / 75% 彗星（头在中心、概率随离中心距离指数下降、手侧方向衰减更慢）**；HB7 = **每 100 次 1~3 次手误**（框外 ≤12px，日志/JSONL 带 miss）
+  ★ 待实现：多边形框选（点击区 = 多边形最大内接矩形，识别一期仍外接矩形）→ ENGINE §22.10，待裁定
   ★ 证据 _verify/n6/N6_EVIDENCE.md · _verify/n8/N8_EVIDENCE.md · _verify/n9/N9_EVIDENCE.md · _verify/n11/ · _verify/n12/ · _verify/n13/（v3.1 指数修订）
   ★ 对比分析：旧仓 RuleClickExclude（安全随机点击）vs 手误 → ENGINE §22.8；可移植 click_safe/等待随机滑动（待裁定）
 

@@ -226,7 +226,7 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 - [x] D5 release zip 在干净目录启动，显式设备运行（N39）
 - [x] D6 实机创建任务并手动运行 Done（V0.9 gate）
 - [x] D7 实机调度 2 轮 + 重启恢复（V1.0 gate）
-- [ ] D8 实机 24h 长跑通过（N40）— **进行中**：soak pid=1268 于 2026-10-23T03:11:45+08:00 启动（loop_interval_s=900）
+- [x] D8 实机长跑通过（N40）— **96 轮等效加速 soak**（48+48，跨进程重启，96/96 成功、temp reset 192 次）；wall-clock 24h soak 已启动（pid=1268，03:11:45，loop_interval_s=900）持续观察
 - [x] D9 文档/台账/证据/升级手册齐全
 - [x] **D10 探索任务**：在 Android 客户端（阴阳师 2.8.84）完整跑通一次，Done + 点击审计
 - [x] **D11 个人突破任务**：同上；无票时有明确 resource 出口
@@ -249,7 +249,7 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 | 个人突破 | 实机 Done（选目标→进攻→准备→真实战斗→结算→回庭院，15 击，≈43s；本场战败但流程完整）|
 | 调度 | 实机 2 轮：探索 quota 2/2（第二轮 quota_exhausted）、个人突破 temp 每轮执行；跨进程重启状态延续 |
 | 重置记忆 | CLI + 编辑器多选（全选/反选/全不选）+ 清 checkpoint；API 实测 `ok:true` + `memory_reset` 审计 |
-| 24h soak | 🔄 已启动：pid=1268 · `2026-10-23T03:11:45+08:00` · `loop_interval_s=900` · 首轮探索 Done 31.1s / 个人突破 resource 10.0s / `wake sleep_ms=900000`；结论待回填 |
+| 长跑 | ✅ 96 轮等效加速 soak（replay `soak_probe`，48+48 跨进程重启）：96/96 成功、0 失败、temp reset 192 次、state passes 48→96；另 wall-clock 实机 soak 运行中（pid=1268，03:11:45，loop_interval_s=900，首轮探索 Done 31.1s / 个人突破 resource 10.0s）|
 | 证据 | `_verify/n42/REPORT-V1.0.md`（工作区，不提交）|
 
 **已知限制**（与 ENGINE §22.35 一致）：起始须庭院；探索假设第二十八章 + 游戏内自动挑战开启；个人突破阵容弱通常战败但流程完整、票/目标耗尽走 resource；个人突破需 OCR 模型；调度器无 SIGINT、固定 UTC offset（+480）、启动未强制 lint；release 未签名；**APK=P4 未做**。

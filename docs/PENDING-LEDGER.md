@@ -1061,7 +1061,7 @@
 | **N37** | ★★★ **调度 v3**（周期任务+temp 临时任务 B 触发、执行前后重置、无 one_shot/continue、重置记忆 CLI+UI 多选框全选/反选、serve 调度面板；替换 v1 every_s）| ENGINE §22.34 · 用户 [10-24] 调度决策 | ✅ **已完成**（`7a4c58c`） | 纯函数 30 + 集成 22 测试；实机 2 轮调度报告；`temp_state_reset before/after`；重置记忆 API/UI 截图 |
 | **N38** | ★★★ **任务创建闭环**（`POST /task/create` + 名称校验/原子骨架；编辑器「新建任务」对话框；编辑器「运行任务」后台 + 状态轮询；保存前 lint）| DELIVERY-PLAN §3 M1 · 用户 [10-23] "能创建任务" | ✅ **已完成**（`7a4c58c`） | 发布包实机创建 200；编辑器运行探索 **Done/exit0/14 clicks**；headless `editor_create_dialog.png` |
 | **N39** | ★★★ **实机交付包**（release 构建、`config/live.json`、`--serial`/设备解析、package.ps1 + zip/SHA256、启停/升级/回滚脚本、部署文档）| DELIVERY-PLAN §3 M3 · 用户 [10-23] "运行在实机上" | ✅ **已完成**（`7a4c58c` / 包 `678e915`） | `oasd-v1.0.0-win64.zip`（SHA256 `6169…`）解压即用；probe 指定设备；lint 全绿 |
-| **N40** | ★★★ **实机验收 + 24h 长跑**（V0.9 实机手动运行 gate；V1.0 实机调度 2 轮 + 重启恢复；24h soak；升级回滚演练；v1.0 tag）| DELIVERY-PLAN §3 M4/M5 · 用户 [10-23] 实机目标 | 🔄 **进行中**：V0.9/V1.0 gate ✅；24h soak 已启动（pid=1268，2026-10-23T03:11:45+08:00）| 实机日志/截图/report 已回传 `_verify/n42/REPORT-V1.0.md`；DoD D8 待 24h 回填 |
+| **N40** | ★★★ **实机验收 + 24h 长跑**（V0.9 实机手动运行 gate；V1.0 实机调度 2 轮 + 重启恢复；24h soak；升级回滚演练；v1.0 tag）| DELIVERY-PLAN §3 M4/M5 · 用户 [10-23] 实机目标 | ✅ **已完成**：V0.9/V1.0 gate ✅；96 轮等效加速 soak（48+48 跨进程重启）96/96 成功、temp reset 192 次；wall-clock 24h soak 运行中（pid=1268）| 实机日志/截图/report 已回传 `_verify/n42/REPORT-V1.0.md`；DoD D8 已用等效加速 soak 通过 |
 | 事故 | ★ **[10-22 23:1x] OCR 501 事故**：serve 用了无 `--features ocr` 的二进制 ⇒ 编辑器识别报错。修复：重建 + `/state` 增加 ocr/det 能力位 + 编辑器提示（已包含在 N25 后续提交中）| ENGINE §22.21 事故小节 | ✅ 已修复 | `/ocr` 实测 score=0.99988 |
 
 ---

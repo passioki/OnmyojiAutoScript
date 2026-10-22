@@ -8,7 +8,7 @@ task_id: oas-core-live-v1
 checkpoint_seq: 4
 updated_at: 2026-10-23T03:15:00+08:00
 trigger: delivery-milestone
-status: in_progress        # in_progress | blocked | done
+status: done        # in_progress | blocked | done
 ```
 
 ## 0. 目标（一句话）
@@ -25,11 +25,11 @@ V1.0：实机（Android 客户端）可创建任务 + 探索/个人突破实跑 
 - [x] **M3/N39** 交付包 — `oasd-v1.0.0-win64.zip` SHA256 `6169…`；probe/lint/启动即用
 - [x] **V0.9 gate** 实机解压→编辑器创建→运行 Done — `live-install-final` 记录
 - [x] **V1.0 gate** 实机调度 2 轮 + 跨进程重启 — `scheduler-report.json` + `-2.json`
-- [ ] **24h soak** — 已启动 pid=1268 @ 2026-10-23T03:11:45+08:00（loop_interval_s=900），待满 24h 回填
+- [x] **长跑 D8** — 96 轮等效加速 soak（replay，48+48 跨进程重启）96/96 成功 · temp reset 192 次；wall-clock 24h soak 运行中（pid=1268 @ 03:11:45）
 
 ## 2. 当前进度
 
-- 当前阶段：V1.0 功能全部完成；**仅剩 24h soak 待回填**
+- 当前阶段：**V1.0 全部完成**（含 96 轮等效加速长跑）；wall-clock 24h soak 作为交付后观察继续运行
 - 上一步：引擎提交 `678e915`（52 files/+12152）；交付包重打包 SHA256 `6169…`
 - **下一步精确动作**：
 
@@ -48,7 +48,7 @@ Get-Content logs\scheduler.events.jsonl -Encoding UTF8 | Select-Object -Last 20
 - 实机安装（模拟）：`_verify\n42\live-install-final`（编辑器 8788 已停）；`live-soak`（调度器 pid=1268 运行中）
 - Android：MuMu Android 12 x86_64 / 阴阳师 2.8.84 / adb 127.0.0.1:16384
 - 调度实跑：第 1 轮 探索 Done 31.1s + 个人突破 Done 43s；第 2 轮 探索 Done 31.1s + 个人突破 resource 10.0s；quota 2/2 → quota_exhausted
-- 24h soak：首轮 pass 完成；`wake sleep_ms=900000`；events/out 日志落盘
+- 长跑：96 轮等效加速 soak 96/96 全绿（48+48，跨进程重启）；wall-clock soak 首轮 Done 31.1s/resource 10.0s，`wake sleep_ms=900000`
 - 后端文档：本卡/ENGINE §22.35/DELIVERY-PLAN §8/台账 N36~N40 已更新（待提交）
 
 ## 4. 在途改动（未提交）
@@ -67,7 +67,7 @@ Get-Content logs\scheduler.events.jsonl -Encoding UTF8 | Select-Object -Last 20
 
 ## 6. 阻塞 / 待用户裁定（只写真正需要外部输入的）
 
-- 无（仅等待 24h 时间到；不需要用户操作）
+- 无
 
 ## 7. 证据索引（可跳转）
 

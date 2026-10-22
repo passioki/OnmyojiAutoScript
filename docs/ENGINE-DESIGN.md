@@ -1540,3 +1540,16 @@ tasks/<任务名>/
 
 **评估**：与 §22.20 全帧搜索天然契合（库模板不需要 roi）；实现成本低、复用收益大（跨任务少重复采集）。建议在 N10b 掩膜之后、H4/H5 之前做。
 
+#### ★★★ [10-23 23:4x] 一期**已完成**（引擎提交 `ca01cae`）
+
+| 项 | 落地 |
+|---|---|
+| 存储 | ★ `library/assets.json` + `library/images/aNNN.png`（默认 `library/`；`oasd run --library`、`oasd serve --library-dir`）；已加入 `.gitignore /library/` |
+| 接口 | ★ `GET /library` 列表；`POST /library/save_asset {id, roi, threshold?, replace?}`（裁剪最后帧、重复拒绝/rev+1）；`GET /match?lib=<id>` 库模板全屏匹配 |
+| 运行时 | ★ `oasd run` 把库模板以 **`lib:<id>`** 并入 AssetSet（`roi=None` ⇒ 整帧搜索）；输出 `library=N asset(s)` |
+| 校验 | ★ `oas-flow::validate_assets` 跳过 `lib:` 前缀（外部引用）；★ serve 保存 flow 时校验 `lib:` 确实存在，缺失 400 并列出名字 |
+| 编辑器 | ★ 素材库面板：id 输入 + 保存到素材库 + 刷新列表 + 用库素材试匹配 + 状态；`?lib=<id>` 深链；全部中文 |
+| 测试 | ★ oas-flow **32** / oasd **37** / 全工作区 **201 passed** |
+| 验收 | ★ 实机：`save_asset` → list → `match?lib=预设入口` ⇒ **score=1 @ (330,69) 168ms**；★ 库引用 flow 保存成功、`lib:不存在` ⇒ 400 `library asset(s) not found`；★ `oasd run` 输出 `library=1 asset(s)`；★ 截图 `_verify/n30/editor_library2.png` |
+| 二期（记录）| ★ OCR/坐标/anchor 库、库素材改名/删除的受影响任务提示、编辑器流程下拉直接插入 `lib:` |
+

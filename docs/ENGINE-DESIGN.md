@@ -1567,3 +1567,37 @@ tasks/<任务名>/
 | 判据 | ★ 路由 200；★ headless 截图 `_verify/n31/editor_split.png`（编辑页 + 导航）、`_verify/n31/dashboard.png`（画面 + 热力叠加 + 统计 + 日志）|
 | 后续（记录）| ★ 流程编辑器/任务素材仍偏长，可再做折叠（`<details>`）或第三页「任务/flow 管理」；调试面板可加失败截图时间线 |
 
+---
+
+### 22.25 ★★ [10-23 23:5x] **双 ROI：识别框 / 点击框**（参考旧 OAS annotator `roiFront`/`roiBack` · 引擎提交 `ce2de42`）
+
+> ★ 来源：旧 OAS 标注系统的 `RuleImage.roiFront`（识别/裁剪）/ `roiBack`（点击区域，常大于识别框）—— 示例 `backend/tasks/AbyssShadows/res/image.json`。
+
+| 项 | 落地 |
+|---|---|
+| 数据模型 | ★ `AssetDecl` 新增可选 **`roi_back`**（点击框，frame 坐标 @design_resolution）；★ `roi` = **识别/裁剪框**（旧 `roiFront`）|
+| 缺省兼容 | ★ 无 `roi_back` ⇒ 点击 = 匹配外接矩形（保持 §22.20 裁决，**旧 tasks/JSON 行为不变**）|
+| 保存校验 | ★ 仅 template 允许；x,y≥0、w,h>0；须在 design frame 内；OCR/库素材拒绝 |
+| 运行时 | ★ `AssetSet.click_back`；`click_box_for` = `roi_back` 按匹配偏移平移；★ 多边形掩膜 / 掩膜 NCC / 全屏搜索路径**均不变** |
+| 编辑器 | ★ 画布双框：识别框（绿实线）+ 点击框（橙虚线，按钮「绘制点击框」拖拽绘制）；保存 payload 带 `roi_back` |
+| 判据 | ★ runtime **76**（+2：双框点击/平移）、task **25**（+2：持久化/拒绝）、serve **37**、全工作区 **205 passed** |
+| 验收 | ★ HTTP 保存带 `roi_back` 成功、assets.json 内含；OCR 带 `roi_back` ⇒ 400；headless 双框界面截图 `_verify/n32/editor_ide.png` |
+
+**与既有逻辑的一致性**：默认（无 roi_back）点击仍是匹配 bbox；`roi_back` 只影响点击采样区；polygon 仍只作识别掩膜；flow/replay/queue 语义不变。
+
+---
+
+### 22.26 ★★ [10-23 23:5x] **三栏 IDE 布局**（参考旧 OAS annotator 页面 · 引擎提交 `ce2de42`）
+
+> ★ 旧 annotator：左「数据来源/图片」+ 中「ROI 画布 + 输出」+ 右「文件/规则」，图标 rail 切换面板、一屏内完成素材管理。
+
+| 项 | 落地 |
+|---|---|
+| 编辑页布局 | ★ 中栏 = 画面 + **输出/日志（画布下）**；右栏 = 图标 rail + **面板切换**：**素材 / 任务 / 流程** |
+| 页面长度 | ★ 素材/任务/flow 不再纵向堆叠，一屏切换（1400px 高 headless 截图内完整可见）|
+| 交互 | ★ rail 按钮中文；`?panel=panel-flow` / `?panel=panel-task` 深链 |
+| 兼容 | ★ 所有既有控件 id/绑定保留；点击分布/长跑统计仍在独立调试面板 `/dashboard.html` |
+| 验收 | ★ headless 截图 `_verify/n32/editor_ide.png`（素材面板）、`_verify/n32/editor_flow_panel.png`（流程面板）|
+
+**后续（记录）**：左栏「图片列表/多帧上传」、素材分组/搜索、per-素材「测试/裁剪/预览」按钮（旧 annotator 的 capability 面板）；与 H4 多帧投票一起排期。
+

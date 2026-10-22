@@ -494,6 +494,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 4cd84a5 = **N10b 二期完成**（匹配掩膜 NCC / OCR 掩膜 bbox+fill / 自交检测 / 顶点拖动+双击删除 / 界面中文化；198 passed）
   ★ ca01cae = **N26 全局素材库一期**（library/ + `lib:<id>` 引用 + run `--library` + serve `/library` + `/match?lib=` + 编辑器素材库面板；201 passed）
   ★ 4ba650e = **N27 编辑器分页**（编辑页瘦身 + 新调试面板 `/dashboard.html`：画面/点击分布/长跑统计/日志；`?run=` 深链）
+  ★ ce2de42 = **N28 三栏 IDE 布局 + 双 ROI**（参考旧 OAS annotator：rail 面板 素材/任务/流程、画布下输出、识别框/点击框 roi_back；205 passed）
   ★ 素材库用法：编辑器选 ROI → 填库素材 id →「保存到素材库」；flow/素材写 `lib:<id>`（click/appear/click_target/requires/expect/interrupts 均可）；`oasd run`/`serve` 默认读 `library/`；`GET /match?lib=<id>` 或编辑器「用库素材试匹配」可测
   ★ [10-22 23:3x] 界面中文化：试识别/多行识别/试匹配/得分/耗时/状态栏能力位/flow op 下拉均为中文；多边形模式提示"点击区=匹配外接矩形"
   ★ 实机验收 [10-22 21:0x]：S1 连续 4 跑全 Done（7 击/跑、miss 0）；实机录制同 seed 回放 7/7 逐点一致；`expect appear(预设)` 真机 verified=true ⇒ 下一步**页面守卫**（S1 起始页是"探索/御魂"，不是庭院）

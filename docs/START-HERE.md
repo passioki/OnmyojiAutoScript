@@ -52,6 +52,7 @@
 
 | 序 | 文件 | 读它为了什么 |
 |---|---|---|
+| ⓪ | `docs/RESUME.md` + `docs/RESUME-INDEX.md` | ★ **长任务/压缩后恢复的第一入口**（skill 强制 6）：当前断点、验收清单、下一步精确命令、证据索引 |
 | ① | `docs/SESSION-HANDOFF.md` | 当前在哪、下一步、最近提交、活跃坑 |
 | ② | `docs/ENGINE-DESIGN.md` **§22** | 引擎规格/进度/判据；**调度 v3 设计看 §22.34** |
 | ③ | `docs/PENDING-LEDGER.md` 的 §E-23/§E-24 段 | 引擎待办（N36/N37）与历史台账 |
@@ -120,6 +121,23 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 ---
 
+## 1.6 ★★★ 连续运行 / 断点续接（长任务必用）
+
+> 规则全文：skill `session-memory` **强制 6（Continuity Protocol）**；当前任务断点：`docs/RESUME.md`。
+
+| 项 | 约定 |
+|---|---|
+| 断点卡 | `docs/RESUME.md`（**每次覆盖重写**，≤150 行；含验收清单 + 下一步精确命令）|
+| 断点索引 | `docs/RESUME-INDEX.md`（**只追加**；每行 seq/阶段/文档锚点/证据/下一步）|
+| 触发 | 每个阶段/验收项完成、测试红→绿、提交前、用户裁定后、开始长命令/子代理批次前、**每轮回复结束前**；无容量信号时再按"10 次工具调用 / 25k 字符 / 5 回合"兜底 |
+| 压缩/新会话后 | ★ 先读 RESUME + INDEX 最新行 → 用 `git log/status` + 最小验证命令核实 → 修正差异 → 直接从"下一步精确动作"继续（不重做已完成项）|
+| 完成 | 验收清单全 ☑ + 证据可核查 + RESUME 状态 `done` + INDEX 追加终态行 + 台账更新 |
+| 阻塞 | 同一阻塞连续 3 轮未解且需外部输入才停；写进 RESUME 阻塞字段再问用户 |
+
+★ 初始化/查看：`python <skill>/scripts/continuity.py init|status`（配置走 `session-memory.config.json`，默认 `docs/RESUME.md`）。
+
+---
+
 # §2 ★★ 回报模板（引擎版，逐项填）
 
 ```
@@ -148,6 +166,11 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 【7. 本轮完成定义（说完成前必须勾完）】
    ☐ …  ☐ …  ☐ …
+
+【8. 连续性（长任务必填）】
+   断点：seq=<N> · 阶段=<P0/P1/…> · 状态=in_progress/blocked/done
+   下一步：<可直接执行的命令 / 文件:行号>
+   RESUME：docs/RESUME.md（updated_at=…）· 索引：docs/RESUME-INDEX.md
 ```
 
 ---
@@ -191,10 +214,11 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 ```
 ★ ① 更新 PENDING-LEDGER（状态变了就改；完成必须有可核查证据）
 ★ ② 更新 SESSION-HANDOFF（当前状态/下一步/新坑）
-★ ③ 有实质进展就 commit：
+★ ③ ★ 更新断点：RESUME.md（覆盖重写）+ RESUME-INDEX.md（追加一行）
+★ ④ 有实质进展就 commit：
      - oas-core：本地 main，直接 commit（无远端）
      - backend 文档：git add docs && git commit && git push origin dev
-★ ④ 验收证据进 _verify/nNN/，并写进文档判据
+★ ⑤ 验收证据进 _verify/nNN/，并写进文档判据
 ```
 
 ---
@@ -230,6 +254,7 @@ run-tests.bat …                                  REM 旧仓守卫基线 171 pa
 
 | 主题 | 位置 |
 |---|---|
+| **长任务断点/续接（先读）** | `RESUME.md` · `RESUME-INDEX.md`（skill 强制 6） |
 | 引擎规格/进度 | `ENGINE-DESIGN.md` §22 |
 | **调度 v3 + 统一任务模板设计定稿** | `ENGINE-DESIGN.md` **§22.34** |
 | 当前状态/下一步/坑 | `SESSION-HANDOFF.md` |

@@ -1043,7 +1043,7 @@
 | **N17** | ★★ **多模板变体**（`click.alts`：主图失败后逐张试变体；审计命中的变体 id） | ENGINE §22.11 补充层 · 用户 [10-22 21:2x] | ✅ **已完成**（`c3c4237`）| ★ flow 27 · runtime 60 · 全工作区 **165 passed** · ★ 注入 **1/1 真红** · ★ 离线 replay：主模板噪声 → variant 命中 score 1.000，7 击完成 |
 | **N18** | ★★ **每次点击匹配日志 + 异常截图**（CD2 `match` 字段；失败存帧 PNG） | ENGINE §22.13 · 用户 [10-22 21:4x] | ✅ **已完成**（`11ae6b2`）| ★ runtime 60 · oasd 26 · 全工作区 **166 passed** · ★ 注入 **1/1 真红** · ★ 实机失败 shot=…png / 成功 7 行 CD2 全带 match |
 | **N19** | ★★ **相对锚点**（anchor 模板 + dx,dy；换参照物/布局平移；可作降级链一环） | ENGINE §22.14 · 用户 [10-22 21:4x] 提问 | ⬜ **横向待开发记录（不阻塞纵向）** | 估算 ~1 天；用户裁定：先不插队 |
-| **N20** | ★★ **弹窗/中断处理**（`interrupts` 自动消弹 + `dismiss_popup` 显式关弹；纵向第①项） | ENGINE §22.15 · 用户 [10-22 21:5x] "好的" | ✅ **已完成**（`1cb7397`）| ★ flow 29 · runtime 65 · task 22 · oasd 26 · 全工作区 **171 passed** · ★ 注入 **1/1 真红** · ★ 离线 replay：dismiss_popup 命中 / on_interrupt 先消弹再执行 |
+| **N20** | ★★ **弹窗/中断处理**（`interrupts` 自动消弹 + `dismiss_popup` 显式关弹；纵向第①项） | ENGINE §22.15 · 用户 [10-22 21:5x] "好的" | ✅ **已完成**（`1cb7397`；接受动作 `4ced23b`）| ★ flow 29 · runtime 67 · task 22 · oasd 26 · 全工作区 **173 passed** · ★ 注入 **2/2 真红** · ★ 离线 replay：dismiss_popup 命中 / on_interrupt 先消弹再执行 / **detect+action 接受邀请（点击落在 ACCEPT 区）** |
 
 ---
 

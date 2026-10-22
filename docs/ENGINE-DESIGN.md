@@ -1357,11 +1357,11 @@ tasks/<任务名>/
 
 | 项 | 落地 |
 |---|---|
-| `on_interrupt` | ★ flow 顶层 `"interrupts":[{"sel":"公告关闭"},{"sel":"网络异常"}]`：★ **每步执行前**按顺序匹配，命中即点击消弹（写 `event op=interrupt`），然后**重新检查**再跑该步；★ 单步最多消 5 次，超限**响亮失败**（防"永远匹配"的规则死循环）|
-| `dismiss_popup` | ★ 显式步骤：`{"op":"dismiss_popup","args":{"sel":"关闭","timeout_ms":0,"required":false}}`；轮询 `timeout_ms`（0=只查一次）；出现则点击；未出现时 `required=false` ⇒ `no popup`（成功），`required=true` ⇒ **失败** |
-| 审计 | ★ 两种消弹都进 CD2：`locator=interrupt` / `dismiss_popup`，`match=interrupt:关闭:1.000` / `dismiss_popup:关闭:1.000`；失败截图仍由 `--shots-dir` 覆盖 |
-| 判据 | ★ `oas-flow` **29** · `oas-runtime` **65** · `oas-task` **22** · `oasd` **26** · 全工作区 **171 passed**；★ 注入 **1/1 真红**（禁用自动消弹 ⇒ 中断守卫红）|
-| 验收 | ★ 离线 replay：① `dismiss_popup`（单帧关闭可见）⇒ dismissed score=1.000；② `on_interrupt`（帧0 有弹窗/帧1 干净）⇒ **先 interrupt 消弹，再执行 click_point**，2 击 |
+| `on_interrupt` | ★ flow 顶层 `"interrupts":[{"detect":"公告弹窗","action":"关闭"},{"detect":"悬赏封印邀请","action":"接受"}]`：★ **每步执行前**按顺序匹配 `detect`；命中后再匹配 `action` 并点击（`action` 缺省 = 点 `detect` 自身）⇒ ★ **既能关弹，也能接受邀请**；写 `event op=interrupt`，然后**重新检查**再跑该步；★ 单步最多消 5 次，超限**响亮失败** |
+| `dismiss_popup` | ★ 显式步骤：`{"op":"dismiss_popup","args":{"sel":"悬赏封印邀请","action":"接受","timeout_ms":0,"required":false}}`；轮询 `timeout_ms`（0=只查一次）；看到弹窗后点 `action`（缺省点 `sel`）；未出现时 `required=false` ⇒ `no popup`（成功），`required=true` ⇒ **失败**；★ `detect` 命中但 `action` 缺失 ⇒ **响亮失败**（绝不盲点 detect） |
+| 审计 | ★ 两种消弹都进 CD2：`locator=interrupt` / `dismiss_popup`，`match=interrupt:公告弹窗->公告弹窗:1.000`、`interrupt:悬赏封印邀请->接受:1.000`；失败截图仍由 `--shots-dir` 覆盖 |
+| 判据 | ★ `oas-flow` **29** · `oas-runtime` **67** · `oas-task` **22** · `oasd` **26** · 全工作区 **173 passed**；★ 注入 **1/1 真红**（忽略 `action` ⇒ 接受按钮守卫红：点击会落到 POPUP 区域）|
+| 验收 | ★ 离线 replay：① `dismiss_popup`（关闭可见）⇒ resolved score=1.000；② `on_interrupt`（帧0 有弹窗/帧1 干净）⇒ 先 interrupt 再执行 click_point，2 击；③ **双 tile 帧**（POPUP@12,10 + ACCEPT@40,30）⇒ interrupt 点击落在 **ACCEPT 区域**（证明"接受"而非"关闭"）|
 
 ---
 

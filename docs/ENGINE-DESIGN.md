@@ -884,3 +884,26 @@ tasks/<任务名>/
 2. ★ **in-flow det / `find_text_in_list`** 仍未做（§14.2 的通用原语；P1-c2 范围）。
 3. ★ `assets=` 汇总行仍只统计模板数；`serve` 的 `/ocr`、`/lines` 未改（编辑器路径不变）。
 
+#### N6b · 素材更新（同 id 覆盖 · [10-22 13:0x] · 引擎提交 `8558ac3`）
+
+> ★ 验收时用户报：`asset id \`探索入口\` already exists (assets.json items[0]); nothing written` —— "如果需要更新这似乎会被拦住"。
+
+- ★ **旧行为**：`save_asset` 只有"创建"语义 ⇒ 同一 id 第二次保存必然 400「nothing written」。
+- ★ **现行**：`POST /task/save_asset` 加 **`replace: true`** ⇒ `update_asset()`：**同 id 覆盖、`rev + 1`**；
+  ★ 顺序 = **新图先写 → 清单后写 → 旧图最后删**；任何校验失败 = **nothing written**（旧图 / 旧清单一字不动）。
+- ★ **UI**：保存素材遇「already exists」弹确认（确定 = 覆盖；取消 = 不写任何文件）；结果/日志带 `rev`。
+- ★ **测试**：`oas-task` 20 passed（+4：rev 提升 / 换图 / 旧图删除 · OCR ROI 更新且 flow 不动 · 缺 id 拒绝 · 失败不写）
+  · 全工作区 **127 passed** · ★★ **注入 3/3 真红**（不升 rev / 缺 id 静默创建 / 不删旧图）。
+- ★ **判据（HTTP 实测）**：create ⇒ `rev:1 a001.png`；再同 id ⇒ 400 并提示加 `replace`；
+  `replace:true` ⇒ `rev:2 a002.png`、`a001.png` 已删、`count:1`。
+
+#### N7 · 10k 点击模拟工具（同一提交 `8558ac3`）
+
+- ★ 新增 `crates/oas-runtime/examples/click_sim.rs`：用**真引擎的 `Humanize`/`Rng`** 模拟 N 次点击，输出 CD2 JSONL。
+- ★ 实测 10k（seed=12345）：
+  - **模板点击**（95×55 @330,69，HB1 内缩 15% ⇒ 67×39）：`distinct_points=2558`（2613 个可点格子覆盖 97.9%）、
+    `x_std=19.36` / `y_std=11.32`（理论均匀分布 19.34 / 11.26）、`inside_inset=100%`、`delay 30~120ms`；
+  - **click_point**（HB2 ±6px）：`distinct=169/169`（13×13 全覆盖）、`x_std=3.72` / `y_std=3.74`（理论 3.75）。
+- ★ 证据：`_verify/n7/click_10k_rect.png` · `click_10k_point.png` · `clicks_10k_*.jsonl`；
+  ★ 已复制 `runs/sim-10k.clicks.jsonl`，编辑器「点击分布」可直接选它（clicks=10000 distinct=2558）。
+

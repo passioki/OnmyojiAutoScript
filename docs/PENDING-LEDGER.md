@@ -983,6 +983,8 @@
 | 遗留 | ★ 编辑器保存 `ocr_line` 资产时应写**行级 ROI**（S1 旧资产是整列 ROI `[1080,80,200,600]`，直接喂 rec 会压扁）| ENGINE §22.5 遗留 1 | ⬜ 未开始 | 证据 `_verify/n6/N6_EVIDENCE.md` §5 |
 | 遗留 | ★ in-flow det / `find_text_in_list`（列表内按文字找项）| ENGINE §14.2 · §22.5 遗留 2 | ⬜ 未开始 | 后续 P1-c2 |
 | 下一步 | ★ 弹窗原语（`dismiss_popup` / `on_interrupt`）· ★ 点击分布 base 帧 | ENGINE §22.4 下一步 2/3 | ⬜ 未开始 | 见 HANDOFF §1n |
+| **N6b** | ★ 素材更新（同 id 覆盖，`rev+1`）：`POST /task/save_asset {replace:true}` + UI 确认框 | ENGINE §22.5 · §4 rev | ✅ **已完成**（`8558ac3`）| ★ `oas-task` **20 passed**（+4 更新路径）· ★ 全工作区 **127 passed** · ★ 注入 **3/3 真红** · ★ HTTP 实测 create→rev1 / dup→400 / replace→rev2 + 旧图删除 |
+| **N7** | ★ 10k 点击模拟工具 `examples/click_sim.rs`（HB1/HB2，CD2 JSONL） | ENGINE §22.5 · §20 | ✅ **已完成**（`8558ac3`）| ★ 10k：`distinct=2558`（97.9% 覆盖）· `x_std=19.36`/`y_std=11.32`（理论 19.34/11.26）· 证据 `_verify/n7/` · `runs/sim-10k.clicks.jsonl` |
 
 
 

@@ -1377,6 +1377,16 @@ tasks/<任务名>/
 
 ★ **纵向第②项剩余（N21b，待开发记录）**：断线重连（adb 掉线后重连并继续）、检查点恢复（从失败步骤/最近成功点续跑）。
 
+#### ★★ 已实现（纵向②下半 · 断线重连 + 检查点恢复 · [10-22 22:1x] · 引擎提交 `61bb19c`）
+
+| 项 | 落地 |
+|---|---|
+| 断线重连 | ★ `oas-adapter-pc::reconnect(serial)`：`adb reconnect` + **`OAS_ADB_RECONNECT_ENDPOINTS`**（逗号分隔，如 `127.0.0.1:16384`）兜底 `adb connect` + 20s 轮询；★ `oasd` 的 `ReconnectingScreen` / `ReconnectingInput`：抓帧/点击失败 ⇒ 重连 ⇒ 重试（最多 2 次，stderr 打 `reconnect: …`）；★ run **冷启动**无设备时也会先尝试重连端点再报错 |
+| 检查点恢复 | ★ runtime：`ProgressSink`（每个**顶层步骤**成功后回调）+ `with_start_step(n)`；★ `tasks/<task>/state/checkpoint.json`：`{flow_name,steps,next_step}` 原子写；★ **Done 清除 / 失败保留**；★ `--resume` 校验 flow 名与步数后跳过已完成前缀；★ `--checkpoint <file>` 可覆盖（replay 测试用）；★ `tasks/*/state` 已 gitignore |
+| 判据 | ★ `oas-runtime` **71** · `oasd` **30** · 全工作区 **185 passed** |
+| 验收 | ★ ① checkpoint：step0 成功/step1 失败 ⇒ `next_step=1`；`--resume` ⇒ `resume_from_step=1`、`clicks=[]`；续跑再失败 ⇒ checkpoint **仍 next_step=1（不倒退）**。★ ② 断线：`kill` adb server 后冷启动 ⇒ 通过 `OAS_ADB_RECONNECT_ENDPOINTS` 自动 `adb connect 127.0.0.1:16384` ⇒ `device=127.0.0.1:16384` 且整跑 **Done**；运行中 grab/input 失败的重连重试已接入（stderr 记录）|
+| 已知限制 | ★ 运行中 kill adb 的干净复现受环境自愈影响（adb server 会自动重启、模拟器会重新注册）；★ 重连端点需按环境配置 `OAS_ADB_RECONNECT_ENDPOINTS`；★ 检查点粒度为顶层步骤（不保存步骤内部状态）|
+
 ---
 
 ### 22.12 ★★ [10-22 21:0x] 实机验收（MuMu · emulator-5554 · 1280×720）

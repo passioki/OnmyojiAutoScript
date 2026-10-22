@@ -3,6 +3,11 @@
 > 定稿：[10-23] · 权威设计：`ENGINE-DESIGN.md §22.34`（调度 v3 + 统一任务模板）
 > 本文件回答：**从今天到"在实机上创建任务并跑起来"还要做什么、按什么顺序、怎么验收**。
 > 本文件是计划，不是实现；状态以 `PENDING-LEDGER.md` N36~N40 与 `RESUME.md` 为准。
+>
+> ★ **[10-23 02:4x] 范围补充（用户确认）**：
+> - 任务必须包含 **探索（Exploration）+ 个人突破（RealmRaid）**，在 **Android 客户端** 上验收；
+> - 构建/测试环境记录：Android 12 / x86_64 / MuMu vmindex=0 / 阴阳师 2.8.84；
+> - ★ **APK 引擎（把引擎编译成 Android App、同机运行）不在本次 V1.0 范围**（用户原话"我要的是apk，不过既然做不到那就按原有计划进行"）；归 `ENGINE-DESIGN §8 P4`。
 
 ---
 
@@ -99,6 +104,15 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 | 编辑器「运行任务」：`POST /task/run`（后台线程）+ `GET /task/run/status` + 日志/结果窗口 | 用 replay 或模拟器跑通；错误可见 |
 | 「保存 flow」前跑 lint；非法 exit/params 拒绝保存 | 单测 |
 | **Gate V0.9-dev**：编辑器新建任务 → 标注 1 素材 → 加 1 点击 → 保存 → 运行 → Done（开发机模拟器）| 点击审计 + 截图证据 |
+
+## M1b · 实机任务：探索 + 个人突破（新增）· 2~4d
+
+| 交付 | 验收 |
+|---|---|
+| `tasks/探索`：庭院 → 探索 → 选关/进入 → 战斗（≥1 场）→ 结算/返回 → `finish(done)` | Android 客户端 run 输出 Done + clicks JSONL + 截图 |
+| `tasks/个人突破`：庭院 → 结界突破 → 个人突破 → 选目标 → 挑战（≥1 场）→ 返回 → `finish(done)`；无票时 `finish(no_tickets)`（result=resource）| 同上 |
+| 任务包格式与 M0 模板一致（meta/flow/assets/images）；素材来自旧仓参考或实机截图 | `task lint` 通过 |
+| 证据 | `_verify/n42/`（run 输出、截图、clicks）|
 
 ## M2 · 调度器 v3（N37）· 3~4d
 
@@ -214,3 +228,8 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 - [ ] D7 实机调度 2 轮 + 重启恢复（V1.0 gate）
 - [ ] D8 实机 24h 长跑通过（N40）
 - [ ] D9 文档/台账/证据/升级手册齐全
+- [ ] **D10 探索任务**：在 Android 客户端（阴阳师 2.8.84）完整跑通一次，Done + 点击审计
+- [ ] **D11 个人突破任务**：同上；无票时有明确 resource 出口
+- [ ] **D12 Android 证据**：release 包在 Android 12 / x86_64 / 阴阳师 2.8.84 上完成创建 + 运行，版本写入 BUILD-INFO/交付报告
+- [ ] **D13 调度包含两个任务**：scheduler.json 至少各一条（periodic 或 temp），自动跑 ≥2 轮
+- [ ] **D14 APK 边界**：交付报告明确"APK 引擎=P4，本次不含"（用户已确认）

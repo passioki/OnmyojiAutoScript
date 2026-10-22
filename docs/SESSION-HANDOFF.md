@@ -462,16 +462,49 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 ---
 
+## ★ 1n. ★★★ [10-22 12:40] **新引擎 N6：解释器 `ocr()` 接线完成 —— 下一个会话从这里开始**
+
+```
+【引擎位置/提交】★ D:\OAS-dev\oas-core（独立 git 仓 · 本地 main · 无远端）
+  42ecd2d = N1 + N3 + N5 · 0e61999 = N2 + N4 · ★ 05e497f = **N6 ocr() 接线**
+  文档：backend docs（§22.5 / §E-17 / §1n）已 push origin/dev
+
+【本轮实测基线（★ 不是抄文档）】
+  oas-core: cargo test --workspace = 123 passed / 0 failed（default）
+            cargo test -p oasd --features ocr = 22 passed · cargo build -p oasd --features ocr 绿
+  旧仓（★ 已冻结为资源库 · 本轮未动代码）：守卫 171 · 全量 0/1935/18 · 前端 0 error + 160 passed
+
+【N6 落地了什么（详情见 ENGINE-DESIGN §22.5）】
+  ★ flow 里可以用 wait_until(ocr('分组2') == '分组2') / ocr_digit(...)
+  ★ OcrProvider trait 在 oas-runtime（运行时不含 ort）；oasd 侧 OnnxOcr 适配器 + run --model
+  ★ 空文本 => Null；无 provider / 未声明 / 模板资产 => 响亮失败
+  ★ 证据 _verify/n6/N6_EVIDENCE.md（验收 output：分组2 = "分组2" score=0.9998）
+
+【下一个会话从这里开始（按建议顺序）】
+  1. ★★ 弹窗原语（真机 S1 曾出现「悬赏封印」弹窗）：dismiss_popup(sel|ocr_text) 或 on_interrupt 钩子
+  2. ★ 点击分布 base 帧（跨屏 run 现在只能叠当前帧）
+  3. ★ 编辑器保存 ocr_line 时写**行级 ROI**（S1 旧资产是整列 ROI，直接喂 rec 会压扁）
+  4. ★ in-flow det / find_text_in_list（列表内按文字找项，§14.2）
+  5. ★ 旧仓台账中与本主线无关的项**不动**（旧仓已冻结，只作资源库）
+
+【不要做】
+  · 不要把 _verify/ 里的大文件（录制帧）提交进 git
+  · 不要把旧仓 pytest 基线当引擎验收
+  · 无 --features ocr 的 oasd 不接受 --model（会响亮拒绝，这是预期）
+```
+
+---
+
 ## ★ 2. ★★ 下一步（★ 按优先级）
 
 | # | 事项 | 依据 | 状态 |
 |---|---|---|---|
 | **★0** | ★★ **[10-15] 分支策略 —— ✅ 已裁定**：★ `dev` = **开发分支**（★ **另一台拉这个**）· ★ `main` = **主要的稳定版本**（★ 用户原话："**另一台可以拉dev啊，main是主要的稳定版本！**"）⇒ ★ 我一度误把 `main` 快进到 dev，**已 `--force-with-lease` 回退**（★ 后端 `main` = `e28793ce` · 前端 `main` = `af10440`）<br>★★ **[10-15] 角色也已定案（★ 用户原话："对了。"）**：★ **实机（`Win~Win~Win~`）= 生产** · ★ **开发机（`passioki`）= 开发** ⇒ ★ 台账 **§E-7-0** 消歧义（★ **禁止裸用"本机"**）| **台账 §E-2 / §E-5 / §E-7-0** · **`DEV-WORKFLOW.md §0.6`** | ✅ **已裁定并落地** |
 | **★0b** | ★★ **[10-15] 待你定：非 git 的运行时怎么传给另一台** —— `toolkit\`（**17000 文件 / 1167.4 MB**）· `config/deploy.yaml` · ★ **账号配置**（`恋鸟树`/`伴生树`）· `console.bat` ★★ **光 git 不足以"无缝开发"** | **台账 §E-1**（★ 7 项实测清单）| ⬜ **等你选方式**（★ U 盘 / 网盘 / 私密仓库 / 打包）|
-| **★0c** | ★★★ **[10-15] `F9`（前端「暂停调度」按钮缺失）⇒ 🔄 已移交开发机**（★ 用户原话："**这个交给开发机。**"）—— ★ 真因 = `queue_panel.dart:1042-1058` 与 `:1059` **条件逐字相同** ⇒ `[⏸]` 死代码。★ 修法 = 删那 1 段 + 1 条"可达性"守卫 | **前端台账 `F9`** · **SPEC §3.6 现行口径 · §3.4-L3 · §1.4-Z3** · **台账 §E-6-n**（★ 与后端一条真漂移同源）| 🔄 **开发机负责**（★ 实机侧不再跟）|
+| **★0c** | ★★★ **[10-15] `F9`（前端「暂停调度」按钮缺失）⇒ 🔄 已移交开发机**（★ 用户原话："**这个交给开发机。**"）—— ★ 真因 = `queue_panel.dart:1042-1058` 与 `:1059` **条件逐字相同** ⇒ `[⏸]` 死代码。★ 修法 = 删那 1 段 + 1 条"可达性"守卫 | **前端台账 `F9`** · **SPEC §3.6 现行口径 · §3.4-L3 · §1.4-Z3** · **台账 §E-6-n**（★ 与后端一条真漂移同源）| ✅ **已完成**（前端 `8da0f2a`：删死分支 + 2 条可达性守卫）|
 | **★0f** | ⬜ **[10-15] 后续项：把 `session-memory` 迁移成「通用技能」**（★ 用户意向："后期可能会把该技能迁移成通用技能"）—— ★ 实测**要改 4 处**：`seg.ps1:14` 的默认 `-File`（唯一写死盘符处）· `index_gen.py:24/26/27` 的项目专属关键词 · `SKILL.md` 写死的 4 个文档名 · `README.md` 的项目工作流 | **台账 §E-7-a-8**（★ 含逐处实测清单）| ⬜ **未开始（等指令）** |
-| **★0d** | ★★ **[10-15] 待你裁定：装不装 C++ 工具链** —— ★ 本机缺 Visual Studio / Windows SDK ⇒ ★ `flutter build windows --release` **不可用**（★ `analyze`/`test` 已跑绿）· ★ 本机**也没有 `winget`** ⇒ ★ 要用官方 `vs_BuildTools.exe` ＋ `Microsoft.VisualStudio.Workload.VCTools`（★ 约 2~6 GB）| **§1j-⑥** · **DEV-WORKFLOW §7 坑 10** · **START-HERE P17** | ⬜ **等你一句话** |
-| **★0e** | ★★★ **[10-15] 待你裁定：真漂移** —— `tests/module/config/test_linkage_unification.py::test_pause_reports_requeue` 期望前端 `run_control_bar.dart` 有 `pauseScriptDetailed`，★ **而前端 v2 已只剩「启动/停止脚本」**（★ 改走解析器后**第一次真的读到前端源码**才暴露出来）⇒ ★ 与前端 **F9**（`queue_panel.dart:1042-1058` 死代码 ⇒ 暂停入口消失）**同源** | **台账 §E-6-n** · **前端台账 F9** · **SPEC §3.6** | ⬜ **等你一句话**（A 前端恢复暂停路径 / B 改测试期望）|
+| **★0d** | ★★ **[10-15] 待你裁定：装不装 C++ 工具链** —— ★ 本机缺 Visual Studio / Windows SDK ⇒ ★ `flutter build windows --release` **不可用**（★ `analyze`/`test` 已跑绿）· ★ 本机**也没有 `winget`** ⇒ ★ 要用官方 `vs_BuildTools.exe` ＋ `Microsoft.VisualStudio.Workload.VCTools`（★ 约 2~6 GB）| **§1j-⑥** · **DEV-WORKFLOW §7 坑 10** · **START-HERE P17** | ✅ **已装（[10-15]）**：VS 2022 Build Tools `17.14.37806.7` + Windows SDK `10.0.26100.0` ⇒ `flutter build windows --release` 可用 |
+| **★0e** | ★★★ **[10-15] 待你裁定：真漂移** —— `tests/module/config/test_linkage_unification.py::test_pause_reports_requeue` 期望前端 `run_control_bar.dart` 有 `pauseScriptDetailed`，★ **而前端 v2 已只剩「启动/停止脚本」**（★ 改走解析器后**第一次真的读到前端源码**才暴露出来）⇒ ★ 与前端 **F9**（`queue_panel.dart:1042-1058` 死代码 ⇒ 暂停入口消失）**同源** | **台账 §E-6-n** · **前端台账 F9** · **SPEC §3.6** | ✅ **已修**（按现行口径改成 `test_pause_entry_lives_on_the_queue_row`，16 passed）|
 | **★1** | ★★★ **接口模块化的方案已定案（[10-14] 用户）**：★ **`M2`**（= §1.17 的 **A/A+ 受控指令集**，**不用 `eval`**）＋ ★ **annotator 可以"深度拆解"进任务实现器** | **SPEC §1.17 一（分歧块⑫）· §1.18-五/八** | ✅ **已定案 ⇒ 可开工** |
 | **★1b** | ★ **[10-14] `FL-*` 新发现的处置**：★ `FL-1` ✅ **已修**（㉜）· ★ `FL-9` ✅ **已修**（㉝）· ★ `FL-2` ✅ **查清 = 误报** · ★ `FL-6`/`FL-8` ⏸ **用户裁定"待定"**（★ 原话："待定，后续可能会重构代码"）| 台账 **§D.4** · SPEC **㉜/㉝** | ✅ / ⏸ |
 | **★1c** | ★★ **`P0` 已落地**（★ 见 §1f）：★ `module/flow/`（C1/C4/C6/C7）+ ★ C10 状态入口；★ 守卫 29 条 + ★★ 注入验证 2/2 | **SPEC §1.19-七 · 台账 §D.7** | ✅ **已完成** |

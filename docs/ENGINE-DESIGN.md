@@ -741,6 +741,7 @@ tasks/<任务名>/
 | **N3** | ★ 素材落盘（★ 中文 `id` + **序号文件名** + `assets.json` + `task bundle`，见 §19.3）| ★ id 查重；★ 保存即校验引用 | ✅ **已完成**（`42ecd2d` · §22.3）|
 | **N4** | ★ 编辑器内嵌「点击分布」视图（★ 常设功能，别只留在命令行）| ★ 界面里能直接看 | ✅ **已完成**（`0e61999` · §22.4）|
 | **N5** | ★★ **S1 样板**：庭院 → 队伍预设 → 识别「分组2」→ **真点一次** | ★ 回放 + 真机各一次 | ✅ **已完成**（`42ecd2d` · 证据 `_verify/n5/N5_EVIDENCE.md` · §22.3）|
+| **N6** | ★★ **解释器 `ocr()` 接线**（flow 里可用 `wait_until(ocr(...) == ...)`）| ★ 离线回放文字/分数与真机一致 | ✅ **已完成**（`05e497f` · §22.5 · 证据 `_verify/n6/`）|
 
 ★ **技术债（明账）**：
 1. ★ **NCC 性能**：Rust 3.72ms/模板 vs cv2 0.29ms（★ 慢 12.8×）⇒ ★ SIMD/粗到精（P0-2b）
@@ -843,10 +844,43 @@ tasks/<任务名>/
 
 #### ★ 下一步（★ 交接给下一个会话）
 
-1. ★★ **解释器 `ocr()` 接线**（最大一块）：让 flow 里能用 `wait_until(ocr('分组2') == '分组2')`，
-   不再需要“编辑器先识别 → 写死表达式坐标”。★ 设计要点：`oas-flow::EvalContext` 已就位，
-   缺的是给 `Interpreter` 注入一个 OCR 提供者（trait + feature 门控，`oas-ocr` 的 rec/det 在 `onnx` feature 后）；
-   ★ 验收建议：用 `_verify/n5/s1_recording2` 离线回放跑一个含 `ocr()` 的 flow，文字/分数与真机一致。
+1. ✅ **[10-22 12:40] 解释器 `ocr()` 已接线**（`05e497f` · 见 §22.5）：`wait_until(ocr('分组2') == '分组2')`
+   在 `_verify/n5/s1_recording2` 离线回放上真跑通（`分组2 = "分组2" score=0.9998`）。
+   ★ 原设计要点（存档）：`oas-flow::EvalContext` 已就位；缺的是给 `Interpreter` 注入 OCR 提供者
+   （trait + feature 门控，`oas-ocr` 的 rec/det 在 `onnx` feature 后）—— ★ 已按此落地。
 2. ★ **弹窗原语**（真机出现过「悬赏封印」）：★ 建议 `dismiss_popup(sel | ocr_text)` 或全局 `on_interrupt` 钩子。
 3. ★ 点击分布：★ 支持**按 run 的 base 帧**叠底（跨屏 run 现在只能叠当前帧）；★ `clicks=0` 空 run 已有铭牌。
+
+---
+
+### 22.5 ★★★ [10-22 12:40] 本轮交付：**N6 解释器 `ocr()` 接线**（引擎提交 `05e497f`）
+
+> ★ 一句话：★ **flow 里第一次能自己"看字"** —— `wait_until(ocr('分组2') == '分组2')` 不再需要编辑器先识别、手抄表达式坐标。
+
+#### 设计（落地口径）
+
+| 层 | 落地 |
+|---|---|
+| 资产 | ★ `assets.json` 的 `ocr_line`/`ocr_lines` 只带 **ROI**（无像素）⇒ `oas-task::load_runtime_assets` 装进 `AssetSet::ocr_rois`；★ **缺 roi = 加载报错**（不再静默 skip）|
+| 接缝 | ★ `oas-runtime::OcrProvider`（`recognize(&Frame, Rect) -> Result<(String, f32)>`）；★ 运行时**不依赖** `oas-ocr`：默认构建无 `ort`，provider 只在 `apps/oasd` 的 `ocr` feature 后 |
+| 解释器 | ★ `Interpreter` 缓存 **RGBA 帧**（与 matcher 同生命周期）+ `with_ocr()`；★ `click/click_point/swipe` 与 `wait_until` 每轮都 `invalidate_frame()` ⇒ OCR 永远读当前帧 |
+| 语义 | ★ 空文本 ⇒ **`Null`**（永远不满足 `== '文本'`）；★ 无 provider / 选择器未声明 / 是模板资产 ⇒ **响亮失败**（"refusing to fake"）；★ `ocr_digit` 取第一段数字（`"12/30"→12`）|
+| 步日志 | ★ `Step::Ocr` ⇒ `ocr 分组2 = "分组2" score=0.9998`（`<no text>` 也记）；表达式里的 `ocr()` 不产生步事件 |
+| CLI | ★ `oasd run --model <rec.onnx>`（`--features ocr`）；★ **无 feature 时 `--model` 响亮拒绝**，不静默忽略 |
+
+#### 判据与证据（★ 全部实测）
+
+1. ★ `cargo test --workspace` = **123 passed / 0 failed**（default；旧 117 ⇒ 新增 6 条 OCR 守卫）；
+   ★ `cargo test -p oasd --features ocr` = 22 passed；★ `cargo build -p oasd --features ocr` 绿。
+2. ★★ **注入 4/4 真红**（还原后 SHA256 = `0DA7DB51…CBB00FB`）：无 provider 兜底 / 忽略资产 ROI / 空文本当成功 / `wait_until` 不丢帧 —— 各 1 条守卫变红。
+3. ★★ **离线回放验收**（`_verify/n5/s1_recording2` · seed=12345 · 探针包 `_verify/n6/ocr_probe`）：
+   `outcome=Done` · `ocr 分组2 = "分组2" score=0.9998` · `Str("默认分组")`；与 det+rec 的 `examples/lines` 结果一致。
+   ★ 证据：`_verify/n6/N6_EVIDENCE.md` · `acceptance.txt` · `acceptance.events.jsonl`。
+
+#### 遗留（★ 明账）
+
+1. ★ **本步只接 rec**：`ocr(sel)` 的 ROI 必须是**单行**。★ `tasks/S1切预设/assets.json` 的 `ocr_line` ROI 是**整列**[1080,80,200,600]（给未来的 det 用）⇒ 直接喂 rec 会压扁；本轮验收另建**行级 ROI** 探针包。
+   ⇒ ★ **编辑器保存 `ocr_line` 时应按行框写 ROI**（待办）。
+2. ★ **in-flow det / `find_text_in_list`** 仍未做（§14.2 的通用原语；P1-c2 范围）。
+3. ★ `assets=` 汇总行仍只统计模板数；`serve` 的 `/ocr`、`/lines` 未改（编辑器路径不变）。
 

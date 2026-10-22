@@ -973,6 +973,17 @@
 | 验证 | ★ 全工作区测试 + 铁律注入 | — | ✅ | ★ `cargo test --workspace` **117 passed**（default 与 `--features oasd/ocr` 各 117）· 注入 **20/20 真红**（runtime 6 / run 4 / serve 10，逐字节还原）|
 | 新债 | ★ 解释器 `ocr()` 接线 · 弹窗原语 · 点击分布 base 帧 | ENGINE §22.4 下一步 | ⬜ 下一会话 | ★ 尤其 `ocr()`：验收 = 用 `_verify/n5/s1_recording2` 离线回放跑含 `ocr()` 的 flow |
 
+---
+
+# ★ §E-17 ★★★ [10-22 12:40] **新引擎 N6：解释器 `ocr()` 接线完成（引擎提交 `05e497f`）**
+
+| # | 事项 | 依据 | 状态 | 验证（可核查）|
+|---|---|---|---|---|
+| **N6** | ★★ 解释器 `ocr()`/`ocr_digit()`/`Step::Ocr` 接线：`OcrProvider` trait + OCR 资产 ROI + `oasd run --model` | ENGINE §16.4 · §22.4-1 · §22.5 | ✅ **已完成** | ★ `cargo test --workspace` **123 passed / 0 failed**（旧 117 ⇒ 新增 6 条 OCR 守卫）· ★ **注入 4/4 真红**（还原 SHA256 = `0DA7DB51…CBB00FB` 一致）· ★ 离线回放验收 `outcome=Done`，`ocr 分组2 = "分组2" score=0.9998` · 证据 `_verify/n6/N6_EVIDENCE.md` |
+| 遗留 | ★ 编辑器保存 `ocr_line` 资产时应写**行级 ROI**（S1 旧资产是整列 ROI `[1080,80,200,600]`，直接喂 rec 会压扁）| ENGINE §22.5 遗留 1 | ⬜ 未开始 | 证据 `_verify/n6/N6_EVIDENCE.md` §5 |
+| 遗留 | ★ in-flow det / `find_text_in_list`（列表内按文字找项）| ENGINE §14.2 · §22.5 遗留 2 | ⬜ 未开始 | 后续 P1-c2 |
+| 下一步 | ★ 弹窗原语（`dismiss_popup` / `on_interrupt`）· ★ 点击分布 base 帧 | ENGINE §22.4 下一步 2/3 | ⬜ 未开始 | 见 HANDOFF §1n |
+
 
 
 

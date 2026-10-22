@@ -23,6 +23,9 @@
      **可以直接照做**（★ 差异只有"机器不同"：★ `D:\OAS-live` 在**另一台电脑**上）
 ★ 实机：      `D:\OAS-live\`（★ **在另一台电脑上**；★ dev 的**拷贝**；后端端口 **22287**；开发用 **22288**）
    ★ ⚠ 本机（开发机）**没有** `D:\OAS-live` ⇒ ★ **实机验收不在本机做**
+★ ★★ **[10-22] 旧仓（`backend`/`frontend`）已冻结 = 只作「资源库」** —— ★ **当前主线 = 新引擎 `oas-core`**
+  （独立 git 仓 · 本地 `main` · 无远端）⇒ ★ 旧仓只提供**资产/知识**，★ **不再在其上开发**
+  ⇒ ★ 引擎进度/下一步看 `docs/ENGINE-DESIGN.md` §22，★ 旧仓台账里与引擎无关的项**不动**
 ★ ★ **唯一真相 = git**：★★ **开发分支 = 后端 `dev` · 前端 `dev`**（★ 用户 [10-15] 原话：
    "**另一台可以拉dev啊，main是主要的稳定版本！**"）
    ⇒ ★ **`main` = 主要的稳定版本**（★ **冻结点，只在"判定稳定"时才前移**）
@@ -95,6 +98,7 @@
 | **④** | `DESIGN-SPEC.md` | ★ **软件应该是怎样的** | ★ **只读本轮相关的 §**（如改调度读 §1，改前端读 §3）|
 | **⑤** | ★ **[10-15] `LAYOUT.md`** | ★ **存放结构树 + 路径规约 R1~R5**（"路径该怎么写"的唯一入口）| ★ 改任何命令/路径前必读 |
 | **⑥** | 本文件 §3 的**活跃坑** | ★ 不要重复踩 | P1~P7 ＋ **P15~P18**（★ [10-15] 新增 · ★ 详见 `SESSION-HANDOFF.md §3` 的 P1~P18）|
+| **⑦** | ★ **[10-22] `ENGINE-DESIGN.md` §22** | ★ **当前主线 = 新引擎 `oas-core`**（旧仓已冻结为资源库）| ★ §22 进度快照 + 下一步 |
 
 ★ **禁止**：★ 凭"我记得规格是…"开工 —— ★ 必须**贴出文档引用（§/行号）+ 代码证据**。
 
@@ -112,12 +116,13 @@ REM   ⚠ 不要用 findstr 查 emoji（GBK 下匹配不到，会静默输出空
 REM     用 PowerShell 的 Select-String（本机 pwsh 可用）
 powershell -NoProfile -Command "Select-String -Path docs\PENDING-LEDGER.md -Pattern '🔄','⬜','⛔' | Select-Object LineNumber,Line"
 
-REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 **170 passed**）
+REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 **171 passed** —— ★ [10-22] 实测 5.31s）
 REM   ★ [10-15] 去陈旧：第 15 个文件 test_no_hardcoded_paths.py 是**路径规约 R5 的守卫**
 REM     （★ 旧清单只有 14 个文件 = 166 条；★ 实机侧 §E-7-c 早已按 170 = 166 + 4 对照）
 run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py tests/module/config/test_no_hardcoded_paths.py -q
 
-REM ④ ★ 全量基线（★ **[10-15] 相对路径改造 + F9/真漂移修复后实测：14 failed / 1904 passed / 7 skipped**）
+REM ④ ★ 全量基线（★ **[10-22 02:1x] 现行实测：0 failed / 1935 passed / 18 skipped（88.70s）**）
+REM   ★ [10-15] 的旧口径「14 failed / 1904 / 7」**已作废** —— ★ 那 14 条已由 §E-13 收敛为 0
 REM   ★ 那 14 条是【已知环境类】，★ 不是回归：
 REM     9 = 缺 module/config/i18n/zh-CN.json（★ 它是**前端运行后**经 /home/chinese_translate
 REM         推来的运行时产物 ⇒ 没起前端就没有）· 2 = 读用户/实机状态（test_task_report）
@@ -132,7 +137,7 @@ REM     `test_pause_entry_lives_on_the_queue_row`**（★ 16 passed）
 run-tests.bat
 ```
 
-★ 期望：★ **守卫 170 passed**（★ **15 个文件** · [10-15] 实测 5.03s）；★ 全量 **14 failed / 1904 passed / 7 skipped**（★ 14 条 = 9 缺前端推来的 `zh-CN.json` + 5 用户/实机状态 —— ★★ **那 1 条真漂移 [10-15] 已修**）。
+★ 期望：★ **守卫 171 passed**（★ **15 个文件** · [10-22] 实测 5.31s）；★ 全量 **0 failed / 1935 passed / 18 skipped**（★ [10-22] 实测 88.70s —— ★ 旧口径「14 failed / 1904 / 7」**作废**：★ 那 14 条已由 §E-13 收敛为 0）。
 ★★ **[10-15] 相对路径改造后的实测（开发机 = `passioki`）**：★ 守卫 **170 passed** · ★ 全量 **14 / 1904 / 7** · ★ 前端 `analyze` **0 error（4w+17i）** · `test` **160 passed**
 ★ **改造前 = 49 failed / 1862 passed / 12 skipped**（★ 那 43 条"硬编码读 `…\OASX-src`"⇒ **已根治**；★ 覆盖反而变强：这些测试**现在真的在读前端源码**）。
 
@@ -146,6 +151,14 @@ REM     （★ 158 → 160 = [10-15] 新增 2 条 **F9 可达性**运行时守�
 REM   ★ ⚠ **必须带 `--no-version-check`**：否则 flutter 会对 SDK 仓库跑
 REM     `git fetch --tags`（要拉 611285 个对象）⇒ 在当前网络下**挂死**（★ 坑 P16）
 REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --release` 暂不可用（★ 坑 P17）
+```
+
+```bat
+REM ⑥ ★ [10-22] 新引擎（★ 当前主线 = oas-core；★ 旧仓已冻结为资源库）
+cd oas-core
+cargo test --workspace                       REM ★ 期望 123 passed / 0 failed（default）
+cargo build -p oasd --features ocr           REM ★ OCR 构建（serve / run --model 用）
+REM   ★ 引擎验收看 ENGINE-DESIGN §22 的判据；★ 不要拿旧仓 pytest 基线当引擎验收
 ```
 
 ## 1.4 ★★★ 先回报，再动手（★ 这一步不许省）
@@ -190,7 +203,7 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 >   ★ 两仓 = `git clone -b dev`（★ 本地分支 `dev`）· ★ `toolkit\` / `deploy.yaml` / 两份账号配置 /
 >   `console.bat` 已从 `C:\Users\passioki\Downloads` 补齐 · ★ Flutter 3.27.1 装在 `D:\flutter3271`
 >   （★ **必须带 `--no-version-check`**，见坑 P16）· ★★ **四条基线已实测**
->   （★★ [10-15] 现行：守卫 **170 passed** · 全量 **14/1904/7** · 前端 **0 error + 160 passed**）
+>   （★★ [10-22] 现行：守卫 **171 passed** · 全量 **0/1935/18** · 前端 **0 error + 160 passed**）
 >   ★ ✅ **[10-15] VS Build Tools 已装**（★ 用户裁定"装" ⇒ VS 2022 Build Tools `17.14.37806.7` +
 >   Windows SDK `10.0.26100.0`）⇒ `flutter build windows --release` **可用**（★ 见坑 P17 · 台账 §E-8-j）
 >   ★ ⚠ 仍要记住两条新坑：**P19**（`.bat` 必须纯 ASCII）· **P20**（换盘后清 `__pycache__`）
@@ -209,8 +222,8 @@ REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --rel
 【2. 代码与我核实的台账】
    后端 commit = <hash> · 分支 = <branch> · worktree 干净 = 是/否
    前端 commit = <hash> · 分支 = <branch>
-   ★ 守卫（§1.3 的第 ③ 条那一条命令）= __ passed（★ [10-15] 现行基线 = **170**；★ 旧值 166/98 已作废）
-   ★ 全量 = __ failed / __ passed（★ [10-15] 现行基线 = **14 / 1904 / 7 skipped**；★ 旧值 49/1785、15/1903 已作废）
+   ★ 守卫（§1.3 的第 ③ 条那一条命令）= __ passed（★ [10-22] 现行基线 = **171**；★ 旧值 170/166/98 已作废）
+   ★ 全量 = __ failed / __ passed / __ skipped（★ [10-22] 现行基线 = **0 / 1935 / 18**；★ 旧值 14/1904/7、49/1785、15/1903 已作废）
    ★ 前端 = flutter analyze __ error · flutter test __ passed（★ [10-15] 现行基线 = **0 / 160**）
 
 【3. 差异（★ 文档说 A、代码是 B 的地方）】
@@ -288,7 +301,7 @@ REM   ★ 工作区根 = <WORKSPACE>（里面并排 backend\ 与 frontend\；★
 backend\run-server.bat                          REM ★ 开发后端 :22288（端口取自 config\deploy.yaml）
 backend\run-tests.bat                           REM ★ 全量测试
 backend\dev_tools\flutter.bat analyze lib       REM ★ 期望 0 error（4 warning + 17 info）
-backend\dev_tools\flutter.bat test              REM ★ 期望 158 passed
+backend\dev_tools\flutter.bat test              REM ★ 期望 160 passed（[10-22] 实测）
 backend\dev_tools\flutter.bat build windows --release
 REM   ★ ⚠ build 需要 Visual Studio（★ 本机暂无 ⇒ 见坑 P17）
 frontend\build\windows\x64\runner\Release\oasx-live.exe   REM ★ 开发前端

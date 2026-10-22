@@ -1230,6 +1230,18 @@ tasks/<任务名>/
 - ★ **LAAR 评估：废弃**。对 OCR 用内接矩形会**裁掉贴边文字**；bbox+掩膜保留完整区域且屏蔽外部，明显更好。`largest_inscribed_rect` / `point_in_polygon` 仅保留为**工具函数/几何图示**，不再有产品用途。
 - ★ N10b 子项随之调整：**掩膜 NCC / OCR 掩膜（bbox+fill） / 自交检测 / 顶点编辑**；"LAAR 最小面积"作废（保留 polygon 面积/bbox 最小尺寸校验）。
 
+#### ★★★ [10-22 23:3x] N10b 二期**已完成**（引擎提交 `4cd84a5`）
+
+| 项 | 落地 | 判据 |
+|---|---|---|
+| **匹配掩膜 NCC** | ★ 模板多边形按 ROI 偏移生成像素掩膜；ROI 搜索用 `Matcher::match_template_masked`（只有多边形内像素参与 NCC）；全帧兜底路径仍用裸模板（平移场景）| ★ 背景（多边形外）变化时：裸 NCC 掉到 **<0.9**、掩膜保持 **>0.997**（oas-perceive 单测）|
+| **OCR 掩膜** | ★ `mask_frame_for_ocr`：bbox 裁剪后把多边形外像素**填白**再送 OCR；OCR 资产 polygon 从 assets.json 装载进 `AssetSet.ocr_polygon` | ★ 假 provider 断言"多边形内像素保留、多边形外=255"；oas-task 单测 OCR polygon 装载 |
+| **自交检测** | ★ 保存期对非相邻边做相交检测（含共线），自交多边形**拒绝且不落盘** | ★ bowtie（非零面积）用例拒绝、`nothing written` |
+| **顶点编辑** | ★ 闭合后**拖动顶点**改坐标、**双击顶点删除**（保持 ≥3）、roi 随 bbox 实时更新 | ★ headless 截图 `_verify/n29/editor_cn.png`（中文界面）|
+| **点击区** | ★ 保持 = 匹配外接矩形；LAAR 彻底退出 click（仅工具函数）| ★ runtime 既有测试 |
+| **界面中文化** | ★ 试识别/多行识别/试匹配/得分/耗时/状态栏能力位/flow op 下拉全部中文；多边形提示更新 | ★ headless 截图同上的中文界面 |
+| **测试** | ★ perceive **6** / runtime **74** / task **23** / 全工作区 **198 passed** | — |
+
 ---
 
 ### 22.11 ★★★ [10-22 19:5x] 待实现：**点击定位的冗余链**（图片 > 文字 > 坐标记忆 + 补充层）

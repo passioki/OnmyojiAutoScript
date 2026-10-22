@@ -491,6 +491,8 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ [10-22 23:1x] OCR 501 事故修复：serve 必须 `cargo build -p oasd --features ocr` 且带 --model/--det-model；`/state` 现返回 ocr/det 能力位；编辑器状态栏显示 OCR=on/off
   ★ [10-22 23:1x] 用户裁决：点击区=bbox；OCR 区域=bbox+多边形掩膜；匹配=掩膜 NCC；LAAR 废弃（裁字风险）。N10b 子项=掩膜 NCC/OCR 掩膜/自交/顶点编辑
   ★ [10-22 23:1x] 用户提出**全局素材库**（跨任务调用素材用于匹配等用途）→ ENGINE §22.22 设计已记录，台账 N26 待开工（一期模板库 ~1 天）
+  ★ 4cd84a5 = **N10b 二期完成**（匹配掩膜 NCC / OCR 掩膜 bbox+fill / 自交检测 / 顶点拖动+双击删除 / 界面中文化；198 passed）
+  ★ [10-22 23:3x] 界面中文化：试识别/多行识别/试匹配/得分/耗时/状态栏能力位/flow op 下拉均为中文；多边形模式提示"点击区=匹配外接矩形"
   ★ 实机验收 [10-22 21:0x]：S1 连续 4 跑全 Done（7 击/跑、miss 0）；实机录制同 seed 回放 7/7 逐点一致；`expect appear(预设)` 真机 verified=true ⇒ 下一步**页面守卫**（S1 起始页是"探索/御魂"，不是庭院）
   文档：backend docs（§22.5 / §E-17 / §1n）已 push origin/dev
 

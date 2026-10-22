@@ -1414,6 +1414,21 @@ tasks/<任务名>/
 
 ---
 
+### 22.19 ★★ [10-22 22:4x] **运行统计与告警**（纵向第⑤项 · 引擎提交 `e7a5b11`）
+
+| 项 | 落地 |
+|---|---|
+| CLI | ★ `oasd stats --runs <dir>`：`--report <json>` · `--html <html>` · `--alert-fail-rate 0.10` · `--alert-failures 0` |
+| 聚合 | ★ `*.clicks.jsonl`（点击/miss/**distinct**/locator 分布）· `*.events.jsonl`（failed / retry / 弹窗 interrupt）· 队列报告 JSON（tasks done/failed/attempts/total_ms）· `shots/*.png`（失败截图列表）|
+| 输出 | ★ JSON `Summary` + **自包含 HTML 仪表盘**（指标卡 / 告警 / locator 分布 / 失败截图）|
+| 告警 | ★ miss 率 > 阈值 · queue 失败数 > 阈值 · 事件日志有失败步骤 · 存在失败截图 ⇒ **ALERT 行 + exit 1**；干净则 `alerts=0` exit 0 |
+| 编辑器 | ★ `GET /stats` 返回同一 Summary；右栏「运行统计（长跑）」面板 + 刷新按钮（点击/miss/队列/失败步骤/重试/locator/告警）|
+| 判据 | ★ stats 单测 **3**（聚合 / 缺目录可诊断报错 / 干净无告警）· 全工作区 **190 passed** |
+| 验收 | ★ `stats --runs runs` ⇒ 点击 **12822** / miss **241** / distinct **3587** / 7 文件；★ `--runs _verify/n25` ⇒ `ALERT queue failed 1 > 0`；★ HTML 仪表盘截图 `_verify/n27/stats_alert.png`；★ 编辑器面板截图 `_verify/n27/editor_stats.png` |
+| 已知限制 | ★ 只扫描 `runs` 目录顶层文件 + `shots/`（按需可扩展到 queue report 子目录）；★ 告警阈值目前是 CLI 参数 / 编辑器固定 10% + 失败数 0 |
+
+---
+
 ### 22.12 ★★ [10-22 21:0x] 实机验收（MuMu · emulator-5554 · 1280×720）
 
 > ★ 用户选择"先把现状跑一段实机，再回来排期"（§22.11 补充层选项 4）。

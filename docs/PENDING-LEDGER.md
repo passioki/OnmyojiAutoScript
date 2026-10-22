@@ -1050,7 +1050,7 @@
 | **N23** | ★★ **可视化流程编辑器**（纵向第④项）：步骤/参数/弹窗规则可视化编辑 + 任务 flow 自动载入 | ENGINE §22.18 · 用户 [10-22 22:3x] "好的按你的来" | ✅ **已完成**（`449a6e5`）| ★ 7 个浏览器断言 PASS · ★ `/task/flow` 返回 S1 flow · ★ `?task=S1切预设` 渲染 19 步（截图 `_verify/n26_editor_final.png`）|
 | **N24** | ★★ **运行统计与告警**（纵向第⑤项）：stats 聚合 + HTML 仪表盘 + ALERT + 编辑器面板 | ENGINE §22.19 · 用户 [10-22 22:4x] "好的" | ✅ **已完成**（`e7a5b11`）| ★ stats 单测 3 · 全工作区 **190 passed** · ★ 实测 runs：12822 击/miss 241/distinct 3587；n25 告警触发；仪表盘截图 `_verify/n27/stats_alert.png` |
 | **N25** | ★★★ **[10-22 23:0x] 整帧模板搜索 + 编辑器图识别试匹配 + 点击区改「匹配外接矩形」**（用户三项裁决：搜索窗=整页截图 / ROI 缺图识别入口 / 点击区=外接矩形）| ENGINE §22.10 修订 · §22.20 · §22.21 | ✅ **已完成**（`d919e13`）| ★ perceive 5 / runtime 72 / oasd 35 / 全工作区 **194 passed** · ★ 平移 (+60,+30) 仍命中；`/match` 实机 score=1 @(330,69) 201.7ms；headless 编辑器截图 `_verify/n28/editor_match.png` |
-| **N28** | ★★★ **参考旧 OAS annotator：三栏 IDE 布局 + 双 ROI（识别框/点击框）** | ENGINE §22.25 / §22.26 · 用户 [10-23 23:5x] "旧仓库标注系统……先评估下" + [10-24] "没有矛盾就开工" | ✅ **已完成**（`ce2de42`）| ★ runtime 76 / task 25 / serve 37 / 全工作区 **205 passed** · ★ HTTP `roi_back` 保存/OCR 拒绝 · 三栏+双框 headless 截图 `_verify/n32/editor_ide.png`、`n32/editor_flow_panel.png` |
+| **N29** | ★★ **会话图片列表（多帧）**：capture 自动入列 + 上传 PNG + 选择/删除/清空 + 编辑器「图片」面板（参考旧 annotator）| ENGINE §22.27 · 用户 [10-24] "继续"（Phase 3） | ✅ **已完成**（`c88db54`）| ★ serve 38 / 全工作区 **206 passed** · ★ 实机 capture/upload/select/delete · headless 截图 `_verify/n33/editor_frames2.png` |
 | 事故 | ★ **[10-22 23:1x] OCR 501 事故**：serve 用了无 `--features ocr` 的二进制 ⇒ 编辑器识别报错。修复：重建 + `/state` 增加 ocr/det 能力位 + 编辑器提示（已包含在 N25 后续提交中）| ENGINE §22.21 事故小节 | ✅ 已修复 | `/ocr` 实测 score=0.99988 |
 
 ---

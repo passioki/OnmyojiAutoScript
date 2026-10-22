@@ -1601,3 +1601,19 @@ tasks/<任务名>/
 
 **后续（记录）**：左栏「图片列表/多帧上传」、素材分组/搜索、per-素材「测试/裁剪/预览」按钮（旧 annotator 的 capability 面板）；与 H4 多帧投票一起排期。
 
+---
+
+### 22.27 ★★ [10-24 00:0x] **会话图片列表（多帧）**（参考旧 annotator「图片」面板 · 引擎提交 `c88db54`）
+
+> ★ 旧 annotator 左栏「图片」：上传多图 / 模拟器预览截帧 / 图片列表选择；为"同一素材在多帧下是否稳定"提供依据。
+
+| 项 | 落地 |
+|---|---|
+| 会话列表 | ★ serve `State.frames`（PNG + 元信息，**上限 20 帧**，内存）；`POST /capture` **自动入列表**并设为当前帧；★ `POST /frames`（raw PNG bytes，编辑器把任意图片转 PNG）|
+| 路由 | ★ `GET /frames`（id/尺寸/source/ts/bytes/current）· `POST /frames/select {id}`（切换当前帧，后续 `/match`、`/ocr`、素材裁剪都以它为准）· `POST /frames/delete {id}`（删当前帧回退最后一张）· `POST /frames/clear` |
+| 编辑器 | ★ rail 新增「**图片**」面板：上传（多选）/截取当前帧入库/刷新/清空；列表行显示 `#id source WxH · 当前`，点击切换、`删`删除；`?panel=panel-images` 深链 |
+| 用途 | ★ 多帧可验证素材匹配稳定性（为 **H4 多帧投票** 铺路）；可上传离线截图做素材/阈值调试 |
+| 判据 | ★ serve **38**（+1 上传/选择/删除/清空 HTTP 回环测试）· 全工作区 **206 passed** · ★ 实机：capture 入列、upload 95x55、select 切换 `/state` 尺寸、default 回退验证 |
+| 验收 | ★ headless 截图 `_verify/n33/editor_frames2.png`（图片面板 3 帧 + 当前标记 + 操作按钮）|
+| 后续（记录）| ★ 帧列表持久化到磁盘（跨 serve 重启）、按帧批量"素材命中率"报告、多帧投票（H4） |
+

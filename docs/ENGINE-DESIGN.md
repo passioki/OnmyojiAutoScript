@@ -1823,7 +1823,7 @@ tasks/<任务名>/
 |---|---|
 | 实现 | M0 统一任务模板（meta 契约/`param()`/`task lint/new`）· M1 `POST /task/create` + `POST /task/run` + 编辑器新建/运行 · M1b `tasks/探索`/`tasks/个人突破` · M2 调度 v3（periodic+temp B/重置记忆/面板）· M3 `config/live.json` + 全局 `--config` + 显式 serial + release 打包/启停/升级 |
 | 测试 | `cargo test --workspace` = **312 passed / 0 failed**（21 suites；基线 213，+99）· `oasd --version` = 1.0.0 |
-| 交付包 | `oasd-v1.0.0-win64.zip`（59.7MB）· SHA256 `CF463445DB119AC05780A36E9637981B9C58E8E6A8F866A9DC7E4B87C5B53EC3` · 含 exe/ui/models/adb/tasks/library/config/启停脚本/README-DEPLOY |
+| 交付包 | `oasd-v1.0.0-win64.zip`（59.7MB）· SHA256 `616999353EE3CA143AA0E207A881D0D34FD689DC3E6D092500F044F6AB2780EB` · 含 exe/ui/models/adb/tasks/library/config/启停脚本/README-DEPLOY |
 | Android 验收 | 解压 zip 后：编辑器创建「实机验收任务」→ 运行「探索」**Done/exit 0/14 clicks**；调度 2 轮：探索 Done（quota 2/2，第二轮 quota_exhausted）+ 个人突破 temp 每轮执行（首轮 Done 真实挑战、后续 resource 出口）|
 | 任务验收 | 探索：庭院→探索→真实战斗（胜利）→结算→回庭院，13 击 ≈31s；个人突破：庭院→结界突破→个人突破→挑战→真实战斗→结算→回庭院，15 击 ≈43s（本场战败，流程完整）|
 | 重置记忆 | CLI `scheduler reset-memory` + 编辑器调度面板「重置记忆」多选/全选/反选/全不选 + 清 checkpoint 勾选；实测 API `ok:true`、审计 `memory_reset` |

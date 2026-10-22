@@ -242,7 +242,7 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 |---|---|
 | 引擎 | `oas-core` 本地 `main` = `7a4c58c`（V1.0 实现提交，52 files / +12152）|
 | 测试 | `cargo test --workspace` = **312 passed / 0 failed**（21 suites）|
-| 包 | `dist/oasd-v1.0.0-win64.zip` · **59.7MB** · SHA256 `CF463445DB119AC05780A36E9637981B9C58E8E6A8F866A9DC7E4B87C5B53EC3` |
+| 包 | `dist/oasd-v1.0.0-win64.zip` · **59.7MB** · SHA256 `616999353EE3CA143AA0E207A881D0D34FD689DC3E6D092500F044F6AB2780EB` |
 | 实机（模拟器）| Android 12 / x86_64 / 阴阳师 2.8.84 / MuMu vmindex=0 / adb 127.0.0.1:16384 |
 | 创建闭环 | 解压包编辑器「新建任务」→ 创建「实机验收任务」200；运行「探索」**Done / exit 0 / 14 clicks** |
 | 探索 | 实机 Done（真实战斗胜利→结算→回庭院，13 击，≈31s）|

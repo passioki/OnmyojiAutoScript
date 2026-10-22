@@ -37,8 +37,8 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 | 项 | 值 |
 |---|---|
-| 引擎 HEAD | ★ `oas-core` 本地 `main` = `7a4c58c`（V1.0 实现提交：M0~M3）· worktree 干净 · 无远端 |
-| 引擎测试 | ★ `cargo test --workspace` = **312 passed / 0 failed**（21 suites）· `oasd --version` = 1.0.0 · release `oasd-v1.0.0-win64.zip` SHA256 `CF4634…` |
+| 引擎 HEAD | ★ `oas-core` 本地 `main` = `678e915`（V1.0 实现提交：M0~M3）· worktree 干净 · 无远端 |
+| 引擎测试 | ★ `cargo test --workspace` = **312 passed / 0 failed**（21 suites）· `oasd --version` = 1.0.0 · release `oasd-v1.0.0-win64.zip` SHA256 `6169…` |
 | 本轮设计 | ★ **统一任务模板 + 调度 v3（ENGINE §22.34）已实现**；临时任务 = B（每轮执行、前后重置、无完成记忆）；重置记忆 CLI+UI 多选（全选/反选）|
 | 本轮交付 | ★ V1.0：编辑器新建/运行任务 · `tasks/探索` + `tasks/个人突破` 实机 Done · 调度 2 轮实机通过 · 交付包/配置/启停脚本 · 24h soak 已启动（pid=1268，待回填）|
 | 下一步 | ★ 等 24h soak 完成回填 D8；后续 V1.1 可选：录制→flow、任务包导入导出、webhook 告警、Windows 服务/看门狗 |

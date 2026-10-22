@@ -22,7 +22,7 @@ V1.0：实机（Android 客户端）可创建任务 + 探索/个人突破实跑 
 - [x] **M1b 探索** — 实机 Done（13 击 ≈31s，真实战斗胜利→结算→回庭院）— `_verify/n42/run_探索_final.log`
 - [x] **M1b 个人突破** — 实机 Done（15 击 ≈43s；真实挑战，本场战败但流程完整）— `run_个人突破_final.log`
 - [x] **M2/N37** 调度 v3 + reset-memory — 2 轮实机报告；`temp_state_reset before/after`；重置记忆 API/UI
-- [x] **M3/N39** 交付包 — `oasd-v1.0.0-win64.zip` SHA256 `CF4634…`；probe/lint/启动即用
+- [x] **M3/N39** 交付包 — `oasd-v1.0.0-win64.zip` SHA256 `6169…`；probe/lint/启动即用
 - [x] **V0.9 gate** 实机解压→编辑器创建→运行 Done — `live-install-final` 记录
 - [x] **V1.0 gate** 实机调度 2 轮 + 跨进程重启 — `scheduler-report.json` + `-2.json`
 - [ ] **24h soak** — 已启动 pid=1268 @ 2026-10-23T03:11:45+08:00（loop_interval_s=900），待满 24h 回填
@@ -30,7 +30,7 @@ V1.0：实机（Android 客户端）可创建任务 + 探索/个人突破实跑 
 ## 2. 当前进度
 
 - 当前阶段：V1.0 功能全部完成；**仅剩 24h soak 待回填**
-- 上一步：引擎提交 `7a4c58c`（52 files/+12152）；交付包重打包 SHA256 `CF4634…`
+- 上一步：引擎提交 `678e915`（52 files/+12152）；交付包重打包 SHA256 `6169…`
 - **下一步精确动作**：
 
 ```bash
@@ -43,8 +43,8 @@ Get-Content logs\scheduler.events.jsonl -Encoding UTF8 | Select-Object -Last 20
 
 ## 3. 已验证事实（带时间/命令输出）
 
-- oas-core：`main` = `7a4c58c`；`cargo test --workspace` = **312 passed / 0 failed**；`oasd --version` = 1.0.0
-- 交付包：`D:\OAS-dev\oas-core\dist\oasd-v1.0.0-win64.zip`（59.7MB，SHA256 `CF463445DB119AC05780A36E9637981B9C58E8E6A8F866A9DC7E4B87C5B53EC3`）
+- oas-core：`main` = `678e915`；`cargo test --workspace` = **312 passed / 0 failed**；`oasd --version` = 1.0.0
+- 交付包：`D:\OAS-dev\oas-core\dist\oasd-v1.0.0-win64.zip`（59.7MB，SHA256 `616999353EE3CA143AA0E207A881D0D34FD689DC3E6D092500F044F6AB2780EB`）
 - 实机安装（模拟）：`_verify\n42\live-install-final`（编辑器 8788 已停）；`live-soak`（调度器 pid=1268 运行中）
 - Android：MuMu Android 12 x86_64 / 阴阳师 2.8.84 / adb 127.0.0.1:16384
 - 调度实跑：第 1 轮 探索 Done 31.1s + 个人突破 Done 43s；第 2 轮 探索 Done 31.1s + 个人突破 resource 10.0s；quota 2/2 → quota_exhausted
@@ -56,7 +56,7 @@ Get-Content logs\scheduler.events.jsonl -Encoding UTF8 | Select-Object -Last 20
 | 文件 | 改了什么 | 状态 |
 |---|---|---|
 | `backend/docs/*` | ENGINE §22.35、DELIVERY-PLAN §8/DoD、台账 N36~N40、HANDOFF/START-HERE/RESUME | 待提交 |
-| `oas-core` | 已提交 `7a4c58c`，worktree 干净 | ✅ |
+| `oas-core` | 已提交 `678e915`，worktree 干净 | ✅ |
 
 ## 5. 本轮新裁定 / 约束（只记与下一步相关的）
 

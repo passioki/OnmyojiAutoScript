@@ -1025,8 +1025,8 @@
 
 | # | 事项 | 依据 | 状态 | 验证 |
 |---|---|---|---|---|
-| **N11** | ★★ `click_target`（`find` 列表：template → ocr_text → coord_memory）+ `state/coords.json` + `locator` 审计 | ENGINE §22.11 · 用户 [10-22 19:5x] | ⬜ **待裁定（一期范围 / 与 N10 先后）** | 估算 ~1.5 天；建议先于多边形 |
-| 补充 | ★ 多模板变体 · 相对锚点 · 页面守卫 · 点击后验证 · 无障碍(uiautomator) · 取色断言 · 多帧投票 · 分辨率换算 · OCR+模板互证 | ENGINE §22.11 表 | ⬜ 待排期 | 按性价比分批 |
+| **N11** | ★★ `click_target`（`find` 列表：template → ocr_text → coord_memory）+ `state/coords.json` + `locator` 审计 | ENGINE §22.11 · 用户 [10-22 19:5x] | ✅ **已完成（一期）**（`6abb816`） | ★ flow 23 · runtime 52 · task 22 · oasd 25 · 全工作区 **153 passed** · ★ 注入 **2/2 真红** · ★ 离线 replay 验收：OCR 回退点 (1173,189) / 记忆回退点 (1176,185) 且 coords 未被改写 |
+| 补充 | ★ 多模板变体 · 相对锚点 · 页面守卫 · 点击后验证 · 无障碍(uiautomator) · 取色断言 · 多帧投票 · OCR+模板互证 | ENGINE §22.11 表 | ⬜ 待排期 | 按性价比分批 |
 | 待调 | ★ 权重 / `comet_contrast` / miss 区间（现为 `Humanize` 字段，可编程覆盖）是否挂配置 | ENGINE §22.9 建议 | ⬜ 待裁定 | — |
 | **N6b** | ★ 素材更新（同 id 覆盖，`rev+1`）：`POST /task/save_asset {replace:true}` + UI 确认框 | ENGINE §22.5 · §4 rev | ✅ **已完成**（`8558ac3`）| ★ `oas-task` **20 passed**（+4 更新路径）· ★ 全工作区 **127 passed** · ★ 注入 **3/3 真红** · ★ HTTP 实测 create→rev1 / dup→400 / replace→rev2 + 旧图删除 |
 | **N7** | ★ 10k 点击模拟工具 `examples/click_sim.rs`（HB1/HB2，CD2 JSONL） | ENGINE §22.5 · §20 | ✅ **已完成**（`8558ac3`）| ★ 10k：`distinct=2558`（97.9% 覆盖）· `x_std=19.36`/`y_std=11.32`（理论 19.34/11.26）· 证据 `_verify/n7/` · `runs/sim-10k.clicks.jsonl` |

@@ -1278,3 +1278,17 @@ tasks/<任务名>/
 
 ★ **待用户裁定**：是否按此**一期**开工？★ 以及和 **§22.10 多边形（LAAR）**的先后 —— 我建议**先定位链、后多边形**（定位链决定任务能否跑稳；多边形只修正落点形状）。
 
+#### ★★ 已实现（一期 · [10-22 20:2x] · 引擎提交 `6abb816`）
+
+| 层 | 落地 |
+|---|---|
+| DSL | ★ 新 op `click_target`：`{"op":"click_target","args":{"find":[…]}}`；locator kind = `template`（sel + 可选 threshold）· `ocr_text`（sel + 期望文本，trim 后精确匹配）· `coord_memory`（key）|
+| 优先级 | ★ **固定**：template(0) → ocr_text(1) → coord_memory(2)，**与声明顺序无关**（运行时排序）；全失败 ⇒ **响亮失败**并附每级证据（score / 文本 / 无记忆）|
+| 记忆 | ★ `tasks/<task>/state/coords.json`（**不进 git**）：`{schema_version, items:{key:{point,design,hits,last_ok_ms}}}`；按 `design` 分辨率**比例换算**；★ replay / dry-run **只读**（`coords=… writable=false`）；写入**原子**（tmp + rename）；任一级成功后刷新链内 key |
+| 审计 | ★ 步日志 `detail=clicked_target locator=…`；★ `ClickRecord.locator`；★ CD2 JSONL 行增加 `"locator"`（`template`/`ocr_text`/`coord_memory`/`point`）|
+| 判据 | ★ `oas-flow` **23** · `oas-runtime` **52** · `oas-task` **22** · `oasd` **25** · 全工作区 **153 passed**；★ **注入 2/2 真红**（去掉优先级排序 ⇒ 顺序守卫红；不刷新记忆 ⇒ puts 守卫红）|
+| 验收（离线 replay · 单帧列表） | ★ ① 模板（噪声）失败 → OCR 命中「分组2」⇒ `locator=ocr_text`、点 (1173,189)；② 模板+OCR 都失败 → 记忆命中 ⇒ `locator=coord_memory`、点 (1176,185)，且 **coords.json 未被改写** |
+
+★ **二期/补充层（待排期）**：多模板变体 · 相对锚点 · 页面守卫 · 点击后验证 · 无障碍(uiautomator) · 取色断言 · 多帧投票 · OCR+模板互证（§22.11 表）—— 按性价比分批。
+★ **一期已知限制**：OCR 仅**精确匹配**（无模糊/包含、无多候选打分权重）；memory 暂**无过期时间**（只有分辨率换算 + 键存在性）；编辑器 UI 尚未生成 `click_target` 步骤（手写 flow 可用）。
+

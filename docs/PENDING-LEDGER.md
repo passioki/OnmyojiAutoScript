@@ -1014,6 +1014,7 @@
 | # | 事项 | 依据 | 状态 | 验证（可核查）|
 |---|---|---|---|---|
 | **N9** | ★★ 三分布混合（钟形 30% / 完全随机 20% / 彗星 50%）+ 彗星手侧相关 + 1~3% 手误 | ENGINE §20 HB1/HB7 · §22.9 | ✅ **已完成**（`1954d19`）| ★ `oas-runtime` **43** · 全工作区 **137 passed** · ★ 4 面板图 + 1000 跑（miss **1.99%**、distinct 3701）|
+| **N9b** | ★★ 彗星修订：**头在中心 + 径向指数衰减**（概率随离中心距离下降），手侧方向衰减更慢形成尾巴 | ENGINE §22.9「19:1x 修订」 | ✅ **已完成**（`21d0218`）| ★ `oas-runtime` **44** · 全工作区 **138 passed** · ★ 新守卫「内圈计数 > 远角」· 1000 跑（miss **2.09%**、distinct 3595、预设 σ 16.1/9.6）|
 | 待调 | ★ 权重 / `comet_contrast` / miss 区间（现为 `Humanize` 字段，可编程覆盖）是否挂配置 | ENGINE §22.9 建议 | ⬜ 待裁定 | — |
 | **N6b** | ★ 素材更新（同 id 覆盖，`rev+1`）：`POST /task/save_asset {replace:true}` + UI 确认框 | ENGINE §22.5 · §4 rev | ✅ **已完成**（`8558ac3`）| ★ `oas-task` **20 passed**（+4 更新路径）· ★ 全工作区 **127 passed** · ★ 注入 **3/3 真红** · ★ HTTP 实测 create→rev1 / dup→400 / replace→rev2 + 旧图删除 |
 | **N7** | ★ 10k 点击模拟工具 `examples/click_sim.rs`（HB1/HB2，CD2 JSONL） | ENGINE §22.5 · §20 | ✅ **已完成**（`8558ac3`）| ★ 10k：`distinct=2558`（97.9% 覆盖）· `x_std=19.36`/`y_std=11.32`（理论 19.34/11.26）· 证据 `_verify/n7/` · `runs/sim-10k.clicks.jsonl` |

@@ -1662,3 +1662,28 @@ tasks/<任务名>/
 | 全屏调试页 | ★ `/dashboard.html` 保留（改名 OAS 点击分布），面板底部有链接可直达 |
 | 判据 | ★ 全工作区 **208 passed**；★ headless 截图 `_verify/n35/editor_header_windows.png`（常驻双窗口 + 五 tab）、`n35/editor_click_panel.png`（点击分布面板含运行记录/统计）|
 
+---
+
+### 22.31 ★★★ [10-24 01:0x] **H5 OCR + 模板互证**（同文案不同按钮去歧义 · 引擎提交 `fa69d1d`）
+
+> ★ 横向 H5（用户 [10-22] 确认保留）。典型：弹窗「确认」与底部「确认」同文案，只有带某图标/高亮的那个才该点。
+
+| 项 | 落地 |
+|---|---|
+| 语法 | ★ `click_target.find[].kind=="ocr_text"` 新增可选 **`require_template`**：`{"kind":"ocr_text","sel":"O_LIST","text":"确认","require_template":"I_ICON"}` |
+| 语义 | ★ OCR 行命中后，在该行 rect **周边 16px** 内再匹配 `require_template`（用素材自身阈值）；未命中 ⇒ **跳过该定位器**并记录 evidence（继续 next locator/coords fallback，全部失败才响亮报错）|
+| 校验 | ★ `require_template` 计入 `referenced_assets`（保存 flow 时缺素材即报错）；非字符串在解析期拒绝 |
+| 判据 | ★ `oas-flow` **34**（解析/引用收集/错误类型拒绝）· `oas-runtime` **78**（正例：文字+图标 ⇒ 点击；反例：同文案缺图标 ⇒ Failed 且 **0 点击**）· 全工作区 **210 passed** |
+
+---
+
+### 22.32 ★★ [10-24 01:0x] **结果/日志窗口位置调整**（引擎提交 `fa69d1d`）
+
+> ★ 用户："结果/日志窗口调整为在截图窗口上方，素材/图片/任务/流程/点击分布的左侧。"
+
+| 项 | 落地 |
+|---|---|
+| 位置 | ★ 从 header 移入主区左侧列顶部：**截图上方**两个并排常驻窗口；右侧 rail（素材/图片/任务/流程/点击分布）在其右侧，**同高起步** |
+| header | ★ 恢复单行（标题/状态/截图）|
+| 验收 | ★ headless 截图 `_verify/n36/editor_windows_left.png` |
+

@@ -499,6 +499,8 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ [10-24 00:2x] **N30 标题行结果/日志抽屉 + 素材行内测试 + 导航调整**：header 抽屉、rail「点击分布」、任务素材分组/搜索/测试按钮、`/task/asset/match`（206 passed）
   ★ [10-24 00:5x] **N31 H4 多帧投票**：`click.stable_frames`（1..=10，连续 N 帧同位置 ±4px 才点，失败不点）；flow 33 / runtime 77 / 208 passed
   ★ [10-24 00:5x] **N32 标题行常驻结果/日志窗口 + 点击分布并入 rail**（五 tab 行为统一；/dashboard 保留）；208 passed
+  ★ [10-24 01:0x] **N33 H5 OCR+模板互证**（ocr_text.require_template，行周边 16px 模板校验；210 passed）
+  ★ [10-24 01:0x] **N34 结果/日志窗口移到截图上方、rail 左侧**（headless 截图 n36/editor_windows_left.png）
   ★ 素材库用法：编辑器选 ROI → 填库素材 id →「保存到素材库」；flow/素材写 `lib:<id>`（click/appear/click_target/requires/expect/interrupts 均可）；`oasd run`/`serve` 默认读 `library/`；`GET /match?lib=<id>` 或编辑器「用库素材试匹配」可测
   ★ [10-22 23:3x] 界面中文化：试识别/多行识别/试匹配/得分/耗时/状态栏能力位/flow op 下拉均为中文；多边形模式提示"点击区=匹配外接矩形"
   ★ 实机验收 [10-22 21:0x]：S1 连续 4 跑全 Done（7 击/跑、miss 0）；实机录制同 seed 回放 7/7 逐点一致；`expect appear(预设)` 真机 verified=true ⇒ 下一步**页面守卫**（S1 起始页是"探索/御魂"，不是庭院）

@@ -1054,6 +1054,8 @@
 | **N30** | ★★ **标题行结果/日志抽屉 + 任务素材分组/搜索/行内测试 +「点击分布」导航**（Phase 4 + 布局微调）| ENGINE §22.28 · 用户 [10-24 00:1x] 两点布局要求 + Phase 4 | ✅ **已完成**（`98b43f3`）| ★ serve 38 / 全工作区 **206 passed** · ★ 实机 `/task/asset/match` score=1.0 pass=true · headless 截图 `_verify/n34/editor_assets_drawers.png`、`n34/editor_assets2.png` |
 | **N31** | ★★★ **H4 多帧投票**（`click.stable_frames` 1..=10；连续 N 帧同位置 ±4px 才点；失败不点击）| ENGINE §22.29 · 用户 [10-22] 确认 H4 + [10-24] "好的" | ✅ **已完成**（`b40555c`）| ★ flow 33 / runtime 77 / 全工作区 **208 passed** · ★ 同位置 2 帧成功 1 击、移动目标 Failed 0 点击 |
 | **N32** | ★★ **标题行常驻结果/日志窗口 + 点击分布并入 rail 统一面板** | ENGINE §22.30 · 用户 [10-24 00:2x] "是真的窗口…点击逻辑统一" | ✅ **已完成**（`b40555c`）| ★ headless 截图 `_verify/n35/editor_header_windows.png`、`n35/editor_click_panel.png` · 208 passed |
+| **N33** | ★★★ **H5 OCR+模板互证**（`ocr_text` 定位器可选 `require_template`：文字行周边 16px 内必须含指定模板）| ENGINE §22.31 · 用户 [10-22] 确认 H5 + [10-24] "好的" | ✅ **已完成**（`fa69d1d`）| ★ flow 34 / runtime 78 / 全工作区 **210 passed** · ★ 正例点击、反例 Failed 0 点击 |
+| **N34** | ★★ **结果/日志窗口移到截图上方、rail 左侧** | ENGINE §22.32 · 用户 [10-24 01:0x] 位置要求 | ✅ **已完成**（`fa69d1d`）| ★ headless 截图 `_verify/n36/editor_windows_left.png` |
 | 事故 | ★ **[10-22 23:1x] OCR 501 事故**：serve 用了无 `--features ocr` 的二进制 ⇒ 编辑器识别报错。修复：重建 + `/state` 增加 ocr/det 能力位 + 编辑器提示（已包含在 N25 后续提交中）| ENGINE §22.21 事故小节 | ✅ 已修复 | `/ocr` 实测 score=0.99988 |
 
 ---

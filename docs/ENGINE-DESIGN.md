@@ -1687,3 +1687,22 @@ tasks/<任务名>/
 | header | ★ 恢复单行（标题/状态/截图）|
 | 验收 | ★ headless 截图 `_verify/n36/editor_windows_left.png` |
 
+---
+
+### 22.33 ★★★ [10-24 01:3x] **纵向⑥：周期调度 / 守护运行**（`oasd schedule` · 引擎提交 `8b252a6`）
+
+> ★ 用户 [10-24 01:2x]：**"横向暂停，开始纵向"**。纵向 ①~⑤ 已完成（弹窗/重试恢复/queue/流程编辑器/统计告警）；⑥ = 把"跑一次队列"升级为**长期守护调度**（进程常驻，按周期跑到期任务，重启不重复跑）。
+
+| 项 | 落地 |
+|---|---|
+| plan | ★ JSON：`{"schema_version":1,"jobs":[{"task":"S1切预设","every_s":3600,"retries":1,"retry_delay_s":0,"enabled":true}]}` |
+| 校验 | ★ schema=1 · jobs 非空 · `every_s>=1` · `retries<=5` · task 名合法且任务目录存在（启动即 fail-fast）· 重复 task 拒绝 |
+| 执行 | ★ 到期任务**串行**执行（复用 `run::execute`，与 `run`/`queue` 同一路径）；单任务失败按 `retries` 重试（可选 `retry_delay_s`）|
+| 状态 | ★ `schedule.json.state.json`（原子写）：next_run_ms/last_outcome/runs/failures；**重启不会把同一任务立刻重跑**（到达 next_run 才跑）|
+| 选项 | ★ `--plan --state --tasks-dir --once --max-runs N --tick-ms --dry-run --report <json> --library --model --det-model --replay --clicks-dir --shots-dir --seed` |
+| dry-run | ★ **纯预览**：只打印到期任务，不写状态（避免"预览把 next_run 推到未来"）|
+| 退出码 | ★ 有失败 = 1；全部成功 = 0（配合 `--once/--max-runs` 做一次性验收）|
+| 判据 | ★ schedule 单测 **3**（plan 校验/到期与推进/once+重启状态）· 全工作区 **213 passed** |
+| 验收 | ★ dry-run 打印且**不落状态**；S1 replay `--once --max-runs 1` ⇒ report `runs=1 done`、`next_run=+3600s`；**立刻再跑 ⇒ runs=0**（状态生效）|
+| 边界/后续 | ★ 单设备串行；Ctrl+C 未做信号处理（用 `--max-runs` 控制测试/退出）；⑦ 候选：serve 调度面板、告警 webhook、任务包导入导出、多设备并发 |
+

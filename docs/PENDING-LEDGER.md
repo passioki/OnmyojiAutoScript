@@ -1056,6 +1056,7 @@
 | **N32** | ★★ **标题行常驻结果/日志窗口 + 点击分布并入 rail 统一面板** | ENGINE §22.30 · 用户 [10-24 00:2x] "是真的窗口…点击逻辑统一" | ✅ **已完成**（`b40555c`）| ★ headless 截图 `_verify/n35/editor_header_windows.png`、`n35/editor_click_panel.png` · 208 passed |
 | **N33** | ★★★ **H5 OCR+模板互证**（`ocr_text` 定位器可选 `require_template`：文字行周边 16px 内必须含指定模板）| ENGINE §22.31 · 用户 [10-22] 确认 H5 + [10-24] "好的" | ✅ **已完成**（`fa69d1d`）| ★ flow 34 / runtime 78 / 全工作区 **210 passed** · ★ 正例点击、反例 Failed 0 点击 |
 | **N34** | ★★ **结果/日志窗口移到截图上方、rail 左侧** | ENGINE §22.32 · 用户 [10-24 01:0x] 位置要求 | ✅ **已完成**（`fa69d1d`）| ★ headless 截图 `_verify/n36/editor_windows_left.png` |
+| **N35** | ★★★ **纵向⑥：周期调度/守护运行**（`oasd schedule`：plan/状态持久化/到期串行执行/重试/dry-run/报告）| ENGINE §22.33 · 用户 [10-24 01:2x] "横向暂停，开始纵向" | ✅ **已完成**（`8b252a6`）| ★ schedule 3 / 全工作区 **213 passed** · ★ dry-run 不落状态；S1 replay once ⇒ runs=1 done、next_run=+3600s；立刻再跑 runs=0 |
 | 事故 | ★ **[10-22 23:1x] OCR 501 事故**：serve 用了无 `--features ocr` 的二进制 ⇒ 编辑器识别报错。修复：重建 + `/state` 增加 ocr/det 能力位 + 编辑器提示（已包含在 N25 后续提交中）| ENGINE §22.21 事故小节 | ✅ 已修复 | `/ocr` 实测 score=0.99988 |
 
 ---
@@ -1074,7 +1075,7 @@
 | H5 | OCR+模板互证（文字区域内必须含某图标）| 同文案不同按钮去歧义 | ⬜ 待开发记录 |
 
 ★ **纵向基线（已具备，可支撑继续纵向开发）**：flow DSL（if/loop/while/wait_until/appear/表达式）· 任务包（assets/flow/meta）· 三分布手化+HB7 手误 · 多边形（点击区=匹配外接矩形，§22.10 修订；识别掩膜待 N10b）· **整帧模板搜索（§22.20，平移容忍）** · 定位冗余链（图片>文字>坐标记忆）+ coords.json · 点击后验证 `expect` · 页面守卫 `requires` · 多模板变体 `alts` · 逐击审计（locator/match）+ 失败截图 · 记录/回放（HB5 seed 可复现）· 编辑器（框选/多边形/OCR 调试/**图识别试匹配**/点击分布/流程编辑/统计面板）。
-★ **纵向缺口（建议按序）**：① 弹窗/中断处理 ✅ N20；② 步级重试与失败恢复 ✅ N21/N21b；③ 多任务调度/supervisor ✅ N22；④ 任务编排/流程编辑器 ✅ N23；⑤ 运行统计与告警 ✅ N24。⇒ **纵向 ①~⑤ 已全部完成**；当前主力是横向 H1/H2/H4/H5 与 N10b 掩膜二期。
+★ **纵向缺口（建议按序）**：① 弹窗/中断处理 ✅ N20；② 步级重试与失败恢复 ✅ N21/N21b；③ 多任务调度/supervisor ✅ N22；④ 任务编排/流程编辑器 ✅ N23；⑤ 运行统计与告警 ✅ N24；⑥ 周期调度/守护运行 ✅ N35。⇒ **纵向 ①~⑥ 已完成**；横向 H1/H2 暂停，H4/H5 已完成；剩余候选：⑦ serve 调度面板/告警 webhook/任务包导入导出/多设备并发。
 | 待调 | ★ 权重 / `comet_contrast` / miss 区间（现为 `Humanize` 字段，可编程覆盖）是否挂配置 | ENGINE §22.9 建议 | ⬜ 待裁定 | — |
 | **N6b** | ★ 素材更新（同 id 覆盖，`rev+1`）：`POST /task/save_asset {replace:true}` + UI 确认框 | ENGINE §22.5 · §4 rev | ✅ **已完成**（`8558ac3`）| ★ `oas-task` **20 passed**（+4 更新路径）· ★ 全工作区 **127 passed** · ★ 注入 **3/3 真红** · ★ HTTP 实测 create→rev1 / dup→400 / replace→rev2 + 旧图删除 |
 | **N7** | ★ 10k 点击模拟工具 `examples/click_sim.rs`（HB1/HB2，CD2 JSONL） | ENGINE §22.5 · §20 | ✅ **已完成**（`8558ac3`）| ★ 10k：`distinct=2558`（97.9% 覆盖）· `x_std=19.36`/`y_std=11.32`（理论 19.34/11.26）· 证据 `_verify/n7/` · `runs/sim-10k.clicks.jsonl` |

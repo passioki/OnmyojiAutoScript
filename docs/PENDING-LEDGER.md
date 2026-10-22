@@ -1046,6 +1046,7 @@
 | **N20** | ★★ **弹窗/中断处理**（`interrupts` 自动消弹 + `dismiss_popup` 显式关弹；纵向第①项） | ENGINE §22.15 · 用户 [10-22 21:5x] "好的" | ✅ **已完成**（`1cb7397`；接受动作 `4ced23b`）| ★ flow 29 · runtime 67 · task 22 · oasd 26 · 全工作区 **173 passed** · ★ 注入 **2/2 真红** · ★ 离线 replay：dismiss_popup 命中 / on_interrupt 先消弹再执行 / **detect+action 接受邀请（点击落在 ACCEPT 区）** |
 | **N21** | ★★ **步级重试与退避**（`retry:{times,delay_ms,backoff}`；纵向第②项上半） | ENGINE §22.16 · 用户 [10-22 22:0x] "好的" | ✅ **已完成**（`cafe5f0`）| ★ flow 31 · runtime 69 · task 22 · oasd 26 · 全工作区 **177 passed** · ★ 注入 **1/1 真红** · ★ CLI replay：retry 后成功 / 耗尽失败零误点 |
 | **N21b** | ★ **断线重连 + 检查点恢复**（纵向第②项剩余） | ENGINE §22.16（下半） · 用户 [10-22 22:0x] "按你的来" | ✅ **已完成**（`61bb19c`）| ★ runtime 71 · oasd 30 · 全工作区 **185 passed** · ★ CLI：checkpoint 保留/续跑跳过前缀；kill adb 后冷启动自动连回 127.0.0.1:16384 并 Done |
+| **N22** | ★★ **多任务调度/supervisor**（纵向第③项）：queue 串行跑多任务、重试/轮次/报告 | ENGINE §22.17 · 用户 [10-22 22:2x] "好的" | ✅ **已完成**（`174800f`）| ★ queue 单测 2 · 全工作区 **187 passed** · ★ 注入 **1/1 真红** · ★ CLI：2×S1 全 Done（各 7 击）/ 必失败任务 attempts=2 failed |
 
 ---
 

@@ -1389,6 +1389,18 @@ tasks/<任务名>/
 
 ---
 
+### 22.17 ★★ [10-22 22:2x] **多任务调度 / supervisor**（纵向第③项 · 引擎提交 `174800f`）
+
+| 项 | 落地 |
+|---|---|
+| CLI | ★ `oasd queue --tasks <a>,<b>,…`：`--replay` · `--max-attempts`（1..=20）· `--between-ms` · `--rounds`（长跑）· `--report <file.json>` · `--clicks-dir` · `--shots-dir` · `--seed` · `--fail-fast` · `--no-resume-on-retry` · `--model/--det-model` |
+| 语义 | ★ 按顺序执行任务包；每任务失败按 `max-attempts` 重试（attempt 轮换 seed；有 checkpoint 且非 `--no-resume-on-retry` 则续跑）；完成/耗尽后记 `TaskResult`；`--rounds` 循环整个队列（长时间挂机）；★ 报告 JSON：`{schema_version, started_ms, finished_ms, results:[{task,round,attempts,outcome,exit_code,clicks,misses,started_ms,finished_ms,error?}]}`；★ 全部 Done ⇒ exit 0，否则 1 |
+| 判据 | ★ `queue` 单测 **2**（两任务全 Done / 重试到上限失败）· 全工作区 **187 passed**；★ 注入 **1/1 真红**（忽略 `--max-attempts` ⇒ 重试次数守卫红）|
+| 验收 | ★ ① 两个 S1 任务（replay）⇒ 各 **7 击**、全 **Done**、报告 `results=2`；★ ② 必失败任务 + `--max-attempts=2` ⇒ `attempts=2`、`outcome=failed`、exit 1 |
+| 已知限制 | ★ 单设备**串行**（并发/多设备待做）；★ replay 下 checkpoint 只读，因此 `resume-on-retry` 只在 live 生效 |
+
+---
+
 ### 22.12 ★★ [10-22 21:0x] 实机验收（MuMu · emulator-5554 · 1280×720）
 
 > ★ 用户选择"先把现状跑一段实机，再回来排期"（§22.11 补充层选项 4）。

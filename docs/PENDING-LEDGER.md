@@ -995,6 +995,7 @@
 | **N8** | ★★ 模板点击由**均匀**改为 **Irwin–Hall(3) 钟形**（对齐旧仓库 `module/base/utils/utils.py::random_normal_distribution_int`）| ENGINE §20 HB1 · §22.6 · 旧仓 `module/atom/click.py:26-34` | ✅ **已完成** | ★ 10k：xσ **19.36→12.49**、distinct **2558→1786**；1000 跑：预设 σ **11.2→7.4** |
 | **N8b** | ★★ 新增 **HB7 手误**：2% 落目标框外 ≤12px（仍真点击；日志/审计 `miss=true`；CD2 JSONL 增 `miss`）| ENGINE §20 HB7 · §22.6 | ✅ **已完成** | ★ 10k miss **208（2.08%）** · 1000 跑 miss **144（2.06%）** · 注入 2/2 真红 |
 | 验证 | ★ 全工作区 **135 passed**（runtime **41**，+6 条守卫）| ENGINE §22.6 | ✅ | ★ 注入真红（改回均匀 / 屏蔽 miss），还原 SHA256 一致 |
+| 实验 | ★ **10% 手误 × 200 跑 × 7 目标 = 1400 点击**：miss **8.93%**（期望 10%）、distinct **1110**；★ 约 52% 的 7 步任务会有 ≥1 次手误 | ENGINE §22.6-6 · 引擎 `c705379` | ✅ **已实测** | `_verify/n10/s1_200_miss10.png` · `runs/s1-200-miss10.clicks.jsonl` |
 | 遗留 | ★ `RuleClickExclude`（旧仓全屏伪装点击）· ★ miss 参数挂配置 · ★ UI 区分 miss 颜色 | ENGINE §22.6 遗留 | ⬜ 明账 | 详见 `_verify/n9/N9_EVIDENCE.md` |
 | **N6b** | ★ 素材更新（同 id 覆盖，`rev+1`）：`POST /task/save_asset {replace:true}` + UI 确认框 | ENGINE §22.5 · §4 rev | ✅ **已完成**（`8558ac3`）| ★ `oas-task` **20 passed**（+4 更新路径）· ★ 全工作区 **127 passed** · ★ 注入 **3/3 真红** · ★ HTTP 实测 create→rev1 / dup→400 / replace→rev2 + 旧图删除 |
 | **N7** | ★ 10k 点击模拟工具 `examples/click_sim.rs`（HB1/HB2，CD2 JSONL） | ENGINE §22.5 · §20 | ✅ **已完成**（`8558ac3`）| ★ 10k：`distinct=2558`（97.9% 覆盖）· `x_std=19.36`/`y_std=11.32`（理论 19.34/11.26）· 证据 `_verify/n7/` · `runs/sim-10k.clicks.jsonl` |

@@ -477,6 +477,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ bb770e1 = **N10 多边形框选一期**（点击区 = 多边形最大内接矩形 LAAR；编辑器多边形模式）
   ★ 6abb816 = **N11 定位冗余链一期**（click_target：图片 > 文字 > 坐标记忆 + state/coords.json + locator 审计）
   ★ 3d705c7 = **N12 点击后验证**（expect：appear/vanish/ocr_text，轮询超时=步失败）
+  ★ bf44bbe = **N16 页面守卫**（requires：点击前校验，不满足=零点击失败）+ oas-flow 注释乱码修复 + S1 加 requires
   ★ 实机验收 [10-22 21:0x]：S1 连续 4 跑全 Done（7 击/跑、miss 0）；实机录制同 seed 回放 7/7 逐点一致；`expect appear(预设)` 真机 verified=true ⇒ 下一步**页面守卫**（S1 起始页是"探索/御魂"，不是庭院）
   文档：backend docs（§22.5 / §E-17 / §1n）已 push origin/dev
 
@@ -495,7 +496,8 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 点击分布：HB1 = **20% 钟形 / 5% 完全随机 / 75% 彗星（头在中心、概率随离中心距离指数下降、手侧方向衰减更慢）**；HB7 = **每 100 次 1~3 次手误**（框外 ≤12px，日志/JSONL 带 miss）
   ★ 待实现：点击定位冗余链（图片>文字>坐标记忆 + 10 条补充层）→ ENGINE §22.11，待裁定；建议先于多边形
   ★ 定位链一期已完成（6abb816：click_target + coords.json + locator 审计，离线 replay 验收）；补充层/模糊匹配/过期策略待排期
-  ★ 点击后验证已完成（3d705c7：expect appear/vanish/ocr_text；轮询超时=步失败；3 帧 replay 验收 verified=true）；剩余补充层：多模板/相对锚点/页面守卫/无障碍/取色/多帧投票/OCR+模板互证
+  ★ 点击后验证已完成（3d705c7：expect appear/vanish/ocr_text；轮询超时=步失败；3 帧 replay 验收 verified=true）；剩余补充层：多模板/相对锚点/无障碍/取色/多帧投票/OCR+模板互证
+  ★ 页面守卫已完成（bf44bbe：requires；实机庭院起跑零误点失败、探索页起跑 guard=true 全流程）；S1 flow 第一次 click 已带 requires
   ★ 多边形一期已完成（bb770e1：编辑器多边形框选 + 点击区=LAAR，匹配/OCR 仍外接矩形）；二期掩膜/自交/顶点编辑待排
   ★ 证据 _verify/n6/N6_EVIDENCE.md · _verify/n8/N8_EVIDENCE.md · _verify/n9/N9_EVIDENCE.md · _verify/n11/ · _verify/n12/ · _verify/n13/（v3.1 指数修订）
   ★ 对比分析：旧仓 RuleClickExclude（安全随机点击）vs 手误 → ENGINE §22.8；可移植 click_safe/等待随机滑动（待裁定）

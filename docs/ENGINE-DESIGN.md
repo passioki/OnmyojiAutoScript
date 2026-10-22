@@ -1289,7 +1289,7 @@ tasks/<任务名>/
 | 判据 | ★ `oas-flow` **23** · `oas-runtime` **52** · `oas-task` **22** · `oasd` **25** · 全工作区 **153 passed**；★ **注入 2/2 真红**（去掉优先级排序 ⇒ 顺序守卫红；不刷新记忆 ⇒ puts 守卫红）|
 | 验收（离线 replay · 单帧列表） | ★ ① 模板（噪声）失败 → OCR 命中「分组2」⇒ `locator=ocr_text`、点 (1173,189)；② 模板+OCR 都失败 → 记忆命中 ⇒ `locator=coord_memory`、点 (1176,185)，且 **coords.json 未被改写** |
 
-★ **二期/补充层（待排期）**：多模板变体 · 相对锚点 · 页面守卫 · 无障碍(uiautomator) · 取色断言 · 多帧投票 · OCR+模板互证（§22.11 表）—— 按性价比分批。
+★ **二期/补充层（待排期）**：多模板变体 · 相对锚点 · 无障碍(uiautomator) · 取色断言 · 多帧投票 · OCR+模板互证（§22.11 表）—— 按性价比分批。
 ★ **一期已知限制**：OCR 仅**精确匹配**（无模糊/包含、无多候选打分权重）；memory 暂**无过期时间**（只有分辨率换算 + 键存在性）；编辑器 UI 尚未生成 `click_target` 步骤（手写 flow 可用）。
 
 #### ★★ 已实现（补充层 · **点击后验证** · [10-22 20:5x] · 引擎提交 `3d705c7`）
@@ -1300,6 +1300,16 @@ tasks/<任务名>/
 | 语义 | ★ 点击成功后**逐帧轮询**（每轮强制重新抓帧；frame-gated replay 每轮消耗一帧，正好把"等待"建模到离线）；满足 ⇒ 步成功且 detail 带 `verified=true`；★ **超时 ⇒ 步失败**（带 score/文本证据），绝不把"点了没反应"算成功 |
 | 判据 | ★ `oas-flow` **25** · `oas-runtime` **56** · `oas-task` **22** · `oasd` **25** · 全工作区 **159 passed**；★ **注入 3/3 真红**（验证恒真 ⇒ 超时守卫红；定位链两条见 N11） |
 | 验收 | ★ 3 帧 replay（列表 / 列表无关闭 / 关闭出现）：`click_target`(OCR) + `expect appear(关闭)` ⇒ `verified=true`（★ 轮询到**第 2 帧**才满足，证明真的在轮询而不是点完就过） |
+
+#### ★★ 已实现（补充层 · **页面守卫** · [10-22 21:0x] · 引擎提交 `bf44bbe`）
+
+| 项 | 落地 |
+|---|---|
+| DSL | ★ `click` / `click_point` / `click_target` 均可带 `requires`（与 `expect` 同构：`appear`/`vanish`/`ocr_text` + `timeout_ms`，默认 1000）；★ 引用资产纳入校验 |
+| 语义 | ★ 点击**前**轮询页面前置（每轮强制重新抓帧；replay 每轮消耗一帧）；不满足 ⇒ ★ **步失败且一次都不点**（`page guard failed: expect appear not met …`）；满足 ⇒ 正常点击，detail 带 `guard=true` |
+| 实测（真机） | ★ 庭院起跑 S1（起始页不对）：`page guard failed`、**clicks=[]（零误点）**；★ 探索页起跑：step1 `guard=true`、7 击、Done |
+| 判据 | `oas-flow` **25** · `oas-runtime` **58** · `oas-task` **22** · `oasd` **25** · 全工作区 **161 passed**；★ 注入 **1/1 真红**（守卫恒通过 ⇒ "不点"守卫红） |
+| 配套 | ★ `tasks/S1切预设` 第一次 `click(结界突破)` 已加 `requires: appear(结界突破, 3000ms)` —— 从错误页面起跑会**立刻明确失败** |
 
 ---
 

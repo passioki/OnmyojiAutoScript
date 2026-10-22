@@ -1040,6 +1040,7 @@
 | **N15** | ★ 实机 `expect` 验证 | ✅ `expect appear(预设)` 真机通过 `verified=true`（2385ms 含轮询）|
 | 发现 | ★ S1 起始页是"探索/御魂"界面，不是庭院；从庭院直接跑会第一步失配 ⇒ **下一步优先做页面守卫** | ✅ 已由 N16 解决 |
 | **N16** | ★★ **页面守卫**（`requires`：点击前校验页面前置；不满足=零点击失败） | ✅ **已完成**（`bf44bbe`）| ★ flow 25 · runtime 58 · task 22 · oasd 25 · 全工作区 **161 passed** · ★ 注入 **1/1 真红** · ★ 实机：庭院起跑 guard failed/clicks=[]；探索页起跑 guard=true/7 击/Done · ★ S1 flow 已加 requires |
+| **N17** | ★★ **多模板变体**（`click.alts`：主图失败后逐张试变体；审计命中的变体 id） | ENGINE §22.11 补充层 · 用户 [10-22 21:2x] | ✅ **已完成**（`c3c4237`）| ★ flow 27 · runtime 60 · 全工作区 **165 passed** · ★ 注入 **1/1 真红** · ★ 离线 replay：主模板噪声 → variant 命中 score 1.000，7 击完成 |
 | 待调 | ★ 权重 / `comet_contrast` / miss 区间（现为 `Humanize` 字段，可编程覆盖）是否挂配置 | ENGINE §22.9 建议 | ⬜ 待裁定 | — |
 | **N6b** | ★ 素材更新（同 id 覆盖，`rev+1`）：`POST /task/save_asset {replace:true}` + UI 确认框 | ENGINE §22.5 · §4 rev | ✅ **已完成**（`8558ac3`）| ★ `oas-task` **20 passed**（+4 更新路径）· ★ 全工作区 **127 passed** · ★ 注入 **3/3 真红** · ★ HTTP 实测 create→rev1 / dup→400 / replace→rev2 + 旧图删除 |
 | **N7** | ★ 10k 点击模拟工具 `examples/click_sim.rs`（HB1/HB2，CD2 JSONL） | ENGINE §22.5 · §20 | ✅ **已完成**（`8558ac3`）| ★ 10k：`distinct=2558`（97.9% 覆盖）· `x_std=19.36`/`y_std=11.32`（理论 19.34/11.26）· 证据 `_verify/n7/` · `runs/sim-10k.clicks.jsonl` |

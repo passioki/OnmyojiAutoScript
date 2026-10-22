@@ -33,6 +33,17 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 ## ★ 1. 当前状态（★ 每次更新）
 
+### ★★★ [10-24] **当前主线 = oas-core**（本节为现行口径；以下旧仓状态仅作历史参考）
+
+| 项 | 值 |
+|---|---|
+| 引擎 HEAD | ★ `oas-core` 本地 `main` = `8b252a6`（2026-10-23 00:36 · 纵向⑥ v1 schedule）· worktree 干净 · 无远端 |
+| 引擎测试 | ★ `cargo test --workspace` = **213 passed / 0 failed**（最新实测）· OCR 构建 `cargo build -p oasd --features ocr` 绿 |
+| 编辑器 | ★ serve 8787：三栏 IDE（素材/图片/任务/流程/点击分布）+ 标题行下常驻结果/日志 + `/dashboard.html` 点击分布页 |
+| 本轮设计 | ★ **统一任务模板 + 调度 v3 已定稿（ENGINE §22.34）**；临时任务 = B（每轮按 entries 顺序跑一次、执行前后重置、无 one_shot/continue）；重置记忆清调度状态+任务 state，UI 多选/全选/反选 |
+| 下一步 | ★ **P0：任务模板 schema + `oasd task lint` + 模板目录 + 旧任务零破坏迁移** → P1 调度纯函数 → P2 调度 v3 → P3 serve 面板（N36/N37）|
+| 入口文档 | ★ `docs/START-HERE.md` 已于 [10-24] 重写为引擎版（旧仓段落归档为资源库说明）|
+
 | 项 | 值 |
 |---|---|
 | ★ **日期** | ★ **2026-10-15**（★ 上轮 10-14 · ★★ **[10-15] 本机换成了【新开发机 `D:\OAS-dev`】**）|
@@ -502,6 +513,8 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ [10-24 01:0x] **N33 H5 OCR+模板互证**（ocr_text.require_template，行周边 16px 模板校验；210 passed）
   ★ [10-24 01:0x] **N34 结果/日志窗口移到截图上方、rail 左侧**（headless 截图 n36/editor_windows_left.png）
   ★ [10-24 01:3x] **N35 纵向⑥ 周期调度/守护运行**（`oasd schedule`：plan/状态持久化/到期串行执行/重试/dry-run/报告；213 passed）；横向 H1/H2 暂停
+  ★ [10-24 02:0x] **调度 v3 + 统一任务模板设计定稿**（ENGINE §22.34）：三层分离（模板契约/调度机制/玩家配置）；生命周期 periodic + temp（B：每轮按 entries 跑一次、执行前后重置、无记忆）；删除 one_shot/continue；重置记忆清调度状态+任务 state（UI 多选/全选/反选）；v1 every_s schedule 为原型将替换
+  ★ [10-24 02:0x] START-HERE 重写为引擎版；台账新增 N36（任务模板）/N37（调度 v3）待实现
   ★ 纵向 ①~⑥ 完成；⑦ 候选：serve 调度面板、告警 webhook、任务包导入导出、多设备并发
   ★ 素材库用法：编辑器选 ROI → 填库素材 id →「保存到素材库」；flow/素材写 `lib:<id>`（click/appear/click_target/requires/expect/interrupts 均可）；`oasd run`/`serve` 默认读 `library/`；`GET /match?lib=<id>` 或编辑器「用库素材试匹配」可测
   ★ [10-22 23:3x] 界面中文化：试识别/多行识别/试匹配/得分/耗时/状态栏能力位/flow op 下拉均为中文；多边形模式提示"点击区=匹配外接矩形"

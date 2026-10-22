@@ -1,319 +1,237 @@
 # 新会话入口（START HERE）★ **只要读这一个文件**
 
-> ★★★ **给用户的一句话**（★ 新会话开场直接粘贴）：
+> ★★★ **给用户的一句话**（新会话开场直接粘贴）：
 >
 > ```
 > 先 skill session-memory，然后读 docs/START-HERE.md，严格按它执行，最后按它的模板回报。
 > ```
 >
-> ★ **不需要再说别的** —— ★ 本文件把"读什么、做什么、回报什么"全写死了。
+> ★ **不需要再说别的** —— 本文件把"读什么、做什么、回报什么"全写死了。
 
 ---
 
-# §0 ★ 我是谁 / 这是什么项目
+# §0 ★ 我是谁 / 这是什么项目（2026-10-24 口径）
 
 ```
-★ 项目：OAS（OnmyojiAutoScript）阴阳师自动化 + OASX（Flutter 前端）
-★ ★★★ **[10-15] 本机 = 开发机**（★ 用户 [10-15] 原话："**本机是开发机**"）
-★ 开发工作区：`D:\OAS-dev\`（`backend\` + `frontend\`，★ 各自是 git 仓库）
-   ★ ★ **[10-15] 本机是新引导的开发机**：两仓都是 `git clone -b dev` 拉下来的
-     ⇒ ★ **本地分支 = `dev`**（跟踪 `origin/dev`）· ★ 不是旧机的 `main`
-   ★ ★ ✅ **[10-15] 路径与旧开发机【同名】**：★ 本机工作区也是 `D:\OAS-dev\`（★ 用户 [10-15] 提议
-     "把开发路径移到 D 盘" ⇒ ★ 已整份搬到 D 盘）⇒ ★ 历史文档/历史证据里的 `D:\OAS-dev`
-     **可以直接照做**（★ 差异只有"机器不同"：★ `D:\OAS-live` 在**另一台电脑**上）
-★ 实机：      `D:\OAS-live\`（★ **在另一台电脑上**；★ dev 的**拷贝**；后端端口 **22287**；开发用 **22288**）
-   ★ ⚠ 本机（开发机）**没有** `D:\OAS-live` ⇒ ★ **实机验收不在本机做**
-★ ★★ **[10-22] 旧仓（`backend`/`frontend`）已冻结 = 只作「资源库」** —— ★ **当前主线 = 新引擎 `oas-core`**
-  （独立 git 仓 · 本地 `main` · 无远端）⇒ ★ 旧仓只提供**资产/知识**，★ **不再在其上开发**
-  ⇒ ★ 引擎进度/下一步看 `docs/ENGINE-DESIGN.md` §22，★ 旧仓台账里与引擎无关的项**不动**
-★ ★ **唯一真相 = git**：★★ **开发分支 = 后端 `dev` · 前端 `dev`**（★ 用户 [10-15] 原话：
-   "**另一台可以拉dev啊，main是主要的稳定版本！**"）
-   ⇒ ★ **`main` = 主要的稳定版本**（★ **冻结点，只在"判定稳定"时才前移**）
-   ⇒ ★ ★ **[10-15] 本机的本地分支名 = `dev`**（clone 时就是）⇒ ★ **推送一律 `git push origin dev`**
-   ⇒ ★ ⚠ **历史教训（旧开发机）**：★ 旧机本地分支叫 `main`，那时必须 `git push origin main:dev`；
-     ★ 我 [10-15] 曾误推 `main:main`（已 `--force-with-lease` 回退）⇒ ★ **本机不再有这个坑**，
-     但**任何机器上都绝不许把本地 `main` 推到远端 `main`**（`main` 只在"判定稳定"时前移）
-★ ★★ **不许在 `D:\OAS-live` 上做开发/测试**（★ 用户 [10-14] 原话：
-   "**不要在实机跑，现有开发基于 dev 侧，实机是版本稳定后直接从 dev 拷贝过去**"）
-   ⇒ ★ 新任务/新代码**一律先在 dev 做完并跑绿**，★ **稳定后**才整份拷到实机
-   （★ 反面教材：我 [10-14] 曾把新建的 `FlowDemo` 直接装进实机 —— ★ 已还原，见坑 P14）
-★ ★★★ **[10-15] 两台机器（★ 用户打算 · ★ 待裁定）**：★ 用户原话（逐字）——
-   "**现在打算使用两台电脑，一台开发、测试稳定后，上传到github，另一台从git上更新，
-     用于实机生产。本台电脑为实机生产用，所以需要你上传dev到git，
-     确保另一台从git上取下来时可以无缝开发。**"
-   ⇒ ★★ **交付通道 = GitHub 的 `dev` 分支**（★ 取代原来的"同一台机器上 robocopy"）：
-     ★ 开发机 `git push origin main:dev` ⇒ 另一台 `git clone -b dev` / `git pull origin dev`
-     ⇒ ★ 再按 `DEV-WORKFLOW.md §4` 拷到实机
-     ⇒ ★★ **`main` 保持"主要的稳定版本"不动**（★ 用户 [10-15] 原话）
-   ⇒ ★ [10-15] **曾经的失误（已回退）**：★ 我一度把 `main` 快进到 dev（后端 `2650b6d2` ·
-     前端 `3978598`）⇒ ★ 用户纠正后已 **`--force-with-lease` 退回**：
-     ★ 后端 `main` = **`e28793ce`**（10-13 15:44）· 前端 `main` = **`af10440`**（10-13 12:25）
-     ⇒ ★ **恢复节点 tag 未动**（后端 `recovery-20261013-scheduler-audit` · 前端 `recovery-20261013-isolated-live`）
-   ⇒ ✅ ★ **[10-15] 角色已由用户裁定 —— 本机 = 开发机**（★ 用户原话："**本机是开发机**"）
-     ⇒ ★ **本机 = 开发 / 测试（`D:\OAS-dev`）· 另一台 = 实机生产（`D:\OAS-live`）**
-     ⇒ ★ 此前"谁是谁"的口径矛盾**已消解**（旧推断"本台=生产"**作废**）· 见台账 **§E-1** / `DEV-WORKFLOW.md §0.6`
-   ⇒ ★ ⚠★ **git 只给到"源码级无缝"** —— ★ `toolkit\`（★ 实测 **17000 文件 / 1167.4 MB**）·
-     `config/deploy.yaml` · ★★ **账号配置**（`恋鸟树.json`/`伴生树.json`）· `console.bat`
-     **都不在 git** ⇒ ★ 完整清单见 `DEV-WORKFLOW.md §6` 与台账 **§E-1**（★ 7 项）
-   ⇒ ✅ ★★ **[10-15] 本机已按这条清单补完**（★ 来源 = `C:\Users\passioki\Downloads`）：
-     `toolkit\`（★ 实测 **17000 文件 / 1167.4 MB**，与台账数字**一致**）· `deploy.yaml`（**6114 B** ·
-     `WebuiPort: 22288`）· `伴生树.json`（68437 B）· `恋鸟树.json`（85570 B）· `console.bat`（590 B）
-     ⇒ ★★ **四条基线已在本机跑绿**（★ 守卫 166 · 全量 15/1903/7 · 前端 0 error + 158 passed）—— 见 §1.3
-   ⇒ ⚠ ★ **[10-15] 本机缺 C++ 工具链**（无 Visual Studio / Windows SDK）⇒ ★ `flutter build windows --release`
-     **暂时不可用** ⇒ ★ 见坑 **P17**（★ 待用户裁定是否装 VS Build Tools）
+★ 项目：OAS（OnmyojiAutoScript）—— 阴阳师自动化引擎 + 数据驱动编辑器
+★ 当前主线 = 新引擎 **oas-core**（Rust workspace，`D:\OAS-dev\oas-core`，本地 `main`，**无远端**）
+★ 旧仓 `backend\` / `frontend\` = **已冻结，只作资源库**（资产/知识/历史证据）
+  ⇒ ★ 不在旧仓上开发；旧仓只读；旧仓文档里的"待办"与引擎无关的不要动
+★ 开发工作区：`D:\OAS-dev\`（oas-core + backend + frontend 并排）
+★ 交付通道：backend 文档仓 `git push origin dev`；oas-core 目前仅本地 main
+★ 实机：另一台电脑（本机没有 D:\OAS-live）⇒ 本机只做开发/回放/模拟器验证
+★ 唯一真相 = git + 磁盘证据；**不信"我记得"** ⇒ 必须贴 `文件:行号` / commit / 测试输出
 ```
+
+## 0.1 当前状态快照（2026-10-24）
+
+| 项 | 状态 |
+|---|---|
+| 引擎 | `oasd`（serve/run/queue/stats/schedule）+ 编辑器 UI + 素材库；测试 **213 passed** |
+| 引擎特性 | flow DSL、素材/掩膜/多边形、点击定位链、HB1/HB7、整帧搜索、双 ROI、库、queue、stats、checkpoint/resume、reconnect、多帧投票、OCR+模板互证 |
+| 编辑器 | 三栏 IDE（素材/图片/任务/流程/点击分布）、标题行常驻结果/日志窗口、调试页 `/dashboard.html` |
+| 纵向 | ① 弹窗 ② 重试/恢复 ③ queue ④ 流程编辑器 ⑤ 统计 ⑥ 周期调度（**v1 原型，将被 v3 替换**）|
+| 横向 | H1/H2 暂停；H4/H5 已完成；H3 暂缓 |
+| 调度设计 | ★ **v3 设计已定稿（见 §1.5 与 ENGINE §22.34）**；实现**尚未开始** |
 
 ---
 
-# §1 ★★★ 强制步骤（★ 顺序不许变，★ 少一步就算没开始）
+# §1 ★★★ 强制步骤（顺序不许变）
 
-## 1.1 加载 skill（★ 上下文压缩后必做）
+## 1.1 加载 skill（上下文压缩后必做）
 
 ```
-★ 调用 `skill` 工具，name = `session-memory`
-★ 理由：它的五条铁律（常驻区块 / 台账 / 逐步法 / 完成定义 / 双向读取）在压缩后会丢
-★ ⚠ ★★ **[10-15] 若技能目录里没有 `session-memory`**（★ 它是**用户级技能**，不在项目仓库里）：
-  ⇒ ★ **装它**（★ 一次性，之后 `git pull` 即同步；★ **不需要重启 DSH**，会热加载）：
-     ```
-     ① 克隆技能仓库（★ 路径随你）：git clone https://github.com/passioki/dsh-skills.git <位置>\dsh-skills
-     ② 确认 DSH 配置根：echo $env:DSH_HOME        （★ 本机 = C:\Users\passioki\.dsh）
-     ③ 一键安装（★ 建 Junction，**不需要管理员**）：cd <位置>\dsh-skills  ⇒  .\install.bat
-     ④ 自检：python verify.py                     （★ 期望 ALL CHECKS PASSED）
-     ```
-     ★ 装完技能扫描目录里会出现：`%DSH_HOME%\skills\session-memory\SKILL.md`
-     ★ ⚠ 别把它拷进 `backend\` / `frontend\`（★ DSH **不扫描**项目目录）。
-  ⇒ ★ **实在装不上时才跳过**（★ 不要卡住）：直接读本文件 + `SESSION-HANDOFF.md` + `docs/LAYOUT.md`，
-    这三份已把要读什么/做什么/回报什么写死在磁盘上。
-★ ⚠ **[10-15] 新会话请把工作目录设成 `D:\OAS-dev`**（★ 项目在 D 盘；★ 上轮会话的 workspace
-  `E:\OAS-dev` 已清空）—— ★ 否则各工具的**相对路径**会落到空目录上。
+★ 调用 `skill`，name = `session-memory`
+★ 它的五条铁律（常驻区块 / 台账 / 逐步法 / 完成定义 / 双向读取）在压缩后会丢
+★ 若技能目录没有 `session-memory`：装 `passioki/dsh-skills`（install.bat），或直接读
+  START-HERE + SESSION-HANDOFF + ENGINE-DESIGN 三份磁盘文档
+★ 工作目录必须是 `D:\OAS-dev`（否则相对路径落空）
 ```
 
-## 1.2 读这 5 份文档（★ 按顺序，★ 全部在 `D:\OAS-dev\backend\docs\`）
+## 1.2 读这 4 份文档（按顺序）
 
-| 序 | 文件 | 读它为了什么 | ★ 必须读到 |
-|---|---|---|---|
-| **①** | `SESSION-HANDOFF.md` | ★ **当前在哪、下一步干什么、有哪些坑** | 全文（★ [10-15] 实测 **57 KB** —— ★ 旧写"5 KB"是**改造前**的旧值）|
-| **②** | `PENDING-LEDGER.md` | ★ **未完成台账**（🔄/⬜/⛔）| 全文（★ [10-15] 实测 **104 KB** —— ★ 旧写"24 KB"是旧值）|
-| **③** | `DEV-WORKFLOW.md` | ★ 怎么开发/测试/部署 + **§0 会话协议** | ★ **§0 必读**，其余按需 |
-| **④** | `DESIGN-SPEC.md` | ★ **软件应该是怎样的** | ★ **只读本轮相关的 §**（如改调度读 §1，改前端读 §3）|
-| **⑤** | ★ **[10-15] `LAYOUT.md`** | ★ **存放结构树 + 路径规约 R1~R5**（"路径该怎么写"的唯一入口）| ★ 改任何命令/路径前必读 |
-| **⑥** | 本文件 §3 的**活跃坑** | ★ 不要重复踩 | P1~P7 ＋ **P15~P18**（★ [10-15] 新增 · ★ 详见 `SESSION-HANDOFF.md §3` 的 P1~P18）|
-| **⑦** | ★ **[10-22] `ENGINE-DESIGN.md` §22** | ★ **当前主线 = 新引擎 `oas-core`**（旧仓已冻结为资源库）| ★ §22 进度快照 + 下一步 |
+| 序 | 文件 | 读它为了什么 |
+|---|---|---|
+| ① | `docs/SESSION-HANDOFF.md` | 当前在哪、下一步、最近提交、活跃坑 |
+| ② | `docs/ENGINE-DESIGN.md` **§22** | 引擎规格/进度/判据；**调度 v3 设计看 §22.34** |
+| ③ | `docs/PENDING-LEDGER.md` 的 §E-23/§E-24 段 | 引擎待办（N36/N37）与历史台账 |
+| ④ | `docs/LAYOUT.md` / `DEV-WORKFLOW.md` §0 | 仅在**碰路径/旧仓**时读 |
 
-★ **禁止**：★ 凭"我记得规格是…"开工 —— ★ 必须**贴出文档引用（§/行号）+ 代码证据**。
-
-## 1.3 ★★ 用代码核实台账（★ 不许信文档自述）
-
-★ 在**后端仓库**里跑（★ **去盘符**：见 `docs/LAYOUT.md`；★ 下面用到的 `run-tests.bat` 是**仓库内包装脚本** —— 与 cwd 无关，内部用 `%~dp0`）：
+## 1.3 用代码核实（不许信文档自述）
 
 ```bat
-REM ① 代码是不是台账以为的那一版
+REM ① 我的工作区/提交
+cd D:\OAS-dev\oas-core
 git log -1 --format="%h %ci %s"
 git status --porcelain
 
-REM ② 台账里"进行中/未开始"的
-REM   ⚠ 不要用 findstr 查 emoji（GBK 下匹配不到，会静默输出空）——
-REM     用 PowerShell 的 Select-String（本机 pwsh 可用）
-powershell -NoProfile -Command "Select-String -Path docs\PENDING-LEDGER.md -Pattern '🔄','⬜','⛔' | Select-Object LineNumber,Line"
+REM ② 引擎测试（现行基线：213 passed / 0 failed）
+cargo test --workspace
 
-REM ③ ★★ 强制跑全部守卫（★ 一条命令，★ 期望 **171 passed** —— ★ [10-22] 实测 5.31s）
-REM   ★ [10-15] 去陈旧：第 15 个文件 test_no_hardcoded_paths.py 是**路径规约 R5 的守卫**
-REM     （★ 旧清单只有 14 个文件 = 166 条；★ 实机侧 §E-7-c 早已按 170 = 166 + 4 对照）
-run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py tests/module/config/test_entry_target_reached.py tests/module/server/test_help_texts_current_ui.py tests/module/server/test_profile_name_from_user.py tests/module/server/test_profile_transfer_keeps_enables.py tests/tasks/Component/SwitchSoul/test_switch_soul_validation.py tests/tasks/test_rest_random_minutes.py tests/module/config/test_loop_rounds.py tests/tasks/test_no_ticket_is_success.py tests/module/flow/test_control_types.py tests/module/config/test_entry_custom_state.py tests/module/test_task_factory.py tests/module/config/test_no_hardcoded_paths.py -q
+REM ③ OCR 构建（serve/run 需要；不带 feature 会报 "this build has no OCR"）
+cargo build -p oasd --features ocr
 
-REM ④ ★ 全量基线（★ **[10-22 02:1x] 现行实测：0 failed / 1935 passed / 18 skipped（88.70s）**）
-REM   ★ [10-15] 的旧口径「14 failed / 1904 / 7」**已作废** —— ★ 那 14 条已由 §E-13 收敛为 0
-REM   ★ 那 14 条是【已知环境类】，★ 不是回归：
-REM     9 = 缺 module/config/i18n/zh-CN.json（★ 它是**前端运行后**经 /home/chinese_translate
-REM         推来的运行时产物 ⇒ 没起前端就没有）· 2 = 读用户/实机状态（test_task_report）
-REM     · 1 = test_schema_router（窗口外任务）· 1 = test_task_catalog（用户配置）
-REM     · 1 = live 配置（test_queue_clear_and_settings）
-REM   ★★ 原来那 43 条"测试硬编码读 `…\OASX-src`"已**根治**（[10-15] 改走 `dev_tools/paths.py`）
-REM   ★ ★ **[10-15] 那 1 条"真漂移"已修**：tests/module/config/test_linkage_unification.py
-REM     的 `test_pause_reports_requeue` 原要求前端 run_control_bar.dart 有
-REM     `pauseScriptDetailed` + 文案含"退回/队首" ⇒ ★ 那是 **P-1 旧口径**（已被两次裁定推翻，
-REM     且与前端自己的守卫**互相矛盾**）⇒ ★ 已按 SPEC §3.6 现行口径**改写为
-REM     `test_pause_entry_lives_on_the_queue_row`**（★ 16 passed）
-run-tests.bat
+REM ④ 启动编辑器（根目录 = oas-core；先确保 8787 没被占用）
+set ADB_PATH=D:\OAS-dev\backend\toolkit\Lib\site-packages\adbutils\binaries\adb.exe
+target\debug\oasd.exe serve --port 8787 --tasks-dir tasks --runs-dir runs --library-dir library ^
+  --model D:\OAS-dev\backend\toolkit\Lib\site-packages\rapidocr\models\PP-OCRv6_rec_small.onnx ^
+  --det-model D:\OAS-dev\backend\toolkit\Lib\site-packages\rapidocr\models\PP-OCRv6_det_small.onnx
+
+REM ⑤ 旧仓守卫（仅作参考；旧仓已冻结，171 passed 是旧仓基线，不是引擎验收）
+cd D:\OAS-dev\backend
+run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py ... -q
 ```
 
-★ 期望：★ **守卫 171 passed**（★ **15 个文件** · [10-22] 实测 5.31s）；★ 全量 **0 failed / 1935 passed / 18 skipped**（★ [10-22] 实测 88.70s —— ★ 旧口径「14 failed / 1904 / 7」**作废**：★ 那 14 条已由 §E-13 收敛为 0）。
-★★ **[10-15] 相对路径改造后的实测（开发机 = `passioki`）**：★ 守卫 **170 passed** · ★ 全量 **14 / 1904 / 7** · ★ 前端 `analyze` **0 error（4w+17i）** · `test` **160 passed**
-★ **改造前 = 49 failed / 1862 passed / 12 skipped**（★ 那 43 条"硬编码读 `…\OASX-src`"⇒ **已根治**；★ 覆盖反而变强：这些测试**现在真的在读前端源码**）。
+## 1.4 先回报，再动手
 
-```bat
-REM ⑤ ★ 前端（★ 也要核）——★ **无盘符包装**：自动找 SDK + 自动补 --no-version-check（坑 P16）
-dev_tools\flutter.bat analyze lib
-dev_tools\flutter.bat test
-REM   ★ [10-14] 实测：analyze 0 error（4 warning + 17 info）· test 158 passed
-REM   ★ ★ [10-15] 开发机复现：analyze 0 error（4 warning + 17 info）· test **160 passed**
-REM     （★ 158 → 160 = [10-15] 新增 2 条 **F9 可达性**运行时守卫）
-REM   ★ ⚠ **必须带 `--no-version-check`**：否则 flutter 会对 SDK 仓库跑
-REM     `git fetch --tags`（要拉 611285 个对象）⇒ 在当前网络下**挂死**（★ 坑 P16）
-REM   ★ ⚠ 本机**无 Visual Studio / Windows SDK** ⇒ `build windows --release` 暂不可用（★ 坑 P17）
-```
+★ 读完、核实完，必须先把 §2 的**引擎版回报模板**发给用户，等确认方向后才改代码。
+★ 改动前先出「设计 vs 现状」对照（✅符合 / ❌不符 + `文件:行号`）。
 
-```bat
-REM ⑥ ★ [10-22] 新引擎（★ 当前主线 = oas-core；★ 旧仓已冻结为资源库）
-cd oas-core
-cargo test --workspace                       REM ★ 期望 123 passed / 0 failed（default）
-cargo build -p oasd --features ocr           REM ★ OCR 构建（serve / run --model 用）
-REM   ★ 引擎验收看 ENGINE-DESIGN §22 的判据；★ 不要拿旧仓 pytest 基线当引擎验收
-```
+## 1.5 ★★★ 当前设计决策（调度 v3 + 统一任务模板，用户 [10-24] 定稿）
 
-## 1.4 ★★★ 先回报，再动手（★ 这一步不许省）
+> 详见 **ENGINE-DESIGN §22.34**；这里是入口摘要。
 
-★ **读完、核实完，必须先把 §2 的回报模板发给用户**，
-★ 并**等用户确认方向**，★ **然后才允许改代码**。
+**三层分离（机制 / 契约 / 值）**
 
-★ ⚠⚠ **[10-14] 换会话时最要紧的三件事**（★ 新会话请先看这三条）：
+| 层 | 内容 | 不许写死游戏数据 |
+|---|---|---|
+| 统一任务模板 | `tasks/<id>/{meta.json, flow.json, assets.json, images/}`；`meta.json` 含 params/entry.requires/exits/capabilities/resources/schedule_hint；flow 统一骨架 `preflight → main → settle → finish(exit)`；`oasd task new --template …` + `task lint` | ✅ 零游戏常量 |
+| 调度器 v3 | 周期时钟、护栏、候选过滤、唤醒规划、执行器、状态/报告 | ✅ 零游戏常量 |
+| 玩家配置 | `scheduler.json`：重置时间、active_hours、blackouts、entries（顺序/窗口/quota/params）| ✅ 全部玩家自己填 |
 
-> ★ **① 架构早已定案，别再问** —— ★ 用户 [10-14] 裁定 **`M2`**（= `DESIGN-SPEC.md` §1.17 的
->   **A/A+ 受控指令集**，★ **不用 `eval`**）★ ＋ ★ **annotator 允许"深度拆解"进任务实现器**
->   （★ §1.18-八 `AN1`~`AN4`）。★ **P0 已落地**（`module/flow/` + `entry_state`，见 §4.5-㉞）。
->   ⇒ ★ **下一步是 `P1`**（§1.18-六）：★ 补 5 个空缺原语（**返回键/键盘/文本/滚动/拖拽**）
->   ＋ ★ 把 `LoopBudget/StuckGuard/RetryPolicy` 提到 `module/action/`。
->
-> ★★ **② "新建任务"已经能跑通了（`N9-11`）** —— ★ `module/task_factory.py`（原子创建 +
->   回滚 + 命名校验 + 自动登记 + 示例识别骨架）★ ＋ `tasks/FlowDemo/`（**已在 dev**）★
->   ＋ 守卫 `tests/module/test_task_factory.py`（31 条，★ 注入验证 3/3 真红）。
->   ★★ **新建任务的"完整合同" = 6 类**（★ 见 §1.16-五 `NT8`；★ 实测一次创建撞红 **14 条**守卫）——
->   ★ 谁要再建任务，**先读 NT8**，★ 别以为"写 4 个文件就完了"。
->
-> ★★ **③ 开发只在 dev；实机是"稳定后的拷贝"** —— ★ 用户 [10-14] 原话：
->   "**不要在实机跑，现有开发基于dev侧，实机是版本稳定后直接从dev拷贝过去**"
->   ⇒ ★ 见 §0 与坑 **P14**（★ 我[10-14]曾把 `FlowDemo` 装进实机 ⇒ **已还原**）。
->   ★ **待你裁定的一件事**：★ dev 侧把「流程示例」**真跑一次**怎么做（★ dev 的 `恋鸟树` 与实机
->     **同一个模拟器** `127.0.0.1:16384`）⇒ ★ **A** 先停实机 `:22287` · **B** 给 dev 换设备 ·
->     **C** 等稳定后拷到实机再跑。
->
-> ★★ **④ [10-15] 三件"待裁定" —— ★★ 逐条处置状态（[10-15] 第二次开工后更新）** ——
->   ★ ① **两台机器的角色** ⇒ ✅ **已裁定**（★ 用户："**本机是开发机**" ＋ ★ 实机侧"对了。"）
->     ⇒ ★ **开发机（`passioki`）= 开发/测试** · **实机（`Win~Win~Win~`）= 生产**
->     ★ 台账 **§E-1 / §E-7-0** · `DEV-WORKFLOW.md §0.6`（★ **禁止裸用"本机"**）
->   ★ ② **非 git 的运行时怎么传给另一台** ⇒ ✅ **已定（[10-15]）**：★ **`dsh-skills` 走 git**
->     （★ 已推 `passioki/dsh-skills`）· ★ **其余（`toolkit\` 17000 文件/1167.4 MB · `deploy.yaml` ·
->     两份账号配置 · `console.bat`）由用户【手动传】**
->   ★ ③ ★★ **前端 `F9`**：★ `queue_panel.dart:1042-1058` 是**多余分支**（★ 与 `:1059` 条件**逐字相同**
->     ⇒ 死代码）⇒ ★ **`[⏸] 暂停调度` 永远不显示** ⇒ ✅ **[10-15] 已修**（★ 删该段 + ★★ **2 条
->     runtime 可达性守卫** `_f9PauseReachableTests()` + **注入验证 1 failed → 还原逐字节一致 → 回绿**）
->     · ★ 与之**同源**的 `E-6-n` **真漂移**也已按 SPEC §3.6 现行口径解决（★ 见 §3 与台账 §E-8）
->
-> ★★ **⑤ [10-15] 开发机已换成新机器（`D:\OAS-dev`）—— 环境已引导完毕** ——
->   ★ 两仓 = `git clone -b dev`（★ 本地分支 `dev`）· ★ `toolkit\` / `deploy.yaml` / 两份账号配置 /
->   `console.bat` 已从 `C:\Users\passioki\Downloads` 补齐 · ★ Flutter 3.27.1 装在 `D:\flutter3271`
->   （★ **必须带 `--no-version-check`**，见坑 P16）· ★★ **四条基线已实测**
->   （★★ [10-22] 现行：守卫 **171 passed** · 全量 **0/1935/18** · 前端 **0 error + 160 passed**）
->   ★ ✅ **[10-15] VS Build Tools 已装**（★ 用户裁定"装" ⇒ VS 2022 Build Tools `17.14.37806.7` +
->   Windows SDK `10.0.26100.0`）⇒ `flutter build windows --release` **可用**（★ 见坑 P17 · 台账 §E-8-j）
->   ★ ⚠ 仍要记住两条新坑：**P19**（`.bat` 必须纯 ASCII）· **P20**（换盘后清 `__pycache__`）
+**生命周期（用户敲定）**
+
+- `periodic`：时间窗 + 每日/每周 quota 的周期任务（斗技/寮活动/签到等）。
+- `temp`：**临时任务**（旧仓 `period=none` 的等价概念）：
+  - **无**窗口/无 quota；不记忆"还剩几次/完成到哪"；
+  - **B 触发方式**：临时条目可以放在 `entries` 里；调度器**每次启动/每一轮**按数组顺序跑一遍；
+  - **执行前、执行后各重置一次执行状态**；门票/次数是否还有，由任务 flow 在这次启动时自己判断；"完成"= 门票耗尽/达到次数（任务自然结束），不是跨次标记。
+- **删除**：`one_shot` 与 `continue`（"还有余量下次继续"）——用户裁定不需要。
+- `rest`（可选，后期）：暂停 N 分钟的条目；v1 不优先。
+
+**重置记忆功能**
+
+- 入口：CLI + 编辑器「重置记忆」按钮；
+- 弹**任务选择框**（多选、**全选/反选**）；
+- 清除范围：**两者都清** = 调度器条目状态 + 任务 `state/`（checkpoint/计数等）；
+- 重置后任务执行状态初始化（等价第一次运行）；原子写 + 审计事件 `memory_reset`。
+
+**调度铁律**：窗口只回答"能不能跑"；执行顺序只由 `entries` 数组顺序决定；排序是动作不是状态；调度器不内置任何游戏时间/清单。
 
 ---
 
-# §2 ★★ 回报模板（★ 逐项填，★ 不许省略）
+# §2 ★★ 回报模板（引擎版，逐项填）
 
 ```
-📖 已看过 design_spec 文档 · §<相关小节> · 规则 <编号> · 修复进度 <§4.5-N>
+📖 已看过 design_spec 文档 · ENGINE §22.x / §22.34 · 当前 commit <hash>
 
 【1. 我已加载】
    skill `session-memory`：✅/❌
-   读过的文档：SESSION-HANDOFF ✅ · PENDING-LEDGER ✅ · DEV-WORKFLOW §0 ✅ · DESIGN-SPEC §__ ✅
+   读过的文档：SESSION-HANDOFF ✅ · ENGINE-DESIGN §22 ✅ · PENDING-LEDGER §E-24 ✅
 
 【2. 代码与我核实的台账】
-   后端 commit = <hash> · 分支 = <branch> · worktree 干净 = 是/否
-   前端 commit = <hash> · 分支 = <branch>
-   ★ 守卫（§1.3 的第 ③ 条那一条命令）= __ passed（★ [10-22] 现行基线 = **171**；★ 旧值 170/166/98 已作废）
-   ★ 全量 = __ failed / __ passed / __ skipped（★ [10-22] 现行基线 = **0 / 1935 / 18**；★ 旧值 14/1904/7、49/1785、15/1903 已作废）
-   ★ 前端 = flutter analyze __ error · flutter test __ passed（★ [10-15] 现行基线 = **0 / 160**）
+   oas-core commit = <hash> · 分支 = main · worktree 干净 = 是/否
+   cargo test --workspace = __ passed / __ failed（现行基线 = 213）
+   serve 状态：/state = <captured/device/ocr/det>
+   后端文档仓 commit = <hash> · dev 是否已推 = 是/否
 
-【3. 差异（★ 文档说 A、代码是 B 的地方）】
-   | 台账/文档说 | 我看到的 | 差异 |
+【3. 差异（文档说 A、代码是 B）】
+   | 文档说 | 代码是 | 差异 |
 
-【4. 下一步（按台账优先级 + 我的判断）】
-   1. …   2. …   3. …
-   ★ 我建议先做：… 因为 …
+【4. 下一步（按 ENGINE §22.34 计划 + 我的判断）】
+   1. …  2. …  3. …
+   ★ 建议先做：… 因为 …
 
-【5. 未完成台账】（★ 全表贴出，★ 见 PENDING-LEDGER.md）
+【5. 未完成台账】（N36/N37 等，见 PENDING-LEDGER §E-24）
 
-【6. 需要你裁定的事】
-   …
+【6. 需要用户裁定的事】
 
-【7. 本轮"完成定义"（★ 说完成前必须勾完）】
+【7. 本轮完成定义（说完成前必须勾完）】
    ☐ …  ☐ …  ☐ …
 ```
 
-★ **没有这个回报 ⇒ ★ 本轮不算开始**（★ 这是防"压缩后走偏"的第一道闸）。
-
 ---
 
-# §3 ★ 活跃的坑（★ 别再踩）
+# §3 ★ 活跃的坑（引擎相关）
 
 | # | 坑 | 一句话 |
 |---|---|---|
-| **P1** | ★ **`"播放模式"` 这个标题是用户要求删掉的** | ★ 前端该处**只有下拉**（顺序/循环/乱序）—— ★ **不要"修复"成带标题** |
-| **P2** | ★ **前端不能放 `D:\MuMuPlayer\OAS\` 下** | 内核驱动 `PassGuard_x64.sys` 打了保护标记 ⇒ 双击打不开 |
-| **P3** | ★ **守卫必须做"注入验证"** | 否则可能是恒真空转（审计已发现过 2 处）|
-| **P4** | ★ **`toolkit\` / `config\deploy.yaml` / 账号配置 / `console.bat` 不在 git** | ★ 清理目录前必须先抢救（`DEV-WORKFLOW.md` §1 有清单）|
-| **P5** | ★ **删目录前逐个核对完整路径** | 已因"删+建同名前缀混用"误删过 `D:\OASX-Live` |
-| **P6** | ★ **删含 `adb.exe` 的目录前先 `adb kill-server`** | 否则删不净 |
-| **P7** | ★★ **`pwsh` 工具整段不可用（★ 两种症状）** | ★ ① `spawn … ENOENT`（旧）· ★★ ② **[10-15] 每条命令都返回 `exit code 3221225794`（= `0xC0000142` STATUS_DLL_INIT_FAILED）且零输出**（★ 连 `echo hi` 都失败）⇒ ★ **两种都靠"续跑/重启 DSH 会话"解决**（★ 不是重启电脑；★ [10-15] 实测下一轮自行恢复）· ★ 也可用 `pwsh -Command` 之外的原生手段（`read`/`grep`/`glob` 工具）先取证 |
-| **P15** | ★★ **[10-15] 旧开发机的 `git` 报 `dubious ownership`**（★ `git log`/`status`/`push` **全被拒**）| ★ 真因：仓库属主 = `Administrators` ≠ 当前用户 ⇒ ★ 修：`git config --global --add safe.directory D:/OAS-dev/backend`（★ 前端同理）；★ ⚠ **沙箱下改不了** `~/.gitconfig` ⇒ ★ **必须先放开沙箱**（★ [10-15] 已修 · 详见 `SESSION-HANDOFF.md §3`）★ ★ **[10-15] 本机（`D:\OAS-dev`）实测没有这个问题**（仓库属主正常，`git log`/`status` 直接可用）⇒ ★ 若将来出现，`safe.directory` 要写 **`D:/OAS-dev/backend`**（不是 `D:/…`）|
-| **P16** | ★★ **[10-15] `flutter` 的"版本检查"会跑 `git fetch --tags`（★ 611285 个对象）⇒ 在新网络上**挂死** | ★ 症状：`flutter --version`（或任何不带开关的命令）卡 10+ 分钟，后台常驻 `git fetch --tags` + `git index-pack`（★ 实测 `git remote-https origin https://github.com/flutter/flutter.git`）⇒ ★ **正解：命令一律加 `--no-version-check`**；★ 并把包/引擎源换成国内镜像：`PUB_HOSTED_URL=https://pub.flutter-io.cn` · `FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn`（★ 实测 Google 源 **~170 KB/s** vs 国内镜像 **3.5 MB/s**，997 MB 的 SDK 包 5 分钟下完且**字节数精确一致**）|
-| **P17** | ✅ **[10-15] 缺 C++ 工具链 —— ★ 已解决（用户裁定"装"）** | ★ [10-15] 实测**原本没有** `vswhere` · 无 `Microsoft Visual Studio` 目录 · 无 `Windows Kits\10\bin` · 无 `cmake`/`ninja` · **无 `winget`** ⇒ ★ 只有构建 exe 需要它 | ★★ **已装**：**VS 2022 Build Tools**（`17.14.37806.7` · 组件 `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` · **Windows SDK 10.0.26100.0**）⇒ ★ `flutter build windows --release` **可用**（★ 验收见台账 §E-8-j）|
-| **P18** | ✅ **[10-15] `test_task_factory` / `test_task_flow_docs` 会重写 `docs/flows/README.md` 的行尾 —— ★ 已根治（T0-1）** | ★ 症状：跑完这两个测试后 `git status` 显示 ` M docs/flows/README.md`，而 `git diff --numstat` **为空** ⇒ 纯 LF/CRLF 幻影 | ★★ **真因两处**（★ 原归因只记了第 1 处）：① `module/task_factory.py` 的 `_register_in_flow_index()` 用 `read_text()`（universal newlines）读 + `newline=''` 写 ② ★★ **`tests/module/test_task_factory.py` 的 `probe` fixture** 用 `read_text()` 备份、收尾 `write()` 写回 ⇒ ★ **收尾把整份台账还原成 LF**（★ 主因）。★ **已修**：① 读用 `newline=''` + 测出原行尾再拼回 ② fixture 改 `read_bytes()`/`write_bytes()` **逐字节**还原。★ **端到端判据**：跑两守卫后该文件 **`crlf=107/bare_lf=0/bytes=9056` 不变 · SHA 一致** ⇒ `git status` 不再出现它。★ 守卫 `test_flow_index_registration_keeps_line_endings`（注入验证真红）|
-| **P19** | ★★ **[10-15] `.bat` 里写中文 ⇒ cmd 按 GBK 解码后把 REM 行**误解析成命令** | ★ 实测：`run-tests.bat` / `run-server.bat` / `dev_tools\flutter.bat` 的 REM 里带中文 ⇒ ★ 每条命令都多出**假报错**：`'去盘符：靠' is not recognized` · `'sts.bat' is not recognized` · `'n-tests.bat' is not recognized`（★ 且 `cmd /c` 的**退出码被污染成 1** —— 明明 `16 passed`）| ★ **正解：这三个 `.bat` 一律【纯 ASCII】**（★ 与 `session-memory` 技能同一条教训：★ **通用脚本 = 纯 ASCII**，不是"记得加 BOM"；★ [10-15] 已全部改写并复验）|
-| **P20** | ★★ **[10-15] `__pycache__` 里残留**旧盘符路径** ⇒ 测试输出里的路径是错的** | ★ 实测：工作区从 `E:\OAS-dev` 搬到 `D:\OAS-dev` 时 `robocopy` **把 `__pycache__` 一起搬了**，而 `.pyc` 里记的 `co_filename` **仍是 `E:\…`**（★ 实测某 `.pyc` 字节里含 `E:\OAS-dev`）⇒ ★ pytest 的 SKIPPED/FAILED 行显示 `E:\OAS-dev\backend\tests\…` ⇒ ★★ **会让人误判"测试不是在 D 盘跑的"** | ★ **正解：换机器/换盘后清一遍**（★ 实测 **342** 个 `__pycache__` 目录 ⇒ 全删，Python 自动重建）；★ 判据：输出里的路径必须与 `%~dp0` **一致** |
+| **E1** | serve 构建必须带 `--features ocr` | 否则编辑器识别报 `this build has no OCR`；`/state` 会显示 `ocr:false` |
+| **E2** | 重建 `oasd.exe` 前必须先停 8787 | 否则 `failed to remove target\debug\oasd.exe` |
+| **E3** | `library/` 已 gitignore，`tasks/*/state` 已 gitignore | 不要把它们提交进去 |
+| **E4** | `_verify/`、`runs/` 不在 git | 验收证据放 `_verify/nNN/`，不提交 |
+| **E5** | 中文文档/代码一律用 `read`/`edit`/`write` 工具 | 不要用 PowerShell `Get-Content|Set-Content` 重写 UTF-8 文本（会 mojibake）|
+| **E6** | adb 路径走 `ADB_PATH` | `D:\OAS-dev\backend\toolkit\Lib\site-packages\adbutils\binaries\adb.exe` |
+| **E7** | 旧仓已冻结 | 旧仓 `backend/frontend` 只读；不要在旧仓上开发/提交 |
+| **E8** | 新引擎的验收看 ENGINE §22 判据 | 不要拿旧仓 pytest 基线当引擎验收 |
+| **E9** | headless Edge 截图做 UI 验收 | `msedge --headless=new --screenshot=...`；需要时加 `--user-data-dir` |
+| **E10** | 测试数会随提交增长 | 当前 213；以 `cargo test --workspace` 实测为准，不硬编码"永远 213" |
 
 ---
 
-# §4 ★★ 铁律（★ 来自 `session-memory` skill + 用户明令）
+# §4 ★ 铁律（session-memory skill + 用户明令）
 
 ```
-★ ① ★ 用户的话 = **规格**，不是建议 ⇒ ★ 不许降级成"打补丁"
-★ ② ★ **读写双向**：★ 不只看用户说了什么，★ 还要看我提了什么选项、用户裁的是哪个
-★ ③ ★ **禁止**拿"首行预览 / Select -First N 截断"当读过 —— ★ 必须读正文
-★ ④ ★ **边读边写**（防上下文压缩丢失）；★ **不攒到最后**
-★ ⑤ ★ 动手改代码前 ⇒ ★ 必须先出「**设计 vs 现状**」对照（符合 ✅ / 不符 ❌ + `文件:行号`）
-★ ⑥ ★ **逐步法**：★ 一次只改 **1~2 个边界** ⇒ 立刻 `test` ⇒ 再做下一步
-★ ⑦ ★ **完成定义**：★ 说"完成"前先列勾选清单；★ **没勾完不许说完成**
-★ ⑧ ★ **台账**：★ 每条回复**必须**先更新台账文件、★ 并把全表贴进回复
-★ ⑨ ★ **不许阴奉阳违**（★ 用户原话，已写进文档）
-★ ⑩ ★ 文档**不是流水账** —— ★ 是围绕设计 / 实现 / 经验教训的**有逻辑的集合体**
+★ ① 用户的话 = 规格，不是建议 ⇒ 不许降级成"打补丁"
+★ ② 读写双向：不只看用户说了什么，还要看我提了什么选项、用户裁的是哪个
+★ ③ 禁止拿"首行预览/截断"当读过 —— 必须读正文
+★ ④ 边读边写（防上下文压缩丢失），不攒到最后
+★ ⑤ 改代码前先出「设计 vs 现状」对照（✅/❌ + 文件:行号）
+★ ⑥ 逐步法：一次只改 1~2 个边界 ⇒ 立刻 test ⇒ 再下一步
+★ ⑦ 完成定义：说"完成"前先列勾选清单；没勾完不许说完成
+★ ⑧ 台账：每条回复先更新台账文件，并把相关表贴进回复
+★ ⑨ 不许阴奉阳违
+★ ⑩ 文档不是流水账，是围绕设计/实现/经验教训的有逻辑集合体
 ```
 
 ---
 
-# §5 ★ 每轮结束（★ 三步，★ 强制）
+# §5 ★ 每轮结束（强制）
 
 ```
-★ ① 更新 `docs/PENDING-LEDGER.md`（★ 状态变了就改；★ "已完成"要有可核查证据）
-★ ② 更新 `docs/SESSION-HANDOFF.md`（当前状态 / 下一步 / 新增的坑）
-★ ③ ★ 有实质进展就 **commit + push**（★ **[10-15] 本机两仓的本地分支 = `dev`** ⇒ **`git push origin dev`**；★ 旧机"本地 `main`"的写法只适用于本地分支叫 `main` 的机器 —— 那种机器必须 `git push origin main:dev`；★ **绝不 `main:main`**；★ **`main` 只在"判定稳定"时前移**）
+★ ① 更新 PENDING-LEDGER（状态变了就改；完成必须有可核查证据）
+★ ② 更新 SESSION-HANDOFF（当前状态/下一步/新坑）
+★ ③ 有实质进展就 commit：
+     - oas-core：本地 main，直接 commit（无远端）
+     - backend 文档：git add docs && git commit && git push origin dev
+★ ④ 验收证据进 _verify/nNN/，并写进文档判据
 ```
 
 ---
 
-# §6 ★ 常用命令速查
+# §6 ★ 常用命令速查（引擎）
 
 ```bat
-REM ---------- 开发（★ **去盘符**：一律用仓库内包装脚本，★ 与 cwd 无关）----------
-REM   ★ 工作区根 = <WORKSPACE>（里面并排 backend\ 与 frontend\；★ 见 docs/LAYOUT.md）
-backend\run-server.bat                          REM ★ 开发后端 :22288（端口取自 config\deploy.yaml）
-backend\run-tests.bat                           REM ★ 全量测试
-backend\dev_tools\flutter.bat analyze lib       REM ★ 期望 0 error（4 warning + 17 info）
-backend\dev_tools\flutter.bat test              REM ★ 期望 160 passed（[10-22] 实测）
-backend\dev_tools\flutter.bat build windows --release
-REM   ★ ⚠ build 需要 Visual Studio（★ 本机暂无 ⇒ 见坑 P17）
-frontend\build\windows\x64\runner\Release\oasx-live.exe   REM ★ 开发前端
-REM   ★ **自查锚点**：backend\toolkit\python.exe -m dev_tools.paths
+REM ---------- 构建/测试 ----------
+cd D:\OAS-dev\oas-core
+cargo test --workspace                          REM 现行基线 213 passed
+cargo build -p oasd --features ocr              REM serve/run 的 OCR 构建
 
-REM ---------- 实机（★ 在【另一台电脑】上 · 本机没有）----------
-REM   实机工作区根记作 <LIVE>（★ 生产机上的工作区；本机不存在）
-REM   <LIVE>\backend\console.bat         REM ★ 实机后端 :22287
-REM   <LIVE>\frontend\oasx-live.exe      REM ★ 实机前端
-REM   ★ ⚠ console.bat 实测是**上游的调试控制台**（开一个带 toolkit PATH 的交互 cmd），
-REM     不是"启动 server.py"的启动器 —— ★ `DEV-WORKFLOW.md §5` 给的是另一份模板
+REM ---------- 编辑器 ----------
+target\debug\oasd.exe serve --port 8787 --tasks-dir tasks --runs-dir runs --library-dir library ^
+  --model …\PP-OCRv6_rec_small.onnx --det-model …\PP-OCRv6_det_small.onnx
+REM   浏览器：http://127.0.0.1:8787/           （编辑器）
+REM           http://127.0.0.1:8787/dashboard.html （点击分布/长跑统计）
 
-REM ---------- 从零恢复一台机器 ----------
-REM ★ 见 DEV-WORKFLOW.md §6
+REM ---------- 运行/调度 ----------
+target\debug\oasd.exe run --task tasks\S1切预设 --replay <recording-dir>
+target\debug\oasd.exe queue --tasks tasks\A,tasks\B --replay <dir> --report report.json
+target\debug\oasd.exe stats --runs runs --html runs\stats.html
+REM   ⚠ 现行 schedule（v1 every_s）是原型，将被 v3 替换；设计见 ENGINE §22.34
+
+REM ---------- 旧仓（冻结，仅参考） ----------
+cd D:\OAS-dev\backend
+run-tests.bat …                                  REM 旧仓守卫基线 171 passed（参考）
 ```
+
+---
+
+# §7 设计文档索引
+
+| 主题 | 位置 |
+|---|---|
+| 引擎规格/进度 | `ENGINE-DESIGN.md` §22 |
+| **调度 v3 + 统一任务模板设计定稿** | `ENGINE-DESIGN.md` **§22.34** |
+| 当前状态/下一步/坑 | `SESSION-HANDOFF.md` |
+| 台账/证据 | `PENDING-LEDGER.md` §E-24（N36/N37）|
+| 旧仓历史（冻结）| `backend/docs/SESSION-HANDOFF.md` 历史段 · `frontend/docs/scheduler-architecture.md`（旧调度设计，参考）|

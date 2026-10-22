@@ -1706,3 +1706,107 @@ tasks/<任务名>/
 | 验收 | ★ dry-run 打印且**不落状态**；S1 replay `--once --max-runs 1` ⇒ report `runs=1 done`、`next_run=+3600s`；**立刻再跑 ⇒ runs=0**（状态生效）|
 | 边界/后续 | ★ 单设备串行；Ctrl+C 未做信号处理（用 `--max-runs` 控制测试/退出）；⑦ 候选：serve 调度面板、告警 webhook、任务包导入导出、多设备并发 |
 
+---
+
+### 22.34 ★★★ [10-24 02:0x] **调度 v3 + 统一任务模板（设计定稿，待实现）**
+
+> ★ 用户 [10-24] 裁决：
+> - "**调度的完美实现，统一的任务模板**"；
+> - 玩家时间/窗口/维护/作息/任务清单**不是**设计输入，而是 `scheduler.json` 里的**玩家配置值**；
+> - 临时任务：**B** = 可放进 `entries`，每次启动/每一轮按顺序跑一遍；**执行前/后各重置一次执行状态**；完成 = 门票耗尽/达到次数；
+> - **删除 `one_shot`**、**删除 `continue`**（"还有余量下次继续"不需要，下次启动重新确认）；
+> - **重置记忆**：清调度器条目状态 + 任务 `state/`（checkpoint/计数）；UI 任务选择框（多选/全选/反选）。
+> - ⚠ 现行 `oasd schedule`（§22.33，`every_s`）是 **v1 原型，将被 v3 替换**。
+
+#### 22.34.1 三层分离（机制 / 契约 / 值）
+
+| 层 | 内容 | 是否含游戏常量 |
+|---|---|---|
+| **统一任务模板** | `tasks/<id>/{meta.json, flow.json, assets.json, images/}`；`meta.json` 契约；flow 统一骨架；`templates/` 骨架；`oasd task new/lint` | ❌ |
+| **调度器 v3** | 周期时钟 / 护栏 / 候选过滤 / 唤醒 / 执行 / 状态 / 报告 | ❌ |
+| **玩家配置** | `scheduler.json`：calendar/guards/entries（顺序、窗口、quota、params）| ✅ 玩家自己填 |
+
+#### 22.34.2 统一任务模板契约（`meta.json`，向后兼容扩展）
+
+```json
+{
+  "schema_version": 1,
+  "template_version": 1,
+  "task_id": "…", "name": "…", "version": 1,
+  "category": "daily|weekly|limited|utility",
+  "entry": { "requires": { "kind": "appear", "sel": "主界面", "timeout_ms": 3000 } },
+  "params": [{ "key": "max_rounds", "type": "int", "default": 1, "min": 1, "max": 99 }],
+  "exits": {
+    "done":       { "result": "success" },
+    "no_tickets": { "result": "resource" },
+    "no_stamina": { "result": "resource" },
+    "blocked":    { "result": "blocked" },
+    "error":      { "result": "retryable" }
+  },
+  "capabilities": { "checkpoint": true, "interruptible": false, "duration_hint_s": 180 },
+  "resources": ["stamina"],
+  "schedule_hint": { "windows": [], "quota": { "per": "day", "times": 1 } }
+}
+```
+
+- 结果分类只保留 5 类：`success / resource / blocked / retryable / fatal`（**无 `continue`/`stop`**）。
+- `schedule_hint` 只给 UI 默认值，**永远不是排期权威**。
+- flow 骨架：`preflight → main → settle → finish(exit)`；lint 不变量：
+  T1 所有路径以已声明 `finish(exit)` 结束；T2 循环有界；T3 `params.x` 必须声明；
+  T4 素材引用必须存在（或 `lib:`）；T5 出口必须在 `meta.exits`；T6 无外部代码。
+- 旧任务零破坏：新字段全可选；缺失默认 `exits={done:success, failed:retryable}`、`params=[]`、
+  `category=expire`、`capabilities.checkpoint=true`。
+
+#### 22.34.3 生命周期（最终）
+
+| lifecycle | 时间窗 | 次数/配额 | 执行规则 | 记忆 |
+|---|---|---|---|---|
+| **periodic** | ✅ `windows` | ✅ `quota` 每日/每周 | 窗口内、quota 未满、未冷却 ⇒ 按 entries 顺序执行 | 记录 quota/冷却/失败 |
+| **temp**（临时任务）| ❌ 无 | ❌ 无 quota | **每个启动/每轮按 entries 顺序跑一次**；执行前后各重置一次执行状态；门票/次数由任务 flow 自己判断；完成=自然结束（门票耗尽/达标）| **无跨次完成/剩余记忆** |
+| rest（可选，后期）| — | — | 暂停 N 分钟 | — |
+
+**删除**：`one_shot`、`continue`、`counted 完成标记`、跨轮"本轮已完成"记忆（用户裁定不需要）。
+
+#### 22.34.4 调度器 v3 逻辑
+
+```
+启动：读 scheduler.json + state → 校验（entries 任务存在且 task lint 通过）
+      → 单实例锁
+每轮（pass）：
+  1) now；处理 day/week reset（periodic quota 清零）
+  2) 全局护栏：blackouts（维护/重置过渡）/ active_hours（作息）
+  3) 按 entries 顺序遍历：periodic 判窗口/quota/冷却；temp 直接视为可跑（每轮一次）
+  4) 取第一个可跑条目 → 执行（run::execute，retry/resume；temp 执行前后重置 state）
+  5) 记录结果/审计 → 继续下一条
+  6) 一轮结束：
+       - mode=loop ⇒ 短暂间隔后开下一轮（temp 每轮再跑一次；无资源就快速结束）
+       - mode=stop ⇒ 退出
+  7) 无任何可跑且非 loop ⇒ 计算 next_wake（窗口开始/quota 重置/blackout 结束/作息开始/30s 上限）→ sleep
+```
+
+- 执行顺序唯一权威 = `entries` 数组顺序；无 priority_mode/隐藏优先级。
+- 唤醒计算、状态原子写、dirty+checkpoint 恢复、dry-run/status/report 与 v2 设计一致。
+- 护栏/重置时间/窗口/清单**全部来自玩家配置**；引擎不内置 05:00、维护日、任务列表。
+
+#### 22.34.5 重置记忆（用户新增）
+
+| 项 | 设计 |
+|---|---|
+| 入口 | CLI `oasd scheduler reset-memory` + 编辑器「重置记忆」 |
+| UI | 弹任务选择框：任务列表多选 + **全选/反选**；确认后逐项清 |
+| 清除 | **两者都清**：① 调度器条目状态（attempts/cooldown/失败/完成标记）；② 任务 `state/`（checkpoint/计数）|
+| 时机 | 手动；临时任务执行前/后自动初始化（不保留完成/剩余记忆）|
+| 安全 | 仅空闲/未运行条目可重置；原子写；审计 `memory_reset`；运行统计不删 |
+
+#### 22.34.6 实现计划（P0~P4）
+
+| 阶段 | 内容 | 验收 |
+|---|---|---|
+| **P0** | 任务模板 schema + `oasd task lint` + 现有任务零破坏迁移 + `templates/` | lint 单测；现有任务全绿 |
+| **P1** | 调度纯函数：calendar/reset、windows、quota、pass 规划、wake、temp 规则 | 单测全绿（跨午夜/周几/重置/冷却） |
+| **P2** | 调度器 v3（替换 v1）：pass 循环、护栏、执行前/后重置、状态/锁/恢复、reset-memory CLI | 合成模板 replay 端到端；杀进程恢复 |
+| **P3** | serve 调度面板：今日清单/下次唤醒/临时任务/「重置记忆」多选框（全选/反选）| headless 验收 |
+| **P4** | v1 plan 迁移工具 + 实机/replay 长跑验收 + 文档收尾 | dry-run + 实机 2 轮；台账/交接更新 |
+
+★ 待实现：N36（任务模板）、N37（调度 v3 + 重置记忆 + 面板）。
+

@@ -502,6 +502,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
   ★ 页面守卫已完成（bf44bbe：requires；实机庭院起跑零误点失败、探索页起跑 guard=true 全流程）；S1 flow 第一次 click 已带 requires
   ★ 多模板变体已完成（c3c4237：click.alts；离线 replay 主模板噪声→variant 命中）；剩余补充层：相对锚点/无障碍/取色断言/多帧投票/OCR+模板互证
   ★ 点击审计已完成（11ae6b2：每次点击 CD2 带 match=图片/文字/坐标证据；失败自动截图 --shots-dir）；相对锚点（§22.14）待裁定
+  ★ 用户裁定 [10-22 21:4x]：**继续纵向开发**；横向补充（相对锚点/无障碍/取色/多帧投票/OCR+模板互证）只登记为待开发记录（台账 §E-23）
   ★ 多边形一期已完成（bb770e1：编辑器多边形框选 + 点击区=LAAR，匹配/OCR 仍外接矩形）；二期掩膜/自交/顶点编辑待排
   ★ 证据 _verify/n6/N6_EVIDENCE.md · _verify/n8/N8_EVIDENCE.md · _verify/n9/N9_EVIDENCE.md · _verify/n11/ · _verify/n12/ · _verify/n13/（v3.1 指数修订）
   ★ 对比分析：旧仓 RuleClickExclude（安全随机点击）vs 手误 → ENGINE §22.8；可移植 click_safe/等待随机滑动（待裁定）

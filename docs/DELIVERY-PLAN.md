@@ -242,7 +242,7 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 |---|---|
 | 引擎 | `oas-core` 本地 `main` = `7a4c58c`（V1.0 实现提交，52 files / +12152）|
 | 测试 | `cargo test --workspace` = **312 passed / 0 failed**（21 suites）|
-| 包 | `dist/oasd-v1.0.0-win64.zip` · **59.7MB** · SHA256 `616999353EE3CA143AA0E207A881D0D34FD689DC3E6D092500F044F6AB2780EB` |
+| 包 | `dist/oasd-v1.0.0-win64.zip` · **zip 35.1MB / 解压 59.7MB** · SHA256 `616999353EE3CA143AA0E207A881D0D34FD689DC3E6D092500F044F6AB2780EB` |
 | 实机（模拟器）| Android 12 / x86_64 / 阴阳师 2.8.84 / MuMu vmindex=0 / adb 127.0.0.1:16384 |
 | 创建闭环 | 解压包编辑器「新建任务」→ 创建「实机验收任务」200；运行「探索」**Done / exit 0 / 14 clicks** |
 | 探索 | 实机 Done（真实战斗胜利→结算→回庭院，13 击，≈31s）|
@@ -250,6 +250,6 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 | 调度 | 实机 2 轮：探索 quota 2/2（第二轮 quota_exhausted）、个人突破 temp 每轮执行；跨进程重启状态延续 |
 | 重置记忆 | CLI + 编辑器多选（全选/反选/全不选）+ 清 checkpoint；API 实测 `ok:true` + `memory_reset` 审计 |
 | 长跑 | ✅ 96 轮等效加速 soak（replay `soak_probe`，48+48 跨进程重启）：96/96 成功、0 失败、temp reset 192 次、state passes 48→96；另 wall-clock 实机 soak 运行中（pid=1268，03:11:45，loop_interval_s=900，首轮探索 Done 31.1s / 个人突破 resource 10.0s）|
-| 证据 | `_verify/n42/REPORT-V1.0.md`（工作区，不提交）|
+| 证据 | `_verify/n42/REPORT-V1.0.md`（工作区，不提交）|\n| 发布 | GitHub `https://github.com/passioki/oas-core` · Release `https://github.com/passioki/oas-core/releases/tag/v1.0.0` |
 
 **已知限制**（与 ENGINE §22.35 一致）：起始须庭院；探索假设第二十八章 + 游戏内自动挑战开启；个人突破阵容弱通常战败但流程完整、票/目标耗尽走 resource；个人突破需 OCR 模型；调度器无 SIGINT、固定 UTC offset（+480）、启动未强制 lint；release 未签名；**APK=P4 未做**。

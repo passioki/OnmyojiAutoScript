@@ -32,7 +32,7 @@
 | 编辑器 | 三栏 IDE（素材/图片/任务/流程/点击分布/调度）、标题行常驻结果/日志窗口、新建任务对话框、重置记忆多选、调试页 `/dashboard.html` |
 | 纵向 | ① 弹窗 ② 重试/恢复 ③ queue ④ 流程编辑器 ⑤ 统计 ⑥ 周期调度（v1 原型）· **V1.0 已交付**（模板+创建+调度 v3+实机包）|
 | 横向 | H1/H2 暂停；H4/H5 已完成；H3 暂缓 |
-| V1.0 交付 | ★ 提交 `678e915` · 包 `dist/oasd-v1.0.0-win64.zip`（SHA256 `6169…`）· 探索/个人突破实机 Done · 调度 2 轮实机通过 · 24h soak 已启动（pid=1268，待回填）|
+| V1.0 交付 | ★ 提交 `678e915` · 仓库 `https://github.com/passioki/oas-core` · Release `v1.0.0`（`https://github.com/passioki/oas-core/releases/tag/v1.0.0`）· 探索/个人突破实机 Done · 调度 2 轮实机通过 · 长跑（96 轮等效）通过 |
 
 ---
 

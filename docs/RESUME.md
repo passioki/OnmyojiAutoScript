@@ -44,7 +44,7 @@ Get-Content logs\scheduler.events.jsonl -Encoding UTF8 | Select-Object -Last 20
 ## 3. 已验证事实（带时间/命令输出）
 
 - oas-core：`main` = `678e915`；`cargo test --workspace` = **312 passed / 0 failed**；`oasd --version` = 1.0.0
-- 交付包：`D:\OAS-dev\oas-core\dist\oasd-v1.0.0-win64.zip`（59.7MB，SHA256 `616999353EE3CA143AA0E207A881D0D34FD689DC3E6D092500F044F6AB2780EB`）
+- 交付包：`D:\OAS-dev\oas-core\dist\oasd-v1.0.0-win64.zip`（zip 35.1MB / 解压 59.7MB，SHA256 `616999353EE3CA143AA0E207A881D0D34FD689DC3E6D092500F044F6AB2780EB`；Release `https://github.com/passioki/oas-core/releases/tag/v1.0.0`）
 - 实机安装（模拟）：`_verify\n42\live-install-final`（编辑器 8788 已停）；`live-soak`（调度器 pid=1268 运行中）
 - Android：MuMu Android 12 x86_64 / 阴阳师 2.8.84 / adb 127.0.0.1:16384
 - 调度实跑：第 1 轮 探索 Done 31.1s + 个人突破 Done 43s；第 2 轮 探索 Done 31.1s + 个人突破 resource 10.0s；quota 2/2 → quota_exhausted

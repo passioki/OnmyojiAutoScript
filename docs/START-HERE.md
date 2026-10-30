@@ -59,7 +59,7 @@
 | ⓪ | `docs/RESUME.md` + `docs/RESUME-INDEX.md` | ★ **长任务/压缩后恢复的第一入口**（skill 强制 6）：当前断点、验收清单、下一步精确命令、证据索引 |
 | ① | `docs/SESSION-HANDOFF.md` | 当前在哪、下一步、最近提交、活跃坑 |
 | ② | `docs/ENGINE-DESIGN.md` **§22** | 引擎规格/进度/判据；**调度 v3 设计看 §22.34** |
-| ③ | `docs/PENDING-LEDGER.md` 的 §E-23/§E-24 段 | 引擎待办（N36/N37）与历史台账 |
+| ③ | `docs/PENDING-LEDGER.md` 的 §E-24/§E-25/§E-26 段 | 引擎/版本/用户裁定（R1~R18）台账 |
 | ④ | `docs/LAYOUT.md` / `DEV-WORKFLOW.md` §0 | 仅在**碰路径/旧仓**时读 |
 
 ## 1.3 用代码核实（不许信文档自述）
@@ -263,5 +263,5 @@ run-tests.bat …                                  REM 旧仓守卫基线 171 pa
 | **调度 v3 + 统一任务模板设计定稿** | `ENGINE-DESIGN.md` **§22.34** |
 | **到实机可用的交付路线（M0~M5/DoD/部署）** | `DELIVERY-PLAN.md` |
 | 当前状态/下一步/坑 | `SESSION-HANDOFF.md` |
-| 台账/证据 | `PENDING-LEDGER.md` §E-24（N36/N37）|
+| 台账/证据 | `PENDING-LEDGER.md` §E-24 / §E-25 / §E-26（R1~R18）|
 | 旧仓历史（冻结）| `backend/docs/SESSION-HANDOFF.md` 历史段 · `frontend/docs/scheduler-architecture.md`（旧调度设计，参考）|

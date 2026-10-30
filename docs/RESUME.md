@@ -5,9 +5,9 @@
 
 ```yaml
 task_id: oas-core-v122
-checkpoint_seq: 18
-updated_at: 2026-10-31T00:45:00+08:00
-trigger: 用户「台账全部完成再发布，继续完成」
+checkpoint_seq: 19
+updated_at: 2026-10-31T00:52:00+08:00
+trigger: 用户纠正 R17（图片多选不是原话要求）→ 补 §E-26 R1~R18 台账
 status: done
 ```
 
@@ -18,11 +18,12 @@ status: done
 ## 1. 验收清单（全部完成）
 
 - [x] N44 帧磁盘持久化（manifest + PNG + 懒加载；--frames-dir）
-- [x] N45-C 图片匹配结果支持识别/操作区域（用户选 C；不做图片多选）
+- [x] N45-C 图片匹配结果支持识别/操作区域（用户选 C；**图片多选不是用户原话要求**，已撤回）
 - [x] N46 旧任务 assets 清理（`assets cleanup-legacy`，dry-run/apply，归档 `_legacy-backup`）
 - [x] N47 builder `click_target`/`drag` 结构化表单 + 变量 checkpoint 持久化/恢复
 - [x] N48 范围关闭：Windows 包 unsigned + SHA256；APK/Android 不在 oas-core 仓库
 - [x] N49 工作台 `#panel-flow` 从 DOM 删除；生成/追加改复制到剪贴板
+- [x] R1~R18 台账映射 `PENDING §E-26`；R17 引用纠正（C 是助手选项，不是用户原话）
 - [x] `cargo test --workspace` = **330 passed / 0 failed**
 - [x] 浏览器/包冒烟；v1.2.2 已发布
 

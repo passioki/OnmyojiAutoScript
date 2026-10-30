@@ -4,61 +4,46 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v122
-checkpoint_seq: 19
-updated_at: 2026-10-31T00:52:00+08:00
-trigger: 用户纠正 R17（图片多选不是原话要求）→ 补 §E-26 R1~R18 台账
-status: done
+task_id: oas-core-v123-r-audit
+checkpoint_seq: 20
+updated_at: 2026-10-31T01:00:00+08:00
+trigger: 用户指出 §E-26 全 ✅ 不可信 → 逐条复核 R1~R18
+status: in_progress
 ```
 
 ## 0. 目标（一句话）
 
-完成台账 N44~N49 全部项后发布 v1.2.2；不得跳版本、不得带缺口发布。
+纠正“把映射当验收”的错误：逐条核 R1~R18，未完成项写进台账；关闭 R2/R6/R14/R18 后再谈发布。
 
-## 1. 验收清单（全部完成）
+## 1. 本轮审计结论
 
-- [x] N44 帧磁盘持久化（manifest + PNG + 懒加载；--frames-dir）
-- [x] N45-C 图片匹配结果支持识别/操作区域（用户选 C；**图片多选不是用户原话要求**，已撤回）
-- [x] N46 旧任务 assets 清理（`assets cleanup-legacy`，dry-run/apply，归档 `_legacy-backup`）
-- [x] N47 builder `click_target`/`drag` 结构化表单 + 变量 checkpoint 持久化/恢复
-- [x] N48 范围关闭：Windows 包 unsigned + SHA256；APK/Android 不在 oas-core 仓库
-- [x] N49 工作台 `#panel-flow` 从 DOM 删除；生成/追加改复制到剪贴板
-- [x] R1~R18 台账映射 `PENDING §E-26`；R17 引用纠正（C 是助手选项，不是用户原话）
-- [x] `cargo test --workspace` = **330 passed / 0 failed**
-- [x] 浏览器/包冒烟；v1.2.2 已发布
+- **R1~R18 实核：14 ✅ / 4 🔄**（不是全部完成）
+- **R2**：完成条件归属已定，`battles` 可执行；`until_resource/until_condition` 只写入 meta、engine 不执行（`meta.rs:190-196`、`app.js:511-515`）→ **R2-a 口径待确认**
+- **R6**：功能已统一「操作区域」，UI 仍有一处 `实际点击/拖动区域`（`app.js:907`）→ **R6-a 文案**
+- **R14**：workbench 的 taskName/taskSelect 已同步；builder 用独立 `B.task`，未接同一 active task（`builder.js:722/798-800`）→ **R14-a 功能缺口**
+- **R18**：v1.2.2 在 R2/R6/R14 未闭合时发布 → **R18-a 发布门槛重开**；v1.2.2 已发布，不能静默改写
 
-## 2. 发布产物
+## 2. 台账状态
 
-- GitHub Release：`https://github.com/passioki/oas-core/releases/tag/v1.2.2`
-- tag `v1.2.2`；引擎 `9debc0b`
-- 包：`D:\OAS-dev\oas-core\dist\oasd-v1.2.2-win64.zip`（37,179,387 字节）
-- SHA256：`B683343C24504CF5053196A2845079454BACD4BD0D316EBD524E97A8C48D8994`
-- 包内：4 tasks / 26 global assets / lint 4 ok / legacy assets 已清理
+- `PENDING §E-26` 已纠正：R2/R6/R14/R18 标 🔄，新增 R2-a/R6-a/R14-a/R18-a
+- 上一版“全 ✅”错误已记录；**不建议整段 revert** `ff8e8e50`（会丢 R17 引用纠正与 SESSION-INDEX 拆行）；当前用正向纠正 commit
+- 若用户要求完全回退：仅 revert docs commit `ff8e8e50`，引擎/发布不受影响
 
-## 3. 关键实现事实
+## 3. 下一步精确动作
 
-- 帧：`frames/frames.json` + `frame-<id>.png`；重启保留 name/category/order；当前帧像素懒加载
-- 图匹配：`lastMatch` →「用匹配结果建素材」→ roi/action_roi；单结果（C）
-- builder：`click_target` 定位方式/素材/OCR 文本结构化；`drag` 方向/区域/距离/时长/margin；高级 JSON 保留
-- 变量：`Checkpoint.vars` + `ProgressSink::vars_changed` + `Interpreter::with_vars`；`--resume` 恢复
-- 清理：`oasd assets cleanup-legacy --apply` 移动旧 task assets/images 到 `assets/_legacy-backup/<ts>/`
-- 工作台 flow：DOM 删除；`appendStepToFlow` 在无 flowJson 时复制 JSON 到剪贴板
+1. **R14-a**：进入 builder 时传入 workbench 当前任务（或抽全局 activeTask），浏览器验证 builder 素材/flow 与 workbench 一致；
+2. **R6-a**：把 `app.js:907` 文案改为“操作区域”；
+3. **R2-a**：请用户二选一——① 仍是“flow 自己判断”，关账；② v1.2.3 实现 until 自动执行；
+4. **R18-a**：三项关闭后打包 v1.2.3；在此之前不再宣称“台账全部完成”。
 
-## 4. 验证摘要
+## 4. 关键事实
 
-- 330 tests 全绿；新增帧重启、checkpoint vars roundtrip、run --resume vars restore
-- 浏览器：无 `#panel-flow`/`flow-json`/flow rail；无 JS 错误；builder 结构化子表单；复制步骤 fallback
-- 包内：`oasd 1.2.2`；lint 4/4；`/task/assets` 26；`/frames` 正常；builder.js 200
-- 迁移/清理：4 tasks / 3 renames；legacy cleanup 4 tasks 归档
+- v1.2.2 已发布：tag `v1.2.2` / `9debc0b` / SHA256 `B683343C…8994` / 330 tests
+- 引擎 worktree 干净；本轮只改文档，未改代码
+- §E-26 位置：`docs/PENDING-LEDGER.md`（用户指出“看不到”的那张 R 台账）
+- R17 图片多选已撤回：用户原话是“图片识别也同理…识别/操作区域”，10-31 只回复 C（助手选项）；图片多选不是用户要求
 
-## 5. 已知限制
+## 5. 阻塞/待用户裁定
 
-- 图片识别仍单结果（用户选 C），不做多候选/图片多选；
-- 变量只在单次运行/checkpoint 内有效，不跨任务持久化；
-- 旧 assets 归档不自动删除；release unsigned；APK 不在本版；
-- 帧数据本机 serve 本地，不随任务包同步。
-
-## 6. 下一步
-
-- 若继续：图片多候选（需新设计）或 Authenticode/APK 另立项；
-- 否则本版完成，维护台账/RESUME。
+- R2-a：until 完成条件是否需要 engine 自动执行？
+- R18-a：v1.2.2 保留为“部分验收”并出 v1.2.3，还是撤回发布？建议保留已发布资产，补 v1.2.3，不删除历史 release。

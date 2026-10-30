@@ -26,3 +26,4 @@
 | 17 | oas-core-v122-backlog | N44+N45C | 帧持久化完成；图片匹配结果支持识别/操作区域（用户选 C） | `docs/ENGINE-DESIGN.md §22.39` R17/B6 · `docs/PENDING-LEDGER.md §E-25` | engine `a3d5dab`/`d104277` · 328 tests · `roi`+`action_roi` 实测 | 继续 N47/N49 | in_progress |
 | 18 | oas-core-v122 | v1.2.2 | 台账 N44~N49 全完成并发布：帧持久化/图匹配操作区域/builder结构化+变量/legacy清理/删除工作台flow | `docs/ENGINE-DESIGN.md §22.39` · `docs/PENDING-LEDGER.md §E-25` | tag `v1.2.2` · engine `9debc0b` · 330 tests · SHA256 `B683…` | 完成 | done |
 | 19 | oas-core-v122 | docs | R1~R18 用户裁定台账 §E-26；R17 纠正：C 是助手选项，图片多选非用户原话要求 | `docs/PENDING-LEDGER.md §E-26` · `docs/ENGINE-DESIGN.md §22.39 R17` | 引用纪律 + 覆盖自检 + SESSION-INDEX 6287/6288 拆行 | 完成 | done |
+| 20 | oas-core-v123-r-audit | R审计 | R1~R18 逐条复核：14✅/4🔄（R2/until、R6/文案、R14/builder active task、R18/发布门槛） | `docs/PENDING-LEDGER.md §E-26` · `docs/RESUME.md` | v1.2.2 已发布但验收未闭合；未改代码 | 先修 R14-a/R6-a；R2-a 待用户裁定 | in_progress |

@@ -31,3 +31,4 @@
 | 22 | oas-core-v123-r-audit | R审计3 | 真流程图复核：当前 DOM 缩进图不是 SVG 控制流图；R9-a 新增；R1~R18=14✅/4🔄 | `docs/PENDING-LEDGER.md §E-26` · `docs/ENGINE-DESIGN.md §22.39 R9` | `builder.js:321-385` 无 SVG/边；R6/R9/R14/R18 未闭合 | 建图 IR + SVG；修 R6/R14；v1.2.3 | in_progress |
 | 23 | oas-core-v123-r-audit | R审计4 | 追查台账遗漏根因；新增 R19-a 素材点击/拖动测试/生成步骤、R20-a 条件说明；R1~R20=14✅/6未完成 | `docs/PENDING-LEDGER.md §E-26 〇/一` · `docs/ENGINE-DESIGN.md §22.39.4` | `app.js:1464-1506` 缺按钮；`builder.js:321-385` 假流程图 | 修 R19/R20/R14/R6/R9；v1.2.3 | in_progress |
 | 24 | oas-core-v123-r-audit | R修复 | R6/R14/R19/R20 修复（文案/builder active task/素材点测拖测步骤/条件说明） | `docs/PENDING-LEDGER.md §E-26` · `docs/RESUME.md` | engine `ed2ae6a` · 浏览器验证 | 重写 SVG 真流程图；v1.2.3 | in_progress |
+| 25 | oas-core-v123-r-audit | 发布规则 | 取消 R18a 发布门禁：不自行发布，只按用户指令发布；平时只做 release 测试、版本不变 | `docs/PENDING-LEDGER.md §E-26 R18` · `docs/RESUME.md` | 用户 10-31 明确要求 | 继续 R9 真流程图 | in_progress |

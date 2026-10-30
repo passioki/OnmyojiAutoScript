@@ -5,43 +5,39 @@
 
 ```yaml
 task_id: oas-core-v123-r-audit
-checkpoint_seq: 26
-updated_at: 2026-10-31T01:50:00+08:00
-trigger: R9 真流程图完成；R1~R20 全部关闭；等待用户发布指令
+checkpoint_seq: 27
+updated_at: 2026-10-31T01:55:00+08:00
+trigger: 修复 R21（动作库被覆盖）；R1~R21 全部关闭
 status: done
 ```
 
 ## 0. 当前状态
 
-**R1~R20 已全部关闭；没有自行发布。**
+**R1~R21 全部关闭；未自行发布；版本仍 1.2.2。**
 
 ## 1. 本轮完成
 
-- **R9-a 真流程图 ✅**（引擎 `3aa1a0a`）
-  - 建图 IR（nodes/edges）→ SVG；
-  - `if` 条件节点 + 是/否边 + 汇合 junction；
-  - `loop/while` 循环/回边/退出；
-  - `break/continue` 跳转边；
-  - 每个 `finish` → 流程出口；
-  - 节点点击选中联动属性；SVG 容器滚动；
-  - 浏览器 `svg_probe` 实测：loop/if/break/continue/2 finish，17 条 `<path>` 边，无 JS 错误。
-- R6/R14/R19/R20 已在 `ed2ae6a` 完成并浏览器验证。
-- 之前 skill 台账误判已按 USER+ASST 双向审计纠正；新 skill 强制 7/8 已写入 `D:\tools\dsh-skills` commit `95425ce`。
+- **R21 布局修复**（引擎 `d455f6e`）
+  - 根因：全局 `aside { width:320px; flex:0 0 320px; }` 作用到 builder 的 palette/inspector，覆盖了 grid 的 220px/340px 轨道；
+  - 实测：palette 实际 320px，center 从 x=244 开始 → 重叠 90px；
+  - 修法：`.builder-main > .builder-palette/.builder-inspector { width:auto; flex:none; }`；
+  - 验证：computed rect palette=220、center.x=244、inspector=340；
+  - 这是之前 v1.2.1 “布局已修”只验证素材/图存在、未测 bounding rect 导致的漏检；已写入 §E-26 C7。
+- R9 SVG 真流程图已完成（`3aa1a0a`）；R6/R14/R19/R20 已完成（`ed2ae6a`）。
 
-## 2. 发布规则（[10-31] 用户新裁定）
+## 2. 发布规则
 
-- **不自行 tag/release；只在用户明确说“发布”时才发布。**
-- 平时只构建 release 用于测试；**版本号保持 1.2.2 不变**。
-- v1.2.2 已发布资产保留，不删除/改写。
-- 当前代码 `3aa1a0a` 未重新打包；下次测试可 `cargo build --release -p oasd --features ocr`，不 bump 版本。
+- 不自行 tag/release；只在用户明确说“发布”时发布；
+- 平时只构建 release 测试；版本保持 1.2.2；
+- v1.2.2 已发布资产保留。
 
 ## 3. 台账
 
-- R1~R20：**20/20 ✅**
-- `PENDING §E-26` 无未完成项；R18-a 已取消
-- `ENGINE §22.39` 同步；`START-HERE` 标记 R1~R20 已关闭
+- R1~R21：**21/21 ✅**
+- `PENDING §E-26`；`ENGINE §22.39`；`START-HERE` 已同步
+- docs 待提交（本轮 ENGINE/PENDING/RESUME/INDEX/START-HERE）
 
 ## 4. 下一步
 
-- 等用户明确“发布”命令；此前只做测试构建/回归。
-- 若继续发现用户要求遗漏，按 skill 强制 7 先补覆盖矩阵，不直接宣称完成。
+- 等用户明确发布指令；此前只做测试/回归。
+- 后续 UI 验收必须加 computed bounding rect 非重叠断言（防再次“看起来修了”）。

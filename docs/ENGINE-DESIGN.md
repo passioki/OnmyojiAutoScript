@@ -1917,10 +1917,11 @@ tasks/<任务名>/
 | R18 | 发布节奏（[10-31] 调整） | 用户：“只在我说要发布的时候再发布，不要自行发布；平时只构建 release 用于测试，版本号不变” | 取消自动发布门禁；不自行 tag/release；release 构建只作测试，版本保持 1.2.2；R18-a 取消 |
 | R19 | 素材行操作测试/生成步骤 | 用户 [10-30 19:34]：“对素材的操作（识别测试/**点击**/**拖动**/偏移…）” | 素材行提供识别测试、点击测试、拖动测试、生成步骤；当前只有识别/区域/改/删/操作区 → R19-a |
 | R20 | 条件动作使用说明 | 用户 [10-30 20:17]：“出现/等到/识别…如果有必要存在，请给出解释给使用者”；助手承诺界面加中文说明 | 界面为「出现=现在有没有 / 等到=一直等到有 / 识别=读出文字」；当前无该说明 → R20-a |
+| R21 | 任务构建三栏布局 | 用户 [10-30 23:36]：“流程步骤盖住了动作库的部分” | 三栏 grid 不得重叠；`style.css` 覆盖全局 `aside{width:320px}`，palette 220px、center 从 244 起；浏览器 computed rect 验证 |
 
 > ★ **引用纪律**：R1~R18 的引号内**只放用户原话**；助手选项（如 R17 的 A/B/C）必须标注为“助手选项”+用户选择的字母；不得把“图片识别也同理”跨句扩大成“图片也要多选”。
 >
-> ★ **[10-31 实核纠正]** R1~R20 **已全部关闭**：R9-a 真流程图已在 `3aa1a0a` 实现（SVG 节点/边、if 分支+汇合、loop 回边、break/continue、每 finish 出口）；R6/R14/R19/R20 已在 `ed2ae6a` 修复；R2 按 10-30 20:17 助手答复+用户 20:21 确认的当期口径（until 由 flow 自己判断）属于 ✅；**R18 发布门禁已按用户 10-31 新规则取消：不自行发布，只在用户明确要求时发布；平时只做 release 测试构建，版本号不变**。详见 `PENDING-LEDGER §E-26`。
+> ★ **[10-31 实核纠正]** R1~R21 **已全部关闭**：R9-a 真流程图已在 `3aa1a0a` 实现；R6/R14/R19/R20 已在 `ed2ae6a` 修复；R21 布局在 `style.css` 修复（全局 `aside{width:320px}` 覆盖 grid 轨道，palette 320px 压 center，现改为 width:auto，computed rect 实测 palette=220、center.x=244、无重叠）；R2 按当期口径 ✅；R18 发布门禁已按用户新规则取消。详见 `PENDING-LEDGER §E-26`。
 
 #### 22.39.2 被推翻的中途方案（不进现行口径）
 
@@ -1954,4 +1955,5 @@ tasks/<任务名>/
 - **R14-a builder active task**：✅ `ed2ae6a`：builder activate 接 workbench 当前任务；浏览器验证一致。
 - **R19-a 素材行操作测试/生成步骤**：✅ `ed2ae6a`：点测/拖测（dry-run）/步骤（click_target 复制）；浏览器实测通过。
 - **R20-a 条件动作说明**：✅ `ed2ae6a`：builder 动作库增加「出现/等到/识别」说明。
+- **R21 布局**：✅ `d455f6e`：`style.css` 增加 `.builder-main > .builder-palette/.builder-inspector { width:auto; flex:none }`；computed rect 验证 palette=220、center.x=244、无重叠。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

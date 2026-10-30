@@ -33,3 +33,4 @@
 | 24 | oas-core-v123-r-audit | R修复 | R6/R14/R19/R20 修复（文案/builder active task/素材点测拖测步骤/条件说明） | `docs/PENDING-LEDGER.md §E-26` · `docs/RESUME.md` | engine `ed2ae6a` · 浏览器验证 | 重写 SVG 真流程图；v1.2.3 | in_progress |
 | 25 | oas-core-v123-r-audit | 发布规则 | 取消 R18a 发布门禁：不自行发布，只按用户指令发布；平时只做 release 测试、版本不变 | `docs/PENDING-LEDGER.md §E-26 R18` · `docs/RESUME.md` | 用户 10-31 明确要求 | 继续 R9 真流程图 | in_progress |
 | 26 | oas-core-v123-r-audit | R9 | 真流程图 SVG 完成；R1~R20 全部关闭；不自行发布，等用户指令 | `docs/PENDING-LEDGER.md §E-26` · `docs/RESUME.md` | engine `3aa1a0a` · 浏览器 svg_probe 17 条 SVG path 边 | 测试构建；等“发布” | done |
+| 27 | oas-core-v123-r-audit | R21 | 动作库被覆盖修复：全局 aside width 320 覆盖 grid 轨道；computed rect 验证 palette=220/center.x=244 | `docs/PENDING-LEDGER.md §E-26 C7/R21` · `docs/RESUME.md` | engine `d455f6e` | 等用户发布指令；版本 1.2.2 | done |

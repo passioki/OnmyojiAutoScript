@@ -1304,7 +1304,7 @@
 |---|---|---|---|---|
 | **U-01** | “任务构建中，应当可以调用已有任务作为当前任务的一部分。这是否属于函数调用？” | 需新增**子流程/任务调用**；先定义语义（见下） | 尚未实现 | ⬜ **待设计确认** |
 | **U-02** | “多行识别保存和存为素材保存互相重叠有冗余…统一入口。目前的多行识别结果缺少全选框（勾上是全选，不勾全不选）” | 移除独立批量保存按钮；右侧统一「保存素材（当前框选/选中识别行）」；候选列表加全选/半选 checkbox；有候选走批量，无候选走单素材 | engine `cbfbab4`：CDP 实测全选→`[false,false]`/全不选→`[true,true]`；旧 `btn-batch-save` 不存在；保存按钮文案统一 | ✅ |
-| **U-03** | “任务构建里的流程步骤和实时流程图页面覆盖了动作库部分，还是没改过来…直接全部自适应可调整有记忆不行吗（我通过 D:\OAS-dev\oas-core\dist\stage 运行）” | 根因全局 `aside width:320px` 覆盖 grid；改为 grid 轨道 + 可拖拽 splitter；localStorage 记忆；同步 stage UI（不发布） | engine `d455f6e`/`cbfbab4`：repo + stage(8788) computed rect palette=220、center.x=260、splitters=2；拖拽后 240px，刷新仍 240px；stage UI 已同步 | ✅ |
+| **U-03** | “任务构建里的流程步骤和实时流程图页面覆盖了动作库部分，还是没改过来…直接全部自适应可调整有记忆不行吗（我通过 D:\OAS-dev\oas-core\dist\stage 运行）” | 根因全局 `aside width:320px` 覆盖 grid；改为 grid 轨道 + 可拖拽 splitter；localStorage 记忆；同步 stage UI（不发布） | engine `d455f6e`/`cbfbab4`：repo + stage(8788) computed rect palette=220、center.x=260、splitters=2；stage 拖拽 220→290，刷新仍 290；stage UI 已同步 | ✅ |
 | **U-04** | “点击if，添加子动作貌似只能添加日志，而不是动作。请审查代码是否真的实现。” | 新增子动作选择器（任意 op 加入 then/else/body）；选中 if 后动作库点击动作加入 then；不再硬编码 `log` | engine `cbfbab4`：repo CDP 选 if → `.builder-child-add` 出现；选择 `click_point` 加入 then；动作库点击 `点击坐标` 产生第二条子动作；无 JS 错误 | ✅ |
 
 ## U-01 语义结论（代码未实现，先给判断）

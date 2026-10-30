@@ -29,10 +29,13 @@
 |---|---|
 | 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **327 passed** · `oasd --version` = **1.2.1** |
 | 引擎特性 | flow DSL、素材/掩膜/多边形、点击定位链、HB1/HB7、整帧搜索、双 ROI、库、queue、stats、checkpoint/resume、reconnect、多帧投票、OCR+模板互证、**统一任务模板/task lint、任务创建/编辑器运行、调度 v3、交付包** |
-| 编辑器 | 三栏 IDE（素材/图片/任务/流程/点击分布/调度）、标题行常驻结果/日志窗口、新建任务对话框、重置记忆多选、调试页 `/dashboard.html` |
+| 编辑器 | 工作台（素材/图片/任务/点击分布/调度）+ 顶部页面（任务构建/任务库/实例/调度/设置）、标题行常驻结果/日志窗口、新建任务对话框、重置记忆多选、调试页 `/dashboard.html`；流程编辑统一在任务构建 |
 | 纵向 | ① 弹窗 ② 重试/恢复 ③ queue ④ 流程编辑器 ⑤ 统计 ⑥ 周期调度（v1 原型）· **V1.0 已交付**（模板+创建+调度 v3+实机包）|
 | 横向 | H1/H2 暂停；H4/H5 已完成；H3 暂缓 |
-| V1.0 交付 | ★ 提交 `678e915` · Release `v1.0.0` · 探索/个人突破实机 Done · 调度 2 轮实机通过 · 长跑（96 轮等效）通过 |\n| V1.1 交付 | ★ tag `v1.1.0` / 提交 `f2c096c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · 整屏 OCR 直点/素材 CRUD/区域拖动/工作台完成条件/5 页面/点击聚合 · 314 tests 全绿 · zip SHA256 `140B…` |\n| V1.2 交付 | ★ tag `v1.2.0` / 提交 `5d0f79c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · 识别/操作区域统一、批量保存+全局唯一、任务构建页、变量动作 · 326 tests 全绿 · zip SHA256 `D31C…` |\n| V1.2.1 交付 | ★ tag `v1.2.1` / 提交 `4e50aea` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · 统一全局素材库迁移、OCR 来源一致、builder 真流程图、帧管理、工作台流程收口 · 327 tests 全绿 · zip SHA256 `E4E4…` |
+| V1.0 交付 | ★ 提交 `678e915` · Release `v1.0.0` · 探索/个人突破实机 Done · 调度 2 轮实机通过 · 长跑（96 轮等效）通过 |
+| V1.1 交付 | ★ tag `v1.1.0` / 提交 `f2c096c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · 整屏 OCR 直点/素材 CRUD/区域拖动/工作台完成条件/5 页面/点击聚合 · 314 tests 全绿 · zip SHA256 `140B…` |
+| V1.2 交付 | ★ tag `v1.2.0` / 提交 `5d0f79c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · 识别/操作区域统一、批量保存+全局唯一、任务构建页、变量动作 · 326 tests 全绿 · zip SHA256 `D31C…` |
+| V1.2.1 交付 | ★ tag `v1.2.1` / 提交 `4e50aea` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · 统一全局素材库迁移、OCR 来源一致、builder 真流程图、帧管理、工作台流程收口 · 327 tests 全绿 · zip SHA256 `E4E4…` |
 
 ---
 
@@ -66,7 +69,7 @@ cd D:\OAS-dev\oas-core
 git log -1 --format="%h %ci %s"
 git status --porcelain
 
-REM ② 引擎测试（现行基线：213 passed / 0 failed）
+REM ② 引擎测试（现行基线：327 passed / 0 failed）
 cargo test --workspace
 
 REM ③ OCR 构建（serve/run 需要；不带 feature 会报 "this build has no OCR"）
@@ -96,7 +99,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 | 层 | 内容 | 不许写死游戏数据 |
 |---|---|---|
-| 统一任务模板 | `tasks/<id>/{meta.json, flow.json, assets.json, images/}`；`meta.json` 含 params/entry.requires/exits/capabilities/resources/schedule_hint；flow 统一骨架 `preflight → main → settle → finish(exit)`；`oasd task new --template …` + `task lint` | ✅ 零游戏常量 |
+| 统一任务模板 | `tasks/<id>/{meta.json, flow.json}` + 全局 `assets/{assets.json, images/}`；`meta.json` 含 params/entry.requires/exits/capabilities/resources/schedule_hint；flow 统一骨架 `preflight → main → settle → finish(exit)`；`oasd task new --template …` + `task lint` | ✅ 零游戏常量 |
 | 调度器 v3 | 周期时钟、护栏、候选过滤、唤醒规划、执行器、状态/报告 | ✅ 零游戏常量 |
 | 玩家配置 | `scheduler.json`：重置时间、active_hours、blackouts、entries（顺序/窗口/quota/params）| ✅ 全部玩家自己填 |
 
@@ -149,7 +152,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 【2. 代码与我核实的台账】
    oas-core commit = <hash> · 分支 = main · worktree 干净 = 是/否
-   cargo test --workspace = __ passed / __ failed（现行基线 = 213）
+   cargo test --workspace = __ passed / __ failed（现行基线 = 327）
    serve 状态：/state = <captured/device/ocr/det>
    后端文档仓 commit = <hash> · dev 是否已推 = 是/否
 
@@ -188,7 +191,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 | **E7** | 旧仓已冻结 | 旧仓 `backend/frontend` 只读；不要在旧仓上开发/提交 |
 | **E8** | 新引擎的验收看 ENGINE §22 判据 | 不要拿旧仓 pytest 基线当引擎验收 |
 | **E9** | headless Edge 截图做 UI 验收 | `msedge --headless=new --screenshot=...`；需要时加 `--user-data-dir` |
-| **E10** | 测试数会随提交增长 | 当前 213；以 `cargo test --workspace` 实测为准，不硬编码"永远 213" |
+| **E10** | 测试数会随提交增长 | 当前 327；以 `cargo test --workspace` 实测为准，不硬编码"永远 327" |
 
 ---
 
@@ -228,7 +231,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 ```bat
 REM ---------- 构建/测试 ----------
 cd D:\OAS-dev\oas-core
-cargo test --workspace                          REM 现行基线 213 passed
+cargo test --workspace                          REM 现行基线 327 passed
 cargo build -p oasd --features ocr              REM serve/run 的 OCR 构建
 
 REM ---------- 编辑器 ----------

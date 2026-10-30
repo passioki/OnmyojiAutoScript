@@ -36,7 +36,7 @@
 | V1.1 交付 | ★ tag `v1.1.0` / 提交 `f2c096c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · 整屏 OCR 直点/素材 CRUD/区域拖动/工作台完成条件/5 页面/点击聚合 · 314 tests 全绿 · zip SHA256 `140B…` |
 | V1.2 交付 | ★ tag `v1.2.0` / 提交 `5d0f79c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · 识别/操作区域统一、批量保存+全局唯一、任务构建页、变量动作 · 326 tests 全绿 · zip SHA256 `D31C…` |
 | V1.2.1 交付 | ★ tag `v1.2.1` / 提交 `4e50aea` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · 统一全局素材库迁移、OCR 来源一致、builder 真流程图、帧管理、工作台流程收口 · 327 tests 全绿 · zip SHA256 `E4E4…` |
-| V1.2.2 交付 | ★ tag `v1.2.2` / 提交 `9debc0b` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.2` · 帧持久化、图片匹配操作区域、builder 结构化/变量 checkpoint、legacy 清理、工作台 flow 删除 · 330 tests 全绿 · zip SHA256 `B683…` · ⚠ **验收未闭合：R2/R6/R14/R18（见 PENDING §E-26）** |
+| V1.2.2 交付 | ★ tag `v1.2.2` / 提交 `9debc0b` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.2` · 帧持久化、图片匹配操作区域、builder 结构化/变量 checkpoint、legacy 清理、工作台 flow 删除 · 330 tests 全绿 · zip SHA256 `B683…` · ⚠ **验收未闭合：R6/R14/R18（见 PENDING §E-26；R2 按当期口径已关）** |
 
 ---
 

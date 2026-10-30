@@ -1956,4 +1956,6 @@ tasks/<任务名>/
 - **R19-a 素材行操作测试/生成步骤**：✅ `ed2ae6a`：点测/拖测（dry-run）/步骤（click_target 复制）；浏览器实测通过。
 - **R20-a 条件动作说明**：✅ `ed2ae6a`：builder 动作库增加「出现/等到/识别」说明。
 - **R21 布局**：✅ `d455f6e`：`style.css` 增加 `.builder-main > .builder-palette/.builder-inspector { width:auto; flex:none }`；computed rect 验证 palette=220、center.x=244、无重叠。
+- **U-01 任务调用 A/B**：✅ `1ee41d0`：A builder 内联（去目标 finish）；B `call_task` + `oas-task::load_flow` 递归展开（cycle/depth=8，目标 finish 视为返回）；workspace 331 tests。
+- **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

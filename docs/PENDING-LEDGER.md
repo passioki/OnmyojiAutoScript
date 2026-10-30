@@ -1208,9 +1208,9 @@
 
 ## 六、当前阻塞与待用户裁定
 
-- **阻塞：1**（U-01 子流程/任务调用语义待用户确认；其余 3 条已修并验证）。
+- **阻塞：0**（U-01 A/B 已实现；其余 3 条已修并验证）。
 - **R1~R21 全部关闭**：R9 真流程图 `3aa1a0a`；R21 布局修复（CSS computed layout 实测无重叠）；当前无未完成项。
-- **U-01~U-04**：U-02/U-03/U-04 已修（`cbfbab4`，stage UI 已同步测试）；U-01 待裁定 A（构建时展开）或 B（运行时 call_task）。
+- **U-01~U-04**：4/4 ✅（`1ee41d0` / `cbfbab4`；workspace 331 passed；stage UI+exe 已同步测试）。
 - **发布规则 [10-31 调整]**：取消 R18-a 发布门禁；**只在用户明确说“发布”时才 tag/release，不自行发布**；平时只构建 release 用于测试，版本号保持 1.2.2 不变。
 
 ---
@@ -1302,19 +1302,18 @@
 
 | U# | 用户原话/要求 | 设计/实现 | 独立证据 | 状态 |
 |---|---|---|---|---|
-| **U-01** | “任务构建中，应当可以调用已有任务作为当前任务的一部分。这是否属于函数调用？” | 需新增**子流程/任务调用**；先定义语义（见下） | 尚未实现 | ⬜ **待设计确认** |
+| **U-01** | “任务构建中，应当可以调用已有任务作为当前任务的一部分。这是否属于函数调用？” | 已实现 A/B 两种：A builder 立即内联目标 steps（去掉目标 finish）；B flow DSL `call_task` + `oas-task::load_flow` 递归展开（cycle/depth 限制，目标 finish 视为返回） | engine `1ee41d0`：builder 任务/方式表单；`load_flow_expands_call_task_and_strips_target_finish` 测试；workspace 331 passed；stage 8796 表单实测 task=子任务/mode=run | ✅ |
 | **U-02** | “多行识别保存和存为素材保存互相重叠有冗余…统一入口。目前的多行识别结果缺少全选框（勾上是全选，不勾全不选）” | 移除独立批量保存按钮；右侧统一「保存素材（当前框选/选中识别行）」；候选列表加全选/半选 checkbox；有候选走批量，无候选走单素材 | engine `cbfbab4`：CDP 实测全选→`[false,false]`/全不选→`[true,true]`；旧 `btn-batch-save` 不存在；保存按钮文案统一 | ✅ |
 | **U-03** | “任务构建里的流程步骤和实时流程图页面覆盖了动作库部分，还是没改过来…直接全部自适应可调整有记忆不行吗（我通过 D:\OAS-dev\oas-core\dist\stage 运行）” | 根因全局 `aside width:320px` 覆盖 grid；改为 grid 轨道 + 可拖拽 splitter；localStorage 记忆；同步 stage UI（不发布） | engine `d455f6e`/`cbfbab4`：repo + stage(8788) computed rect palette=220、center.x=260、splitters=2；stage 拖拽 220→290，刷新仍 290；stage UI 已同步 | ✅ |
 | **U-04** | “点击if，添加子动作貌似只能添加日志，而不是动作。请审查代码是否真的实现。” | 新增子动作选择器（任意 op 加入 then/else/body）；选中 if 后动作库点击动作加入 then；不再硬编码 `log` | engine `cbfbab4`：repo CDP 选 if → `.builder-child-add` 出现；选择 `click_point` 加入 then；动作库点击 `点击坐标` 产生第二条子动作；无 JS 错误 | ✅ |
 
-## U-01 语义结论（代码未实现，先给判断）
+## U-01 实现结论（A/B 均已实现）
 
 **这是“子流程/任务调用（subflow call）”，不是纯函数调用。**
 
 - 像函数的地方：有名字、可复用、可以有输入/输出/退出结果；
 - 不像纯函数的地方：任务有**设备副作用、屏幕状态、素材/帧/变量共享**，不能任意并行/重入；
-- 因此必须定义：输入参数、退出结果（`exit`/变量）、嵌套深度上限、失败传播、是否允许递归、调用时的 active task 上下文。
-- 两个实现路线：
-  - **A. 构建时展开/内联**：把目标任务 steps 复制进当前 flow（简单、无 runtime 改动；但不是动态调用，后续目标任务改动不会同步）。
-  - **B. 运行时子流程调用**：新增 `call_task` op，运行时加载目标 flow 并执行，返回 exit/变量（真正的“函数式”边界；需要 runtime/flow parser 改动）。
-- ★ 推荐先做 **B 的最小版**（无参数、单返回 exit、禁止递归/深度上限 1），避免“复制粘贴式调用”造成后续不同步；但需要你确认是否采用运行时语义。
+- 当前实现：
+  - **A. 构建时内联**：builder `inlineCallTask` 读取目标任务 flow，复制 steps，去掉目标 `finish`；目标后续改动不会同步；
+  - **B. 运行时引用**：flow 保存 `{"op":"call_task","args":{"task":"..."}}`；`oas-task::TaskBundle::load_flow` 在加载时递归展开目标 flow（禁止 cycle，深度上限 8，目标 `finish` 视为返回）。目标修改下次运行生效。
+- 当前边界：无参数映射、无返回值变量、嵌套深度上限 8、禁止递归；后续需要可扩展 `<task>.exit`/vars 映射。

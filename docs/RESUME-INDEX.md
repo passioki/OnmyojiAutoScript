@@ -23,3 +23,4 @@
 | 14 | oas-core-builder-v12 | v1.2.1 | 统一素材库+迁移、OCR 来源一致、builder 素材/真流程图、帧管理、工作台流程收口 | 用户验收 v1.2 结果 | tag `v1.2.1` · release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · `_verify/n43/REPORT-V1.2.1.md` | 完成 | done |
 | 15 | oas-core-memory-review | M | 用 skill 回顾 10-30~10-31 会话：补全 v1.1/v1.2/v1.2.1 设计口径与台账 | `docs/ENGINE-DESIGN.md §22.39` · `docs/PENDING-LEDGER.md §E-25` | backend `39e4d621` · `_verify/n44/` 37 条 transcript | 完成 | done |
 | 16 | oas-core-v122-backlog | N44 | 帧磁盘持久化：manifest+PNG 懒加载、重启保留 name/category/order | `docs/ENGINE-DESIGN.md §22.39` · `docs/PENDING-LEDGER.md §E-25` | engine `a3d5dab` · 328 tests · 25+ 帧重启验证 | 完成；N45 待确认语义 | in_progress |
+| 17 | oas-core-v122-backlog | N44+N45C | 帧持久化完成；图片匹配结果支持识别/操作区域（用户选 C） | `docs/ENGINE-DESIGN.md §22.39` R17/B6 · `docs/PENDING-LEDGER.md §E-25` | engine `a3d5dab`/`d104277` · 328 tests · `roi`+`action_roi` 实测 | 继续 N47/N49 | in_progress |

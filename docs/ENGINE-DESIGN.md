@@ -1848,3 +1848,19 @@ tasks/<任务名>/
 | 测试 | `cargo test --workspace` = **314 passed / 0 failed**；`oasd --version` = 1.1.0 |
 | 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · `oasd-v1.1.0-win64.zip` · SHA256 `140BB35BEF9CA7BD357A396CB101798C291A26E7208A58CA064141E0A82235BB` |
 | 证据 | `_verify/n43/REPORT-V1.1.md`、`RELEASE-NOTES-v1.1.0.md`、页面截图 `page_tasks2.png` 等（工作区，不提交） |
+
+---
+
+### 22.37 ★★★ [10-30] **V1.2 任务构建器交付记录**（引擎 `5d0f79c` / tag `v1.2.0`）
+
+> ★ 用户 [10-30] 确认：统一「识别区域 + 操作区域」（不再有独立“点击区域/动作区域”概念）；识别结果多选保存，名称全局唯一；操作区域可调；新增任务构建大页面（动作库+值+实时流程图）；变量动作。
+
+| 项 | 结果 |
+|---|---|
+| A 区域模型 | 素材 `roi`=识别区域，`action_roi`=操作区域（默认=识别）；旧 `roi_back` serde alias；纯操作区域 `kind=region`；运行时 OCR/模板点击操作区域，模板跟随匹配平移；`Locator::RegionRef{sel}` 引用保存区域 |
+| A 批量/唯一 | `POST /task/save_assets` 全有或全无（rollback）；全局唯一 = 所有任务 + library；单存/批量/改名校验；`GET /assets/conflicts`；UI 多选候选/操作区域画布调整/冲突扫描 |
+| B 构建页 | 顶部「任务构建」（builder.js）：动作库、嵌套步骤树、动作值 inspector（素材/区域/数字/表达式/高级 JSON）、实时流程图、保存/dry-run；工作台保留测试 |
+| C 变量 | `set_var/inc_var/ocr_to_var` + `var('name')`；单次运行内有效 |
+| 测试 | `cargo test --workspace` = **326 passed / 0 failed**；`oasd --version` = 1.2.0 |
+| 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · `oasd-v1.2.0-win64.zip` · SHA256 `D31C500006643D318E16B3EDF23EC688BF6773D2886D4CAF1828F98C4CB035FC` |
+| 证据 | `_verify/n43/REPORT-V1.2.md`、`RELEASE-NOTES-v1.2.0.md`、`v12_builder.png`（工作区，不提交） |

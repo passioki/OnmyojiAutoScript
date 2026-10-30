@@ -267,3 +267,16 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 | 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.1.0` |
 | 证据 | `_verify/n43/REPORT-V1.1.md` / `RELEASE-NOTES-v1.1.0.md` / `_verify/n43/*.png` |
 | 限制 | 拖动当前为直线 swipe；until_* 完成条件由 flow 实现；单活动实例；APK 不在本版 |
+
+---
+
+# §10 V1.2 交付结果（[10-30] · 引擎 `5d0f79c` / tag `v1.2.0`）
+
+| 项 | 结果 |
+|---|---|
+| 范围 | 识别/操作区域统一、全局唯一、多选批量保存、操作区域可调、任务构建页、变量动作 |
+| 测试 | 326 passed / 0 failed |
+| 实机 | release 1.2.0 内联 OCR「式神录」点击 (1111,663) Done；变量循环 count 0→2；区域点击+drag Done |
+| 包 | `oasd-v1.2.0-win64.zip`（36,895,821 字节）· SHA256 `D31C500006643D318E16B3EDF23EC688BF6773D2886D4CAF1828F98C4CB035FC` |
+| 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.2.0` |
+| 已知限制 | 图片识别多选未做；builder 高级动作 JSON；变量不持久化；旧探索/个人突破有 3 个跨任务同名素材；release 未签名 |

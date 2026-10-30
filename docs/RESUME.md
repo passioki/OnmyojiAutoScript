@@ -5,80 +5,77 @@
 
 ```yaml
 task_id: oas-core-builder-v12
-checkpoint_seq: 11
-updated_at: 2026-10-30T23:05:00+08:00
+checkpoint_seq: 12
+updated_at: 2026-10-30T23:15:00+08:00
 trigger: phase-gate
-status: in_progress        # in_progress | blocked | done
+status: done                # in_progress | blocked | done
 ```
 
 ## 0. 目标（一句话）
 
-v1.2：统一「识别区域 + 操作区域」对象模型（含纯操作区域 region）、全局唯一命名、识别结果多选批量保存、操作区域可调；新增任务构建大页面（动作库+值+实时流程图）；补齐变量动作；测试/实机/发布 v1.2。
+v1.2：识别区域/操作区域统一、全局唯一命名、多选批量保存、操作区域可调；任务构建大页面（动作+值+实时流程图）；变量动作；回归/发布 v1.2.0。
 
-## 1. 验收清单
+## 1. 验收清单（全部完成）
 
-- [x] **A 统一对象模型**：`action_roi` 取代旧 `roi_back`（serde alias 兼容）；`kind=region`；批量保存 `/task/save_assets`；全局唯一（单存/批量/改名）+ `/assets/conflicts`；识别多选候选（名称/勾选/操作区域调整）— 引擎 `1e119c3`
-- [x] **B 任务构建页**：新顶部「任务构建」（builder.js）；动作库/嵌套步骤树/动作值 inspector（素材/区域/数字/表达式/高级 JSON）/实时流程图/保存/dry-run；任务库「构建」入口
-- [x] **C 变量动作**：`set_var`/`inc_var`/`ocr_to_var` + `var('name')` 表达式；builder/flow_model 支持
-- [ ] **D 回归/发布**：全量测试、实机/浏览器回归、README/docs、v1.2.0 zip + GitHub release
+- [x] **A**：`roi`=识别区域 + `action_roi`=操作区域（旧 roi_back alias）；`kind=region`；批量保存/全局唯一/冲突扫描；OCR 多选候选 + 操作区域画布调整
+- [x] **B**：顶部「任务构建」（builder.js）：动作库/嵌套步骤树/动作值 inspector/实时流程图/保存/dry-run；工作台保留
+- [x] **C**：`set_var/inc_var/ocr_to_var` + `var('name')`
+- [x] **D**：326 tests 全绿；浏览器 CDP 回归；实机/dry-run；package；tag/release `v1.2.0`
 
-## 2. 当前进度
+## 2. 发布产物
 
-- 引擎 main = `1e119c3`（已 push）；v1.1 release `f2c096c` 不变
-- 测试：最近一轮全量绿：flow 46 / runtime 89 / task 43 / oasd 113（待最终汇总）
-- 浏览器回归（CDP + headless Edge）已验证：
-  - 整屏 OCR → 25 个候选；名称/勾选/操作区域绘制；批量保存 25 个到 t1（`V12UI0..`）
-  - 操作区域 canvas 绘制更新候选 `action={5,5,194,94}`
-  - 任务构建页加载 t1、动作库 20 项、嵌套步骤/实时图；新增 set_var/inc_var 并保存 flow.json
-  - 页面无 JS 错误
-- **下一步 D**：
-  1. 补单测/回归：变量 flow dry-run、batch rollback、region/action_roi 点击；全量 cargo test
-  2. 实机安全回归（dry-run + release 包冒烟）；截图证据
-  3. 版本 1.2.0、README/docs、package、tag `v1.2.0`、GitHub release
+- GitHub Release：`https://github.com/passioki/oas-core/releases/tag/v1.2.0`
+- 引擎 tag `v1.2.0` / main `5d0f79c`
+- 包：`D:\OAS-dev\oas-core\dist\oasd-v1.2.0-win64.zip`（36,895,821 字节）
+- SHA256：`D31C500006643D318E16B3EDF23EC688BF6773D2886D4CAF1828F98C4CB035FC`
+- 测试：`cargo test --workspace` = **326 passed / 0 failed**
+- 包冒烟：`oasd 1.2.0`；lint 4 tasks/0 errors；serve `/state` captured/OCR ready；`/builder.js` 200；`/assets/conflicts` 旧任务 3 条重名
 
-## 3. 已实现模型/事实（v1.2）
+## 3. 回归证据
 
-- `AssetDecl`：`id/kind`（template|ocr_line|ocr_lines|region）+ `roi`（识别区域）+ `action_roi`（操作区域，旧 `roi_back` alias）+ file/threshold/polygon/rev
-- `kind=region`：`roi` 即操作区域；无识别、无 file/threshold；runtime `AssetSet::insert_region`
-- OCR 资产点击用 `action_roi`（缺省=识别 ROI）；模板点击操作区域继续按匹配位置平移
-- `Locator::RegionRef{sel}`：流程引用保存的纯操作区域
-- 批量保存：`POST /task/save_assets {task,assets:[...]}`，任务内全有或全无；全局唯一扫描所有 tasks + library；UI 多选候选
-- 全局冲突扫描：`GET /assets/conflicts`
-- 变量：`set_var/inc_var/ocr_to_var` + `var('name')`；变量单次运行内有效，不写 checkpoint
-- 任务构建页文件：`apps/oasd/ui/builder.js`（新增）；静态路由 `/builder.js`
+| 项 | 结果 |
+|---|---|
+| 浏览器候选/批量 | 整屏 OCR 25 候选；批量保存 25 个 V12UI 素材；操作区域绘制 `{5,5,194,94}`；无 JS 错误 |
+| 任务构建页 | 20 动作；加载 t1；set_var/inc_var 保存 flow；实时图；截图 `_verify/n43/v12_builder.png` |
+| 变量 dry-run | `set_var count=0` + loop 2：count 0→1→2，loop 2/2，Done |
+| 区域/拖动 dry-run | region point (1025,385)；drag up (1073,619)->(1073,494) ms=426；Done |
+| 实机 release | 内联 OCR「式神录」→ (1111,663) Done（`_verify/n43/v12release/live_ocr.clicks.jsonl`）|
+| 旧冲突扫描 | `/assets/conflicts`：探索/个人突破 3 个同名素材（旧数据，不自动改名）|
 
-## 4. 在途/未提交
+## 4. 模型/实现事实
 
-| 文件 | 内容 | 状态 |
-|---|---|---|
-| oas-core | `1e119c3` 已提交/推送（A/B/C） | committed |
-| backend/docs | 本卡/索引待提交 | 待提交 |
+- `AssetDecl`：`roi`=识别区域；`action_roi`=操作区域（旧 `roi_back` 兼容）；`kind` 含 `region`（roi 即操作区域，无 file/threshold）
+- 运行时：OCR 点击 action_roi（缺省=识别 ROI）；模板 action 跟随匹配平移；`Locator::RegionRef{sel}` 引用保存区域
+- 批量保存：`POST /task/save_assets` 全有或全无；全局唯一 = 所有任务 + library；单存/改名同样校验；`GET /assets/conflicts`
+- 变量：`set_var/inc_var/ocr_to_var` + `var('name')`；单次运行有效，不写 checkpoint
+- 构建页：`apps/oasd/ui/builder.js`；静态路由 `/builder.js`；任务库「构建」
 
-## 5. 已知限制/待做
+## 5. 已知限制
 
-- 图片识别目前是单次“测试匹配”；多图/多次匹配结果的多选保存尚未做（OCR 行多选已做）
-- 操作区域跟随：模板跟随匹配框；OCR 资产目前按保存的绝对坐标（ROI 固定）
-- builder 第一版：高级动作（click_target/drag）用 args JSON；流程图只读查看
-- 变量不持久化，checkpoint 不保存变量
-- release 未签名；v1.1 的 until_* 完成条件仍由 flow 判断
+- 图片识别多选保存未做；图片资产已支持操作区域编辑
+- builder 第一版复杂动作（click_target/drag）用 args JSON；实时流程图只读
+- OCR 操作区域是保存的绝对坐标；模板跟随匹配框
+- 旧探索/个人突破已有 3 个跨任务同名素材，需要手动改名才能继续新增同名对象
+- 变量不持久化；release 未签名；APK 不在本版
 
 ## 6. 阻塞 / 待用户裁定
 
-- 无（继续 D）
+- 无（v1.2.0 已完成并发布）
 
 ## 7. 证据索引
 
 | 证据 | 路径 |
 |---|---|
-| v1.2 浏览器候选/批量保存 | CDP 实测（t1，25 候选，V12UI0..）|
-| builder 截图 | `_verify/n43/v12_builder.png` |
-| A/B/C 提交 | `1e119c3` |
-| v1.1 发布 | `_verify/n43/REPORT-V1.1.md`；release v1.1.0 |
+| 发布说明 | `_verify/n43/RELEASE-NOTES-v1.2.0.md` |
+| 交付报告 | `_verify/n43/REPORT-V1.2.md` |
+| 构建页截图 | `_verify/n43/v12_builder.png` |
+| 实机 clicks | `_verify/n43/v12release/live_ocr.clicks.jsonl` |
+| GitHub | `https://github.com/passioki/oas-core/releases/tag/v1.2.0` |
 
 ## 8. 坑
 
-- `loop` body 是顶层字段；`n` 是表达式字符串；builder 新增动作会自动插到末尾 finish 之前
-- `action_roi` 与旧 `roi_back` 兼容；不要在 assets.json 里再写 roi_back（新保存统一 action_roi）
-- 全局唯一范围 = 所有任务 assets + 全局 library；旧数据冲突用 `/assets/conflicts` 查，不自动改名
-- 批量保存 rollback 会恢复 assets.json 并清理本轮新建图片
-- UI 无 node：headless Edge + CDP Runtime.evaluate 可做点击/画布自动化；页面错误看 `window.__oasErrors`
+- `action_roi` 是操作区域唯一字段；旧 `roi_back` 只在读取时兼容，新保存写 action_roi
+- 批量保存回滚 assets.json 并清理新图片；全局唯一包含 task assets + library
+- UI 无 node：headless Edge + CDP Runtime.evaluate 可做点击/画布/截图回归；错误看 `window.__oasErrors`
+- `loop` body 顶层字段；builder 新增动作自动插到末尾 finish 之前
+- 打包 serve 冒烟需要 `--ui ui`，否则会尝试读开发目录 `apps/oasd/ui`

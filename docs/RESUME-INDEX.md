@@ -18,3 +18,4 @@
 | 9 | oas-core-editor-v11 | P3 | 顶部页面（工作台/任务库/实例/调度/设置）+ 实例配置读写 | 用户 v1.1 设计确认 | engine `7551377` · `_verify/n43/page_tasks2.png` 等 | P4 | done |
 | 10 | oas-core-editor-v11 | P4 | 点击分布聚合 + 删除到 _trash（默认全部运行） | 用户 v1.1 设计确认 | engine `4a06d97` · `_verify/n43/ui_p4.png` | P5 | done |
 | 11 | oas-core-editor-v11 | P5 | v1.1.0 回归/打包/GitHub release（314 tests 全绿；zip SHA256 140B…） | 用户 v1.1 设计确认 | tag `v1.1.0` · release `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · `_verify/n43/REPORT-V1.1.md` | 完成 | done |
+| 12 | oas-core-builder-v12 | A/B/C | v1.2：识别/操作区域统一 + 批量保存 + 全局唯一 + 任务构建页 + 变量动作 | 用户确认 v1.2 设计 | engine `1e119c3` · `_verify/n43/v12_builder.png` | 开始 D：回归/发布 v1.2 | in_progress |

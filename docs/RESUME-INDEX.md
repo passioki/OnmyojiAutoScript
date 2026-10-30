@@ -28,3 +28,4 @@
 | 19 | oas-core-v122 | docs | R1~R18 用户裁定台账 §E-26；R17 纠正：C 是助手选项，图片多选非用户原话要求 | `docs/PENDING-LEDGER.md §E-26` · `docs/ENGINE-DESIGN.md §22.39 R17` | 引用纪律 + 覆盖自检 + SESSION-INDEX 6287/6288 拆行 | 完成 | done |
 | 20 | oas-core-v123-r-audit | R审计 | R1~R18 逐条复核：14✅/4🔄（R2/until、R6/文案、R14/builder active task、R18/发布门槛） | `docs/PENDING-LEDGER.md §E-26` · `docs/RESUME.md` | v1.2.2 已发布但验收未闭合；未改代码 | 先修 R14-a/R6-a；R2-a 待用户裁定 | in_progress |
 | 21 | oas-core-v123-r-audit | R审计2 | 双向读 USER+ASST 后重核：15✅/3🔄；R2按当期口径✅，R6/R14/R18未闭合 | `docs/PENDING-LEDGER.md §E-26` · `docs/RESUME.md` | 助手 10-30 20:17 until 口径/用户 20:21 确认；builder B.task 缺口 | 修 R14-a/R6-a；v1.2.3 | in_progress |
+| 22 | oas-core-v123-r-audit | R审计3 | 真流程图复核：当前 DOM 缩进图不是 SVG 控制流图；R9-a 新增；R1~R18=14✅/4🔄 | `docs/PENDING-LEDGER.md §E-26` · `docs/ENGINE-DESIGN.md §22.39 R9` | `builder.js:321-385` 无 SVG/边；R6/R9/R14/R18 未闭合 | 建图 IR + SVG；修 R6/R14；v1.2.3 | in_progress |

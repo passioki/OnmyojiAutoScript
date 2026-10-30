@@ -14,25 +14,25 @@
 
 ```
 ★ 项目：OAS（OnmyojiAutoScript）—— 阴阳师自动化引擎 + 数据驱动编辑器
-★ 当前主线 = 新引擎 **oas-core**（Rust workspace，`D:\OAS-dev\oas-core`，本地 `main`，**无远端**）
+★ 当前主线 = 新引擎 **oas-core**（Rust workspace，`D:\OAS-dev\oas-core`，`main`，远端 `https://github.com/passioki/oas-core`）
 ★ 旧仓 `backend\` / `frontend\` = **已冻结，只作资源库**（资产/知识/历史证据）
   ⇒ ★ 不在旧仓上开发；旧仓只读；旧仓文档里的"待办"与引擎无关的不要动
 ★ 开发工作区：`D:\OAS-dev\`（oas-core + backend + frontend 并排）
-★ 交付通道：backend 文档仓 `git push origin dev`；oas-core 目前仅本地 main
+★ 交付通道：backend 文档仓 `git push origin dev`；oas-core `main` + tag/release 已推 GitHub
 ★ 实机：另一台电脑（本机没有 D:\OAS-live）⇒ 本机只做开发/回放/模拟器验证
 ★ 唯一真相 = git + 磁盘证据；**不信"我记得"** ⇒ 必须贴 `文件:行号` / commit / 测试输出
 ```
 
-## 0.1 当前状态快照（2026-10-24）
+## 0.1 当前状态快照（2026-10-30 · V1.1 已发布）
 
 | 项 | 状态 |
 |---|---|
-| 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **312 passed** · `oasd --version` = **1.0.0** |
+| 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **314 passed** · `oasd --version` = **1.1.0** |
 | 引擎特性 | flow DSL、素材/掩膜/多边形、点击定位链、HB1/HB7、整帧搜索、双 ROI、库、queue、stats、checkpoint/resume、reconnect、多帧投票、OCR+模板互证、**统一任务模板/task lint、任务创建/编辑器运行、调度 v3、交付包** |
 | 编辑器 | 三栏 IDE（素材/图片/任务/流程/点击分布/调度）、标题行常驻结果/日志窗口、新建任务对话框、重置记忆多选、调试页 `/dashboard.html` |
 | 纵向 | ① 弹窗 ② 重试/恢复 ③ queue ④ 流程编辑器 ⑤ 统计 ⑥ 周期调度（v1 原型）· **V1.0 已交付**（模板+创建+调度 v3+实机包）|
 | 横向 | H1/H2 暂停；H4/H5 已完成；H3 暂缓 |
-| V1.0 交付 | ★ 提交 `678e915` · 仓库 `https://github.com/passioki/oas-core` · Release `v1.0.0`（`https://github.com/passioki/oas-core/releases/tag/v1.0.0`）· 探索/个人突破实机 Done · 调度 2 轮实机通过 · 长跑（96 轮等效）通过 |
+| V1.0 交付 | ★ 提交 `678e915` · Release `v1.0.0` · 探索/个人突破实机 Done · 调度 2 轮实机通过 · 长跑（96 轮等效）通过 |\n| V1.1 交付 | ★ tag `v1.1.0` / 提交 `f2c096c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · 整屏 OCR 直点/素材 CRUD/区域拖动/工作台完成条件/5 页面/点击聚合 · 314 tests 全绿 · zip SHA256 `140B…` |
 
 ---
 

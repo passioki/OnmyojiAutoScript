@@ -5,74 +5,77 @@
 
 ```yaml
 task_id: oas-core-editor-v11
-checkpoint_seq: 9
-updated_at: 2026-10-30T21:30:00+08:00
+checkpoint_seq: 10
+updated_at: 2026-10-30T21:45:00+08:00
 trigger: phase-gate
-status: in_progress        # in_progress | blocked | done
+status: done                # in_progress | blocked | done
 ```
 
 ## 0. 目标（一句话）
 
-按用户确认的 v1.1 设计实现：整屏 OCR 文字直点、素材 CRUD/区域/拟人拖动、任务工作台+完成条件、多页面（工作台/任务库/实例/调度/设置）、点击分布聚合+删除，验收后发布。
+按用户确认的 v1.1 设计实现并发布：整屏 OCR 文字直点、素材 CRUD/区域/拟人拖动、任务工作台+完成条件、多页面（工作台/任务库/实例/调度/设置）、点击分布聚合+删除。
 
-## 1. 验收清单
+## 1. 验收清单（全部完成）
 
 - [x] **P0**：`ocr_lines` 测试走 `/lines`；整屏 OCR 内联直点；`追加到流程` 中文；`logs/editor.log` — `4b9ee7c`
-- [x] **P1**：素材 CRUD（delete/rename/update meta）；独立区域 `Locator::Region`；`Step::Drag`（方向必填、随机起终点/时长、方向校验）；flow 生成 — `fd005b0`
-- [x] **P2**：任务工作台（①~⑦步骤导航）；任务级完成条件 `meta.goal`（battles 自动生成 loop；until_* 由 flow 判断）— `a62e803`
-- [x] **P3**：顶部页面（工作台/任务库/实例/调度/设置）；任务库打开/删除/新建；实例读+写 config/live.json；调度状态/重置；设置读配置 — `7551377`
-- [x] **P4**：点击分布聚合（全部/最近10/最近1/按任务）+ 删除/清空移到 _trash — `4a06d97`
-- [ ] **P5**：单测/回放/实机回归；文档；v1.1 打包发布
+- [x] **P1**：素材 CRUD；`Locator::Region`；`Step::Drag`（方向必填/随机起终点/时长/方向校验）；flow 生成 — `fd005b0`
+- [x] **P2**：任务工作台 ①~⑦；`meta.goal` battles 自动 loop；until_* 由 flow 判断 — `a62e803`
+- [x] **P3**：顶部页面；任务库打开/删除/新建；实例读写 config；调度页；设置页 — `7551377`
+- [x] **P4**：点击分布聚合（全部/最近10/最近1/按任务）+ 删除/清空到 `_trash` — `4a06d97`
+- [x] **P5**：314 tests 全绿；release/实机回归；打包 v1.1.0；GitHub release — `f2c096c` / tag `v1.1.0`
 
-## 2. 当前进度
+## 2. 发布产物
 
-- 当前阶段：**P5 未开始**（P4 完成并推送 `4a06d97`）
-- P4 验证：`cargo test --workspace` 全绿；/runs/aggregate all/latest+task 实测；/runs/delete 把文件移到 runs/_trash；UI 截图 _verify/n43/ui_p4.png
-- **下一步精确动作（P5）**：
-  1. `meta.goal`：`{mode:"battles|until", count|exit}`；任务创建模板/UI 完成条件字段；生成 flow `loop n=param('max_battles')` 或 `while`
-  2. 任务工作台：任务面板按 ①基础 ②画面素材 ③操作 ④流程 ⑤完成条件 ⑥测试运行 ⑦保存/加入调度 引导
-  3. 完成条件与调度 quota 分开展示；P2 验收：不写 JSON 建完整任务
+- GitHub Release：`https://github.com/passioki/oas-core/releases/tag/v1.1.0`
+- 包：`D:\OAS-dev\oas-core\dist\oasd-v1.1.0-win64.zip`（36,868,461 字节）
+- SHA256：`140BB35BEF9CA7BD357A396CB101798C291A26E7208A58CA064141E0A82235BB`
+- tag：`v1.1.0`；main：`f2c096c`
+- 测试：`cargo test --workspace` = **314 passed / 0 failed**
+- 包内冒烟：`oasd 1.1.0`；`task lint --all` 4 tasks/0 errors；serve `/state` captured 1280x720/OCR ready
 
-## 3. 已验证事实
+## 3. 实机/回归证据
 
-- 引擎 `main` = `fd005b0`；remote `https://github.com/passioki/oas-core`（main 已推；v1.0.0 tag/release 保留）
-- 测试：`cargo test --workspace` 全绿
-- P1 API：delete `预设ocr` 200；rename `预设`→`预设2` 200；update template threshold 0.85→0.9 200；`task/assets` count 6→5
-- P0/P1 编辑器：`logs/editor.log` 记录 asset 操作；`flow_model.js` 增加 drag 中文项
-- 用户 release 测试：`C:\Users\passioki\Downloads\test`（整屏 OCR 任务、逐 run clicks）
+| 项 | 结果 |
+|---|---|
+| release 实机整屏 OCR 直点 | `clicked_target locator=ocr_text inline text="预设" score=1.000 point=(394,96)` → Done |
+| dry-run 区域点击+拖动+loop | `region (1017,360)`；`drag direction=up from=(1027,635) to=(1027,496) ms=406`；`loop 2/2` → Done |
+| P2 完成条件 | `loop n=param('max_battles')` 默认 2 → 两次日志 → Done；lint 通过 |
+| 素材 CRUD | delete/rename/update threshold API 均 200；列表 count 6→5 |
+| 点击分布 | 2 run 聚合 `runs=2 clicks=2 distinct=2`；删除移 `_trash` 成功 |
+| 截图 | `_verify/n43/page_tasks2.png`、`page2_instances.png`、`page2_schedule.png`、`page3_settings.png`、`ui_p4.png` 等 |
 
-## 4. 在途改动
+## 4. 文档
 
-| 文件 | 改了什么 | 状态 |
-|---|---|---|
-| oas-core | P1 已提交 `fd005b0` 并 push | committed |
-| backend/docs | 本卡/索引待提交 | 待提交 |
+- `docs/ENGINE-DESIGN.md §22.36` V1.1 交付记录（已追加）
+- `docs/DELIVERY-PLAN.md §9` V1.1 交付结果（已追加）
+- `_verify/n43/REPORT-V1.1.md`、`RELEASE-NOTES-v1.1.0.md`（工作区证据，不提交）
+- 包内 `README-DEPLOY.md` 已更新 V1.1 新特性/工作台流程
 
-## 5. v1.1 设计约束（已确认）
+## 5. 已知限制
 
-- ★ 整屏 OCR 每行直接点击：flow `ocr_text` 内联 `roi+text`，无需素材
-- ★ 素材操作参数只存 flow；素材 CRUD 只管理 id/kind/ROI/图/阈值
-- ★ 无 offset；独立区域操作（随机点点击/拖动）
-- ★ 拖动方向必填；起点/终点随机、时长/速度随机；当前 PC adapter 为直线 swipe（曲线抖动待 minitouch/scrcpy）
-- ★ 完成条件归任务；调度器 quota=每天跑几次
-- ★ 点击分布保留逐 run JSONL，聚合视图 + 删除（默认 _trash）
-- ★ 多实例 v1.1 只做实例配置+活动实例
+- `until_resource/until_condition` 不做通用游戏语义，需 flow 用 while/识别/出现 判断；
+- 拖动当前是直线 `adb input swipe`；曲线抖动待 minitouch/scrcpy 输入后端；
+- v1.1 单进程单活动实例（实例配置可编辑，重启生效），多实例并行后续；
+- APK/Android 引擎不在 v1.1.0；
+- release 未签名（SmartScreen 可能提示）。
 
 ## 6. 阻塞 / 待用户裁定
 
-- 无
+- 无（v1.1 已完成并发布）
 
 ## 7. 证据索引
 
 | 证据 | 路径 |
 |---|---|
-| P0 内联 OCR | `_verify/n43/inline/clicks.jsonl` |
-| P1 CRUD/UI | `_verify/n43/crud/` · `_verify/n43/ui_p1.png` |
-| 用户 release 测试 | `C:\Users\passioki\Downloads\test` |
+| 发布报告 | `_verify/n43/REPORT-V1.1.md` |
+| 发布说明 | `_verify/n43/RELEASE-NOTES-v1.1.0.md` |
+| 内联 OCR live | `_verify/n43/p5/live_ocr.clicks.jsonl` |
+| 页面截图 | `_verify/n43/page*_*.png` / `ui_p4.png` |
+| GitHub | `https://github.com/passioki/oas-core/releases/tag/v1.1.0` |
 
 ## 8. 坑
 
-- Windows PowerShell 5 默认 GBK：bat 纯 ASCII；.NET 相对路径 CWD 不跟随 `cd`，用绝对路径
-- 运行中的 oasd.exe 锁 target；重建前停 serve
-- 无 node：JS 用 headless Edge 截图验页面；`node --check` 不可用
-- 内联 OCR 需要 det+rec；单行 `/ocr` 仅用于 ocr_line
+- PowerShell 默认 GBK：脚本/中文路径用绝对路径；.NET 相对路径不跟 `cd`；
+- 运行中的 oasd.exe 锁 target；重建前停 serve；
+- JS 无 node：用 headless Edge 截图 + 页面标题栏错误提示验页面；
+- `loop` 的 body 是**顶层字段**，不是 `args.body`；`n` 是表达式字符串（如 `"2"`/`"param('max_battles')"`）。

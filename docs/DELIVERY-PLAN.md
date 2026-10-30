@@ -253,3 +253,17 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 | 证据 | `_verify/n42/REPORT-V1.0.md`（工作区，不提交）|\n| 发布 | GitHub `https://github.com/passioki/oas-core` · Release `https://github.com/passioki/oas-core/releases/tag/v1.0.0` |
 
 **已知限制**（与 ENGINE §22.35 一致）：起始须庭院；探索假设第二十八章 + 游戏内自动挑战开启；个人突破阵容弱通常战败但流程完整、票/目标耗尽走 resource；个人突破需 OCR 模型；调度器无 SIGINT、固定 UTC offset（+480）、启动未强制 lint；release 未签名；**APK=P4 未做**。
+
+---
+
+# §9 V1.1 交付结果（[10-30] · 引擎 `f2c096c` / tag `v1.1.0`）
+
+| 项 | 结果 |
+|---|---|
+| 范围 | 用户确认的 v1.1：整屏 OCR 直点、素材 CRUD、区域/拟人拖动、任务工作台+完成条件、5 页面、点击分布聚合+删除 |
+| 测试 | `cargo test --workspace` = 314 passed / 0 failed |
+| 实机 | release 1.1.0 内联 OCR 点击「预设」→ Done（(394,96)）；dry-run 区域点击+拖动+loop 2/2 → Done |
+| 包 | `dist/oasd-v1.1.0-win64.zip`（36,868,461 字节）· SHA256 `140BB35BEF9CA7BD357A396CB101798C291A26E7208A58CA064141E0A82235BB` |
+| 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.1.0` |
+| 证据 | `_verify/n43/REPORT-V1.1.md` / `RELEASE-NOTES-v1.1.0.md` / `_verify/n43/*.png` |
+| 限制 | 拖动当前为直线 swipe；until_* 完成条件由 flow 实现；单活动实例；APK 不在本版 |

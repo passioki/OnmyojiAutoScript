@@ -1831,3 +1831,20 @@ tasks/<任务名>/
 | 已知限制 | 起始须庭院；探索假设第二十八章+游戏内自动挑战开启；个人突破阵容弱通常战败但流程完整、目标/票耗尽走 resource；个人突破需 OCR 模型；调度器无 SIGINT 处理/固定 UTC offset；启动未强制 lint；release 未签名；**APK=P4 未做** |\n| 发布 | GitHub 仓库 `https://github.com/passioki/oas-core` · Release `https://github.com/passioki/oas-core/releases/tag/v1.0.0`（tag `v1.0.0`，4 个资产）|
 
 
+
+---
+
+### 22.36 ★★★ [10-30] **V1.1 编辑器一条龙交付记录**（引擎 `f2c096c` / tag `v1.1.0`）
+
+> ★ 用户 [10-30] 确认设计：整屏 OCR 每行可直点；素材操作参数只存 flow；无 offset，改独立区域操作；拖动方向必填+随机起终点/速度；完成条件归任务、调度 quota 只负责每天跑几次；点击分布聚合+删除；多实例先做实例配置+单活动实例。
+
+| 项 | 结果 |
+|---|---|
+| P0 修复 | `Locator::OcrTextInline`（roi+text，无需素材）；click_target inline；`ocr_lines` 测试走 `/lines`；追加到流程 中文；`logs/editor.log` |
+| P1 | 素材 delete/rename/update（flow 引用守卫）；`Locator::Region` 区域随机点；`Step::Drag`（方向 up/down/left/right，起终点/时长随机，终点方向校验）；UI 生成步骤 |
+| P2 | 任务工作台 ①~⑦；`meta.goal`（battles → `loop n=param('max_battles')`；until_* 由 flow 判断）；`POST /task/goal` |
+| P3 | 顶部页面 工作台/任务库/实例/调度/设置；`/task/library`、`/task/delete`、`/instance` GET/POST（写 config/live.json，重启生效）、`/config` |
+| P4 | `/runs/aggregate`（all/recent/latest + task 过滤）；`/runs/delete` 移 `runs/_trash`；UI 默认聚合 |
+| 测试 | `cargo test --workspace` = **314 passed / 0 failed**；`oasd --version` = 1.1.0 |
+| 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · `oasd-v1.1.0-win64.zip` · SHA256 `140BB35BEF9CA7BD357A396CB101798C291A26E7208A58CA064141E0A82235BB` |
+| 证据 | `_verify/n43/REPORT-V1.1.md`、`RELEASE-NOTES-v1.1.0.md`、页面截图 `page_tasks2.png` 等（工作区，不提交） |

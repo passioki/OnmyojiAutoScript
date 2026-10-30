@@ -20,3 +20,4 @@
 | 11 | oas-core-editor-v11 | P5 | v1.1.0 回归/打包/GitHub release（314 tests 全绿；zip SHA256 140B…） | 用户 v1.1 设计确认 | tag `v1.1.0` · release `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · `_verify/n43/REPORT-V1.1.md` | 完成 | done |
 | 12 | oas-core-builder-v12 | A/B/C | v1.2：识别/操作区域统一 + 批量保存 + 全局唯一 + 任务构建页 + 变量动作 | 用户确认 v1.2 设计 | engine `1e119c3` · `_verify/n43/v12_builder.png` | 开始 D：回归/发布 v1.2 | in_progress |
 | 13 | oas-core-builder-v12 | D | v1.2.0 发布：识别/操作区域统一、批量保存、任务构建页、变量动作 | 用户确认 v1.2 设计 | tag `v1.2.0` · release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · `_verify/n43/REPORT-V1.2.md` | 完成 | done |
+| 14 | oas-core-builder-v12 | v1.2.1 | 统一素材库+迁移、OCR 来源一致、builder 素材/真流程图、帧管理、工作台流程收口 | 用户验收 v1.2 结果 | tag `v1.2.1` · release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · `_verify/n43/REPORT-V1.2.1.md` | 完成 | done |

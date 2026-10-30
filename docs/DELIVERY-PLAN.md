@@ -280,3 +280,17 @@ D:\OAS-live\oas-core\                 ← 新引擎目录，与旧 OAS(backend/f
 | 包 | `oasd-v1.2.0-win64.zip`（36,895,821 字节）· SHA256 `D31C500006643D318E16B3EDF23EC688BF6773D2886D4CAF1828F98C4CB035FC` |
 | 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.2.0` |
 | 已知限制 | 图片识别多选未做；builder 高级动作 JSON；变量不持久化；旧探索/个人突破有 3 个跨任务同名素材；release 未签名 |
+
+---
+
+# §11 V1.2.1 交付结果（[10-31] · 引擎 `4e50aea` / tag `v1.2.1`）
+
+| 项 | 结果 |
+|---|---|
+| 范围 | OCR 来源、批量素材可见、builder 素材/布局/真流程图、帧管理、全局素材统一、工作台流程收口 |
+| 测试 | 327 passed / 0 failed |
+| 迁移 | 包内 26 assets / 4 tasks / 3 flows rewritten / 3 renames；lint 4/4 ok |
+| 实机/运行 | 全局 assets 加载 23；派生 OCR 行 dry-run 点击 (158,16) Done |
+| 包 | `oasd-v1.2.1-win64.zip`（37,148,195 字节）· SHA256 `E4E4E94DDBF86CBB6D3D7A831BFD7E8940DA6DCAD823B0432A4FD55843C99AC1` |
+| 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.2.1` |
+| 限制 | 帧为 session 内存；图片多选未做；旧 task assets 保留未用；builder 复杂动作 args JSON；未签名 |

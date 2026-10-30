@@ -1864,3 +1864,21 @@ tasks/<任务名>/
 | 测试 | `cargo test --workspace` = **326 passed / 0 failed**；`oasd --version` = 1.2.0 |
 | 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · `oasd-v1.2.0-win64.zip` · SHA256 `D31C500006643D318E16B3EDF23EC688BF6773D2886D4CAF1828F98C4CB035FC` |
 | 证据 | `_verify/n43/REPORT-V1.2.md`、`RELEASE-NOTES-v1.2.0.md`、`v12_builder.png`（工作区，不提交） |
+
+---
+
+### 22.38 ★★★ [10-31] **V1.2.1 统一素材库/OCR来源/构建页/帧管理交付记录**（引擎 `4e50aea` / tag `v1.2.1`）
+
+> ★ 用户验收后确认项：批量保存素材不可见、builder 无素材/布局/流程图、帧管理、去除任务/全局素材区分、工作台流程收口；全做完后再发布 v1.2.1。
+
+| 项 | 结果 |
+|---|---|
+| OCR 来源 | 多行保存 `ocr_line` 带 `ocr_mode:"lines"` + `ocr_source_roi` + `ocr_text`；运行时原区域 det+rec 匹配原文字；旧资产默认 single |
+| 任务身份 | taskName/taskSelect 同步为 active task；批量保存立即刷新同任务素材 |
+| builder | 三栏溢出修复；属性区固定素材/操作区域选择器；真控制流图（if 分支/loop 回边/汇合），点击节点联动属性 |
+| 帧 | 重命名、自由文本分类、拖动排序/分组；移除 20 帧上限；`/frames/rename|category|reorder` |
+| 全局素材 | 唯一 `assets/`（assets.json+images）；`oasd assets migrate` 自动后缀 + 按任务重写 flow；serve/run/lint 全局模式；删除/改名全任务引用保护；`/assets/migrate` UI 按钮 |
+| 工作台 | 移除流程 rail/入口；流程编辑统一到任务构建 |
+| 测试 | `cargo test --workspace` = **327 passed / 0 failed** |
+| 发布 | `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · zip SHA256 `E4E4E94DDBF86CBB6D3D7A831BFD7E8940DA6DCAD823B0432A4FD55843C99AC1` |
+| 证据 | `_verify/n43/REPORT-V1.2.1.md` / `RELEASE-NOTES-v1.2.1.md` |

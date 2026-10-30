@@ -4,78 +4,77 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-builder-v12
-checkpoint_seq: 12
-updated_at: 2026-10-30T23:15:00+08:00
+task_id: oas-core-builder-v121
+checkpoint_seq: 13
+updated_at: 2026-10-31T00:10:00+08:00
 trigger: phase-gate
 status: done                # in_progress | blocked | done
 ```
 
 ## 0. 目标（一句话）
 
-v1.2：识别区域/操作区域统一、全局唯一命名、多选批量保存、操作区域可调；任务构建大页面（动作+值+实时流程图）；变量动作；回归/发布 v1.2.0。
+v1.2.1：统一全局素材库、OCR 多行来源一致、批量素材可见、builder 素材/布局/真流程图、帧管理、工作台流程收口；全做完后发布。
 
 ## 1. 验收清单（全部完成）
 
-- [x] **A**：`roi`=识别区域 + `action_roi`=操作区域（旧 roi_back alias）；`kind=region`；批量保存/全局唯一/冲突扫描；OCR 多选候选 + 操作区域画布调整
-- [x] **B**：顶部「任务构建」（builder.js）：动作库/嵌套步骤树/动作值 inspector/实时流程图/保存/dry-run；工作台保留
-- [x] **C**：`set_var/inc_var/ocr_to_var` + `var('name')`
-- [x] **D**：326 tests 全绿；浏览器 CDP 回归；实机/dry-run；package；tag/release `v1.2.0`
+- [x] OCR 来源一致：`ocr_mode/ocr_source_roi/ocr_text` + 运行时原 det+rec + 操作区域平移
+- [x] 批量保存素材可见：active task 统一
+- [x] builder 素材选择器/布局/真控制流图（if 分支、loop 回边）
+- [x] 帧重命名、去 20 上限、拖动排序、自由文本分类
+- [x] 全局素材库统一（`assets/`）+ 迁移自动后缀 + 按任务重写 flow
+- [x] 工作台流程入口移除，流程编辑统一到任务构建
+- [x] 327 tests 全绿；浏览器/迁移/运行验证；发布 v1.2.1
 
 ## 2. 发布产物
 
-- GitHub Release：`https://github.com/passioki/oas-core/releases/tag/v1.2.0`
-- 引擎 tag `v1.2.0` / main `5d0f79c`
-- 包：`D:\OAS-dev\oas-core\dist\oasd-v1.2.0-win64.zip`（36,895,821 字节）
-- SHA256：`D31C500006643D318E16B3EDF23EC688BF6773D2886D4CAF1828F98C4CB035FC`
-- 测试：`cargo test --workspace` = **326 passed / 0 failed**
-- 包冒烟：`oasd 1.2.0`；lint 4 tasks/0 errors；serve `/state` captured/OCR ready；`/builder.js` 200；`/assets/conflicts` 旧任务 3 条重名
+- GitHub Release：`https://github.com/passioki/oas-core/releases/tag/v1.2.1`
+- tag `v1.2.1`；main `4e50aea`
+- 包：`D:\OAS-dev\oas-core\dist\oasd-v1.2.1-win64.zip`（37,148,195 字节）
+- SHA256：`E4E4E94DDBF86CBB6D3D7A831BFD7E8940DA6DCAD823B0432A4FD55843C99AC1`
+- 测试：**327 passed / 0 failed**
+- 包内：assets 26 / tasks 4 / migration 3 flows rewritten / lint 4 ok
 
-## 3. 回归证据
+## 3. 关键实现事实
 
-| 项 | 结果 |
-|---|---|
-| 浏览器候选/批量 | 整屏 OCR 25 候选；批量保存 25 个 V12UI 素材；操作区域绘制 `{5,5,194,94}`；无 JS 错误 |
-| 任务构建页 | 20 动作；加载 t1；set_var/inc_var 保存 flow；实时图；截图 `_verify/n43/v12_builder.png` |
-| 变量 dry-run | `set_var count=0` + loop 2：count 0→1→2，loop 2/2，Done |
-| 区域/拖动 dry-run | region point (1025,385)；drag up (1073,619)->(1073,494) ms=426；Done |
-| 实机 release | 内联 OCR「式神录」→ (1111,663) Done（`_verify/n43/v12release/live_ocr.clicks.jsonl`）|
-| 旧冲突扫描 | `/assets/conflicts`：探索/个人突破 3 个同名素材（旧数据，不自动改名）|
+- 全局库 `assets/assets.json + images/`；`oasd assets migrate`，`/assets/migrate`；启动脚本 `--assets-dir assets`
+- 迁移：重名自动 `_2/_3`；每个任务独立 old→new 映射重写 flow；失败回滚 flows；报告 `assets/migration-report.json`
+- 运行时：`RunOptions.assets`；存在全局库时优先；`task lint` 支持全局 id
+- OCR derived line：`AssetSet.derived_ocr`；`ocr_read` 原 source ROI det+rec；`last_ocr_rect` 平移 action_roi
+- builder：`builder.js`、三栏布局、`fg-control-box/fg-backedge` 真流程图
+- 帧：`SessionFrame{name,category}`、`/frames/rename|category|reorder`；内存 session，无 20 上限
+- 工作台 flow rail 移除；`#panel-flow` 仅隐藏保留兼容 JS（用户不可见）
 
-## 4. 模型/实现事实
+## 4. 验证摘要
 
-- `AssetDecl`：`roi`=识别区域；`action_roi`=操作区域（旧 `roi_back` 兼容）；`kind` 含 `region`（roi 即操作区域，无 file/threshold）
-- 运行时：OCR 点击 action_roi（缺省=识别 ROI）；模板 action 跟随匹配平移；`Locator::RegionRef{sel}` 引用保存区域
-- 批量保存：`POST /task/save_assets` 全有或全无；全局唯一 = 所有任务 + library；单存/改名同样校验；`GET /assets/conflicts`
-- 变量：`set_var/inc_var/ocr_to_var` + `var('name')`；单次运行有效，不写 checkpoint
-- 构建页：`apps/oasd/ui/builder.js`；静态路由 `/builder.js`；任务库「构建」
+- 浏览器 CDP：taskName=select=任务1；全局素材 26；批量保存 39 个；`V121UI0` provenance 字段正确；builder 可用素材 26、控制图 3/回边 2；帧 24；无 JS 错误
+- 迁移：26 assets / 4 tasks / 3 flows / 3 renames；lint 4/4 ok
+- 全局运行：`assets=global` 23 runtime assets；派生 OCR click `(158,16)` Done
+- 删除/改名全局素材被 task flow 引用时拒绝并列出任务
 
 ## 5. 已知限制
 
-- 图片识别多选保存未做；图片资产已支持操作区域编辑
-- builder 第一版复杂动作（click_target/drag）用 args JSON；实时流程图只读
-- OCR 操作区域是保存的绝对坐标；模板跟随匹配框
-- 旧探索/个人突破已有 3 个跨任务同名素材，需要手动改名才能继续新增同名对象
-- 变量不持久化；release 未签名；APK 不在本版
+- 帧为 serve session 内存数据，重启不保留（仅去上限+管理）
+- 图片识别多选保存未做；OCR 行多选已完成
+- 旧任务目录 assets/images 迁移后保留未删除（编辑器/运行只读全局库）
+- builder 复杂动作 args JSON；变量不持久化
+- release 未签名；APK 不在本版
 
 ## 6. 阻塞 / 待用户裁定
 
-- 无（v1.2.0 已完成并发布）
+- 无（v1.2.1 已完成并发布）
 
 ## 7. 证据索引
 
 | 证据 | 路径 |
 |---|---|
-| 发布说明 | `_verify/n43/RELEASE-NOTES-v1.2.0.md` |
-| 交付报告 | `_verify/n43/REPORT-V1.2.md` |
-| 构建页截图 | `_verify/n43/v12_builder.png` |
-| 实机 clicks | `_verify/n43/v12release/live_ocr.clicks.jsonl` |
-| GitHub | `https://github.com/passioki/oas-core/releases/tag/v1.2.0` |
+| 发布说明 | `_verify/n43/RELEASE-NOTES-v1.2.1.md` |
+| 交付报告 | `_verify/n43/REPORT-V1.2.1.md` |
+| GitHub | `https://github.com/passioki/oas-core/releases/tag/v1.2.1` |
 
 ## 8. 坑
 
-- `action_roi` 是操作区域唯一字段；旧 `roi_back` 只在读取时兼容，新保存写 action_roi
-- 批量保存回滚 assets.json 并清理新图片；全局唯一包含 task assets + library
-- UI 无 node：headless Edge + CDP Runtime.evaluate 可做点击/画布/截图回归；错误看 `window.__oasErrors`
-- `loop` body 顶层字段；builder 新增动作自动插到末尾 finish 之前
-- 打包 serve 冒烟需要 `--ui ui`，否则会尝试读开发目录 `apps/oasd/ui`
+- 打包 serve 冒烟要 `--ui ui`；包脚本迁移需要 stage 目录无运行中的 exe 锁
+- 迁移会 rewrite flow；保留 task assets 作备份但不再读取
+- 全局模板允许 roi=None（旧 library 模板全屏搜索）
+- builder 新增动作自动插在末尾 finish 前；流程图节点路径与步骤树共用
+- 帧拖动顺序 UI：拖到分组头改分类，拖到行前排序

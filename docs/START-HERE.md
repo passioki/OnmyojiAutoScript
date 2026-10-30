@@ -23,16 +23,16 @@
 ★ 唯一真相 = git + 磁盘证据；**不信"我记得"** ⇒ 必须贴 `文件:行号` / commit / 测试输出
 ```
 
-## 0.1 当前状态快照（2026-10-30 · V1.2 已发布）
+## 0.1 当前状态快照（2026-10-31 · V1.2.1 已发布）
 
 | 项 | 状态 |
 |---|---|
-| 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **326 passed** · `oasd --version` = **1.2.0** |
+| 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **327 passed** · `oasd --version` = **1.2.1** |
 | 引擎特性 | flow DSL、素材/掩膜/多边形、点击定位链、HB1/HB7、整帧搜索、双 ROI、库、queue、stats、checkpoint/resume、reconnect、多帧投票、OCR+模板互证、**统一任务模板/task lint、任务创建/编辑器运行、调度 v3、交付包** |
 | 编辑器 | 三栏 IDE（素材/图片/任务/流程/点击分布/调度）、标题行常驻结果/日志窗口、新建任务对话框、重置记忆多选、调试页 `/dashboard.html` |
 | 纵向 | ① 弹窗 ② 重试/恢复 ③ queue ④ 流程编辑器 ⑤ 统计 ⑥ 周期调度（v1 原型）· **V1.0 已交付**（模板+创建+调度 v3+实机包）|
 | 横向 | H1/H2 暂停；H4/H5 已完成；H3 暂缓 |
-| V1.0 交付 | ★ 提交 `678e915` · Release `v1.0.0` · 探索/个人突破实机 Done · 调度 2 轮实机通过 · 长跑（96 轮等效）通过 |\n| V1.1 交付 | ★ tag `v1.1.0` / 提交 `f2c096c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · 整屏 OCR 直点/素材 CRUD/区域拖动/工作台完成条件/5 页面/点击聚合 · 314 tests 全绿 · zip SHA256 `140B…` |\n| V1.2 交付 | ★ tag `v1.2.0` / 提交 `5d0f79c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · 识别/操作区域统一、批量保存+全局唯一、任务构建页、变量动作 · 326 tests 全绿 · zip SHA256 `D31C…` |
+| V1.0 交付 | ★ 提交 `678e915` · Release `v1.0.0` · 探索/个人突破实机 Done · 调度 2 轮实机通过 · 长跑（96 轮等效）通过 |\n| V1.1 交付 | ★ tag `v1.1.0` / 提交 `f2c096c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · 整屏 OCR 直点/素材 CRUD/区域拖动/工作台完成条件/5 页面/点击聚合 · 314 tests 全绿 · zip SHA256 `140B…` |\n| V1.2 交付 | ★ tag `v1.2.0` / 提交 `5d0f79c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · 识别/操作区域统一、批量保存+全局唯一、任务构建页、变量动作 · 326 tests 全绿 · zip SHA256 `D31C…` |\n| V1.2.1 交付 | ★ tag `v1.2.1` / 提交 `4e50aea` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · 统一全局素材库迁移、OCR 来源一致、builder 真流程图、帧管理、工作台流程收口 · 327 tests 全绿 · zip SHA256 `E4E4…` |
 
 ---
 

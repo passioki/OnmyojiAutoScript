@@ -21,3 +21,4 @@
 | 12 | oas-core-builder-v12 | A/B/C | v1.2：识别/操作区域统一 + 批量保存 + 全局唯一 + 任务构建页 + 变量动作 | 用户确认 v1.2 设计 | engine `1e119c3` · `_verify/n43/v12_builder.png` | 开始 D：回归/发布 v1.2 | in_progress |
 | 13 | oas-core-builder-v12 | D | v1.2.0 发布：识别/操作区域统一、批量保存、任务构建页、变量动作 | 用户确认 v1.2 设计 | tag `v1.2.0` · release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · `_verify/n43/REPORT-V1.2.md` | 完成 | done |
 | 14 | oas-core-builder-v12 | v1.2.1 | 统一素材库+迁移、OCR 来源一致、builder 素材/真流程图、帧管理、工作台流程收口 | 用户验收 v1.2 结果 | tag `v1.2.1` · release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · `_verify/n43/REPORT-V1.2.1.md` | 完成 | done |
+| 15 | oas-core-memory-review | M | 用 skill 回顾 10-30~10-31 会话：补全 v1.1/v1.2/v1.2.1 设计口径与台账 | `docs/ENGINE-DESIGN.md §22.39` · `docs/PENDING-LEDGER.md §E-25` | backend `39e4d621` · `_verify/n44/` 37 条 transcript | 完成 | done |

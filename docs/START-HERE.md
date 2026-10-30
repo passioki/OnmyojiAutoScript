@@ -23,11 +23,11 @@
 ★ 唯一真相 = git + 磁盘证据；**不信"我记得"** ⇒ 必须贴 `文件:行号` / commit / 测试输出
 ```
 
-## 0.1 当前状态快照（2026-10-31 · V1.2.1 已发布）
+## 0.1 当前状态快照（2026-10-31 · V1.2.2 已发布）
 
 | 项 | 状态 |
 |---|---|
-| 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **327 passed** · `oasd --version` = **1.2.1** |
+| 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **330 passed** · `oasd --version` = **1.2.2** |
 | 引擎特性 | flow DSL、素材/掩膜/多边形、点击定位链、HB1/HB7、整帧搜索、双 ROI、库、queue、stats、checkpoint/resume、reconnect、多帧投票、OCR+模板互证、**统一任务模板/task lint、任务创建/编辑器运行、调度 v3、交付包** |
 | 编辑器 | 工作台（素材/图片/任务/点击分布/调度）+ 顶部页面（任务构建/任务库/实例/调度/设置）、标题行常驻结果/日志窗口、新建任务对话框、重置记忆多选、调试页 `/dashboard.html`；流程编辑统一在任务构建 |
 | 纵向 | ① 弹窗 ② 重试/恢复 ③ queue ④ 流程编辑器 ⑤ 统计 ⑥ 周期调度（v1 原型）· **V1.0 已交付**（模板+创建+调度 v3+实机包）|
@@ -36,6 +36,7 @@
 | V1.1 交付 | ★ tag `v1.1.0` / 提交 `f2c096c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.1.0` · 整屏 OCR 直点/素材 CRUD/区域拖动/工作台完成条件/5 页面/点击聚合 · 314 tests 全绿 · zip SHA256 `140B…` |
 | V1.2 交付 | ★ tag `v1.2.0` / 提交 `5d0f79c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · 识别/操作区域统一、批量保存+全局唯一、任务构建页、变量动作 · 326 tests 全绿 · zip SHA256 `D31C…` |
 | V1.2.1 交付 | ★ tag `v1.2.1` / 提交 `4e50aea` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · 统一全局素材库迁移、OCR 来源一致、builder 真流程图、帧管理、工作台流程收口 · 327 tests 全绿 · zip SHA256 `E4E4…` |
+| V1.2.2 交付 | ★ tag `v1.2.2` / 提交 `9debc0b` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.2` · 帧持久化、图片匹配操作区域、builder 结构化/变量 checkpoint、legacy 清理、工作台 flow 删除 · 330 tests 全绿 · zip SHA256 `B683…` |
 
 ---
 
@@ -69,7 +70,7 @@ cd D:\OAS-dev\oas-core
 git log -1 --format="%h %ci %s"
 git status --porcelain
 
-REM ② 引擎测试（现行基线：327 passed / 0 failed）
+REM ② 引擎测试（现行基线：330 passed / 0 failed）
 cargo test --workspace
 
 REM ③ OCR 构建（serve/run 需要；不带 feature 会报 "this build has no OCR"）
@@ -152,7 +153,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 【2. 代码与我核实的台账】
    oas-core commit = <hash> · 分支 = main · worktree 干净 = 是/否
-   cargo test --workspace = __ passed / __ failed（现行基线 = 327）
+   cargo test --workspace = __ passed / __ failed（现行基线 = 330）
    serve 状态：/state = <captured/device/ocr/det>
    后端文档仓 commit = <hash> · dev 是否已推 = 是/否
 
@@ -191,7 +192,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 | **E7** | 旧仓已冻结 | 旧仓 `backend/frontend` 只读；不要在旧仓上开发/提交 |
 | **E8** | 新引擎的验收看 ENGINE §22 判据 | 不要拿旧仓 pytest 基线当引擎验收 |
 | **E9** | headless Edge 截图做 UI 验收 | `msedge --headless=new --screenshot=...`；需要时加 `--user-data-dir` |
-| **E10** | 测试数会随提交增长 | 当前 327；以 `cargo test --workspace` 实测为准，不硬编码"永远 327" |
+| **E10** | 测试数会随提交增长 | 当前 330；以 `cargo test --workspace` 实测为准，不硬编码"永远 330" |
 
 ---
 
@@ -231,7 +232,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 ```bat
 REM ---------- 构建/测试 ----------
 cd D:\OAS-dev\oas-core
-cargo test --workspace                          REM 现行基线 327 passed
+cargo test --workspace                          REM 现行基线 330 passed
 cargo build -p oasd --features ocr              REM serve/run 的 OCR 构建
 
 REM ---------- 编辑器 ----------

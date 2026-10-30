@@ -5,8 +5,8 @@
 
 ```yaml
 task_id: oas-core-editor-v11
-checkpoint_seq: 7
-updated_at: 2026-10-30T21:00:00+08:00
+checkpoint_seq: 8
+updated_at: 2026-10-30T21:15:00+08:00
 trigger: phase-gate
 status: in_progress        # in_progress | blocked | done
 ```
@@ -20,15 +20,15 @@ status: in_progress        # in_progress | blocked | done
 - [x] **P0**：`ocr_lines` 测试走 `/lines`；整屏 OCR 内联直点；`追加到流程` 中文；`logs/editor.log` — `4b9ee7c`
 - [x] **P1**：素材 CRUD（delete/rename/update meta）；独立区域 `Locator::Region`；`Step::Drag`（方向必填、随机起终点/时长、方向校验）；flow 生成 — `fd005b0`
 - [x] **P2**：任务工作台（①~⑦步骤导航）；任务级完成条件 `meta.goal`（battles 自动生成 loop；until_* 由 flow 判断）— `a62e803`
-- [ ] **P3**：顶部页面（工作台/任务库/实例/调度/设置）；实例配置 CRUD + 活动实例（单进程单设备）
+- [x] **P3**：顶部页面（工作台/任务库/实例/调度/设置）；任务库打开/删除/新建；实例读+写 config/live.json；调度状态/重置；设置读配置 — `7551377`
 - [ ] **P4**：点击分布聚合（本次/最近/全部/按任务）+ 删除/清空（_trash）
 - [ ] **P5**：单测/回放/实机回归；文档；v1.1 打包发布
 
 ## 2. 当前进度
 
-- 当前阶段：**P3 未开始**（P2 完成并推送 `a62e803`）
-- P2 验证：`cargo test --workspace` 全绿；POST `/task/goal` 写 meta.goal+params.max_battles，lint 通过；任务工作台/完成条件 UI 截图 `_verify/n43/ui_p2.png`
-- **下一步精确动作（P2）**：
+- 当前阶段：**P4 未开始**（P3 完成并推送 `7551377`）
+- P3 验证：`cargo test --workspace` 全绿；/task/library、/task/delete、/instance GET+POST（restart_required）、/config 实测；页面截图 page_tasks2.png、page2_instances.png、page2_schedule.png、page3_settings.png
+- **下一步精确动作（P4）**：
   1. `meta.goal`：`{mode:"battles|until", count|exit}`；任务创建模板/UI 完成条件字段；生成 flow `loop n=param('max_battles')` 或 `while`
   2. 任务工作台：任务面板按 ①基础 ②画面素材 ③操作 ④流程 ⑤完成条件 ⑥测试运行 ⑦保存/加入调度 引导
   3. 完成条件与调度 quota 分开展示；P2 验收：不写 JSON 建完整任务

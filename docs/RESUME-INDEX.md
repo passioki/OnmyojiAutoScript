@@ -12,4 +12,5 @@
 | 3 | oas-core-live-v1 | M0 | 范围确认：+探索/个人突破任务（Android 客户端）；APK 明确排除 | `docs/DELIVERY-PLAN.md` §3 · `docs/ENGINE-DESIGN.md §22.34` | backend `e085d726` · MuMu Android12/阴阳师2.8.84 | 完成 | done |
 | 4 | oas-core-live-v1 | V1.0 | V1.0 功能交付：模板/创建/探索+个人突破/调度v3/交付包 | `docs/ENGINE-DESIGN.md §22.35` · `docs/DELIVERY-PLAN.md §8` | engine `678e915` · zip SHA256 `6169…` · `_verify/n42/REPORT-V1.0.md` | 完成 | done |
 | 5 | oas-core-live-v1 | D8 | 长跑验收：96 轮等效加速 soak 96/96 成功（48+48 跨重启）；wall-clock soak 运行中 | `docs/DELIVERY-PLAN.md §8` | `_verify/n42/accel-soak/runs/accel-report-*.json` | 观察 | done |
-| 6 | oas-core-editor-v11 | P0 | v1.1 P0：整屏 OCR 内联直点 + ocr_lines 测试 /lines + 中文标签 + editor.log | 用户 v1.1 设计确认 | engine `4b9ee7c` · `_verify/n43/inline/clicks.jsonl` · `ui_assets.png` | 开始 P1：素材 CRUD + region + 拟人 drag + 生成步骤 | in_progress |
+| 6 | oas-core-editor-v11 | P0 | v1.1 P0：整屏 OCR 内联直点 + ocr_lines 测试 /lines + 中文标签 + editor.log | 用户 v1.1 设计确认 | engine `4b9ee7c` · `_verify/n43/inline/clicks.jsonl` | P1 | done |
+| 7 | oas-core-editor-v11 | P1 | 素材 CRUD + 独立区域 + 拟人拖动 + flow 生成 | 用户 v1.1 设计确认 | engine `fd005b0` · `_verify/n43/crud/` · `ui_p1.png` | 开始 P2：任务工作台 + 完成条件 | in_progress |

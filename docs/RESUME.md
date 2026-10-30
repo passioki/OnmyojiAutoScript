@@ -5,8 +5,8 @@
 
 ```yaml
 task_id: oas-core-editor-v11
-checkpoint_seq: 5
-updated_at: 2026-10-30T20:35:00+08:00
+checkpoint_seq: 6
+updated_at: 2026-10-30T20:48:00+08:00
 trigger: phase-gate
 status: in_progress        # in_progress | blocked | done
 ```
@@ -17,63 +17,62 @@ status: in_progress        # in_progress | blocked | done
 
 ## 1. 验收清单
 
-- [x] **P0**：`ocr_lines` 测试走 `/lines`；整屏 OCR 内联直点（no asset）；`追加到流程` 中文；`logs/editor.log` — 引擎 `4b9ee7c`
-- [ ] **P1**：素材 CRUD（增删改查）；独立区域操作（点击/拖动随机点）；拟人拖动（方向+随机起终点+随机速度）；生成流程步骤
+- [x] **P0**：`ocr_lines` 测试走 `/lines`；整屏 OCR 内联直点；`追加到流程` 中文；`logs/editor.log` — `4b9ee7c`
+- [x] **P1**：素材 CRUD（delete/rename/update meta）；独立区域 `Locator::Region`；`Step::Drag`（方向必填、随机起终点/时长、方向校验）；flow 生成 — `fd005b0`
 - [ ] **P2**：任务工作台（①~⑦一条龙）；任务级完成条件（打 N 场/资源耗尽/出现 X），与调度 quota 分离
 - [ ] **P3**：顶部页面（工作台/任务库/实例/调度/设置）；实例配置 CRUD + 活动实例（单进程单设备）
-- [ ] **P4**：点击分布聚合（本次/最近/全部/按任务）+ 删除选中/清空（_trash）
+- [ ] **P4**：点击分布聚合（本次/最近/全部/按任务）+ 删除/清空（_trash）
 - [ ] **P5**：单测/回放/实机回归；文档；v1.1 打包发布
 
 ## 2. 当前进度
 
-- 当前阶段：**P1 未开始**（P0 完成并提交 `4b9ee7c`）
-- P0 验证：`cargo test --workspace` 全绿；内联 OCR dry-run 实测 `clicked_target locator=ocr_text inline text="预设" point=(370,96)`（`_verify/n43/inline/clicks.jsonl`）；编辑器页面加载正常（`_verify/n43/ui_assets.png`）
-- **下一步精确动作**：
-  1. `oas-task` 增加 `delete_asset/rename_asset/update_asset_meta`（安全校验：flow 引用中不可删/需同步替换）
-  2. `oas-flow` 新增 `region` 区域目标 + `drag` op（方向/随机起终点/随机时长）；`oas-runtime` 实现并测
-  3. serve 路由 `/task/asset/delete|rename|update`；UI 素材行增加删除/重命名/编辑 + 区域操作生成步骤
+- 当前阶段：**P2 未开始**（P1 完成并推送 `fd005b0`）
+- P1 验证：`cargo test --workspace` 全绿；asset delete/rename/update API 实测 200；`/task/assets` 结果正确；UI 页面加载正常（`_verify/n43/ui_p1.png`）
+- **下一步精确动作（P2）**：
+  1. `meta.goal`：`{mode:"battles|until", count|exit}`；任务创建模板/UI 完成条件字段；生成 flow `loop n=param('max_battles')` 或 `while`
+  2. 任务工作台：任务面板按 ①基础 ②画面素材 ③操作 ④流程 ⑤完成条件 ⑥测试运行 ⑦保存/加入调度 引导
+  3. 完成条件与调度 quota 分开展示；P2 验收：不写 JSON 建完整任务
 
 ## 3. 已验证事实
 
-- 引擎 `main` = `4b9ee7c`（P0）；本机 remote `origin=https://github.com/passioki/oas-core`（v1.0.0 tag/release 已发布）
-- 测试：`cargo test --workspace` 全绿（P0 后）
-- 编辑器：`logs/editor.log` 记录 `/ocr`、`/lines`、`/task/*` 等请求；`apps/oasd/logs/` 已 gitignore
-- 用户 release 测试目录：`C:\Users\passioki\Downloads\test`（含 `新建任务测试-个人突破`、整屏 OCR 素材、逐 run clicks JSONL）
-- 实机验收：MuMu Android 12 / 阴阳师 2.8.84 / adb 127.0.0.1:16384；当前画面=式神录/队伍预设
+- 引擎 `main` = `fd005b0`；remote `https://github.com/passioki/oas-core`（main 已推；v1.0.0 tag/release 保留）
+- 测试：`cargo test --workspace` 全绿
+- P1 API：delete `预设ocr` 200；rename `预设`→`预设2` 200；update template threshold 0.85→0.9 200；`task/assets` count 6→5
+- P0/P1 编辑器：`logs/editor.log` 记录 asset 操作；`flow_model.js` 增加 drag 中文项
+- 用户 release 测试：`C:\Users\passioki\Downloads\test`（整屏 OCR 任务、逐 run clicks）
 
 ## 4. 在途改动
 
 | 文件 | 改了什么 | 状态 |
 |---|---|---|
-| oas-core | P0 已提交 `4b9ee7c`；`dist/` 未重建 | committed |
+| oas-core | P1 已提交 `fd005b0` 并 push | committed |
 | backend/docs | 本卡/索引待提交 | 待提交 |
 
-## 5. 本轮新裁定（v1.1）
+## 5. v1.1 设计约束（已确认）
 
-- ★ 整屏 OCR 每行可直接点击：flow `ocr_text` 支持**内联 roi+text**，不强制逐行素材
-- ★ 素材操作参数**只存 flow**；素材本身不存 offset/操作默认值
-- ★ 删除“偏移”概念；改用**独立区域操作**（区域框选后随机点点击/拖动）
-- ★ 拖动拟人：方向必填 + 起点/终点在区域内随机 + 时长/速度随机 + 曲线抖动（引擎能力允许时）
-- ★ 完成条件归**任务**；调度器 quota=每天跑几次
-- ★ 点击分布保留每次运行 JSONL，聚合视图 + 删除（默认移 `_trash`）
-- ★ 多实例：v1.1 做实例配置+活动实例（单进程单设备），真正并行后续
+- ★ 整屏 OCR 每行直接点击：flow `ocr_text` 内联 `roi+text`，无需素材
+- ★ 素材操作参数只存 flow；素材 CRUD 只管理 id/kind/ROI/图/阈值
+- ★ 无 offset；独立区域操作（随机点点击/拖动）
+- ★ 拖动方向必填；起点/终点随机、时长/速度随机；当前 PC adapter 为直线 swipe（曲线抖动待 minitouch/scrcpy）
+- ★ 完成条件归任务；调度器 quota=每天跑几次
+- ★ 点击分布保留逐 run JSONL，聚合视图 + 删除（默认 _trash）
+- ★ 多实例 v1.1 只做实例配置+活动实例
 
 ## 6. 阻塞 / 待用户裁定
 
-- 无（用户已确认）
+- 无
 
 ## 7. 证据索引
 
 | 证据 | 路径 |
 |---|---|
-| P0 内联 OCR dry-run | `_verify/n43/inline/clicks.jsonl` |
-| P0 UI 截图 | `_verify/n43/ui_assets.png` |
+| P0 内联 OCR | `_verify/n43/inline/clicks.jsonl` |
+| P1 CRUD/UI | `_verify/n43/crud/` · `_verify/n43/ui_p1.png` |
 | 用户 release 测试 | `C:\Users\passioki\Downloads\test` |
-| 设计 | 对话 v1.1 设计 + `_verify/n42/REPORT-V1.0.md` |
 
 ## 8. 坑
 
-- Windows PowerShell 5 默认 GBK：bat 纯 ASCII；PS 中文文件名/路径用绝对路径（.NET CWD 不跟 cd）
+- Windows PowerShell 5 默认 GBK：bat 纯 ASCII；.NET 相对路径 CWD 不跟随 `cd`，用绝对路径
 - 运行中的 oasd.exe 锁 target；重建前停 serve
-- JS 无 node 可用：用 headless Edge 截图验页面加载，`node --check` 不可用
-- 文字行内联 OCR 走 det+rec（`/lines`），单行 `/ocr` 仅用于 ocr_line
+- 无 node：JS 用 headless Edge 截图验页面；`node --check` 不可用
+- 内联 OCR 需要 det+rec；单行 `/ocr` 仅用于 ocr_line

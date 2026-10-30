@@ -7,8 +7,9 @@
 
 | seq | task_id | 阶段 | 焦点 | 文档锚点 | 证据 | 下一步 | 状态 |
 |---|---|---|---|---|---|---|---|
-| 1 | scheduler-v3-task-template | P0 | 设计定稿 + START-HERE 引擎版；实现未开始 | `docs/ENGINE-DESIGN.md §22.34` | backend `309a4a89` · `_verify/n38/` | `cd oas-core && cargo test --workspace`；然后 P0-1 `crates/oas-task/src/lib.rs` 模板字段 | done |
-| 2 | oas-core-live-v1 | M0 | 扩展终点到"实机可创建任务并运行"：交付路线 M0~M5 定稿；实现未开始 | `docs/DELIVERY-PLAN.md` | backend `e085d726` + `_verify/n38/` | `cargo test --workspace`；M0：`crates/oas-task/src/lib.rs` 模板契约字段 + `param()` + `task lint` | done |
-| 3 | oas-core-live-v1 | M0 | 范围确认：+探索/个人突破任务（Android 客户端）；APK 明确排除；开始 M0 实现 | `docs/DELIVERY-PLAN.md` §3 · `docs/ENGINE-DESIGN.md §22.34` | backend `e085d726` · MuMu Android12/阴阳师2.8.84 · `_verify/n41/now2.png` | M0 模板契约 + `param()` + lint；随后 M1 创建闭环 | done |
-| 4 | oas-core-live-v1 | V1.0 | V1.0 功能全部交付：模板/创建/探索+个人突破/调度v3/交付包 | `docs/ENGINE-DESIGN.md §22.35` · `docs/DELIVERY-PLAN.md §8` | engine `678e915` · zip SHA256 `6169…` · `_verify/n42/REPORT-V1.0.md` | 完成 | done |
-| 5 | oas-core-live-v1 | D8 | 长跑验收：96 轮等效加速 soak 96/96 成功（48+48 跨重启）；wall-clock 24h soak 运行中 | `docs/DELIVERY-PLAN.md §8` | `_verify/n42/accel-soak/runs/accel-report-*.json` · `accel.state.json` | 无需动作（观察）| done |
+| 1 | scheduler-v3-task-template | P0 | 设计定稿 + START-HERE 引擎版；实现未开始 | `docs/ENGINE-DESIGN.md §22.34` | backend `309a4a89` · `_verify/n38/` | 完成 | done |
+| 2 | oas-core-live-v1 | M0 | 扩展终点到"实机可创建任务并运行"：交付路线 M0~M5 定稿 | `docs/DELIVERY-PLAN.md` | backend `e085d726` | 完成 | done |
+| 3 | oas-core-live-v1 | M0 | 范围确认：+探索/个人突破任务（Android 客户端）；APK 明确排除 | `docs/DELIVERY-PLAN.md` §3 · `docs/ENGINE-DESIGN.md §22.34` | backend `e085d726` · MuMu Android12/阴阳师2.8.84 | 完成 | done |
+| 4 | oas-core-live-v1 | V1.0 | V1.0 功能交付：模板/创建/探索+个人突破/调度v3/交付包 | `docs/ENGINE-DESIGN.md §22.35` · `docs/DELIVERY-PLAN.md §8` | engine `678e915` · zip SHA256 `6169…` · `_verify/n42/REPORT-V1.0.md` | 完成 | done |
+| 5 | oas-core-live-v1 | D8 | 长跑验收：96 轮等效加速 soak 96/96 成功（48+48 跨重启）；wall-clock soak 运行中 | `docs/DELIVERY-PLAN.md §8` | `_verify/n42/accel-soak/runs/accel-report-*.json` | 观察 | done |
+| 6 | oas-core-editor-v11 | P0 | v1.1 P0：整屏 OCR 内联直点 + ocr_lines 测试 /lines + 中文标签 + editor.log | 用户 v1.1 设计确认 | engine `4b9ee7c` · `_verify/n43/inline/clicks.jsonl` · `ui_assets.png` | 开始 P1：素材 CRUD + region + 拟人 drag + 生成步骤 | in_progress |

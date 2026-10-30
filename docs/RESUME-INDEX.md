@@ -15,4 +15,5 @@
 | 6 | oas-core-editor-v11 | P0 | v1.1 P0：整屏 OCR 内联直点 + ocr_lines 测试 /lines + 中文标签 + editor.log | 用户 v1.1 设计确认 | engine `4b9ee7c` · `_verify/n43/inline/clicks.jsonl` | P1 | done |
 | 7 | oas-core-editor-v11 | P1 | 素材 CRUD + 独立区域 + 拟人拖动 + flow 生成 | 用户 v1.1 设计确认 | engine `fd005b0` · `_verify/n43/crud/` · `ui_p1.png` | P2 | done |
 | 8 | oas-core-editor-v11 | P2 | 任务工作台 + meta.goal 完成条件（battles 自动 loop） | 用户 v1.1 设计确认 | engine `a62e803` · `_verify/n43/ui_p2.png` | P3 | done |
-| 9 | oas-core-editor-v11 | P3 | 顶部页面（工作台/任务库/实例/调度/设置）+ 实例配置读写 | 用户 v1.1 设计确认 | engine `7551377` · `_verify/n43/page_tasks2.png` 等 | 开始 P4：点击分布聚合 + 删除 | in_progress |
+| 9 | oas-core-editor-v11 | P3 | 顶部页面（工作台/任务库/实例/调度/设置）+ 实例配置读写 | 用户 v1.1 设计确认 | engine `7551377` · `_verify/n43/page_tasks2.png` 等 | P4 | done |
+| 10 | oas-core-editor-v11 | P4 | 点击分布聚合 + 删除到 _trash（默认全部运行） | 用户 v1.1 设计确认 | engine `4a06d97` · `_verify/n43/ui_p4.png` | 开始 P5：回归/打包/release | in_progress |

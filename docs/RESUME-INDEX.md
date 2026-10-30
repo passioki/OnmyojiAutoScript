@@ -34,3 +34,4 @@
 | 25 | oas-core-v123-r-audit | 发布规则 | 取消 R18a 发布门禁：不自行发布，只按用户指令发布；平时只做 release 测试、版本不变 | `docs/PENDING-LEDGER.md §E-26 R18` · `docs/RESUME.md` | 用户 10-31 明确要求 | 继续 R9 真流程图 | in_progress |
 | 26 | oas-core-v123-r-audit | R9 | 真流程图 SVG 完成；R1~R20 全部关闭；不自行发布，等用户指令 | `docs/PENDING-LEDGER.md §E-26` · `docs/RESUME.md` | engine `3aa1a0a` · 浏览器 svg_probe 17 条 SVG path 边 | 测试构建；等“发布” | done |
 | 27 | oas-core-v123-r-audit | R21 | 动作库被覆盖修复：全局 aside width 320 覆盖 grid 轨道；computed rect 验证 palette=220/center.x=244 | `docs/PENDING-LEDGER.md §E-26 C7/R21` · `docs/RESUME.md` | engine `d455f6e` | 等用户发布指令；版本 1.2.2 | done |
+| 28 | oas-core-v123-acceptance | U-02/03/04 | 素材统一保存/全选；builder 可拖拽记忆布局+stage 同步；if 子动作选择器 | `docs/PENDING-LEDGER.md §E-27` · `docs/RESUME.md` | engine `cbfbab4`；repo+stage 8788 CDP 验证 | U-01 子流程调用待裁定 A/B | in_progress |

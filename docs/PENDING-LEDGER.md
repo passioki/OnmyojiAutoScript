@@ -1659,3 +1659,41 @@
 - 本轮只补了 90° cw/ccw，未做任意角度旋转。
 
 | 状态 | ✅ 已彻查；代码 `0f0c293`；stage `ocr=on` 实测 `庭院` 成功；344 tests |
+
+---
+
+# ★ §E-41 ★★★ [10-31 21:05] **跨路径一致性审计（U-41）**
+
+> 用户：“这种没有统一逻辑的问题是否还有类似的，请继续排查。”
+
+## 已统一
+
+| 路径 | 共享实现 | 状态 |
+|---|---|---|
+| 运行期多行 OCR provider | `apps/oasd/src/ocr.rs::recognize_lines_impl` | ✅ |
+| 编辑器 `GET /lines` | 同一 helper（vertical 参数保留） | ✅ |
+| 批量帧测试 derived OCR | 同一 helper | ✅ |
+| 方向重试 | helper 内 `vertical_only || score<0.6` → 90° cw/ccw | ✅ |
+| 低分噪声过滤 | helper 内 `score>=0.5` | ✅ |
+| ROI 坐标 | helper 返回绝对 box；`/lines` 转回 ROI-local | ✅ |
+
+代码 `70df254`；344 tests；stage 已部署。
+
+## 仍存在/待统一的漂移
+
+| 路径 | 现状 | 风险 |
+|---|---|---|
+| 模板测试 `/task/asset/match` | 编辑器只跑 `match_template_full` | runtime `locate_one` 是 **ROI 快路径 → polygon mask → 全帧兜底**；带 polygon 的模板可能测试失败/通过但运行相反 |
+| 批量帧测试 template | 同样只跑 `match_template_full` | 与 runtime 的 ROI/polygon 策略不一致 |
+| 单行 `/ocr` 编辑器测试 | 直接 crop，无 asset polygon mask | runtime `ocr_read` 对带 polygon 的 OCR 资产会 mask；测试结果可能不同 |
+| `appear()` OCR / `ocr()` / `text_visible()` | runtime 走 `ocr_read` / provider | ✅ 已统一到 helper/runtime |
+| 集合测试 | 逐成员 `/task/asset/match` | 与 runtime collection 的 threshold/action_roi 逻辑未完全同源 |
+
+## 建议
+
+1. 抽 `runtime::locate_template` 公共 helper：ROI mask 快路径 + 全帧兜底，编辑器 `/task/asset/match`、批量 template、runtime 共用；
+2. 编辑器 OCR 测试统一走“按 asset id”的新接口，由 runtime asset set 做 polygon mask，而不是手传 ROI；
+3. collection 测试直接复用 runtime 的 collection 展开/最佳成员选择；
+4. 增加 **编辑器测试 vs runtime 结果一致性** 守卫（同一帧、同一 asset，两边 pass/score 应一致）。
+
+| 状态 | 🔄 已修 OCR 路径；模板/polygon/集合测试路径仍待统一 |

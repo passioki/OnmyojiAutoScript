@@ -46,7 +46,7 @@
 ## 3.1 实机验证（非全量）
 
 - **Pets ✅**：2026-11-01 实机第 4 次 Done；进入宠物小屋→快速喂养→已投喂判定→退出重试（首次故意 miss）→庭院守卫通过。
-- **TalismanPass 🔄**：入口已修通（花合战 splash→I_CHECK_DAILY 0.883），但 `I_RED_POINT_LEVEL` 误匹配并点进“成就”页，后续 `I_TP_GET_ALL` 0.357 失败；需重采入口素材。
+- **TalismanPass 🔄**：入口已修通（花合战 splash→I_CHECK_DAILY 0.866-0.883）；改用奖励 tab 后仍无 `I_TP_GET_ALL`（0.277），当前 0 级无奖励，正确行为应为 no-op 完成；`I_RED_POINT_LEVEL` 会误匹配成就红点，已移除。
 - **DailyTrifles 🔄**：实机进入好友页并完成 4 次点击，但有界等待循环耗尽 100 步，领取后的退出/收尾未完成。
 - 其余 40 个任务尚无实机/回放验证。
 

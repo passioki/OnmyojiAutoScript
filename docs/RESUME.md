@@ -14,7 +14,7 @@ status: in_progress
 ## 0. 当前状态（磁盘实测）
 
 - oas-core `main` = `385d611`（v1.2.3 发布快照）· clean
-- oas-core `dev` = `6e104e7`（迁移 batch1 + Pets 实机 Done + Talisman/DailyTrifles 实机证据）· clean
+- oas-core `dev` = `e610043`（迁移 batch1 + Pets 实机 Done + Talisman/DailyTrifles 实机证据）· clean
 - 迁移状态：**1 ✅ (Pets 实机 Done) / 42 🔄 / 9 ⛔ / 8 ⬜**
 - backend docs `dev` = 本卡提交（待记录）
 - `cargo test --workspace` = **350 passed / 0 failed**

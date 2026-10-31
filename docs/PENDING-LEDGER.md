@@ -2154,6 +2154,78 @@ step seq=... depth=1 op=while_cond result=ok detail=iteration=2 value=Bool(true)
 
 | 状态 | ✅ 审计完成；缓存帧入口已统一刷新 |
 
+---
+
+# ★ §E-55 ★★★ [11-01 00:35] **截图读取抽象：ScreenCache（U-55）**
+
+> 用户：读取帧是否应统一抽象为一个函数，而不是每个步骤单独修改？如果可以先设计再实施。
+
+## 设计
+
+### 问题
+
+原先 Interpreter 直接持有：
+
+```rust
+frame: Option<Frame>
+matcher: Option<Matcher>
+frame_size: Option<(u32,u32)>
+frame_seq: u64
+```
+
+每个步骤分别调用 `invalidate_frame()` 或 `refresh_frame()`；漏一处就会读到旧画面。
+
+### 抽象
+
+新增 `ScreenCache`，成为**唯一**拥有截图派生状态的对象：
+
+```rust
+pub struct ScreenCache {
+    frame: Option<Frame>,
+    matcher: Option<Matcher>,
+    size: Option<(u32, u32)>,
+    seq: u64,
+}
+```
+
+生命周期：
+
+| API | 语义 | 使用时机 |
+|---|---|---|
+| `refresh(src)` | 丢弃旧帧，抓一张新帧 | 一个**新的判断**开始 |
+| `ensure(src)` | 有缓存就复用，无则抓 | 同一次判断内多个 selector/OCR |
+| `invalidate()` | 丢弃缓存，不立即抓 | 点击/滑动/拖拽/等待后 |
+
+Interpreter 对外只暴露三个调用点：
+
+```rust
+observe_screen()   // ensure：一次判断内部共享同一帧
+reobserve_screen() // refresh：条件/点击/OCR 开始新判断
+invalidate_frame() // 输入动作后丢弃
+```
+
+步骤不再直接碰 `frame/matcher/frame_size/frame_seq`。
+
+## 实施
+
+- Interpreter 删除 `frame/matcher/frame_size/frame_seq` 四个字段，改为 `screen: ScreenCache`；
+- 所有 `self.frame` / `self.matcher` / `self.frame_size` / `self.frame_seq` 访问通过缓存方法；
+- 条件/点击/OCR/拖拽开始用 `reobserve_screen()`；
+- locate/OCR/模板匹配内部用 `observe_screen()`，一次判断共享同一帧；
+- click/swipe/drag/wait 后 `invalidate_frame()`；
+- 新增 `screen_cache_shares_one_observation_until_invalidated` 测试：
+  - ensure 两次只抓 1 帧；
+  - invalidate 后重新抓；
+  - refresh 强制新帧。
+
+## 验证
+
+- **349 passed**（原 348 + ScreenCache 生命周期测试）；
+- stage 重新构建后运行正常。
+
+| 状态 | ✅ 抽象已落地 |
+
+
 
 
 

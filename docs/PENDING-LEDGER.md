@@ -1125,8 +1125,8 @@
 ## 四、重启后必读
 
 1. `START-HERE.md`（入口）；
-2. `RESUME.md`（最新断点 seq=64，状态 in_progress）；
-3. `RESUME-INDEX.md` 最新行（seq=64，恢复门禁）；
+2. `RESUME.md`（最新断点 seq=65，状态 in_progress）；
+3. `RESUME-INDEX.md` 最新行（seq=65，U-56 审计）；
 4. 本节 §E-24（v1.1~v1.2.1 交付与当前未完成）。
 
 ---
@@ -1421,7 +1421,7 @@
 | **U-31a** | 「返回庭院」修改 `not appear('町中')` 后应能运行 | ✅ 已修：`appear()` 现在覆盖所有素材（OCR 资产用 `ocr_read` 判断文本/多行非空；derived 不匹配=false）；新增 `text_visible()` 全屏 det+rec 文字搜索。release dry-run 已实际执行 while/if/click（dry-run 不点击，所以按设计会跑到预算耗尽） | ✅ |
 | **U-31b** | 条件素材输入文字时显示**所有匹配候选项**，不需输入全称 | ✅ 已修：`assetSearch()` 改自定义子串过滤下拉（含 kind 标签、Enter/点击选择），条件编辑器/动作字段共用 | ✅ |
 | **U-32a** | 所有素材增加**位置属性**（可多个，值=帧 id） | ✅ 已实现：`AssetDecl.positions: Vec<u64>`；保存必须至少 1 个位置帧；素材行「帧」可改多帧；帧删除被引用位置阻止；集合保存后自动把所有任务 flow 的成员引用改写为集合 id；集合本身不加位置（用户 10-31） | ✅ |
-| **U-32b** | 批量 **dry-run 测试**通过帧来跑（每个素材按其位置帧验证） | 🔄 **代码完成，验收未闭合**：`POST /task/assets/batch_test` + UI「批量帧测试」；template 全帧匹配、region 边界、OCR 单行 rec、derived `ocr_line` 的 source-ROI det+rec 均已实现。临时帧测试验证了分支会执行，但所选帧不包含期望素材文本，因此尚未得到一条通过证据；stage 素材也尚未设置 positions | 🔄 待实帧验收 |
+| **U-32b** | 批量 **dry-run 测试**通过帧来跑（每个素材按其位置帧验证） | 🔄 **代码完成，验收未闭合**：`POST /task/assets/batch_test` + UI「批量帧测试」；template 全帧匹配、region 边界、OCR 单行 rec、derived `ocr_line` 的单识别 `roi` det+rec（U-49 后）均已实现。临时帧测试验证了分支会执行，但所选帧不包含期望素材文本，因此尚未得到一条通过证据；stage 素材也尚未设置 positions | 🔄 待实帧验收 |
 
 ## 设计草案（等确认后实施）
 
@@ -1466,7 +1466,7 @@
 | **U-33b** | 所有**表达式值**字段统一支持逻辑运算符 | ✅ 审计：`if.cond`、`while.cond`、`wait_until.cond`、`loop.n`、`log.text`、`set_var.value`、`inc_var.by`、`click_point.x/y` 均走 `parse_expr_field`/`parse_coord_value`；builder 对 click_point x/y 由 number 改为表达式输入；这些字段统一显示 `and/or/not、&&/||/!、括号` 提示 | ✅ |
 | **U-33c** | 文字多个值用逻辑运算符，不需要特殊多值语法 | ✅ 条件预设「文字出现/未出现」把输入按 `/、,、或` 拆成多个 `text_visible(...)`，用 `or` 组合；「未出现」用 `not (a or b)`；自定义表达式可直接写 and/or/not | ✅ |
 | **U-33d** | 所有字面量字段是否也要逻辑运算符 | ✅ **审计结论：不强行给字面量数字加逻辑**。`wait.seconds`/`timeout_s`/`timeout_ms`/`swipe.ms`/`stable_frames` 等是数字/结构契约，逻辑表达式返回 bool 无意义；只有 `parse_expr_field`/`parse_coord_value` 的表达式字段接受逻辑运算符。UI 已用「（表达式）」标注避免误解 | ✅ 设计边界 |
-| **U-33e** | 继续未完成台账 | U-32b 的 derived OCR det+rec 批量分支已补 ✅；U-20 根级拖拽补了单步「拖到根级」，多选整组拖动仍未做 🔄 | 🔄 部分（U-20） |
+| **U-33e** | 继续未完成台账 | U-32b 的 derived OCR det+rec 批量分支已补 ✅；U-20 多选整组拖动已由 U-44b `e73b408` 补齐 ✅ | ✅ 两项均已实现（U-32b 待实帧验收） |
 
 ## 第七轮结论
 
@@ -1609,6 +1609,8 @@
 
 # ★ §E-40 ★★★ [10-31 20:55] **多行识别/旋转/单行路径彻查（U-40）**
 
+> ★ **[11-01 审计] 历史记录**：本节按当时双 ROI 写；U-49 后识别只用单个 `roi`，`ocr_source_roi` 加载迁移为 union 并清除。旋转/共享 det+rec helper 仍有效。
+
 > 用户：“多行识别为什么要旋转，是不是底层还是用的单行识别？请彻查！”
 
 ## 结论（先给答案）
@@ -1663,6 +1665,8 @@
 ---
 
 # ★ §E-41 ★★★ [10-31 21:05] **跨路径一致性审计（U-41）**
+
+> ★ **[11-01 审计] 历史记录**：文中“source ROI/多行来源”表述已被 U-49 取代；现行只有单识别 `roi`。共享模板定位/OCR helper 仍有效。
 
 > 用户：“这种没有统一逻辑的问题是否还有类似的，请继续排查。”
 
@@ -2250,12 +2254,15 @@ invalidate_frame() // 输入动作后丢弃
 
 ## 1. 覆盖范围（可核查）
 
+> ★ [11-01 补正] 之前只找到旧导出 `_both_ab9eff.txt`（止于 10-31 00:12）；本轮发现 DSH 会话存储 `C:\Users\passioki\.dsh\sessions\...\session.v4.jsonl.zstd`，解压为 `session-current-both.txt`（91,633,434 bytes → 285 条），10-31 缺口已解除。
+
 | 来源 | 范围 | 状态 |
 |---|---|---|
-| `_verify/n44/_both_ab9eff.txt` | 10-30 19:34 ~ 10-31 00:12 · 35 段（USER 16 / ASST 19）双向全文 | ✅ 已读 |
-| 当前活动会话（压缩上下文 + 用户消息） | 10-31 23:16 ~ 11-01 00:40 · U-50~U-55 及恢复门禁 | ✅ 已读 |
-| 缺口 | **10-31 00:12~18:00 无导出 transcript** | ⚠️ 用 git commit/文档/测试事实补，不能声称逐条读过 |
-| 更早 10-22~10-29 | 导出 transcript 无该时段会话（会话从 10-30 开始有记录） | ✅ 无漏读（范围内不存在） |
+| `_verify/n44/session-current-both.txt`（由 DSH `session.v4.jsonl.zstd` 解压） | 10-22 12:22 ~ 11-01 00:47 · 285 条（U142/A143）；近一周 10-30~11-01 共 **163 条（U81/A82）** | ✅ USER 全量已读；ASST 以文档/关键回复落点核对 |
+| 10-30 段 | 19:34~10-31 00:12 · 35 条（U16/A19） | ✅ 双向全文 |
+| 10-31 段 | 124 条（U63/A61）；其中 00:12~18:00 60 条、18:00~24:00 57 条 | ✅ USER 全量；ASST 落点核对 |
+| 11-01 段 | 12 条（U6/A6）+ 当前会话 U-56 | ✅ |
+| 10-26~10-29 | 导出会话无记录 | ✅ 范围内不存在 |
 
 ## 2. 审计发现（文档 vs 代码/现行裁定）
 
@@ -2270,11 +2277,13 @@ invalidate_frame() // 输入动作后丢弃
 | A7 | START-HERE U-20 仍写“待补”，但 U-44 已实现整组拖动 | `builder.js` `moveStepsGroup/checkedPaths` | ✅ 标注已由 `e73b408` 补齐 |
 | A8 | 代码/注释仍称 `set_derived_ocr` 参数为 source ROI | runtime/serve/app 注释 | ✅ 改为 recognition ROI（字段本身是 legacy 兼容） |
 | A9 | START-HERE 测试基线 330/349 漂移 | 实测 350 | ✅ 更新 350 |
+| A10 | E-40/E-41/U-32b 仍写 source ROI det+rec | PENDING 历史段 | ✅ 加历史横幅；U-32b 改为单 roi；E-40/E-41 标注已被 U-49 取代 |
+| A11 | U-20 台账仍写“多选整组拖动未做” | PENDING U-20/U-33e | ✅ 代码 `moveStepsGroup` + U-44b `e73b408` 已实现；台账收口 |
 
 ## 3. 代码审计结论
 
 - 10-30 的 v1.1/v1.2 裁定在代码中均有落点：素材 CRUD/测试/生成步骤、`meta.goal`、点击聚合、区域拖动、真 SVG 流程图、全局素材、帧管理、工作台 flow 删除。
-- v1.2.3 的 U-49~U-55 均在当前 `e3721e6` 及后续修复中；`cargo test --workspace` = **350 passed / 0 failed**。
+- v1.2.3 的 U-49~U-56 均在当前 `d360d05` 及后续修复中；`cargo test --workspace` = **350 passed / 0 failed**。
 - 未完成的**不是** v1.1/v1.2 需求，而是验收/观察项：U-32b 批量实帧验收、弱设备 WS 观察、发布前整体验收。
 - 旧 `ocr_source_roi` 字段保留仅为旧资产反序列化；runtime/editor/batch 均不再把它当第二识别区域。
 

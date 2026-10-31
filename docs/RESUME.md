@@ -4,43 +4,37 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-round25
-checkpoint_seq: 54
-updated_at: 2026-10-31T22:45:00+08:00
-trigger: OCR 测试识别区域标注 + 全屏回退已修
+task_id: oas-core-v123-round26
+checkpoint_seq: 55
+updated_at: 2026-10-31T22:50:00+08:00
+trigger: 召唤素材简繁/异体字匹配已修复
 status: in_progress
 ```
 
 ## 0. 当前状态
 
-- 引擎代码 `3bec494`；workspace **346 passed**。
+- 引擎代码 `e6acff0`；workspace **347 passed**。
 - 版本 1.2.2，未 tag/release；stage UI/exe 已同步。
 
-## 1. 本轮修复（U-46）
+## 1. 本轮修复（U-47）
 
-问题：
-1. 识别测试疑似用操作区域；
-2. 失败后没有退回全屏识别。
+现象：同一 ROI 手动多行识别能识别；保存「召唤」素材后素材行识别失败并全屏回退。
 
-修复：
+根因：不是识别/操作区域错误。
 
-- `assetRecognitionBox`：
-  - 普通 OCR → `roi`；
-  - 多行来源 `ocr_line` → `ocr_source_roi`；
-  - **永不使用 `action_roi`**。
-- 结果窗口显式标注：
-  - 多行来源 ROI / 行 ROI / 操作区域（仅点击）。
-- 全屏回退：
-  - `/ocr` 报错或空文字；
-  - `/lines` 0 行；
-  - derived OCR 的 `ocr_text` 未找到；
-  - → `fallbackFullscreenLines()` 调 `/lines` 全屏，结果写入「识别结果」并提示勾选。
+- `/lines` 实际输出：`召喚`（score 0.826）；
+- 素材 `ocr_text`：`召唤`；
+- 运行期/编辑器用精确字符串比较，未命中；
+- 于是触发全屏 fallback，看起来“识别失败”。
 
-实测 `图鉴`：
-- 多行来源 `[88,650,1093,36]`；
-- 行 ROI `[90,650,60,36]`；
-- 操作区域 `[82,601,80,89]`（仅点击）；
-- 失败 → 全屏 13 行。
+修复：`oas_runtime::ocr_text_matches`
+
+- 去空白/标点后精确；
+- 多字符再允许 Levenshtein ≤1（简繁/异体字单字差异）；
+- 用于 derived OCR、click_target/drag OCR 文字、text_visible、batch；
+- 前端 `ocrTextMatches` 同规则。
+
+实测：素材「召唤」→ `召喚 (0.826)`，期望 `召唤` → 匹配，不再回退。
 
 ## 2. 仍待
 
@@ -50,10 +44,10 @@ status: in_progress
 
 ## 3. 下一步
 
-1. 用户重试识别测试；
+1. 用户重试「召唤」；
 2. positions 批量；
 3. 发布时才 bump/tag/release。
 
 ## 4. 证据
 
-- PENDING §E-46；代码 `3bec494`；346 tests；stage 8788。
+- PENDING §E-47；代码 `e6acff0`；347 tests；stage 8788。

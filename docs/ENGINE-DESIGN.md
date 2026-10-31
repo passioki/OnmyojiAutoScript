@@ -1980,5 +1980,6 @@ tasks/<任务名>/
 - **U-44（位置编辑/U-20/WS）**：`e73b408`：素材位置设置改为搜索+候选 modal（显式保存/错误反馈）；勾选步骤支持整组拖动到根级/容器；新增 `/ws/live` WebSocket（树内 SHA1/base64 握手 + 后台采集线程推 PNG），UI WS 优先、轮询回退。346 tests；stage WS 与 UI 验证通过。
 - **U-45（实时帧不覆盖选中帧）**：`958b868`：`State` 拆分 `frame/png`（分析帧）与 `live_frame/live_png`；WS/`live=1` 只更新 live，仅无选中帧时同步分析帧；普通 `/frame.png` 返回选中帧。346 tests；stage 选中帧 SHA256 经 live 后不变。
 - **U-46（OCR 识别区域/全屏回退）**：`3bec494`：OCR 测试用识别 ROI（多行来源用 `ocr_source_roi`，不用 `action_roi`），结果显式标注三种 ROI；OCR 报错/空文字/0 行/derived 期望缺失时回退全屏 `/lines` 并渲染可勾选结果。346 tests；stage 图鉴回退 13 行。
+- **U-47（OCR 简繁/异体字匹配）**：`e6acff0`：`ocr_text_matches` 去空白/标点后精确，多字符允许 Levenshtein ≤1；修复「召唤」素材 vs OCR 输出「召喚」的误判；用于 derived OCR / click_target / drag / text_visible / batch + 前端测试。347 tests；stage 召唤匹配。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

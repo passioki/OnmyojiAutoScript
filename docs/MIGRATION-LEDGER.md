@@ -55,6 +55,10 @@
 - **GoryouRealm 🔄**：导航修通；账号卡片显示 40 级/御灵等级门槛，疑似未解锁。
 - 其余 41 个任务尚无实机/回放验证。
 
+## 3.2 系统性阻塞：当前客户端素材漂移
+
+`migration/ASSET-DRIFT.md` 记录：remote dev 的主界面导航/花合战/好友/吉闻模板在当前 CN 客户端已不匹配（`I_MAIN_GOTO_DAILY` 0.558、`I_MAIN_GOTO_FRIENDS` 0.448、`庭院_探索灯笼` 0.640、`O_LUCK_MSG` 无“吉闻”）。自动 NCC/手工裁剪重采均失败或误匹配；必须先按当前客户端逐页用 ROI 工具重采模板，否则相关任务不能实机行为等价，也不能标 ✅。
+
 ## 4. 已实现的通用抽象
 
 - 旧 `RuleImage` → 新 `template`：`roi=roiBack` 搜索区，**不写 action_roi**，点击落匹配模板 bbox（旧行为）；

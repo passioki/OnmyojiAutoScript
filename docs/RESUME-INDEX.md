@@ -104,3 +104,4 @@
 | 95 | oas-core-v123-round37 | 干净主界面 | 重置后 DailyTrifles friend_love/store_sign Done；以前很多失败是残留页误判；dev 504c1ec；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 504c1ec | 修 luck 入口；继续43🔄 | in_progress |
 | 96 | oas-core-v123-round37 | 守卫误用 | I_CHECK_FRIENDS 实为主界面精灵图标；好友页0.331；主界面0.746→阈值0.73；dev 684834f；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 684834f | 重采好友页marker；不关机 | in_progress |
 | 97 | oas-core-v123-round37 | 好友marker | 新增 ui_friend_page 替换错误守卫；入口点击仍不稳定0.401；dev a741e09；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev a741e09 | 校准好友入口；不关机 | in_progress |
+| 98 | oas-core-v123-round37 | 登录后验证 | 实际登录进入游戏后 ui_friend_page 生效，friend_love Done；luck 吉闻按钮仍不打开；dev 38ee734；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 38ee734 | 修吉闻入口；不关机 | in_progress |

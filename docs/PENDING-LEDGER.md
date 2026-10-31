@@ -1990,6 +1990,26 @@ OCR 测试日志包含：
 
 | 状态 | ✅ 日志标准已落地 |
 
+---
+
+# ★ §E-51 ★★★ [10-31 23:50] **任务切换/多选/停止运行/死循环（U-51）**
+
+| 项 | 用户反馈 | 处理 | 状态 |
+|---|---|---|---|
+| **U-51a** | 切换任务“返回庭院”报流程可视化解析失败（while 嵌套） | `flow_model.parseFlow` 不再对 if/loop/while 抛错；生成只读嵌套占位 + `nested` 标记，`buildFlow` 明确拒绝从简化面板保存；工作台 INFO 提示用任务构建/JSON。引用素材仍显示 | ✅ |
+| **U-51b** | 多选素材/新建集合没有应用且不可用，是否删除 | 删除素材行勾选框、`新建集合` 按钮、`createCollectionFromSelection` 前端入口；已有 collection 数据仍可显示/测试/删除，后端兼容保留 | ✅ |
+| **U-51c** | 任务死循环无法结束，需要结束按钮 | 新增 `POST /task/run/stop` + 运行时 cancel token（`check_budget` 每步检查）；工作台新增「结束运行任务」；停止后 outcome=Failed reason=cancelled by user，点击日志保留 | ✅ |
+| **U-51d** | 返回庭院任务无日志且疑似死循环 | 根因：while 条件 `not appear(町中) and not appear(召唤)`；body 内 if 没有任何匹配时只 `log warn`，既没有 `finish`/`break`，条件仍为真 → 无限循环。新增 StepObserver 把每个 StepEvent 实时推进 `/task/run/status`，长循环也能看到日志；可用结束按钮停止 | ✅（流程逻辑仍需用户加退出分支） |
+
+## 实测
+
+- 临时无限任务：运行 2s 后 `/task/run/status` 已显示 `step seq=... wait ...`；stop 后 `running=false outcome=Failed reason=cancelled by user`；
+- 嵌套 flow 切换不再 ERROR，INFO 提示只读；
+- 348 tests。
+
+| 状态 | ✅ 代码完成；「返回庭院」flow 需补 else/finish 才能自然结束 |
+
+
 
 
 

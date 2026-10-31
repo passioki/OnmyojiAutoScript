@@ -40,6 +40,7 @@
 | `06b275c` | 53 个任务包 + 53 specs + 53 status（主批） |
 | `59219de` | shipped-task lint gate 改用全局素材（测试修正） |
 | `61b45e3` | 未验证 ✅ 降级、台账刷新 |
+| `83cc114` | 旧 `res/*.png` 实为 JPEG 的图片转真 PNG；否则 runtime 加载失败 |
 
 ## 4. 已实现的通用抽象
 

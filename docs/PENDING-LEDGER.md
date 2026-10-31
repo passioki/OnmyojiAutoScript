@@ -1685,9 +1685,10 @@
 |---|---|---|
 | 模板测试 `/task/asset/match` | ✅ 已统一：`handle_asset_match` 调用 `oas_runtime::locate_template` | 与 runtime 使用 ROI mask 快路径 + 全帧兜底 |
 | 批量帧测试 template | ✅ 已统一：同一 `locate_template` helper | 与 runtime 一致 |
-| 单行 `/ocr` 编辑器测试 | 直接 crop，无 asset polygon mask | runtime `ocr_read` 对带 polygon 的 OCR 资产会 mask；测试结果可能不同 |
+| 单行 `/ocr` 编辑器测试 | ✅ 已统一：`/ocr` 接受 task/id，按 asset polygon mask；点击测试也走 source ROI | runtime 一致 |
 | `appear()` OCR / `ocr()` / `text_visible()` | runtime 走 `ocr_read` / provider | ✅ 已统一到 helper/runtime |
-| 集合测试 | 逐成员 `/task/asset/match` | 与 runtime collection 的 threshold/action_roi 逻辑未完全同源 |
+| 集合测试 | ✅ 新增 `/task/asset/collection/match`：runtime 同源最佳成员 + collection threshold/action_roi；UI 改用该接口 | 一致 |
+| batch OCR（单行/derived） | ✅ 同一 helper + asset polygon mask | 一致 |
 
 ## 已统一（第二轮）
 
@@ -1696,17 +1697,15 @@
   - 编辑器 `/task/asset/match`；
   - batch template。
 - 代码 `cdf19d5`；stage 已部署；344 tests。
+- `e953166`/`d049bfe`：OCR 编辑器测试/点击测试/批量 OCR 都应用 asset polygon mask；collection test 新增统一 endpoint。
 
 ## 仍待统一
 
-1. 单行 `/ocr` 编辑器测试没有 asset polygon mask；
-2. collection 测试未完全复用 runtime collection 展开/threshold/action_roi；
-3. 尚未加“编辑器 vs runtime 同帧同 asset 结果一致”守护测试。
+1. 尚未加“编辑器 vs runtime 同帧同 asset 结果一致”的自动化守护测试。
 
 ## 建议
 
-1. 编辑器 OCR 测试统一走“按 asset id”的新接口，由 runtime asset set 做 polygon mask，而不是手传 ROI；
-2. collection 测试直接复用 runtime 的 collection 展开/最佳成员选择；
-3. 增加 **编辑器测试 vs runtime 结果一致性** 守卫（同一帧、同一 asset，两边 pass/score 应一致）。
+1. 增加 **编辑器测试 vs runtime 结果一致性** 守卫（同一帧、同一 asset，两边 pass/score 应一致）；
+2. 该守卫可覆盖 `/task/asset/match`、`/lines`、`/collection/match` 三条编辑器路径。
 
-| 状态 | 🔄 OCR 路径 + 模板 locate 已统一；单行 polygon/集合测试仍待统一 |
+| 状态 | 🔄 OCR + 模板 + collection 路径已同源；仅缺一致性守护测试 |

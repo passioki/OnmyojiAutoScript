@@ -27,8 +27,8 @@
 
 | 项 | 状态 |
 |---|---|
-| 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **349 passed**（v1.2.3 开发中） · `oasd --version` = **1.2.2** |
-| 引擎特性 | flow DSL、素材/掩膜/多边形、点击定位链、HB1/HB7、整帧搜索、双 ROI、库、queue、stats、checkpoint/resume、reconnect、多帧投票、OCR+模板互证、**统一任务模板/task lint、任务创建/编辑器运行、调度 v3、交付包** |
+| 引擎 | `oasd`（serve/run/queue/stats/scheduler）+ 编辑器 UI + 素材库；测试 **350 passed**（v1.2.3 开发中） · `oasd --version` = **1.2.2** |
+| 引擎特性 | flow DSL、素材/掩膜/多边形、点击定位链、HB1/HB7、整帧搜索、**单识别 ROI + 操作区域**、库、queue、stats、checkpoint/resume、reconnect、多帧投票、OCR+模板互证、**统一任务模板/task lint、任务创建/编辑器运行、调度 v3、交付包** |
 | 编辑器 | 工作台（素材/图片/任务/点击分布/调度）+ 顶部页面（任务构建/任务库/实例/调度/设置）、标题行常驻结果/日志窗口、新建任务对话框、重置记忆多选、调试页 `/dashboard.html`；流程编辑统一在任务构建 |
 | 纵向 | ① 弹窗 ② 重试/恢复 ③ queue ④ 流程编辑器 ⑤ 统计 ⑥ 周期调度（v1 原型）· **V1.0 已交付**（模板+创建+调度 v3+实机包）|
 | 横向 | H1/H2 暂停；H4/H5 已完成；H3 暂缓 |
@@ -37,8 +37,8 @@
 | V1.2 交付 | ★ tag `v1.2.0` / 提交 `5d0f79c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · 识别/操作区域统一、批量保存+全局唯一、任务构建页、变量动作 · 326 tests 全绿 · zip SHA256 `D31C…` |
 | V1.2.1 交付 | ★ tag `v1.2.1` / 提交 `4e50aea` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · 统一全局素材库迁移、OCR 来源一致、builder 真流程图、帧管理、工作台流程收口 · 327 tests 全绿 · zip SHA256 `E4E4…` |
 | V1.2.2 交付 | ★ tag `v1.2.2` / 提交 `9debc0b` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.2` · 帧持久化、图片匹配操作区域、builder 结构化/变量 checkpoint、legacy 清理、工作台 flow 删除 · 330 tests 全绿 · zip SHA256 `B683…` · ✅ **R1~R21 台账已全部关闭**（R9 `3aa1a0a` · R21 `d455f6e`） |
-> ✅ **v1.2.3 验收 U-01~U-34 主体完成**：U-01 A/B（`1ee41d0`）· U-02~U-04（`cbfbab4`）· U-05~U-10（`4480d05`）· U-11~U-21（`e01d572`；U-20 多选整组拖动待补）· U-22~U-27（`346adba`）· U-28/U-29（`00ac85c`/`460ad32`）· U-30~U-32（`af66179`）· U-33 逻辑运算审计（`cdd9dde`）· U-34 素材条件逻辑（`c2de9c6`）
-> ✅ **U-35~U-55（v1.2.3 开发）**：U-35 run OCR provider · U-39~U-43 UI/OCR/一致性 · U-44~U-46 实时帧/WS/识别区域 · U-47~U-50 简繁容忍/单 ROI/详细日志 · U-51~U-53 停止运行/嵌套 flow/撤销重做 · U-54 缓存帧审计 · U-55 ScreenCache 截图抽象（`e3721e6`）· 当前 **349 tests**
+> ✅ **v1.2.3 验收 U-01~U-34 主体完成**：U-01 A/B（`1ee41d0`）· U-02~U-04（`cbfbab4`）· U-05~U-10（`4480d05`）· U-11~U-21（`e01d572`；U-20 多选整组拖动已由 `e73b408` 补齐）· U-22~U-27（`346adba`）· U-28/U-29（`00ac85c`/`460ad32`）· U-30~U-32（`af66179`）· U-33 逻辑运算审计（`cdd9dde`）· U-34 素材条件逻辑（`c2de9c6`）
+> ✅ **U-35~U-56（v1.2.3 开发）**：U-35 run OCR provider · U-39~U-43 UI/OCR/一致性 · U-44~U-46 实时帧/WS/识别区域 · U-47~U-50 简繁容忍/单 ROI/详细日志 · U-51~U-53 停止运行/嵌套 flow/撤销重做 · U-54 缓存帧审计 · U-55 ScreenCache 截图抽象（`e3721e6`）· U-56 近一周审计 + ROI 迁移 union（`d360d05`）· 当前 **350 tests**
 > ★ 发布规则：**不自行 tag/release**；只在用户明确说“发布”时发布；平时只构建 release 测试，版本号保持 1.2.2
 
 ---
@@ -73,7 +73,7 @@ cd D:\OAS-dev\oas-core
 git log -1 --format="%h %ci %s"
 git status --porcelain
 
-REM ② 引擎测试（现行基线：349 passed / 0 failed）
+REM ② 引擎测试（现行基线：350 passed / 0 failed）
 cargo test --workspace
 
 REM ③ OCR 构建（serve/run 需要；不带 feature 会报 "this build has no OCR"）
@@ -160,7 +160,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 
 【2. 代码与我核实的台账】
    oas-core commit = <hash> · 分支 = main · worktree 干净 = 是/否
-   cargo test --workspace = __ passed / __ failed（现行基线 = 349）
+   cargo test --workspace = __ passed / __ failed（现行基线 = 350）
    serve 状态：/state = <captured/device/ocr/det>
    后端文档仓 commit = <hash> · dev 是否已推 = 是/否
 
@@ -199,7 +199,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 | **E7** | 旧仓已冻结 | 旧仓 `backend/frontend` 只读；不要在旧仓上开发/提交 |
 | **E8** | 新引擎的验收看 ENGINE §22 判据 | 不要拿旧仓 pytest 基线当引擎验收 |
 | **E9** | headless Edge 截图做 UI 验收 | `msedge --headless=new --screenshot=...`；需要时加 `--user-data-dir` |
-| **E10** | 测试数会随提交增长 | 当前 **349**（v1.2.3 开发中）；以 `cargo test --workspace` 实测为准，不硬编码"永远 330/349" |
+| **E10** | 测试数会随提交增长 | 当前 **350**（v1.2.3 开发中）；以 `cargo test --workspace` 实测为准，不硬编码"永远 349/350" |
 
 ---
 
@@ -239,7 +239,7 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 ```bat
 REM ---------- 构建/测试 ----------
 cd D:\OAS-dev\oas-core
-cargo test --workspace                          REM 现行基线 349 passed
+cargo test --workspace                          REM 现行基线 350 passed
 cargo build -p oasd --features ocr              REM serve/run 的 OCR 构建
 
 REM ---------- 编辑器 ----------

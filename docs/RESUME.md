@@ -4,51 +4,52 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-round35
-checkpoint_seq: 64
-updated_at: 2026-11-01T00:40:00+08:00
-trigger: 压缩后恢复门禁（skill + START-HERE）
+task_id: oas-core-v123-round36
+checkpoint_seq: 65
+updated_at: 2026-11-01T01:10:00+08:00
+trigger: 近一周对话回顾 + 代码审计 + 文档修正（U-56）
 status: in_progress
 ```
 
 ## 0. 当前状态（磁盘实测）
 
-- 引擎 `e3721e6`，本地 `main` 干净；workspace **349 passed / 0 failed**。
-- 后端文档 `d8a39313`，本地 `dev` 干净。
+- 引擎 `d360d05`，`main` 干净；workspace **350 passed / 0 failed**。
+- 后端文档待提交（本轮审计文档）；提交后记录 hash。
 - 版本 **1.2.2**；v1.2.3 开发中，**未 tag/release**。
-- stage 已重建/部署：`http://127.0.0.1:8788/` = HTTP 200（pid 见端口监听）。
+- stage 已重建/部署：8788 = HTTP 200。
 
-## 1. 最近完成（U-55）
+## 1. 本轮完成（U-56）
 
-- `ScreenCache` 成为唯一截图状态所有者；
-- Interpreter 删除直接持有的 `frame/matcher/frame_size/frame_seq`；
-- 三入口：`observe_screen`（同一判断内共享）、`reobserve_screen`（新判断强制新帧）、`invalidate_frame`（输入后丢弃）；
-- 新增 `screen_cache_shares_one_observation_until_invalidated` 测试；
-- 349 tests。
+### 对话覆盖
 
-## 2. 恢复门禁结果
+- 导出 transcript `_verify/n44/_both_ab9eff.txt`：10-30 19:34~10-31 00:12，**35 段（U16/A19）** 双向全文已读；
+- 当前活动会话 10-31 23:16~11-01 01:05（U-50~U-56）从压缩上下文 + 文档/提交事实补读；
+- **缺口**：10-31 00:12~18:00 无导出 transcript，明确标记，不声称逐条读过；
+- 复核发现此前“37 条（17/20）”与实际导出 35 段不符，已在覆盖台账修正。
 
-- skill `session-memory` 已重新加载；
-- `START-HERE.md` 已读；
-- `RESUME.md` / `RESUME-INDEX.md` 最新行已读；
-- `SESSION-HANDOFF.md` / `ENGINE-DESIGN §22.34/§22.39` / `PENDING-LEDGER §E-24~§E-26` 已读；
-- 用 git/测试/端口核实：与磁盘一致（除下文文档漂移）。
+### 代码审计发现 + 修复
 
-## 3. 发现的文档漂移（未改代码）
+- **旧资产迁移 bug**：`normalize_legacy_ocr_roi` 原来 `roi:=ocr_source_roi`，会覆盖用户已调大的 ROI；改为 `union(roi, source)`，新增回归测试；
+- 引擎 `d360d05`；350 tests。
+- 其余 10-30 v1.1/v1.2 需求均有代码落点；U-49~U-55 已在 e3721e6~d360d05；
+- 未完成不是 v1.1/v1.2 需求，而是 U-32b 批量实帧验收、弱设备 WS 观察、发布前整体验收。
 
-| 文档 | 文档说 | 实测 |
-|---|---|---|
-| `START-HERE.md` §0.1/§1.3/§3 E10 | 当前基线 330 passed | **349 passed**（v1.2.3 开发后） |
-| `START-HERE.md` §0.1 | 当前 V1.2.2 已发布 | 正确；另有 v1.2.3 开发中、未发布 |
-| `RESUME.md`（上一版） | stage 待重建 | **已重建/部署，8788=200** |
-| `SESSION-HANDOFF.md` §1 | 引擎 HEAD `678e915` / 312 tests（10-24 旧值） | 现行以 RESUME/INDEX 为准 |
+### 文档修正
 
-## 4. 下一步
+- START-HERE：双 ROI → 单识别 ROI + 操作区域；测试基线 350；U-20 标注已实现；
+- ENGINE R13/§22.38：改为 U-49 单 ROI 现行口径；新增分歧块 B8；§22.25 加“双 ROI 指识别+操作”提示；
+- PENDING E-51d/E-52：把死循环根因修正为“条件复用旧帧”，用户已确认修复；
+- E-48 加“已被 U-49 取代”横幅；E-24 重启指针更新 seq64；
+- DESIGN-SPEC 顶部加范围提示（旧仓规格，现行以 ENGINE 为准）；
+- DESIGN-SPEC-PROGRESS / SESSION-INDEX 追加 10-30~11-01 覆盖与缺口。
 
-1. U-32b 批量实帧验收；
-2. 发布前整体验收；
-3. 仅当用户明确“发布”才 tag/release。
+## 2. 下一步
 
-## 5. 证据
+1. 提交文档并更新 RESUME/INDEX 终态 hash；
+2. U-32b 批量实帧验收；
+3. 弱设备 WS 观察；
+4. 发布前整体验收（仅用户明确“发布”才 tag/release）。
 
-- PENDING §E-55；代码 `e3721e6`；349 tests；stage 8788=200。
+## 3. 证据
+
+- PENDING §E-56；引擎 `d360d05`；350 tests；stage 8788=200。

@@ -1573,6 +1573,8 @@ tasks/<任务名>/
 
 ### 22.25 ★★ [10-23 23:5x] **双 ROI：识别框 / 点击框**（参考旧 OAS annotator `roiFront`/`roiBack` · 引擎提交 `ce2de42`）
 
+> ★ **[11-01 口径]** 本节“双 ROI”指 **识别区域 + 操作区域**，不是两个识别区域。v1.2.3 U-49 已明确：识别只有一个 `roi`，操作区域是 `action_roi`；`ocr_source_roi` 不再是第二识别区域。
+
 > ★ 来源：旧 OAS 标注系统的 `RuleImage.roiFront`（识别/裁剪）/ `roiBack`（点击区域，常大于识别框）—— 示例 `backend/tasks/AbyssShadows/res/image.json`。
 
 | 项 | 落地 |
@@ -1875,7 +1877,7 @@ tasks/<任务名>/
 
 | 项 | 结果 |
 |---|---|
-| OCR 来源 | 多行保存 `ocr_line` 带 `ocr_mode:"lines"` + `ocr_source_roi` + `ocr_text`；运行时原区域 det+rec 匹配原文字；旧资产默认 single |
+| OCR 来源 | v1.2.1 当时：多行保存 `ocr_line` 带 `ocr_mode:"lines"` + `ocr_source_roi` + `ocr_text`；运行时原区域 det+rec。★ **v1.2.3 U-49 已取代**：识别只用单 `roi`，旧 source 加载迁移到 `roi` 后清除 |
 | 任务身份 | taskName/taskSelect 同步为 active task；批量保存立即刷新同任务素材 |
 | builder | 三栏溢出修复；属性区固定素材/操作区域选择器；真控制流图（if 分支/loop 回边/汇合），点击节点联动属性 |
 | 帧 | 重命名、自由文本分类、拖动排序/分组；移除 20 帧上限；`/frames/rename|category|reorder` |
@@ -1909,7 +1911,7 @@ tasks/<任务名>/
 | R10 | 帧管理 | “重命名…不应该设置数量上限，还能够拖动顺序/分类展示” | 帧 id 稳定；name/category/order；拖动排序/跨组；移除 20 上限 |
 | R11 | 全局素材 | “不再区分任务素材和全局素材，因为名称是唯一的” | 唯一 `assets/`；flow 只引用全局 id；删除/改名检查所有任务 flow |
 | R12 | 迁移重名 | “自动加后缀，引用可以确认下不要被破坏了” | 迁移重名自动 `_2/_3`；**按每个任务自己的 old→new 映射**重写 flow；失败回滚；报告 `migration-report.json` |
-| R13 | OCR 来源 | “不能保证多行识别和单行识别的结果一致，那么应该用原识别方式” + “好的” | 多行保存 `ocr_line` 带 `ocr_mode:"lines"` + source ROI + text；运行时原区域 det+rec；旧资产默认 single |
+| R13 | OCR 来源 | “不能保证多行识别和单行识别的结果一致，那么应该用原识别方式” + “好的” | ★ **v1.2.3 U-49 现行口径**：识别只有一个 `roi`；多行保存的 `ocr_line` 用 `ocr_mode:"lines"` + 用户测试/调大的 `roi` + `ocr_text`，运行时对该 ROI det+rec；旧 `ocr_source_roi` 加载时迁移进 `roi`（取 union）并清除。不再有双识别 ROI |
 | R14 | 任务身份 | 批量保存素材不显示 | 引入唯一 active task；taskName/taskSelect/批量保存/素材列表/builder 同步 |
 | R15 | 工作台流程 | “可以合并到任务构建里，如果没有存在必要那么可以删除” → “3是的，确认” | 工作台流程入口移除；builder 唯一流程编辑入口 |
 | R16 | 发布节奏 | “全做完再发布1.2.1，版本号别跳这么快” | 不按中途 P0/P1 分期发 1.2.1/1.3；所有 v1.2.1 项做完才发；版本号只到 1.2.1 |
@@ -1931,6 +1933,7 @@ tasks/<任务名>/
 | B2 | 迁移遇到重名“阻止并列出清单” | [10-30 23:44]“自动加后缀，引用可以确认下不要被破坏了” | ❌ 不阻止；自动后缀+按任务重写 |
 | B3 | 点击/拖动 offset 字段 | [10-30 20:17]“偏移可以删去…通过独立的区域操作来实现” | ❌ 无 offset；区域操作替代 |
 | B7 | 操作区域只存 flow | [10-31]“发现直接存到素材里更方便且够用，请改变之前的决策” | ✅ 现行：`action_roi` 归素材/集合成员；flow 只引用 sel/集合 id；旧 R3 的 offset 规则保留 |
+| B8 | 多行派生 `ocr_line` 用 `roi`（行框）+ `ocr_source_roi` 双识别区域 | [10-31] 用户质疑双 ROI/手动拼行：“多行来源 ROI 是否有存在必要？如无必要应当舍弃和统一” | ✅ 现行 U-49：单识别 `roi`；旧 source 加载迁移（union）并清除；无 fallback/行合并 |
 | B4 | 帧“磁盘化” | 用户只要求无上限+管理；实现为内存 session；v1.2.2 已补 `frames/` 持久化 | ✅ 已实现（N44，v1.2.2 已发布 `9debc0b`） |
 | B5 | 工作台流程“删除面板/旧编辑器” | 已确认删除 | ✅ 已实现（N49，引擎 `8fa847d`，未发布）：DOM 删除，生成/追加改复制到剪贴板 |
 | B6 | 图片识别“同样可调操作区域/多选” | 用户 [10-31] 选 C：只要单结果 + 操作区域调整，不做多选 | ✅ 已实现（N45-C，引擎 `d104277`，未发布） |
@@ -1979,15 +1982,16 @@ tasks/<任务名>/
 - **U-43（分类/实时/回边/搜索）**：`9ce1cc3`：`/task/assets` 增加 `category`（继承第一个位置帧分类）并有分类筛选；移除启动自动 `do_capture`，改 `/frame.png?live=1` 实时抓帧（不入库），UI 实时轮询+暂停；循环/continue 回边走图外侧正交 lane；`createSearchPicker` 统一 builder 素材字段与位置选择（搜索+候选）。346 tests；stage live 200。
 - **U-44（位置编辑/U-20/WS）**：`e73b408`：素材位置设置改为搜索+候选 modal（显式保存/错误反馈）；勾选步骤支持整组拖动到根级/容器；新增 `/ws/live` WebSocket（树内 SHA1/base64 握手 + 后台采集线程推 PNG），UI WS 优先、轮询回退。346 tests；stage WS 与 UI 验证通过。
 - **U-45（实时帧不覆盖选中帧）**：`958b868`：`State` 拆分 `frame/png`（分析帧）与 `live_frame/live_png`；WS/`live=1` 只更新 live，仅无选中帧时同步分析帧；普通 `/frame.png` 返回选中帧。346 tests；stage 选中帧 SHA256 经 live 后不变。
-- **U-46（OCR 识别区域/全屏回退）**：`3bec494`：OCR 测试用识别 ROI（多行来源用 `ocr_source_roi`，不用 `action_roi`），结果显式标注三种 ROI；OCR 报错/空文字/0 行/derived 期望缺失时回退全屏 `/lines` 并渲染可勾选结果。346 tests；stage 图鉴回退 13 行。
+- **U-46（OCR 识别区域/全屏回退）**：`3bec494`：OCR 测试用识别 ROI（当时多行来源用 `ocr_source_roi`，不用 `action_roi`），结果显式标注三种 ROI；OCR 报错/空文字/0 行/derived 期望缺失时回退全屏 `/lines` 并渲染可勾选结果。346 tests；stage 图鉴回退 13 行。★ **历史：U-49 已统一为单 ROI。**
 - **U-47（OCR 简繁/异体字匹配）**：`e6acff0`：`ocr_text_matches` 去空白/标点后精确，多字符允许 Levenshtein ≤1；修复「召唤」素材 vs OCR 输出「召喚」的误判；用于 derived OCR / click_target / drag / text_visible / batch + 前端测试。347 tests；stage 召唤匹配。
-- **U-48（同 ROI 手动/素材识别差异）**：`efe2b1d`：素材测试同时测多行来源 ROI 与行 ROI；`match_ocr_line` 合并被 det 拆开的 CJK 行（召+唤→召唤）；运行期 derived OCR source→行 ROI 回退；结果标注当前分析帧。348 tests；stage 帧 #4 召唤行 ROI 匹配。
-- **U-49（单识别 ROI 统一）**：`8cab6ab`：废弃第二识别区域 `ocr_source_roi`；旧资产加载时迁移 `roi:=source` 并清除 source；新保存只写一个 roi + action_roi；运行期/编辑器/批量只对 roi det+rec；移除双 ROI、source fallback 和 CJK 行合并。348 tests。
+- **U-48（同 ROI 手动/素材识别差异）**：`efe2b1d`：素材测试同时测多行来源 ROI 与行 ROI；`match_ocr_line` 合并被 det 拆开的 CJK 行（召+唤→召唤）；运行期 derived OCR source→行 ROI 回退；结果标注当前分析帧。348 tests；stage 帧 #4 召唤行 ROI 匹配。★ **历史：U-49 已移除双 ROI/行合并。**
+- **U-49（单识别 ROI 统一）**：`8cab6ab`：废弃第二识别区域 `ocr_source_roi`；旧资产加载时迁移 `roi:=union(roi,source)` 并清除 source（保留用户已调大的 ROI）；新保存只写一个 roi + action_roi；运行期/编辑器/批量只对 roi det+rec；移除双 ROI、source fallback 和 CJK 行合并。348 tests。
 - **U-50（详细日志标准）**：`bdfe3c3`：前端 `[时间][级别] msg | JSON` + `__oasLogs`；OCR 测试记录帧/ROI/action/expected/raw lines/match mode/distance/fallback；服务端 editor.log 记录 /lines /ocr /asset_match /collection_match 的 ROI/task/id/score/pass/elapsed/error。348 tests。
-- **U-51（嵌套流程/停止/实时日志）**：`3eb9fa8`：flow_model 对嵌套 if/loop/while 只读占位不抛错；删除素材多选/新建集合 UI；runtime cancel token + `POST /task/run/stop` + 工作台结束按钮；StepObserver 把 StepEvent 实时推入 run status（长 while 有日志）；定位“返回庭院”死循环为 while body 无退出分支。348 tests。
+- **U-51（嵌套流程/停止/实时日志）**：`3eb9fa8`：flow_model 对嵌套 if/loop/while 只读占位不抛错；删除素材多选/新建集合 UI；runtime cancel token + `POST /task/run/stop` + 工作台结束按钮；StepObserver 把 StepEvent 实时推入 run status（长 while 有日志）；**初判**“返回庭院”为 while body 无退出分支，**U-53 实测修正为缓存帧问题**。348 tests。
 - **U-52（while 条件诊断）**：`a4ebbfd`：确认 `not A and not B = not(A or B)`，任一出现即退出；每次 while 迭代新增 `while_cond` StepEvent（iteration/value/truthy/cond），用于证明 appear 两个条件实际返回。348 tests。
 - **U-53（撤销/重做 + 实时帧）**：`fb71014`：builder 返回/前进改为 flow 快照撤销/重做（Ctrl+Z/Ctrl+Shift+Z，选择变化不入历史）；while 每次条件求值前 invalidate_frame，强制 appear 抓实时 ADB 帧；`while_cond` 带 frame_seq，编辑器运行输出 `appear_trace`。348 tests。
 - **U-54（缓存帧审计）**：`0594ceb`：if/wait/wait_until/dismiss_popup/appear/ocr/click/click_point/click_target/drag 所有当前屏幕读取入口统一 invalidate_frame；wait 结束刷新；服务端分析帧与 live 帧分离复核。348 tests。
 - **U-55（ScreenCache 抽象）**：`e3721e6`：Interpreter 不再直接持有 frame/matcher/frame_size/frame_seq，统一封装为 ScreenCache；`observe_screen`（一次判断内共享）、`reobserve_screen`（新判断强制抓帧）、`invalidate_frame`（输入后丢弃）三个入口；新增生命周期测试；349 tests。
+- **U-56（近一周审计 + ROI 迁移补强）**：`d360d05`：全量读 10-30~10-31 双向 transcript（35 段）；审计发现旧资产迁移 `roi:=source` 会覆盖用户已调大的 ROI ⇒ 改为 `union(roi, source)`，新增回归测试；修正 START-HERE/ENGINE R13/E-51/E-52 等过时“双 ROI/缺退出分支”口径。350 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

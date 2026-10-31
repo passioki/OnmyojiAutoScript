@@ -1125,8 +1125,8 @@
 ## 四、重启后必读
 
 1. `START-HERE.md`（入口）；
-2. `RESUME.md`（最新断点 seq=13，状态 done）；
-3. `RESUME-INDEX.md` 最新行（seq=14，v1.2.1 done）；
+2. `RESUME.md`（最新断点 seq=64，状态 in_progress）；
+3. `RESUME-INDEX.md` 最新行（seq=64，恢复门禁）；
 4. 本节 §E-24（v1.1~v1.2.1 交付与当前未完成）。
 
 ---
@@ -1857,6 +1857,9 @@ CDP stage 验收：
 
 # ★ §E-48 ★★★ [10-31 22:44] **同 ROI 手动识别 vs 素材识别不一致（U-48）**
 
+> ★★★ **[11-01 审计修正] 本节是历史记录，已被 U-49 取代，不得作为现行口径。**
+> 现行：只有一个识别 `roi`；旧 `ocr_source_roi` 加载时取 union 迁移并清除；无 source/行 ROI fallback、无 `match_ocr_line` 合并。
+
 > 用户：同样的区域，手动多行识别能识别；保存为「召唤」素材后素材行识别失败。要求彻查，不对症则回退。
 
 ## 结论：之前只修“简繁”不够；真正差异是 **测试 ROI + 行合并**
@@ -1914,7 +1917,7 @@ CDP stage 验收：
 
 | 层 | 行为 |
 |---|---|
-| 资产加载 | `normalize_legacy_ocr_roi`：旧 `ocr_source_roi` → `roi`，清除 source；磁盘在下一次保存时写回统一形状 |
+| 资产加载 | `normalize_legacy_ocr_roi`：旧 `ocr_source_roi` → `roi`（取两者 union，保留用户已调大的区域），清除 source；磁盘在下一次保存时写回统一形状 |
 | 新保存 | 多行来源素材：`roi` = 用户实际测试/调大的多行 ROI；`action_roi` = 行点击框；不再写 `ocr_source_roi` |
 | 运行期 | derived OCR：只对 `roi` 做 det+rec，只匹配 `ocr_text`；无 source/行 ROI fallback |
 | 编辑器测试 | 只测 `roi`；无双 ROI、无合并行 |
@@ -1999,7 +2002,7 @@ OCR 测试日志包含：
 | **U-51a** | 切换任务“返回庭院”报流程可视化解析失败（while 嵌套） | `flow_model.parseFlow` 不再对 if/loop/while 抛错；生成只读嵌套占位 + `nested` 标记，`buildFlow` 明确拒绝从简化面板保存；工作台 INFO 提示用任务构建/JSON。引用素材仍显示 | ✅ |
 | **U-51b** | 多选素材/新建集合没有应用且不可用，是否删除 | 删除素材行勾选框、`新建集合` 按钮、`createCollectionFromSelection` 前端入口；已有 collection 数据仍可显示/测试/删除，后端兼容保留 | ✅ |
 | **U-51c** | 任务死循环无法结束，需要结束按钮 | 新增 `POST /task/run/stop` + 运行时 cancel token（`check_budget` 每步检查）；工作台新增「结束运行任务」；停止后 outcome=Failed reason=cancelled by user，点击日志保留 | ✅ |
-| **U-51d** | 返回庭院任务无日志且疑似死循环 | 根因：while 条件 `not appear(町中) and not appear(召唤)`；body 内 if 没有任何匹配时只 `log warn`，既没有 `finish`/`break`，条件仍为真 → 无限循环。新增 StepObserver 把每个 StepEvent 实时推进 `/task/run/status`，长循环也能看到日志；可用结束按钮停止 | ✅（流程逻辑仍需用户加退出分支） |
+| **U-51d** | 返回庭院任务无日志且疑似死循环 | **初判**：while body 无 finish/break；**U-53 实测修正**：真正问题是 while 条件复用了点击后/过渡中的旧帧，条件一直看到“未回庭院”。已改为每次条件前强制抓实时帧；用户确认循环退出。新增 StepObserver 实时日志 + 结束按钮 | ✅ 已修复（U-53） |
 
 ## 实测
 
@@ -2072,7 +2075,12 @@ step seq=... depth=1 op=while_cond result=ok detail=iteration=2 value=Bool(true)
 若日志显示 `while_cond value=true` 而屏幕已有町中/召唤，说明 OCR 资产本身没识别到；需要用素材行「识别」检查并调大 ROI。  
 若条件值无法区分两个 appear，可在 while 前分别 `log(appear('町中'))` / `log(appear('召唤'))` 做临时诊断。
 
-| 状态 | ✅ 逻辑确认 + 条件日志已加；具体 OCR 命中需用日志继续定位 |
+## 最终确认（U-53 实测）
+
+用户确认：修复“while 条件强制抓实时帧”后，同一任务**循环正常退出并成功运行**。  
+因此根因不是 `not/and` 逻辑，也不是缺少 finish，而是**条件求值时复用了点击后/过渡中的旧帧**。U-53 已改为每次条件前 invalidate + refresh，并加 `frame_seq`/`appear_trace` 证据。
+
+| 状态 | ✅ 用户已确认修复（缓存帧），不是 OCR 资产/flow 缺退出分支 |
 
 ---
 
@@ -2233,3 +2241,47 @@ invalidate_frame() // 输入动作后丢弃
 
 
 
+
+---
+
+# ★ §E-56 ★★★ [11-01 01:05] **近一周会话回顾 + 代码审计（U-56）**
+
+> 用户：阅读近一周的对话，审计代码，更新文档。
+
+## 1. 覆盖范围（可核查）
+
+| 来源 | 范围 | 状态 |
+|---|---|---|
+| `_verify/n44/_both_ab9eff.txt` | 10-30 19:34 ~ 10-31 00:12 · 35 段（USER 16 / ASST 19）双向全文 | ✅ 已读 |
+| 当前活动会话（压缩上下文 + 用户消息） | 10-31 23:16 ~ 11-01 00:40 · U-50~U-55 及恢复门禁 | ✅ 已读 |
+| 缺口 | **10-31 00:12~18:00 无导出 transcript** | ⚠️ 用 git commit/文档/测试事实补，不能声称逐条读过 |
+| 更早 10-22~10-29 | 导出 transcript 无该时段会话（会话从 10-30 开始有记录） | ✅ 无漏读（范围内不存在） |
+
+## 2. 审计发现（文档 vs 代码/现行裁定）
+
+| # | 问题 | 证据 | 处置 |
+|---|---|---|---|
+| A1 | START-HERE 仍写“双 ROI” | `START-HERE.md` 引擎特性行 | ✅ 改为“单识别 ROI + 操作区域” |
+| A2 | ENGINE R13 / §22.38 仍写多行 `ocr_source_roi` 双识别区域 | `ENGINE-DESIGN.md` R13 | ✅ 改为 U-49 单 ROI 现行口径，并加分歧块 B8 |
+| A3 | PENDING E-51d 把死循环归因于“body 缺 finish” | E-51d | ✅ 改为 U-53 已确认的“条件复用旧帧”，用户确认修复 |
+| A4 | PENDING E-52 仍写“需用户处理” | E-52 | ✅ 补“用户确认循环退出” |
+| A5 | U-48 的“双 ROI/行合并”仍是历史正文 | E-48 | ✅ 加“已被 U-49 取代”横幅；E-48 表格仍是历史，不当作现行 |
+| A6 | 旧资产迁移 `roi:=source` 会覆盖用户已调大的 ROI | `oas-task` `normalize_legacy_ocr_roi` | ✅ 代码改为 `roi:=union(roi,source)`；新增回归测试 |
+| A7 | START-HERE U-20 仍写“待补”，但 U-44 已实现整组拖动 | `builder.js` `moveStepsGroup/checkedPaths` | ✅ 标注已由 `e73b408` 补齐 |
+| A8 | 代码/注释仍称 `set_derived_ocr` 参数为 source ROI | runtime/serve/app 注释 | ✅ 改为 recognition ROI（字段本身是 legacy 兼容） |
+| A9 | START-HERE 测试基线 330/349 漂移 | 实测 350 | ✅ 更新 350 |
+
+## 3. 代码审计结论
+
+- 10-30 的 v1.1/v1.2 裁定在代码中均有落点：素材 CRUD/测试/生成步骤、`meta.goal`、点击聚合、区域拖动、真 SVG 流程图、全局素材、帧管理、工作台 flow 删除。
+- v1.2.3 的 U-49~U-55 均在当前 `e3721e6` 及后续修复中；`cargo test --workspace` = **350 passed / 0 failed**。
+- 未完成的**不是** v1.1/v1.2 需求，而是验收/观察项：U-32b 批量实帧验收、弱设备 WS 观察、发布前整体验收。
+- 旧 `ocr_source_roi` 字段保留仅为旧资产反序列化；runtime/editor/batch 均不再把它当第二识别区域。
+
+## 4. 验证
+
+- `cargo test --workspace` = **350 passed / 0 failed**（新增 ROI union 迁移测试）。
+- 迁移测试：`roi=[40,50,80,70]` + source `[1,2,50,60]` → union `[1,2,119,118]`。
+- stage 8788 = 200；引擎 `d360d05`（U-56 审计修复）已提交并推送。
+
+| 状态 | ✅ 会话覆盖 + 代码审计 + 文档修正完成；U-32b/WS/发布验收仍待 |

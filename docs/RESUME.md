@@ -4,54 +4,50 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-round32
-checkpoint_seq: 61
-updated_at: 2026-11-01T00:35:00+08:00
-trigger: 撤销/重做 + while 实时帧完成
+task_id: oas-core-v123-round33
+checkpoint_seq: 62
+updated_at: 2026-11-01T00:45:00+08:00
+trigger: 缓存帧全面审计完成
 status: in_progress
 ```
 
 ## 0. 当前状态
 
-- 引擎代码 `fb71014`；workspace **348 passed**。
+- 引擎代码 `0594ceb`；workspace **348 passed**。
 - 版本 1.2.2，未 tag/release；stage 已部署/重启。
 
-## 1. 本轮完成（U-53）
+## 1. 本轮完成（U-54）
 
-### 任务构建撤销/重做
+用户确认 while 实时帧修复后任务成功，要求举一反三。
 
-- `返回/前进` 改为「↶ 撤销 / ↷ 重做」；
-- 快照 flow 内容（最多 100），选择变化不产生历史；
-- Ctrl+Z / Ctrl+Shift+Z（输入框内不拦截）；
-- 实测增/撤/重做正确。
+所有“读当前屏幕”的入口统一刷新：
 
-### while 实时帧
+- `while` / `if` 条件求值前；
+- `wait` 结束后；
+- `wait_until` 每轮求值前；
+- `dismiss_popup` 每轮检测前；
+- `appear` / `ocr` 步骤；
+- `click` / `click_point` / `click_target` 定位前；
+- `drag` 取源区域前；
+- `swipe` 执行后（原有）；
+- `verify_expect` 每轮（原有）。
 
-- 每次 while 条件求值前清缓存帧；
-- `appear()` 重新抓 ADB 实时帧；
-- `while_cond` 带 `frame_seq`；
-- 编辑器运行输出 `appear_trace`：
-  ```text
-  appear_trace sel=召唤 -> true frame_seq=1
-  while_cond iteration=0 value=Bool(true) truthy=true frame_seq=1
-  ```
-- 实测连续 frame_seq 递增。
+服务端/UI：
+- `/lines` `/ocr` `/match` 用当前分析帧；
+- 实时预览只更新 live，不覆盖选中图片；
+- 编辑器测试/批量帧测试使用同一分析帧。
 
-## 2. 对用户问题的回答
+## 2. 证据
 
-运行时确实使用实时帧；之前存在复用缓存帧的风险。现在每次 while 条件强制新帧，并输出每个 appear 的结果。
-
-如果仍死循环，看：
-- `appear_trace ... -> false/ERROR`：哪个素材没识别；
-- `frame_seq` 是否递增：是否真的抓了新帧；
-- `/lines` 详细日志：OCR ROI/原始文本。
+- while `frame_seq` 逐轮递增；
+- `appear_trace` 显示每个 appear 结果；
+- 348 tests；stage 已部署。
 
 ## 3. 仍待
 
-1. 用户重跑「返回庭院」确认是否退出；
-2. U-32b 批量；
-3. 发布前整体验收。
+1. U-32b 批量实帧验收；
+2. 发布前整体验收。
 
 ## 4. 证据
 
-- PENDING §E-53；代码 `fb71014`；348 tests；stage 8788。
+- PENDING §E-54；代码 `0594ceb`；348 tests；stage 8788。

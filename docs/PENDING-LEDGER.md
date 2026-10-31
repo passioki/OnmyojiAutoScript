@@ -2114,6 +2114,47 @@ step seq=... depth=1 op=while_cond result=ok detail=iteration=2 value=Bool(true)
 
 | 状态 | ✅ 撤销/重做 + 实时帧已实现；等待用户重跑确认 |
 
+---
+
+# ★ §E-54 ★★★ [11-01 00:25] **缓存帧全面审计（U-54）**
+
+> 用户确认 while 实时帧修复后运行成功，要求举一反三检查所有类似情况。
+
+## 审计结论
+
+所有“读取当前屏幕”的入口都需要先丢弃缓存帧，否则可能复用 wait/上一动作前的像素。
+
+| 入口 | 修复 |
+|---|---|
+| `while` 条件 | 每轮求值前 `invalidate_frame()` |
+| `if` 条件 | 求值前 `invalidate_frame()` |
+| `wait` | sleep 后 `invalidate_frame()`（过渡后下一步必须新帧） |
+| `wait_until` | 每轮求值前 `invalidate_frame()`（原来首轮用旧帧） |
+| `dismiss_popup` | 每轮检测前 `invalidate_frame()` |
+| `appear` 步骤 | 检测前 `invalidate_frame()` |
+| `ocr` 步骤 | 读取前 `invalidate_frame()` |
+| `click` / `click_point` / `click_target` | 定位前 `invalidate_frame()` |
+| `drag` | 取源区域前 `invalidate_frame()` |
+| `swipe` | 执行后 `invalidate_frame()`（原有） |
+| `verify_expect` | 每轮 `invalidate_frame()`（原有） |
+| OCR 条件表达式 | 继承 while/if 的刷新；编辑器可看 `frame_seq`/`appear_trace` |
+
+## 服务端/UI 审计
+
+- `/lines` `/ocr` `/match` 使用 `st.frame`（当前分析帧），选中图片时不会被实时预览覆盖；
+- 实时预览只更新 `live_frame/live_png`，只有 `current_frame_id=None` 时才更新分析帧；
+- 编辑器素材测试、批量帧测试使用同一分析帧，不做隐式帧切换；
+- 批量测试按帧文件逐帧加载，不依赖当前缓存。
+
+## 证据
+
+- 每次 while 条件 `frame_seq` 递增；
+- 编辑器运行 `appear_trace` 显示每个素材结果；
+- 348 tests；stage 已部署。
+
+| 状态 | ✅ 审计完成；缓存帧入口已统一刷新 |
+
+
 
 
 

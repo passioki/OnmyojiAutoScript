@@ -1987,5 +1987,6 @@ tasks/<任务名>/
 - **U-51（嵌套流程/停止/实时日志）**：`3eb9fa8`：flow_model 对嵌套 if/loop/while 只读占位不抛错；删除素材多选/新建集合 UI；runtime cancel token + `POST /task/run/stop` + 工作台结束按钮；StepObserver 把 StepEvent 实时推入 run status（长 while 有日志）；定位“返回庭院”死循环为 while body 无退出分支。348 tests。
 - **U-52（while 条件诊断）**：`a4ebbfd`：确认 `not A and not B = not(A or B)`，任一出现即退出；每次 while 迭代新增 `while_cond` StepEvent（iteration/value/truthy/cond），用于证明 appear 两个条件实际返回。348 tests。
 - **U-53（撤销/重做 + 实时帧）**：`fb71014`：builder 返回/前进改为 flow 快照撤销/重做（Ctrl+Z/Ctrl+Shift+Z，选择变化不入历史）；while 每次条件求值前 invalidate_frame，强制 appear 抓实时 ADB 帧；`while_cond` 带 frame_seq，编辑器运行输出 `appear_trace`。348 tests。
+- **U-54（缓存帧审计）**：`0594ceb`：if/wait/wait_until/dismiss_popup/appear/ocr/click/click_point/click_target/drag 所有当前屏幕读取入口统一 invalidate_frame；wait 结束刷新；服务端分析帧与 live 帧分离复核。348 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

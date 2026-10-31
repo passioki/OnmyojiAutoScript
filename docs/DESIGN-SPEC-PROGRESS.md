@@ -194,3 +194,11 @@
 > 之前“10-31 00:12~18:00 无导出”的缺口已解除：已从 `C:\Users\passioki\.dsh\sessions\...\session.v4.jsonl.zstd` 解压出完整会话；此前仅旧 `_both_ab9eff.txt` 截断。
 
 
+
+## [11-01] v1.2.3 发布 + 远端任务迁移 batch1
+
+- 发布：`v1.2.3` / `385d611` / Release；U-32b 用户日志 30/30 关闭
+- 迁移源：`runhey/OnmyojiAutoScript@dev` `8b4dc669`
+- 迁移分支：oas-core `dev` `61b45e3`；53 任务包/53 specs/53 status；素材 2825
+- 状态：0 ✅ / 44 🔄 / 9 ⛔ / 8 ⬜；无实机等价证据不标 ✅
+- 详见 `MIGRATION-LEDGER.md` / `migration/TASK-LEDGER.md`

@@ -2295,3 +2295,36 @@ invalidate_frame() // 输入动作后丢弃
 - stage 8788 = 200；引擎 `d360d05`（U-56 审计修复）已提交并推送。
 
 | 状态 | ✅ 会话覆盖 + 代码审计 + 文档修正完成；U-32b/WS/发布验收仍待 |
+
+---
+
+# ★ §E-57 ★★★ [11-01 02:00] **v1.2.3 发布 + 远端任务迁移 batch1（U-57）**
+
+## v1.2.3
+
+- tag `v1.2.3` / main `385d611` / 350 tests
+- GitHub Release：`https://github.com/passioki/oas-core/releases/tag/v1.2.3`
+- zip `oasd-v1.2.3-win64.zip` SHA256 `F135922D762A28AE971377D744B4CB286AB9F21C708CD372CAB30EFE30F9C12E`
+- main 作为恢复节点；迁移在 `dev`，未合并 main
+
+## 远端任务迁移（batch1）
+
+- 源：`runhey/OnmyojiAutoScript@dev` `8b4dc669...`（61 目录 = 53 菜单任务 + 8 辅助目录；本机旧 64 差异已记录）
+- 工作分支：oas-core `dev` `61b45e3`
+- 53 个任务包 + 53 行为规格 + 53 状态 JSON；全局素材 2825
+- `task lint --all` = 57 tasks / 0 errors；`cargo test` = 350 passed
+- 状态：**0 ✅ / 44 🔄 / 9 ⛔ / 8 ⬜**；6 个无实机证据的 ✅ 已降级
+- 详细：`MIGRATION-LEDGER.md`、`migration/TASK-LEDGER.md`、`migration/specs/*.md`
+
+## 未完成
+
+- 44 个 🔄 的缺口（组队/OCR 行框/时长/长按/动态决策等）
+- 9 个 ⛔ 需引擎原语或范围外
+- 所有任务尚无实机/replay 行为等价证据
+- 不允许把静态 flow/lint 当成等价完成
+
+## 发布节点
+
+- v1.2.3 是 main 恢复节点；迁移只在 dev，后续完成后才考虑合并/再发布
+
+| 状态 | 🔄 迁移中（不关机） |

@@ -1983,5 +1983,6 @@ tasks/<任务名>/
 - **U-47（OCR 简繁/异体字匹配）**：`e6acff0`：`ocr_text_matches` 去空白/标点后精确，多字符允许 Levenshtein ≤1；修复「召唤」素材 vs OCR 输出「召喚」的误判；用于 derived OCR / click_target / drag / text_visible / batch + 前端测试。347 tests；stage 召唤匹配。
 - **U-48（同 ROI 手动/素材识别差异）**：`efe2b1d`：素材测试同时测多行来源 ROI 与行 ROI；`match_ocr_line` 合并被 det 拆开的 CJK 行（召+唤→召唤）；运行期 derived OCR source→行 ROI 回退；结果标注当前分析帧。348 tests；stage 帧 #4 召唤行 ROI 匹配。
 - **U-49（单识别 ROI 统一）**：`8cab6ab`：废弃第二识别区域 `ocr_source_roi`；旧资产加载时迁移 `roi:=source` 并清除 source；新保存只写一个 roi + action_roi；运行期/编辑器/批量只对 roi det+rec；移除双 ROI、source fallback 和 CJK 行合并。348 tests。
+- **U-50（详细日志标准）**：`bdfe3c3`：前端 `[时间][级别] msg | JSON` + `__oasLogs`；OCR 测试记录帧/ROI/action/expected/raw lines/match mode/distance/fallback；服务端 editor.log 记录 /lines /ocr /asset_match /collection_match 的 ROI/task/id/score/pass/elapsed/error。348 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

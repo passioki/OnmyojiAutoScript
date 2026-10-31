@@ -1930,5 +1930,66 @@ CDP stage 验收：
 
 | 状态 | ✅ 已完成统一；不再保留双 ROI/行合并 |
 
+---
+
+# ★ §E-50 ★★★ [10-31 23:16] **详细日志标准（U-50）**
+
+> 用户：简繁容忍不用回退；需要输出详细日志，所有日志输出按详细标准。
+
+## 前端日志标准（`app.js::log`）
+
+```text
+[HH:MM:SS.mmm] [LEVEL] message | {"key":"value",...}
+```
+
+- LEVEL：`INFO` / `WARN` / `ERROR`；
+- 第二个参数可传 level，第三个参数可传对象自动 JSON；
+- 同时写入 `window.__oasLogs`（最多 2000 条，供 CDP/验收读取）。
+
+OCR 测试日志包含：
+
+- `asset` / `kind` / `mode` / `task`；
+- 当前帧 `#id name` 或 `live`；
+- `roi` / `action_roi`；
+- `expected`；
+- `/lines` 原始 lines（text/score/box）、count、elapsed；
+- 匹配模式 `exact` / `normalized` / `fuzzy`、Levenshtein `distance`、score；
+- 全屏回退 reason/full_roi/count/lines；
+- 失败/异常 ERROR 带 reason/error。
+
+## 服务端日志标准（`logs/editor.log`）
+
+```text
+[epoch_ms] METHOD path
+[epoch_ms] lines OK roi=Rect{...} task=... id=... vertical=false count=2 elapsed_ms=205.4 lines=["召喚"(0.826), "UP"(0.999)]
+[epoch_ms] ocr OK roi=... task=... id=... text="..." score=... elapsed_ms=... polygon=false
+[epoch_ms] asset_match OK/MISS task=... id=... score=... threshold=... point=(x,y) elapsed_ms=...
+[epoch_ms] collection_match OK ... member/score/threshold/pass
+```
+
+失败时同样记录 `FAIL` + ROI/task/id/error。
+
+## 运行期日志标准
+
+- `StepEvent` 保留 `seq/depth/op/detail/result/elapsed_ms`；
+- OCR 错误包含 expected、recognition ROI、实际 found lines；
+- click OCR 记录 locator、实际文本、score、目标点；
+- 运行记录 `run` 已有 seed/frame_source/assets/device/ocr/det/checkpoint。
+
+## 验收
+
+- 前端 `__oasLogs` 实测：
+  ```text
+  OCR 测试匹配 asset=召唤 | {"expected":"召唤","actual":"召喚","mode":"fuzzy","distance":1,...}
+  ```
+- 服务端实测：
+  ```text
+  lines OK roi=Rect { x: 1032... } task=回到庭院 id=召唤 count=2 lines=["召喚"(0.826), "UP"(0.999)]
+  ```
+- 348 tests。
+
+| 状态 | ✅ 日志标准已落地 |
+
+
 
 

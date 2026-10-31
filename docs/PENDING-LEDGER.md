@@ -1729,37 +1729,42 @@
 | 测试 | 新增 `click_ocr_asset_uses_action_roi_not_template_lookup`；workspace **345 passed** |
 | stage 验证 | `_diag_click`：`DETECTED` → `clicked 庭院 target=(1000,218) point=(1085,269)` → Done（dry-run） |
 
-## U-42a：展示实现不一致（计划）
+## U-42a：展示实现统一（已完成）
 
-| 渲染器 | 位置 | 现状 |
-|---|---|---|
-| 工作台「当前任务引用的素材」 | `renderTaskReferencedAssets`（app.js:1677） | 纯文本 `${id} [kind]` |
-| 工作台「素材库」 | `renderAssetList`（app.js:1789） | 缩略图 + 分组 + 勾选 + 测试/改/帧/删/操作区/点测/拖测/步骤 |
-| 任务构建「可用素材」 | `renderAssetPanel`（builder.js:806） | 纯文本 `${id} [kind]` |
+| 渲染器 | 位置 | 旧现状 | 现在 |
+|---|---|---|---|
+| 工作台「当前任务引用的素材」 | `renderTaskReferencedAssets` | 纯文本 `${id} [kind]` | 共享 `OASAssetUI.renderRows` |
+| 工作台「素材库」 | `renderAssetList` | 独立的大段 row DOM | 共享 `OASAssetUI.renderRows` |
+| 任务构建「可用素材」 | `renderAssetPanel`（builder.js） | 纯文本 `${id} [kind]` | 共享 `OASAssetUI.renderRows` compact |
 
-**根因**：同一个资产有 3 套独立 DOM 渲染，导致工作台任务页和素材页显示完全不同。
+新增 `apps/oasd/ui/asset_ui.js`：
 
-**计划**：
+- `makeThumb(it, task)`
+- `createRow(it, opts)`
+- `renderRows(container, items, opts)`
+- 统一缩略图、kind 标签、ROI/操作区域/位置帧文案、测试/点测/拖测/步骤按钮；
+- 选项区分 `pick` / `manage` / `compact` / `group` / `clear`。
 
-1. 新增共享 `asset_ui.js`（在 app.js/builder.js 之前加载），导出：
-   - `makeAssetThumb(it)`
-   - `createAssetRow(it, { pick, manage, compact, onPick, onTest, ... })`
-   - `renderAssetRows(container, items, opts)`
-2. 工作台「素材库」改为调用 `renderAssetRows`（保留分组/搜索/勾选）。
-3. 工作台「当前任务引用的素材」调用同一 `renderAssetRows`，仅传引用子集与 `manage:false`（仍显示缩略图/kind/ROI/位置帧/测试）。
-4. 任务构建「可用素材」调用同一组件（`compact:true`），点击仍注入到动作参数。
-5. 集合成员展示也复用同一行组件的紧凑模式。
-6. 验收：同一资产在三个位置的缩略图、kind 标签、ROI/位置文案、测试按钮一致；CDP 对比 `outerHTML` 结构；不引入重复渲染函数。
+代码 `567917c`；`/asset_ui.js` 路由已加。
 
-## 举一反三：仍在用模板-only selector 的路径
+CDP stage 验收：
 
-| 路径 | 现状 | 计划 |
-|---|---|---|
-| `click` | ✅ 已支持 OCR | 已修 |
-| `dismiss_popup` 的 detect/action selector | `locate()` 只查模板 | 抽 `resolve_selector` 支持 template/OCR/collection |
-| `click_target` 的 `Locator::Template` | `locate()` 只查模板 | 同上；OCR 显式用 `ocr_text` 或自动降级 |
-| `verify_stable_frames` | 模板匹配 | OCR click 已跳过；其他 OCR selector 需统一 |
-| `appear/wait_until` | ✅ 有 OCR 分支 | 已支持 |
-| `require_template` | 明确要求模板 | 保持模板-only，文档写明 |
+- `taskRows=5`、`assetRows=23`，全部 `asset-row`；
+- 素材库 header 保留；
+- builder `asset-row asset-row-compact` 23 个；
+- `window.__oasErrors=[]`。
 
-| 状态 | 🔄 U-42b 已修并验证；U-42a 展示统一与剩余 selector 路径按上述计划继续 |
+## 举一反三：selector 路径（已完成）
+
+| 路径 | 现状 |
+|---|---|
+| `click` | ✅ OCR 资产 → `ocr_read` → action ROI |
+| `locate()` | ✅ OCR 资产（single/multi/derived）和集合里的 OCR 成员都解析 |
+| `dismiss_popup` detect/action | ✅ 走 `locate()` + `click_box_for()` OCR 分支；OCR 阈值 0 |
+| `click_target` `Locator::Template` | ✅ 走 `locate()` + `click_box_for()` OCR 分支 |
+| `appear/wait_until` | ✅ 已有 OCR 分支 |
+| `require_template` | 保持模板-only（明确语义） |
+
+代码 `567917c`；新增 `click_target_template_locator_also_accepts_ocr_assets`；workspace **346 passed**。
+
+| 状态 | ✅ U-42a 展示统一完成；U-42b click OCR 完成；dismiss_popup/click_target selector 已收口 |

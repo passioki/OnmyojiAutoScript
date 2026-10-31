@@ -4,74 +4,56 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-round20
-checkpoint_seq: 49
-updated_at: 2026-10-31T21:45:00+08:00
-trigger: U-42b click OCR selector 已修；U-42a 展示统一待实施
+task_id: oas-core-v123-round21
+checkpoint_seq: 50
+updated_at: 2026-10-31T22:00:00+08:00
+trigger: U-42a 素材卡片统一 + U-42b selector OCR 收口完成
 status: in_progress
 ```
 
 ## 0. 当前状态
 
-- 引擎代码 `3321207`；workspace **345 passed**。
-- 版本 1.2.2，未 tag/release；stage 已部署 click 修复。
-- U-32b/U-20 仍待。
+- 引擎代码 `567917c`；workspace **346 passed**。
+- 版本 1.2.2，未 tag/release；stage UI/exe 已同步/重启 8788。
+- U-32b 批量实帧验收、U-20 多选整组拖动仍待。
 
-## 1. 本轮完成（U-42b）
+## 1. 本轮完成（U-42）
 
-`failure=selector 庭院 is not declared` 根因：
+### 素材展示统一
 
-- `Step::Click` 只调 `locate()`；
-- `locate_one()` 只查模板 map；
-- OCR 资产在 `AssetSet.ocr`，不在模板 map；
-- `appear('庭院')` 有显式 OCR 分支，所以先成功；`click sel=庭院` 随即失败。
+新增 `apps/oasd/ui/asset_ui.js`：
 
-修复：
+- `makeThumb` / `createRow` / `renderRows`；
+- 工作台「当前任务引用的素材」、工作台「素材库」、builder「可用素材」三处共用；
+- 统一缩略图、kind、ROI/操作区域/位置帧、测试/点测/拖测/步骤；
+- 素材库 header 保留；builder compact 模式。
 
-- click 识别 OCR 资产 → `ocr_read` → 点击 `action_roi` / recognized rect / OCR ROI；
-- 审计 locator=`ocr`；OCR 跳过模板 stable-frame 投票；
-- 测试 `click_ocr_asset_uses_action_roi_not_template_lookup`；
-- stage `_diag_click`：DETECTED → click point (1085,269) → Done。
+CDP stage 验收：
 
-代码 `9d327bc`、`3321207`。
+- 任务引用 5 行、素材库 23 行，均 `asset-row`；
+- builder 23 行 `asset-row asset-row-compact`；
+- `__oasErrors=[]`。
 
-## 2. U-42a 展示统一（计划，未实施）
+### selector 收口
 
-三套渲染器：
+- `locate()` 支持 OCR 资产（single/multi/derived）及集合 OCR 成员；
+- `click` / `dismiss_popup` / `click_target` 的 template locator 都能落到 OCR `action_roi`；
+- `selector_threshold` 对 OCR 返回 0，避免被模板默认 0.9 拒绝；
+- 新增 `click_ocr_asset_uses_action_roi_not_template_lookup`、`click_target_template_locator_also_accepts_ocr_assets`。
 
-1. 工作台任务引用素材：纯文本；
-2. 工作台素材库：缩略图+按钮；
-3. builder 可用素材：纯文本。
+## 2. 仍待
 
-计划新增共享 `asset_ui.js`：
+1. U-32b 批量实帧验收（positions + 匹配帧）；
+2. U-20 多选整组拖动；
+3. 编辑器/runtime 一致性自动守卫（§E-41 遗留）。
 
-- `makeAssetThumb`
-- `createAssetRow(it, opts)`
-- `renderAssetRows(container, items, opts)`
+## 3. 下一步
 
-三个位置 + 集合成员统一使用；验收对比 DOM/缩略图/文案/按钮。
+1. 用户重跑「回到庭院」确认 click；
+2. 设置 positions 跑批量；
+3. U-20；
+4. 发布时才 bump/tag/release。
 
-## 3. selector 路径举一反三
+## 4. 证据
 
-| 路径 | 状态 |
-|---|---|
-| click | ✅ 已支持 OCR |
-| appear/wait_until | ✅ |
-| dismiss_popup detect/action | 🔄 仍模板-only |
-| click_target template locator | 🔄 仍模板-only |
-| verify_stable_frames | OCR click 已跳过 |
-| require_template | 保持模板-only |
-
-下一步：抽 `resolve_selector` 统一 template/OCR/collection。
-
-## 4. 下一步
-
-1. 实现 U-42a 共享 asset_ui；
-2. `resolve_selector` 收口 dismiss_popup/click_target；
-3. U-32b positions 批量验收；
-4. U-20 多选整组拖动；
-5. 发布时才 bump/tag/release。
-
-## 5. 证据
-
-- PENDING §E-42；代码 `3321207`；345 tests；stage 8788。
+- PENDING §E-42；代码 `567917c`；346 tests；stage 8788。

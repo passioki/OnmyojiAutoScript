@@ -1104,6 +1104,7 @@
 | **N42** | ★★ **v1.2.0**：识别/操作区域统一、批量保存+全局唯一、任务构建页、变量动作 | `ENGINE-DESIGN §22.37` | ✅ **已完成** | tag `v1.2.0` / 提交 `5d0f79c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · **326 tests 全绿** · `_verify/n43/REPORT-V1.2.md` |
 | **N43** | ★★★ **v1.2.1**：统一全局素材库+迁移、OCR 来源一致、builder 真流程图、帧管理、工作台流程收口 | `ENGINE-DESIGN §22.38` · `DELIVERY-PLAN §11` | ✅ **已完成** | tag `v1.2.1` / 提交 `4e50aea` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · **327 tests 全绿** · zip SHA256 `E4E4E94D…AC1` · `_verify/n43/REPORT-V1.2.1.md` |
 | **N36/N37** | ★★ 统一任务模板 + 调度 v3 | `ENGINE-DESIGN §22.34` | ✅ **已完成** | 由 v1.0 `7a4c58c` 交付；后续 v1.1/v1.2/v1.2.1 继续使用；§E-23 末尾“待实现”已订正 |
+| **v1.2.3** | ★★ 单 ROI/实时帧/停止/日志/撤销 | `START-HERE §0.1` | ✅ **已发布** | tag `v1.2.3` / 提交 `385d611` / Release `https://github.com/passioki/oas-core/releases/tag/v1.2.3` / 350 tests / zip SHA256 `F135922D…C12E` |
 | **N38/N39/N40** | ★★ 任务创建闭环 / 实机交付包 / 实机验收+长跑 | `DELIVERY-PLAN §3 M1/M3/M4/M5` | ✅ **已完成** | v1.0 交付；加速 soak 96/96（48+48 跨重启）；证据 `_verify/n42/REPORT-V1.0.md` |
 
 ## 二、v1.2.1 明确保留的未完成项（不阻塞已发布版本）
@@ -1421,7 +1422,7 @@
 | **U-31a** | 「返回庭院」修改 `not appear('町中')` 后应能运行 | ✅ 已修：`appear()` 现在覆盖所有素材（OCR 资产用 `ocr_read` 判断文本/多行非空；derived 不匹配=false）；新增 `text_visible()` 全屏 det+rec 文字搜索。release dry-run 已实际执行 while/if/click（dry-run 不点击，所以按设计会跑到预算耗尽） | ✅ |
 | **U-31b** | 条件素材输入文字时显示**所有匹配候选项**，不需输入全称 | ✅ 已修：`assetSearch()` 改自定义子串过滤下拉（含 kind 标签、Enter/点击选择），条件编辑器/动作字段共用 | ✅ |
 | **U-32a** | 所有素材增加**位置属性**（可多个，值=帧 id） | ✅ 已实现：`AssetDecl.positions: Vec<u64>`；保存必须至少 1 个位置帧；素材行「帧」可改多帧；帧删除被引用位置阻止；集合保存后自动把所有任务 flow 的成员引用改写为集合 id；集合本身不加位置（用户 10-31） | ✅ |
-| **U-32b** | 批量 **dry-run 测试**通过帧来跑（每个素材按其位置帧验证） | 🔄 **代码完成，验收未闭合**：`POST /task/assets/batch_test` + UI「批量帧测试」；template 全帧匹配、region 边界、OCR 单行 rec、derived `ocr_line` 的单识别 `roi` det+rec（U-49 后）均已实现。临时帧测试验证了分支会执行，但所选帧不包含期望素材文本，因此尚未得到一条通过证据；stage 素材也尚未设置 positions | 🔄 待实帧验收 |
+| **U-32b** | 批量 **dry-run 测试**通过帧来跑（每个素材按其位置帧验证） | ✅ **已完成（用户实帧日志 30/30 通过）**：`POST /task/assets/batch_test` + UI「批量帧测试」；template 全帧匹配、region 边界、OCR 单行 rec、derived OCR 单识别 ROI det+rec 均已实现。证据为用户 2026-11-01 报告“只看日志功能没问题，显示 30/30 通过”；未独立复跑 | ✅ |
 
 ## 设计草案（等确认后实施）
 
@@ -1448,7 +1449,7 @@
 
 ## 第六轮结论
 
-- U-30a/U-30b/U-31a/U-31b/U-32a ✅；U-32b 代码完成、待实帧验收。
+- U-30a/U-30b/U-31a/U-31b/U-32a ✅；U-32b ✅（用户 30/30 实帧日志）。
 - 代码 `cdd9dde`；workspace **344 passed**。
 - 版本仍 1.2.2，未 tag/release；stage UI + OCR exe 已同步。
 - 帧位置值 = 帧 id（u64）；保存新素材必须至少 1 个位置帧；删帧时被位置引用会 400 提示先删素材/改位置。
@@ -1466,7 +1467,7 @@
 | **U-33b** | 所有**表达式值**字段统一支持逻辑运算符 | ✅ 审计：`if.cond`、`while.cond`、`wait_until.cond`、`loop.n`、`log.text`、`set_var.value`、`inc_var.by`、`click_point.x/y` 均走 `parse_expr_field`/`parse_coord_value`；builder 对 click_point x/y 由 number 改为表达式输入；这些字段统一显示 `and/or/not、&&/||/!、括号` 提示 | ✅ |
 | **U-33c** | 文字多个值用逻辑运算符，不需要特殊多值语法 | ✅ 条件预设「文字出现/未出现」把输入按 `/、,、或` 拆成多个 `text_visible(...)`，用 `or` 组合；「未出现」用 `not (a or b)`；自定义表达式可直接写 and/or/not | ✅ |
 | **U-33d** | 所有字面量字段是否也要逻辑运算符 | ✅ **审计结论：不强行给字面量数字加逻辑**。`wait.seconds`/`timeout_s`/`timeout_ms`/`swipe.ms`/`stable_frames` 等是数字/结构契约，逻辑表达式返回 bool 无意义；只有 `parse_expr_field`/`parse_coord_value` 的表达式字段接受逻辑运算符。UI 已用「（表达式）」标注避免误解 | ✅ 设计边界 |
-| **U-33e** | 继续未完成台账 | U-32b 的 derived OCR det+rec 批量分支已补 ✅；U-20 多选整组拖动已由 U-44b `e73b408` 补齐 ✅ | ✅ 两项均已实现（U-32b 待实帧验收） |
+| **U-33e** | 继续未完成台账 | U-32b 批量实帧 ✅ 用户日志 30/30；U-20 多选整组拖动已由 U-44b `e73b408` 补齐 ✅ | ✅ 两项均已完成 |
 
 ## 第七轮结论
 
@@ -2284,7 +2285,7 @@ invalidate_frame() // 输入动作后丢弃
 
 - 10-30 的 v1.1/v1.2 裁定在代码中均有落点：素材 CRUD/测试/生成步骤、`meta.goal`、点击聚合、区域拖动、真 SVG 流程图、全局素材、帧管理、工作台 flow 删除。
 - v1.2.3 的 U-49~U-56 均在当前 `d360d05` 及后续修复中；`cargo test --workspace` = **350 passed / 0 failed**。
-- 未完成的**不是** v1.1/v1.2 需求，而是验收/观察项：U-32b 批量实帧验收、弱设备 WS 观察、发布前整体验收。
+- 未完成的不是 v1.1/v1.2 需求；U-32b 已由用户 30/30 实帧日志关闭。剩余为发布前整体验收/弱设备观察。
 - 旧 `ocr_source_roi` 字段保留仅为旧资产反序列化；runtime/editor/batch 均不再把它当第二识别区域。
 
 ## 4. 验证

@@ -1365,3 +1365,23 @@
 - 当前代码 `e01d572`；workspace **338 passed**。
 - 版本仍 **1.2.2**，未 tag/release；stage UI + exe 已同步测试构建（OCR feature）。
 - 已知边界：父级拖拽目前覆盖拖入 if/loop 子容器；根级拖拽/多选整体拖动尚未做完整手势（复选框批量删除已做）。
+
+---
+
+# ★ §E-30 ★★★ [10-31] **第四轮验收 U-22~U-27（6 条）**
+
+| U# | 用户原话/要求 | 实现/诊断 | 独立证据 | 状态 |
+|---|---|---|---|---|
+| **U-22** | “图片帧类更改添加已有类选项下拉” | 帧面板新增「当前帧分类」下拉（现有分类 + 新建分类），应用到当前帧 | engine `346adba`：CDP `frame-category-set` 有 庭院/探索总界面/御魂页面/式神录/町中/弹窗界面 + 新建分类 | ✅ |
+| **U-23** | “任务里的素材库移到素材里，任务里的素材库只显示当前任务引用的素材集合；当前素材库太臃肿” | 任务面板删除素材库块，移到「画面/素材」面板；新增「当前任务引用的素材」只显示 flow 引用；完整素材库/搜索仍在素材面板 | engine `346adba`：`#panel-task #assets-list` 不存在；`task-ref-assets` 由 `collectFlowAssetIds()` 过滤；素材搜索/集合仍在素材面板 | ✅ |
+| **U-24** | “任务素材/操作区域下拉选择改为搜索，像工作台搜索那样” | builder 素材选择由 `<select>` 改为可搜索 datalist（`builder-asset-search`），所有 asset 字段与结构化 click_target 共用 | engine `346adba`：选中步骤后 CDP `#builder-form .builder-asset-search input` 存在，datalist 绑定 | ✅ |
+| **U-25** | “保存失败 `while` requires max_iters>0；0为无限；loop/while交叉；去除转换为xx” | 解析器接受 0/省略；运行时 0 = 用 step budget 限制；builder `while` 默认 `max_iters:0`；删除 if↔loop 转换按钮/函数；加载时清理 if/loop/while 的非法 args | engine `346adba`：`while_zero_max_iters_is_valid_and_budget_limited`；workspace 339 tests；CDP 新增 while 保存为 `{cond:"true",max_iters:0}` | ✅ |
+| **U-26** | “多行识别保存素材后的识别引擎用多行，似乎用单行；测试庭院识别错误” | **根因在工作台素材“识别”测试**：derived `ocr_line`（ocr_mode=lines）仍走 `/ocr` 单行；改为用 `ocr_source_roi` + `/lines` det+rec，并显示期望文字是否匹配。runtime 本身已有 derived OCR 路径 | engine `346adba`：`testAssetOcr` 分支；stage `庭院` 资产含 `ocr_mode:"lines"` + source ROI；重新测试可看到多行识别结果/期望匹配 | ✅ |
+| **U-27** | “新建的返回庭院为什么没按预期运行，逻辑还是底层代码” | **诊断：任务 flow 本身损坏，不是引擎 bug**。`dist/stage/tasks/回到庭院/flow.json`：`while.args.cond="false"`、`max_iters=1`、多余 `sel:"町中"`；内层 `if` 只有 `sel` 没有 `cond`；`assets.json` 为空。`while` 条件 false → 循环体永远不执行 → 直接 finish。builder 已移除导致此类坏 flow 的转换功能，并在加载时 normalize 掉非法 args；用户需重建/修正该任务条件 | 实文件证据；engine `346adba` normalize + while 修复；不自动改写用户任务 | ✅ 已定位（非底层 bug；任务数据需用户重建/修正） |
+
+## 第四轮结论
+
+- U-22~U-27：**5 ✅ 实现 + 1 ✅ 已定位（U-27 任务数据损坏）**。
+- 代码 `346adba`；workspace **339 passed**。
+- 版本仍 1.2.2，未 tag/release；stage UI + exe 已同步测试构建。
+- U-27 的 `回到庭院` 是用户任务数据问题：`while cond=false` 且 assets 为空；引擎按 flow 执行所以无动作。没有自动覆盖用户任务。

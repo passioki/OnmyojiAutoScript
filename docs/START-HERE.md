@@ -37,7 +37,7 @@
 | V1.2 交付 | ★ tag `v1.2.0` / 提交 `5d0f79c` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.0` · 识别/操作区域统一、批量保存+全局唯一、任务构建页、变量动作 · 326 tests 全绿 · zip SHA256 `D31C…` |
 | V1.2.1 交付 | ★ tag `v1.2.1` / 提交 `4e50aea` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.1` · 统一全局素材库迁移、OCR 来源一致、builder 真流程图、帧管理、工作台流程收口 · 327 tests 全绿 · zip SHA256 `E4E4…` |
 | V1.2.2 交付 | ★ tag `v1.2.2` / 提交 `9debc0b` · Release `https://github.com/passioki/oas-core/releases/tag/v1.2.2` · 帧持久化、图片匹配操作区域、builder 结构化/变量 checkpoint、legacy 清理、工作台 flow 删除 · 330 tests 全绿 · zip SHA256 `B683…` · ✅ **R1~R21 台账已全部关闭**（R9 `3aa1a0a` · R21 `d455f6e`） |
-> ✅ **v1.2.3 验收 U-01~U-21 全部完成/裁定**：U-01 A/B（`1ee41d0`）· U-02~U-04（`cbfbab4`）· U-05~U-10（`4480d05`）· U-11~U-21（`e01d572`：资产保存/调度/帧/流程编辑器/自动保存）
+> ✅ **v1.2.3 验收 U-01~U-21 主体完成**：U-01 A/B（`1ee41d0`）· U-02~U-04（`cbfbab4`）· U-05~U-10（`4480d05`）· U-11~U-21（`e01d572`；U-20 根级拖拽/多选整组拖动仍待补）
 > ★ 发布规则：**不自行 tag/release**；只在用户明确说“发布”时发布；平时只构建 release 测试，版本号保持 1.2.2
 
 ---

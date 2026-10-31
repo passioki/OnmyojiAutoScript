@@ -13,7 +13,7 @@ status: done
 
 ## 0. 当前状态
 
-- R1~R21 ✅；U-01~U-21 全部完成/裁定。
+- R1~R21 ✅；U-01~U-21：**10 ✅ / 1 🔄（U-20 根级拖拽/多选整组拖动待补）**。
 - 代码 `e01d572`；workspace **338 tests passed**。
 - **未 tag/release**；版本仍 1.2.2。
 - stage `dist\stage` 的 UI + 带 OCR exe 已同步测试构建；未恢复用户删除的任务/素材。

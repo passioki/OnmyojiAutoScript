@@ -1898,4 +1898,37 @@ CDP stage 验收：
 
 | 状态 | ✅ 已修复（U-47 不完整，已扩展而非回退） |
 
+---
+
+# ★ §E-49 ★★★ [10-31 23:05] **OCR 单识别 ROI 统一（U-49）**
+
+> 用户：两个 ROI 是否必要？手动合并是否会成屎山？运行逻辑能否保证？无必要应舍弃统一。
+
+## 结论
+
+- `ocr_source_roi` 作为**第二个识别区域**没有必要；它只是历史 provenance；
+- 手动合并 CJK 行是临时兼容，不应保留；
+- 正确模型：**一个识别 ROI + 一个 action_roi（点击）**。
+
+## 实现（`8cab6ab`）
+
+| 层 | 行为 |
+|---|---|
+| 资产加载 | `normalize_legacy_ocr_roi`：旧 `ocr_source_roi` → `roi`，清除 source；磁盘在下一次保存时写回统一形状 |
+| 新保存 | 多行来源素材：`roi` = 用户实际测试/调大的多行 ROI；`action_roi` = 行点击框；不再写 `ocr_source_roi` |
+| 运行期 | derived OCR：只对 `roi` 做 det+rec，只匹配 `ocr_text`；无 source/行 ROI fallback |
+| 编辑器测试 | 只测 `roi`；无双 ROI、无合并行 |
+| 批量帧测试 | 只使用 `roi` |
+| action_roi | 仅点击，明确不参与识别 |
+
+## 验证
+
+- 旧资产 `/task/assets`：`召唤` 返回 `roi=[1032,145,133,125]`，无 `ocr_source_roi`；
+- 帧 #52 素材「召唤」：`2 行，召喚(0.826)/UP(0.999)，期望 "召唤" → 匹配`；
+- 迁移测试：source 被迁移成 roi，runtime derived OCR 使用该 roi；
+- workspace **348 passed**。
+
+| 状态 | ✅ 已完成统一；不再保留双 ROI/行合并 |
+
+
 

@@ -1805,3 +1805,19 @@ CDP stage 验收：
 
 | 状态 | ✅ 三项完成；stage UI/exe 已同步/重启 8788 |
 
+---
+
+# ★ §E-45 ★★★ [10-31 22:11] **实时帧覆盖选中帧（U-45）**
+
+> 用户：选了某张图片，测试识别时用了实时的帧而不是选中的帧。
+
+| 项 | 内容 |
+|---|---|
+| 根因 | WebSocket/实时抓帧直接写 `State.frame/png`；选中帧后旧 WS 线程仍可能在一次 capture 内覆盖它，导致 `/ocr`、`/lines`、`/match`、素材裁剪用实时帧 |
+| 修复 | `State` 拆分：`frame/png` = 分析帧（选中/显式截图）；`live_frame/live_png` = 实时预览。WS 与 `/frame.png?live=1` 只更新 live 字段；仅当 `current_frame_id=None`（没有选中帧）时才同步分析帧，保证启动即实时识别的原流程仍可用 |
+| 图像路由 | `/frame.png?live=1` 返回 `live_png`；普通 `/frame.png` 返回选中的 `png` |
+| 验证 | stage：选 #4 → `/frame.png?live=1` → 普通 `/frame.png` SHA256 不变；UI 实时 WS 正常；346 tests |
+| 代码 | `958b868` |
+
+| 状态 | ✅ 已修复 |
+

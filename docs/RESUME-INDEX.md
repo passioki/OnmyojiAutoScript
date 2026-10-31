@@ -108,3 +108,4 @@
 | 99 | oas-core-v123-round37 | 回主前置 | 53任务加 bounded back-to-main prelude；从设置页起跑 Pets 实机Done；dev ca31b48；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev ca31b48 | 复测luck；继续43🔄 | in_progress |
 | 100 | oas-core-v123-round37 | 好友入口 | 好友点击改889,623仍未进好友页（需UI bootstrap幂等）；dev 84a63a2；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 84a63a2 | 修bootstrap幂等；不关机 | in_progress |
 | 101 | oas-core-v123-round37 | bootstrap失败 | 2次toggle+marker仍失败，回滚；需可靠UI-visible marker；dev 6898f6f；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 6898f6f | 重采可靠marker；不关机 | in_progress |
+| 102 | oas-core-v123-round37 | handover | 新增 migration/HANDOVER.md；静态迁移/发布完成，行为验证阻塞记录；dev 29b696f；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 29b696f | 按handover继续；不关机 | in_progress |

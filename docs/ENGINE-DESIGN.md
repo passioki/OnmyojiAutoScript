@@ -1974,6 +1974,6 @@ tasks/<任务名>/
 - **U-36（while 0 次诊断）**：`a9e7703`：用户条件 `not(not appear(A) or not appear(B))` 化简为 `A and B`，当前画面不满足 → 0 次循环 → Done；不是引擎 bug。条件预览在“行未出现 + 组非”时加双重取反警告。workspace 344 tests。
 - **U-39（第五轮 UI/OCR）**：`0f0c293`：任务引用素材只在任务页；位置帧分类→帧→添加列表；builder 返回/前进；父级拖入自身子级拒绝+回滚；运行期 OCR provider 对竖排文本补 90° 旋转兜底（`庭院` 可识别）。workspace 344 tests。
 - **U-40（多行 OCR 彻查）**：`0f0c293`：`ocr_mode=lines` 的 `ocr_line` 仍走 source ROI 的 **det + 逐行 rec**，不是单行 `/ocr` 回退；90° 旋转只是逐 box 方向纠正（正立 `"應"` 0.217 → 旋转 `"庭院"` 0.9668）。编辑器 `/lines` 与 runtime provider 现已一致。workspace 344 tests。
-- **U-41（跨路径一致性）**：`70df254`：抽 `ocr::recognize_lines_impl`，runtime provider、`GET /lines`、batch derived OCR 共用 det+rec/旋转/噪声过滤；stage `庭院` 通过。仍待统一：模板 `/task/asset/match` 与 batch 只做全帧匹配（runtime 有 ROI mask 快路径）、单行 `/ocr` 测试无 asset polygon mask、集合测试未完全复用 runtime 逻辑。见 PENDING §E-41。
+- **U-41（跨路径一致性）**：`70df254`/`cdf19d5`：抽 `ocr::recognize_lines_impl`（runtime provider、`GET /lines`、batch derived OCR 共用 det+rec/旋转/噪声过滤）；抽 `oas_runtime::locate_template` + `template_polygon_mask`（interpreter、`/task/asset/match`、batch template 共用 ROI mask 快路径 + 全帧兜底）。仍待统一：单行 `/ocr` 测试无 asset polygon mask、集合测试未完全复用 runtime 逻辑、缺一致性守卫。见 PENDING §E-41。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

@@ -1683,17 +1683,30 @@
 
 | 路径 | 现状 | 风险 |
 |---|---|---|
-| 模板测试 `/task/asset/match` | 编辑器只跑 `match_template_full` | runtime `locate_one` 是 **ROI 快路径 → polygon mask → 全帧兜底**；带 polygon 的模板可能测试失败/通过但运行相反 |
-| 批量帧测试 template | 同样只跑 `match_template_full` | 与 runtime 的 ROI/polygon 策略不一致 |
+| 模板测试 `/task/asset/match` | ✅ 已统一：`handle_asset_match` 调用 `oas_runtime::locate_template` | 与 runtime 使用 ROI mask 快路径 + 全帧兜底 |
+| 批量帧测试 template | ✅ 已统一：同一 `locate_template` helper | 与 runtime 一致 |
 | 单行 `/ocr` 编辑器测试 | 直接 crop，无 asset polygon mask | runtime `ocr_read` 对带 polygon 的 OCR 资产会 mask；测试结果可能不同 |
 | `appear()` OCR / `ocr()` / `text_visible()` | runtime 走 `ocr_read` / provider | ✅ 已统一到 helper/runtime |
 | 集合测试 | 逐成员 `/task/asset/match` | 与 runtime collection 的 threshold/action_roi 逻辑未完全同源 |
 
+## 已统一（第二轮）
+
+- `oas-runtime::template_polygon_mask` + `locate_template` 成为唯一模板定位实现：
+  - interpreter `locate_one`；
+  - 编辑器 `/task/asset/match`；
+  - batch template。
+- 代码 `cdf19d5`；stage 已部署；344 tests。
+
+## 仍待统一
+
+1. 单行 `/ocr` 编辑器测试没有 asset polygon mask；
+2. collection 测试未完全复用 runtime collection 展开/threshold/action_roi；
+3. 尚未加“编辑器 vs runtime 同帧同 asset 结果一致”守护测试。
+
 ## 建议
 
-1. 抽 `runtime::locate_template` 公共 helper：ROI mask 快路径 + 全帧兜底，编辑器 `/task/asset/match`、批量 template、runtime 共用；
-2. 编辑器 OCR 测试统一走“按 asset id”的新接口，由 runtime asset set 做 polygon mask，而不是手传 ROI；
-3. collection 测试直接复用 runtime 的 collection 展开/最佳成员选择；
-4. 增加 **编辑器测试 vs runtime 结果一致性** 守卫（同一帧、同一 asset，两边 pass/score 应一致）。
+1. 编辑器 OCR 测试统一走“按 asset id”的新接口，由 runtime asset set 做 polygon mask，而不是手传 ROI；
+2. collection 测试直接复用 runtime 的 collection 展开/最佳成员选择；
+3. 增加 **编辑器测试 vs runtime 结果一致性** 守卫（同一帧、同一 asset，两边 pass/score 应一致）。
 
-| 状态 | 🔄 已修 OCR 路径；模板/polygon/集合测试路径仍待统一 |
+| 状态 | 🔄 OCR 路径 + 模板 locate 已统一；单行 polygon/集合测试仍待统一 |

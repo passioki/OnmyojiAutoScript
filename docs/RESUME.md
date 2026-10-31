@@ -4,50 +4,54 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-round31
-checkpoint_seq: 60
-updated_at: 2026-11-01T00:15:00+08:00
-trigger: while 条件逻辑确认 + 每次迭代日志
+task_id: oas-core-v123-round32
+checkpoint_seq: 61
+updated_at: 2026-11-01T00:35:00+08:00
+trigger: 撤销/重做 + while 实时帧完成
 status: in_progress
 ```
 
 ## 0. 当前状态
 
-- 引擎代码 `a4ebbfd`；workspace **348 passed**。
+- 引擎代码 `fb71014`；workspace **348 passed**。
 - 版本 1.2.2，未 tag/release；stage 已部署/重启。
 
-## 1. 逻辑确认（U-52）
+## 1. 本轮完成（U-53）
 
-```text
-while not appear(町中) and not appear(召唤)
-= not (appear(町中) or appear(召唤))
-```
+### 任务构建撤销/重做
 
-- 任一出现 → false → 退出；
-- 都不出现 → true → 继续。
-- 用户预期正确。
+- `返回/前进` 改为「↶ 撤销 / ↷ 重做」；
+- 快照 flow 内容（最多 100），选择变化不产生历史；
+- Ctrl+Z / Ctrl+Shift+Z（输入框内不拦截）；
+- 实测增/撤/重做正确。
 
-如果没退出，说明该次 `appear('町中')` 和 `appear('召唤')` 都返回 false；不是 `not/and` 解析错误。
+### while 实时帧
 
-## 2. 新日志
+- 每次 while 条件求值前清缓存帧；
+- `appear()` 重新抓 ADB 实时帧；
+- `while_cond` 带 `frame_seq`；
+- 编辑器运行输出 `appear_trace`：
+  ```text
+  appear_trace sel=召唤 -> true frame_seq=1
+  while_cond iteration=0 value=Bool(true) truthy=true frame_seq=1
+  ```
+- 实测连续 frame_seq 递增。
 
-每次 while 迭代：
+## 2. 对用户问题的回答
 
-```text
-step seq=... depth=1 op=while_cond result=ok detail=iteration=N value=Bool(true) truthy=true cond=...
-```
+运行时确实使用实时帧；之前存在复用缓存帧的风险。现在每次 while 条件强制新帧，并输出每个 appear 的结果。
 
-- value=true → 继续；
-- value=false → 退出；
-- 配合 `/lines` 的详细日志和 `__oasLogs` 定位哪个 appear 没命中。
+如果仍死循环，看：
+- `appear_trace ... -> false/ERROR`：哪个素材没识别；
+- `frame_seq` 是否递增：是否真的抓了新帧；
+- `/lines` 详细日志：OCR ROI/原始文本。
 
-## 3. 下一步
+## 3. 仍待
 
-1. 用户重跑「回到庭院」，看 `while_cond` 值；
-2. 若 value=true 且屏幕已有町中/召唤，用素材行识别检查 OCR ROI/文本；
-3. 若确认业务上“应退出但 OCR 失败”，调整素材 ROI；
-4. 发布前验收。
+1. 用户重跑「返回庭院」确认是否退出；
+2. U-32b 批量；
+3. 发布前整体验收。
 
 ## 4. 证据
 
-- PENDING §E-52；代码 `a4ebbfd`；348 tests；stage 8788。
+- PENDING §E-53；代码 `fb71014`；348 tests；stage 8788。

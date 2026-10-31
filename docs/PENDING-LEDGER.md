@@ -2074,6 +2074,47 @@ step seq=... depth=1 op=while_cond result=ok detail=iteration=2 value=Bool(true)
 
 | 状态 | ✅ 逻辑确认 + 条件日志已加；具体 OCR 命中需用日志继续定位 |
 
+---
+
+# ★ §E-53 ★★★ [11-01 00:15] **撤销/重做 + while 实时帧（U-53）**
+
+## U-53a 任务构建「返回/前进」改为撤销/重做
+
+用户原意是编辑回退/重做，不是选择历史。
+
+- 删除 `selectionHistory/selectionIndex/navNavigating`；
+- 新增 `B.flowHistory` 快照（最多 100 步）：
+  - 只有 **flow 内容变化**才入栈；
+  - 纯选择/滚动不产生历史；
+  - 新编辑会截断 redo 分支；
+- 按钮改为「↶ 撤销 / ↷ 重做」，Ctrl+Z / Ctrl+Shift+Z（输入框内保留原生撤销）；
+- 实测：加 log → 撤销回到原 flow → 重做回到编辑后 flow；`editsOk/undoOk/redoOk=true`。
+
+## U-53b while 条件强制使用实时帧
+
+怀疑点：while 条件可能复用上一轮 body/点击缓存的帧，导致“点击已回庭院，但条件仍看旧画面”。
+
+修改：
+
+- 每次 while 条件求值前 `invalidate_frame()`；
+- `appear()` 随后重新 `src.grab()`（ADB `exec-out screencap -p`）；
+- `while_cond` 记录 `frame_seq`；
+- 编辑器运行新增 `appear_trace`：
+  ```text
+  appear_trace sel=召唤 -> true frame_seq=1
+  while_cond iteration=0 value=Bool(true) truthy=true frame_seq=1
+  ```
+- 实测连续迭代 `frame_seq=1,2`，证明每次都抓新帧。
+
+## 直接庭院 vs 点击返回差异
+
+- 运行时确实是基于实时帧（`AdbScreen.grab`）；
+- 若点击后条件仍 true，`appear_trace` 会直接显示哪个 `appear` 为 false/ERROR；
+- 仍需用户重跑「返回庭院」以确认修复后是否退出。
+
+| 状态 | ✅ 撤销/重做 + 实时帧已实现；等待用户重跑确认 |
+
+
 
 
 

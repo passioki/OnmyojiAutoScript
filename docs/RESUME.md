@@ -4,52 +4,48 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-round9
-checkpoint_seq: 38
-updated_at: 2026-10-31T18:46:00+08:00
-trigger: 素材条件逻辑运算符设计；等用户确认后实施
+task_id: oas-core-v123-round10
+checkpoint_seq: 39
+updated_at: 2026-10-31T19:02:00+08:00
+trigger: U-34 素材条件逻辑实现；等用户验收
 status: in_progress
 ```
 
 ## 0. 当前状态
 
-- 引擎代码 `cdd9dde`；workspace **344 passed**。
-- 版本 1.2.2，未 tag/release；stage 已同步/重启 8788。
-- 本轮**未改代码**，只做审计与计划。
+- 引擎代码 `c2de9c6`；workspace **344 passed**。
+- 版本 1.2.2，未 tag/release；stage UI 已同步（exe `cdd9dde`）并重启 8788。
+- U-32b 代码完成，**批量实帧验收仍未闭合**（assets 无 positions；临时帧测试未命中期望文字）。
 
-## 1. 本轮问题
+## 1. 本轮完成（U-34）
 
-“素材也应该支持逻辑运算符”。
+- 条件编辑器统一为谓词行：
+  - 行类型：素材 / 文字（全屏）；
+  - 每行「未出现」；
+  - 行间「且/或」；
+  - 组级「非（整组取反）」；
+  - 实时表达式预览；
+  - 自定义表达式仍保留。
+- 素材行默认 AND；文字多值默认 OR。
+- click 属性新增「备选素材（任一命中）」多选，写入 `args.alts`；`sel` 仍单目标。
+- `not(A and B)` 语义 = 排除同时存在；A only/B only/neither 均满足（De Morgan）。
 
-现状：
+## 2. 用户确认
 
-- 后端表达式 parser 已支持 `and/or/not`、`&&/||/!`；
-- 但 builder 条件预设只允许**单个素材**：
-  - `parseConditionPreset()` 返回 `{asset}`：`builder.js:1089`
-  - `condText()` 只生成一个 `appear('A')`：`:1102`
-- 文字条件已能多个 `text_visible(...) or ...`，但和素材条件不是同一组件。
+- #1 多行条件默认且 ✅
+- #2 `not(A and B)` 布尔代数 ✅
+- #3 click 备选素材暴露 alts ✅
+- #4 文字多值默认 OR ✅
 
-关键边界：
+## 3. 下一步
 
-- 逻辑运算适用于**布尔条件**（appear/not appear/text_visible）。
-- 不适用于 `click.sel`/`ocr.sel`（目标必须唯一）；点击“任一素材”用现有 `alts` / `click_target.find`。
-
-## 2. 待确认
-
-1. 多素材条件默认连接词：推荐每行可切 `且/或`，默认 `且`；
-2. 组级“非”：推荐 `not (A and B)` 整体取反，而不是逐行取反；
-3. click 是否要暴露“备选素材（alts）”多选 UI；
-4. 文字多值默认 OR 保持不变。
-
-## 3. 下一步（确认后）
-
-1. 条件编辑器抽统一谓词行：素材/文字 + 出现/未出现 + 且/或 + 组非；
-2. 生成 `appear(A) and not appear(B)` 等表达式，实时预览；
-3. click 备选素材用 `alts`；OCR 保持单 ROI；
-4. 旧 flow 条件保持语义；自定义表达式保留；
-5. 测试 + stage + U-20 多选整组拖动。
+1. 给 stage 素材设置 positions，跑批量帧测试并取得通过证据；
+2. U-20 多选整组拖动（唯一明确未完成项）；
+3. 实机验证「回到庭院」（dry-run 不点击会跑到预算耗尽，属预期）。
+4. 发布时才 bump/tag/release。
 
 ## 4. 证据
 
-- PENDING §E-34；ENGINE §22.39.4。
-- `builder.js:1089/1102`；`oas-flow` logic tests；`alts` parser `:1152`。
+- PENDING §E-32 / §E-33 / §E-34；ENGINE §22.39.4。
+- CDP 条件行测试：2 行 + 组非生成 `not (not (appear('保存测试')) and appear('位置测试'))`。
+- tests 344 passed。

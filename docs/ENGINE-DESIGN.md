@@ -1969,5 +1969,6 @@ tasks/<任务名>/
 - **U-28/U-29（第五轮）**：`00ac85c`/`460ad32`：if/while 条件预设编辑器；条件素材选择写 `cond`（appear/not appear/ocr 比较），不再写非法 `sel`；顶部素材选择器仅对消费 `sel` 的动作显示；`while` 只 cond（`false`/`0` 不循环，`true`/非 0 循环，step budget 兜底），**没有 max_iters**；`loop` 的 `n<=0` 不循环、`n>0` 循环 n 次；normalize 清 sel/max_iters。workspace 341 tests。
 - **U-30~U-32（第六轮）**：`af66179`：任务面板当前 flow 引用素材（raw flow）；素材识别区域缩略图；`appear()` 覆盖所有素材（含 OCR），`text_visible()` 全屏 det+rec；条件候选自定义过滤；`AssetDecl.positions`（u64 帧 id，保存必选、删帧阻止）；集合保存自动把任务引用改为集合 id；`POST /task/assets/batch_test` 按位置帧批量测试。workspace 344 tests。
 - **U-33（逻辑运算符审计）**：`cdd9dde`：表达式字段（if/while/wait_until/loop/log/set_var/inc_var/click_point）统一支持 `and/or/not` + `&&/||/!`；click_point UI 改表达式输入；文字出现条件用 `text_visible(...) or ...`；数字/结构字段保持字面量；derived OCR det+rec 批量已补；根级单步拖拽已补。workspace 344 tests。
+- **U-34（素材条件逻辑）**：`c2de9c6`：条件编辑器改为谓词行（素材/文字、未出现、且/或、组级非）；click 备选素材用 `alts` 多选；`sel` 仍是单目标。workspace 344 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

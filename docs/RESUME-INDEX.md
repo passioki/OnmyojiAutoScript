@@ -96,3 +96,4 @@
 | 87 | oas-core-v123-round37 | focused3 | DailyTrifles luck 直接点击路径；Talisman 奖励页签确定路径；入口 I_MAIN_GOTO_DAILY 0.558 失败；dev f2509b6；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev f2509b6 | 重做稳定入口；继续43🔄 | in_progress |
 | 88 | oas-core-v123-round37 | 素材漂移 | 记录当前客户端 ASSET-DRIFT；I_MAIN_GOTO_DAILY 0.558/FRIENDS 0.448/庭院 0.640；自动/手工重采失败；dev eadfed0；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` §3.2 | dev eadfed0 | 按页重采 ROI；不关机 | in_progress |
 | 89 | oas-core-v123-round37 | UI隐藏 | 主界面重启后底部导航栏不显示；I_MAIN_GOTO_* 模板不可见；ASSET-DRIFT 增补；dev e23e29d；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` §3.2 | dev e23e29d | 补 UI bootstrap/重采；不关机 | in_progress |
+| 90 | oas-core-v123-round37 | UI bootstrap | 右下卷轴(1200,680)恢复底部导航后 Talisman no-op Done；自动bootstrap缺UI-visible marker；dev ff018cc；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` §3.2 | dev ff018cc | 重采 UI marker；不关机 | in_progress |

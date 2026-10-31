@@ -91,3 +91,4 @@
 | 82 | oas-core-v123-round37 | 回归通过 | DailyTrifles friend_love/store_sign 双分支回归 Done；store 无签到 no-op；dev 9ec93f3；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 9ec93f3 | 复测新增4分支；继续43🔄 | in_progress |
 | 83 | oas-core-v123-round37 | 分支测试 | DailyTrifles friend/store Done；luck_msg OCR 0.856 旧门槛失败，已改 threshold .8 待重测；dev e89801b；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev e89801b | 重测 luck/召唤/买体力；继续43🔄 | in_progress |
 | 84 | oas-core-v123-round37 | polish3 | 12任务死出口/不可达分支/战斗等待/守卫修复；lint57/0；Pets✅；1✅/43🔄/9⛔；dev 1016f95 | `MIGRATION-LEDGER.md` | dev 1016f95 | 复测luck/召唤；继续43🔄 | in_progress |
+| 85 | oas-core-v123-round37 | 重启验证 | 应用重启到主界面；DailyTrifles 好友入口改 click_point 可用；luck OCR 行无“吉闻”；dev 98ddc14；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 98ddc14 | 校准 O_LUCK_MSG；继续43🔄 | in_progress |

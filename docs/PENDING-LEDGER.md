@@ -1385,3 +1385,20 @@
 - 代码 `346adba`；workspace **339 passed**。
 - 版本仍 1.2.2，未 tag/release；stage UI + exe 已同步测试构建。
 - U-27 的 `回到庭院` 是用户任务数据问题：`while cond=false` 且 assets 为空；引擎按 flow 执行所以无动作。没有自动覆盖用户任务。
+
+---
+
+# ★ §E-31 ★★★ [10-31] **第五轮：while/if 条件 UI（U-28）**
+
+> 用户确认：① 5 种条件预设可以；② 非法 `sel` 全部删除；③ `while` 默认条件保持 `true`。
+
+| U# | 用户原话/要求 | 实现/诊断 | 独立证据 | 状态 |
+|---|---|---|---|---|
+| **U-28** | “while.cond=false，前边不是有选择素材吗，我以为是如果没有该素材，那么循环成立…选择素材和 true 有联系吗…是否有必要优化” | **根因：builder 每个步骤顶部都有通用素材选择器，它直接写 `step.args.sel`；if/while 没有 `sel` 字段，所以用户选素材只是留下无用 `sel`，不会改 `cond`。** 现在：if/while 用条件预设编辑器（素材出现/未出现、文字等于/不等于、自定义），选素材直接生成 `cond` 表达式；顶部通用素材选择器只对真正消费 `sel` 的动作显示；normalize 删除 if/while/loop 的非法 `sel`；while 默认仍 `true`、max_iters 0 | engine `00ac85c`：CDP 条件模式 5 项；选择「素材未出现」+ 保存测试后 flow 为 `{"cond":"not appear('保存测试')","max_iters":0}`，无 `sel`；自动保存成功 | ✅ |
+
+## 第五轮结论
+
+- U-28 ✅；条件语义已显式化，不再“选素材以为改条件”。
+- 代码 `00ac85c`；workspace **339 passed**。
+- 版本仍 1.2.2，未 tag/release；stage UI/exe 已同步测试构建。
+- 旧任务中的非法 `sel` 会在 builder 加载时清理；`cond=false` 是用户条件本身，不会被 UI 猜改。

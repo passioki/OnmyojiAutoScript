@@ -4,28 +4,32 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-ui-round4
-checkpoint_seq: 32
-updated_at: 2026-10-31T17:20:00+08:00
-trigger: 第四轮 6 条反馈已修/已诊断；等用户验收
+task_id: oas-core-v123-ui-round5
+checkpoint_seq: 33
+updated_at: 2026-10-31T17:28:00+08:00
+trigger: while/if 条件 UI 优化完成；等用户验收
 status: done
 ```
 
 ## 0. 当前状态
 
-- R1~R21 ✅；U-01~U-27：主体完成；U-20 根级拖拽/多选整组拖动仍待补。
-- 代码 `346adba`；workspace **339 tests passed**。
+- R1~R21 ✅；U-01~U-28：主体完成；U-20 根级拖拽/多选整组拖动仍待补。
+- 代码 `00ac85c`；workspace **339 tests passed**。
 - **未 tag/release**；版本仍 1.2.2；stage UI + exe 已同步测试构建。
 - 未恢复用户删除的任务/素材。
 
-## 1. 本轮完成（U-22~U-27）
+## 1. 本轮完成（U-28）
 
-- **帧分类**：新增「当前帧分类」下拉（现有分类 + 新建分类），应用到当前帧；帧列表仍按分类过滤。
-- **任务素材库**：从任务面板移除，移到「画面/素材」面板；新增「当前任务引用的素材」只显示 flow 引用；完整素材库/搜索仍在素材面板。
-- **builder 素材选择**：`<select>` 改为可搜索 datalist；所有 asset 字段/结构化 click_target 共用。
-- **while**：`max_iters=0`/省略 = 由 step budget 限制的“无限”；builder 默认 0；解析器接受 0；删除 if↔loop 转换按钮/函数；加载时 normalize 非法 args。
-- **多行 OCR**：工作台素材“识别”测试对 derived `ocr_line` 改为用 `ocr_source_roi` + `/lines` det+rec，并显示期望文字是否匹配；runtime derived OCR 原本已存在。
-- **回到庭院**：诊断 exit `dist/stage/tasks/回到庭院/flow.json` 为损坏数据：`while.cond=false`、`max_iters=1`、多余 `sel:"町中"`、内层 if 只有 sel 无 cond、assets 空；while 条件 false → 不执行。非引擎 bug；用户需重建/修正任务。builder 已 normalize + 移除转换防再生。
+- 根因：builder 每个步骤顶部都有通用素材选择器，选择后直接写 `args.sel`；if/while 无 `sel` 字段，所以看起来“选了素材但条件还是 false/true 无关”。
+- if/while 新增条件预设编辑器：
+  - 素材出现时 → `appear('id')`
+  - 素材未出现时 → `not appear('id')`
+  - 文字等于 → `ocr('id') == 'text'`
+  - 文字不等于 → `ocr('id') != 'text'`
+  - 自定义表达式
+- 条件素材选择直接写 `cond`，不写 `sel`；顶部通用素材选择器只对 appear/ocr/click/dismiss_popup/ocr_to_var 显示。
+- normalize 删除 if/while/loop 的非法 `sel`；while 默认仍 `cond:true`, `max_iters:0`。
+- CDP 验证：`not appear('保存测试')` 成功自动保存，flow 无 `sel`。
 
 ## 2. 发布规则
 
@@ -34,8 +38,7 @@ status: done
 
 ## 3. 下一步
 
-- 等用户验收；重点看：
-  - U-20 根级拖拽/多选整组拖动补全；
-  - 多行 OCR 资产的实机 `测试庭院`；
-  - 用户重建 `回到庭院` 时的 builder 体验。
-- 若要发布，再 bump 版本/tag/release。
+- 等用户验收条件编辑器/旧任务清理；
+- 补 U-20 根级拖拽/多选整组拖动；
+- 实机验证多行 OCR 资产和工作台测试；
+- 发布时才 bump/tag/release。

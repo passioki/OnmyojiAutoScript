@@ -1966,5 +1966,6 @@ tasks/<任务名>/
 - **U-10 多图去重**：✅ 设计选择：不自动合并；集合支持多图检索；重复图片由用户决定。
 - **U-11~U-21（第三轮 UI/流程）**：✅ `e01d572`：删死下拉；是/否重排；调度清理；提示/叠加 gate；OCR 全屏多行回退；统一识别结果保存；旧素材库 UI 删除；帧分类下拉满高；未勾选保存提示；`&&/||/!` + if↔loop + 拖入子容器 + 勾选批量删 + 图下代码编辑；builder 自动保存。workspace 338 tests。
 - **U-22~U-27（第四轮）**：`346adba`：帧已有分类下拉；任务素材库移到素材面板并只显示 flow 引用；builder 素材选择改搜索；while max_iters=0=预算内无限、移除 if↔loop 转换；多行 derived OCR 的工作台测试改走 `/lines`；回到庭院任务被诊断为 flow 数据损坏（while cond=false/stray sel/空 assets），非引擎 bug。workspace 339 tests。
+- **U-28（第五轮）**：`00ac85c`：if/while 条件预设编辑器；条件素材选择写 `cond`（appear/not appear/ocr 比较），不再写非法 `sel`；顶部素材选择器仅对消费 `sel` 的动作显示；while 默认 true/max_iters 0；normalize 清 sel。workspace 339 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

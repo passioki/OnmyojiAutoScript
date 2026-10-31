@@ -76,3 +76,4 @@
 | 67 | oas-core-v123-round37 | 发布+迁移 | v1.2.3 main/tag/Release（385d611）；远端 61→53 任务迁移 batch1，53 bundle/spec/status；0✅/44🔄/9⛔/8⬜；lint 57/0；350 tests；dev 61b45e3 | `MIGRATION-LEDGER.md` · `PENDING-LEDGER.md §E-57` | release `v1.2.3` · zip SHA256 F135922D…C12E · dev 61b45e3 | 补 44🔄 gaps；实机/replay 证据；9⛔ 原语；不关机 | in_progress |
 | 68 | oas-core-v123-round37 | 迁移修正 | 旧 res/*.png 实为 JPEG → 真 PNG（83cc114）；runtime 可加载 2088 模板；lint 57/0；350 tests；仍 0✅/44🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 83cc114 | 补 44🔄；实机证据；9⛔；不关机 | in_progress |
 | 69 | oas-core-v123-round37 | 实机验证 | Pets 实机：喂食完成但 I_CHECK_MAIN 0.832<0.95 失败；证明 lint≠等价；dev c2c28e1；43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev c2c28e1 | 校准页面守卫；补 43🔄；不关机 | in_progress |
+| 70 | oas-core-v123-round37 | 实机回归 | Pets 三次实机：喂食成功，退出 runtime click 无效但同坐标手工 adb tap 可回庭院；记录输入/时序差异；dev 7752417；43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 7752417 | 排查 input 时序/焦点；补 43🔄；不关机 | in_progress |

@@ -14,7 +14,7 @@ status: in_progress
 ## 0. 当前状态（磁盘实测）
 
 - oas-core `main` = `385d611`（v1.2.3 发布快照）· clean
-- oas-core `dev` = `c2c28e1`（迁移 batch1 + 实机 Pets 失败证据）· clean
+- oas-core `dev` = `7752417`（迁移 batch1 + 实机回归证据）· clean
 - backend docs `dev` = 本卡提交（待记录）
 - `cargo test --workspace` = **350 passed / 0 failed**
 - `oasd task lint --tasks-dir tasks --all` = **57 tasks / 0 errors**

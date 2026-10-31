@@ -50,3 +50,4 @@
 | 41 | oas-core-v123-round12 | U-36 | 诊断 Done 但 while 0 次：not(not A or not B)=A and B；双重取反；UI 加警告；正确表达式已给 | `docs/PENDING-LEDGER.md §E-36` · `docs/ENGINE-DESIGN.md §22.39.4` | engine `a9e7703` · 344 tests · stage UI | 用户改写条件；U-32b 实帧验收；U-20 | in_progress |
 | 42 | oas-core-v123-round13 | U-37 | 8787 打不开：服务实际在 8788；端口/书签不一致；注册服务不能自动解决端口错误 | `docs/PENDING-LEDGER.md §E-37` · `docs/START-HERE.md` | 8787 down · 8788 pid12416 /state ok | 用户改用 8788；确认统一端口/是否注册服务 | in_progress |
 | 43 | oas-core-v123-round14 | U-38 | serve 启动后自动打开默认浏览器；--no-open 关闭；stage 8788 双击 launcher 即自动打开 | `docs/PENDING-LEDGER.md §E-38` · `docs/START-HERE.md` | engine `e43c6c1` · 344 tests · stage 8788 200 | 用户验证自动打开；U-32b 实帧验收；U-20 | in_progress |
+| 44 | oas-core-v123-round15 | U-39 | 任务页引用素材/分类+帧位置选择/返回前进/父级拖子级保护/竖排 OCR 运行期 90° 兜底 | `docs/PENDING-LEDGER.md §E-39` · `docs/ENGINE-DESIGN.md §22.39.4` | engine `0f0c293` · 344 tests · stage UI+exe | 用户验收；U-32b positions；U-20 | in_progress |

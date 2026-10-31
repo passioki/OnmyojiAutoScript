@@ -14,7 +14,7 @@ status: in_progress
 ## 0. 当前状态（磁盘实测）
 
 - oas-core `main` = `385d611`（v1.2.3 发布快照）· clean
-- oas-core `dev` = `ca31b48`（迁移 + 53 任务 reset prelude + UI bootstrap + Pets 实机 Done）· clean
+- oas-core `dev` = `84a63a2`（迁移 + reset prelude + UI bootstrap + Pets 实机 Done）· clean
 - 迁移状态：**1 ✅ (Pets 实机 Done) / 43 🔄 / 9 ⛔ / 8 ⬜**
 - backend docs `dev` = 本卡提交（待记录）
 - `cargo test --workspace` = **350 passed / 0 failed**

@@ -106,3 +106,4 @@
 | 97 | oas-core-v123-round37 | 好友marker | 新增 ui_friend_page 替换错误守卫；入口点击仍不稳定0.401；dev a741e09；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev a741e09 | 校准好友入口；不关机 | in_progress |
 | 98 | oas-core-v123-round37 | 登录后验证 | 实际登录进入游戏后 ui_friend_page 生效，friend_love Done；luck 吉闻按钮仍不打开；dev 38ee734；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 38ee734 | 修吉闻入口；不关机 | in_progress |
 | 99 | oas-core-v123-round37 | 回主前置 | 53任务加 bounded back-to-main prelude；从设置页起跑 Pets 实机Done；dev ca31b48；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev ca31b48 | 复测luck；继续43🔄 | in_progress |
+| 100 | oas-core-v123-round37 | 好友入口 | 好友点击改889,623仍未进好友页（需UI bootstrap幂等）；dev 84a63a2；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 84a63a2 | 修bootstrap幂等；不关机 | in_progress |

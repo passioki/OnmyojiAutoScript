@@ -1529,3 +1529,17 @@
 - ☑ click 备选素材使用 `alts`，不发明 `sel` 逻辑
 - ☑ 旧条件保持
 - ☑ 测试 + stage 同步 + 台账更新
+
+---
+
+# ★ §E-35 ★★★ [10-31 19:11] **工作台运行无 OCR provider（U-35）**
+
+> 用户日志：
+> `step seq=1 depth=0 op=while result=failed ... error: OCR is not available for appear(町中): no OCR provider attached`
+
+| 项 | 内容 |
+|---|---|
+| 根因 | workbench 的 `POST /task/run` 构造 `RunOptions` 时没有把 serve 已加载的 `--model`/`--det-model` 路径传进去。`/state` 显示 `ocr:true det:true`，但 run executor 的 `opts.model=None`，解释器因此没有 OCR provider；编辑器识别正常、运行失败 |
+| 修复 | `Server` 保存加载时的 `ocr_model`/`det_model` 路径；`handle_task_run` 设置 `opts.model`/`opts.det_model`。代码 `3f341a4` |
+| 验证 | 临时 serve：`/task/run` dry-run 日志出现 `ocr=on model=... det=...`，`if appear('町中')` 正常求值，不再报 no OCR provider；workspace 344 tests |
+| 用户操作 | 重启 stage 8788 后再运行；若仍报该错，说明启动参数没有 `--model`/`--det-model` 或用了无 OCR feature 的构建 | ✅ 已修复 |

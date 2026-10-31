@@ -37,3 +37,4 @@
 | 28 | oas-core-v123-acceptance | U-02/03/04 | 素材统一保存/全选；builder 可拖拽记忆布局+stage 同步；if 子动作选择器 | `docs/PENDING-LEDGER.md §E-27` · `docs/RESUME.md` | engine `cbfbab4`；repo+stage 8788 CDP 验证 | U-01 子流程调用待裁定 A/B | in_progress |
 | 29 | oas-core-v123-acceptance | U-01~U-04 | 任务调用 A/B；素材统一保存/全选；可拖拽记忆布局；if 子动作选择器；stage UI+exe 同步 | `docs/PENDING-LEDGER.md §E-27` · `docs/RESUME.md` | engine `1ee41d0`/`cbfbab4`；331 tests；stage 8796 | 关机 | done |
 | 30 | oas-core-v123-adb-assets | U-05~U-10 | ADB serial pair/auto connect/实例下拉；单一运行入口；删除保护；素材集合（flow 仅集合 id）；action_roi 归素材 | `docs/PENDING-LEDGER.md §E-28` · `docs/ENGINE-DESIGN.md §22.39 B7` | engine `4480d05` · 336 tests · 实机 probe/stage 8798 | 等用户验收/发布指令 | done |
+| 31 | oas-core-v123-ui-round3 | U-11~U-21 | builder 自动保存/代码编辑器/拖拽/勾选；识别结果统一保存；OCR 全屏多行回退；调度清理；帧分类满高；提示/叠加 gate；逻辑符号 | `docs/PENDING-LEDGER.md §E-29` · `docs/ENGINE-DESIGN.md §22.39.4` | engine `e01d572` · 338 tests · stage UI+exe | 等用户验收/根级拖拽补全 | done |

@@ -1323,9 +1323,7 @@
 # ★ §E-28 ★★★ [10-31] **v1.2.3 二次验收 U-05~U-10**
 
 > 用户 [10-31] 验收：ADB 未连接 / 测试运行冗余 / 模板图删除 / 多图素材集合 / 操作区域归素材。
-> 每条必须有独立证据；不把“改了代码”当验收。
-
-| U# | 用户原话/要求 | 设计/实现 | 独立证据 | 状态 |
+> 每条必须有独立证据；不把“改了代码”当验收。| U# | 用户原话/要求 | 设计/实现 | 独立证据 | 状态 |
 |---|---|---|---|---|
 | **U-05** | “彻底修复adb未连接问题…旧仓库连接多实例，一个实例连接需要两个值…设计如何易于使用，自动检测并选择？参照旧仓库/OAS标注系统下拉” | `Device` 保留 aliases（`127.0.0.1:16384` / `emulator-5554`）；统一 `resolve_device`；配置 serial 缺失时自动 `adb connect`；`adb_path` 按包根/config 目录解析；新增 `GET /instance/devices` + 实例下拉 | engine `4480d05`：adapter/config tests；真实 emulator `probe` 输出 `serial=127.0.0.1:16384 aliases=["127...","emulator-5554"]`；断开 TCP 后再 probe 自动 connect 成功；stage `/instance/devices` 返回 pair；UI 下拉显示 pair | ✅ |
 | **U-06** | “测试运行和运行任务是不是冗余了…测试运行点击没反应” → 删除“⑥ 测试运行”，只留“运行任务 + dry-run 复选框” | 删除死按钮 `btn-wb-run` 与死 handler；单一 `btn-task-run`；dry-run 勾选时按钮文案变“测试运行（dry-run，不点击设备）” | engine `4480d05`：CDP 确认 `#btn-wb-run` 不存在；checkbox change → 文案切换；click 发 `/task/run`（doRunTask） | ✅ |
@@ -1340,3 +1338,30 @@
 - 当前代码 `4480d05`；workspace **336 passed**。
 - 版本仍 **1.2.2**，未 tag/release；stage UI + exe 已同步测试构建（OCR feature）。
 - 已知边界：集合目前对 `click` / `click_target` 的展开和 runtime 集合匹配已支持；`appear` 条件表达式直接写集合 id 仍按普通模板查找（后续可扩展表达式 OR 展开）。
+
+---
+
+# ★ §E-29 ★★★ [10-31] **v1.2.3 第三轮验收 U-11~U-21（11 条）**
+
+> 用户 [10-31 15:17] 11 条反馈；用户随后确认：单行 OCR 全屏回退用**多行识别**；帧管理要**满高不是满宽、非独立页**；未勾选保存要**提示勾选**；逻辑符号两套都接受。
+
+| U# | 用户原话/要求 | 实现/裁定 | 独立证据 | 状态 |
+|---|---|---|---|---|
+| **U-11** | “当前任务…下的下拉选择框是干什么的” | 该下拉框原本无监听/无动作，直接删除；保留素材名称列表 | engine `e01d572`：CDP `#builder-assets select` 不存在 | ✅ |
+| **U-12** | “添加子动作到 then/else 改为是/否；左侧下拉框放到各自右边” | 子动作行改为 `[是/否] [动作下拉]`；loop 用「循环体」 | engine `e01d572`：CDP child buttons 文本 `["是","否"]`，子元素顺序 `BUTTON,SELECT` | ✅ |
+| **U-13** | “删去所有任务后，调度里仍然存在任务” | 删除任务后清理 scheduler entries；`/scheduler/status` 过滤 entries/plan/task_choices/running 中已删任务；空 entries 合法 | engine `e01d572`：真实 `/task/delete` 返回 `scheduler_entries_removed=1`；空 entries 单测；status 返回空列表 | ✅ |
+| **U-14** | “右下角拖拽选择识别 ROI 文字影响点击框选取；左上角点击叠加一直显示” | `#hint` `pointer-events:none`；点击分布只在 panel-click active 时 draw | engine `e01d572`：CDP `getComputedStyle(#hint).pointerEvents=none`；`drawClickOverlay` 增加面板 gate；切换面板重绘 | ✅ |
+| **U-15** | “识别区域是否固定坐标？未搜索到要全屏搜索” | 模板/图片已有 ROI→全屏回退（ENGINE §22.20）；单行 OCR 失败/空文本改为**全屏多行 det+rec 回退** | engine `e01d572`：`fallbackFullscreenLines()`；已有 runtime 全屏测试；UI 回退按钮路径 | ✅ |
+| **U-16** | “单行识别后保存素材未生效；多行结果始终显示；统一保存入口，改名识别结果；删除存为素材/类型/旧素材库” | 统一「识别结果」列表；单行/多行/图片/独立区域都写入；删除旧「存为素材」和旧「素材库（全局）」UI；单一保存按钮 | engine `e01d572`：CDP 旧元素不存在；单行 fake 结果实际保存成功；多行/图片/region 行统一 | ✅ |
+| **U-17** | “素材库和任务都删除了，不需要恢复” | 不做恢复；只做空状态/调度清理 | 无恢复代码；任务删除仅清理目录/调度条目 | ✅ |
+| **U-18** | “帧管理全部展开改为只显示一个类别；分类通过下拉；满高不是独立页” | 帧面板加分类下拉，只渲染选中类别；rail 面板用满高（`height: calc(100vh - 150px)`） | engine `e01d572`：CDP 分类下拉 6 项、帧组数量=1、面板 height 811 / list 565 | ✅ |
+| **U-19** | “全选取消后保存按钮变灰” | 保存按钮只按“有无结果”禁用；有结果未勾选时可点并提示“请勾选”；独立操作区域也进入结果列表 | engine `e01d572`：CDP 2 条未勾选 → 保存按钮 `disabled=false`；保存 handler 提示勾选 | ✅ |
+| **U-20** | “没有 or/and 逻辑符号；if 更适合循环时只能删；无父子级移动；加复选框整体拖动/删除；流程图下放全部代码” | 支持 `and/or/not` + `&&/||/!`；if↔loop 转换保留子动作；步骤拖入 if/loop 子容器；步骤复选框+批量删除；图下 flow.json 代码编辑器 | engine `e01d572`：`parses_symbolic_logic_operators`；CDP 4 个 checkbox、转换按钮、代码区长度；drop handler | ✅ |
+| **U-21** | “任务构建应该自动保存” | builder 800ms debounce 自动保存；手动按钮改为“立即保存（自动保存已开启）”；状态显示自动保存时间 | engine `e01d572`：CDP 添加动作后 1.4s 内 flow steps 2→3；代码编辑器同步 | ✅ |
+
+## 第三轮结论
+
+- U-11~U-21：**11/11 已实现/裁定**。
+- 当前代码 `e01d572`；workspace **338 passed**。
+- 版本仍 **1.2.2**，未 tag/release；stage UI + exe 已同步测试构建（OCR feature）。
+- 已知边界：父级拖拽目前覆盖拖入 if/loop 子容器；根级拖拽/多选整体拖动尚未做完整手势（复选框批量删除已做）。

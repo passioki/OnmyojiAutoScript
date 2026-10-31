@@ -1964,5 +1964,6 @@ tasks/<任务名>/
 - **U-08 素材集合**：✅ `4480d05`：`kind=template_set` 集合；flow 只引用集合 id；`load_flow` 展开 click/click_target 到成员；runtime `AssetSet` 按成员最佳匹配并使用命中成员 `action_roi`；集合/成员删除规则；336 tests。
 - **U-09 操作区域归素材**：✅ 代码已有 `AssetDecl.action_roi`/`AssetSet.click_back`；决策已改（B7）；集合成员 action_roi 生效。
 - **U-10 多图去重**：✅ 设计选择：不自动合并；集合支持多图检索；重复图片由用户决定。
+- **U-11~U-21（第三轮 UI/流程）**：✅ `e01d572`：删死下拉；是/否重排；调度清理；提示/叠加 gate；OCR 全屏多行回退；统一识别结果保存；旧素材库 UI 删除；帧分类下拉满高；未勾选保存提示；`&&/||/!` + if↔loop + 拖入子容器 + 勾选批量删 + 图下代码编辑；builder 自动保存。workspace 338 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

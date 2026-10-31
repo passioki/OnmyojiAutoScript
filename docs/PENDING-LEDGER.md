@@ -1821,3 +1821,20 @@ CDP stage 验收：
 
 | 状态 | ✅ 已修复 |
 
+---
+
+# ★ §E-46 ★★★ [10-31 22:22] **OCR 测试的识别区域与全屏回退（U-46）**
+
+> 用户：识别测试是不是用识别区域？实际似乎用操作区域；失败后没有退回全屏识别。
+
+| 项 | 内容 |
+|---|---|
+| 识别区域 | `testAssetOcr` 使用 `assetRecognitionBox`：普通 OCR 用 `roi`；多行来源的 `ocr_line` 用原始 `ocr_source_roi`（不是 `action_roi`） |
+| 操作区域 | `action_roi` 只用于点击落点，绝不参与识别；结果窗口现在显式列出：`多行来源 ROI / 行 ROI / 操作区域（仅点击）` |
+| 全屏回退 | `/ocr` 报错或空文字、`/lines` 0 行、derived OCR 未找到 `ocr_text` → `fallbackFullscreenLines()` 调 `/lines?x=0&y=0&w=canvas.width&h=canvas.height`，把全屏行放入「识别结果」并提示勾选 |
+| 实测 | `图鉴`：多行来源 `[88,650,1093,36]`、行 ROI `[90,650,60,36]`、操作区域 `[82,601,80,89]`；识别失败 → 全屏 13 行 |
+| 代码 | `3bec494`；346 tests |
+
+| 状态 | ✅ 已修复 |
+
+

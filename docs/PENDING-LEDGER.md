@@ -1543,3 +1543,21 @@
 | 修复 | `Server` 保存加载时的 `ocr_model`/`det_model` 路径；`handle_task_run` 设置 `opts.model`/`opts.det_model`。代码 `3f341a4` |
 | 验证 | 临时 serve：`/task/run` dry-run 日志出现 `ocr=on model=... det=...`，`if appear('町中')` 正常求值，不再报 no OCR provider；workspace 344 tests |
 | 用户操作 | 重启 stage 8788 后再运行；若仍报该错，说明启动参数没有 `--model`/`--det-model` 或用了无 OCR feature 的构建 | ✅ 已修复 |
+
+---
+
+# ★ §E-36 ★★★ [10-31 19:22] **任务 Done 但 while 0 次（U-36）**
+
+> 用户日志：`任务运行结束：Done（exit 0）`，只看到 `step seq=0 log`；实际 `/task/run/status` 完整日志：
+> `step seq=1 op=while result=ok detail=while 0 iteration(s)`、`step seq=2 op=finish result=ok detail=finish Done`
+
+| 项 | 内容 |
+|---|---|
+| 现象 | 任务“Done”，但没有任何点击；日志窗口只显示 seq=0（完整 status 中有 while/finish） |
+| 实际 flow 条件 | `not (not (appear('町中')) or not (appear('召唤')))` |
+| 化简 | 按 De Morgan：`not(¬A or ¬B) = A and B`。只有 **町中与召唤同时出现** 才进入循环；当前画面不满足 → 0 次循环 → 直接 Done |
+| 根因 | 条件行里两个素材都勾了「未出现」，又勾了「非（整组取反）」，形成双重取反；不是 run/OCR bug（OCR 已 `ocr=on`） |
+| UI 改进 | 条件预览在“行未出现 + 组非”时显示：`⚠ 行“未出现”+整组“非”是双重取反，请确认`；代码 `a9e7703` |
+| 若想“排除 A、B 同时存在” | 行用“素材出现”（不勾未出现）A、B，行间“且”，再勾组“非”：`not (appear('A') and appear('B'))` |
+| 若想“直到町中/召唤任一出现” | 行用“素材出现”A、B，行间“或”，再勾组“非”：`not (appear('A') or appear('B'))` |
+| 状态 | ✅ 已定位（用户 flow 条件），非引擎 bug；UI 已加双重取反提示 |

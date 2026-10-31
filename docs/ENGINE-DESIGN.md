@@ -1971,5 +1971,6 @@ tasks/<任务名>/
 - **U-33（逻辑运算符审计）**：`cdd9dde`：表达式字段（if/while/wait_until/loop/log/set_var/inc_var/click_point）统一支持 `and/or/not` + `&&/||/!`；click_point UI 改表达式输入；文字出现条件用 `text_visible(...) or ...`；数字/结构字段保持字面量；derived OCR det+rec 批量已补；根级单步拖拽已补。workspace 344 tests。
 - **U-34（素材条件逻辑）**：`c2de9c6`：条件编辑器改为谓词行（素材/文字、未出现、且/或、组级非）；click 备选素材用 `alts` 多选；`sel` 仍是单目标。workspace 344 tests。
 - **U-35（run OCR provider）**：`3f341a4`：workbench `/task/run` 之前没把 serve 已加载的 `--model`/`--det-model` 传给 `RunOptions`，导致 `appear(ocr_asset)` 报 no OCR provider；现在传路径，临时 serve 日志 `ocr=on` 并正常求值。workspace 344 tests。
+- **U-36（while 0 次诊断）**：`a9e7703`：用户条件 `not(not appear(A) or not appear(B))` 化简为 `A and B`，当前画面不满足 → 0 次循环 → Done；不是引擎 bug。条件预览在“行未出现 + 组非”时加双重取反警告。workspace 344 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

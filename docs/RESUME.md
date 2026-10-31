@@ -14,7 +14,7 @@ status: in_progress
 ## 0. 当前状态（磁盘实测）
 
 - 引擎 `d360d05`，`main` 干净；workspace **350 passed / 0 failed**。
-- 后端文档待提交（本轮审计文档）；提交后记录 hash。
+- 后端文档 `1f86c2cc`（U-56 审计文档）已提交并推送 `dev`。
 - 版本 **1.2.2**；v1.2.3 开发中，**未 tag/release**。
 - stage 已重建/部署：8788 = HTTP 200。
 

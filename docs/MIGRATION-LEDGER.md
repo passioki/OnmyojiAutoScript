@@ -57,7 +57,7 @@
 
 ## 3.2 系统性阻塞：当前客户端素材漂移
 
-`migration/ASSET-DRIFT.md` 记录：remote dev 的主界面导航/花合战/好友/吉闻模板在当前 CN 客户端已不匹配（`I_MAIN_GOTO_DAILY` 0.558、`I_MAIN_GOTO_FRIENDS` 0.448、`庭院_探索灯笼` 0.640、`O_LUCK_MSG` 无“吉闻”）。自动 NCC/手工裁剪重采均失败或误匹配；且当前客户端主界面 UI 可隐藏，重启后底部导航栏不显示，模板根本不可见。实测手工点击右下卷轴 `(1200,680)` 可恢复底部导航（恢复后 TalismanPass 入口 0.745 通过），但自动 bootstrap 缺可靠 UI-visible marker，暂未写入 flow。必须先按当前客户端逐页用 ROI 工具重采模板并补 bootstrap，否则相关任务不能实机行为等价，也不能标 ✅。
+`migration/ASSET-DRIFT.md` 记录：remote dev 的主界面导航/花合战/好友/吉闻模板在当前 CN 客户端已不匹配（`I_MAIN_GOTO_DAILY` 0.558、`I_MAIN_GOTO_FRIENDS` 0.448、`庭院_探索灯笼` 0.640、`O_LUCK_MSG` 无“吉闻”）。自动 NCC/手工裁剪重采均失败或误匹配；当前客户端主界面 UI 可隐藏。已裁出 `ui_main_bar_guide` marker 并实现 bootstrap `if not UI marker -> click(1200,680) -> wait`，`_diag_ui` 实机 Done；TalismanPass 恢复导航后实机 Done。其余页面/导航模板仍需按当前客户端逐页 ROI 重采，否则相关任务不能实现完整行为等价。
 
 ## 4. 已实现的通用抽象
 

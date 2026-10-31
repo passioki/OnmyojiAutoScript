@@ -81,3 +81,4 @@
 | 72 | oas-core-v123-round37 | 实机入口 | TalismanPass 入口修通（splash/or I_CHECK_DAILY）但红点误点成就；dev 2731209；1✅/42🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 2731209 | 重采花合战入口素材；继续 42🔄 | in_progress |
 | 73 | oas-core-v123-round37 | 实机批次 | Pets ✅；Talisman 入口修通但红点误匹配；DailyTrifles 实机耗尽 100 步；dev 6e104e7；1✅/42🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 6e104e7 | 继续修入口/退出；不关机 | in_progress |
 | 74 | oas-core-v123-round37 | 实机奖励页 | Talisman 奖励 tab 后当前0级无奖励，应 no-op done；红点误匹配路径已移除；Pets ✅；DailyTrifles 耗尽；dev e610043；1✅/42🔄/9⛔ | `MIGRATION-LEDGER.md` | dev e610043 | 实现 no-op 分支；继续 42🔄 | in_progress |
+| 75 | oas-core-v123-round37 | 实机通过 | TalismanPass no-op 实机 Done；Pets ✅；2✅/41🔄/9⛔；dev 364ccc1 | `MIGRATION-LEDGER.md` | dev 364ccc1 | 继续 41🔄；实机 | in_progress |

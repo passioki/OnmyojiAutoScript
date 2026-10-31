@@ -14,7 +14,7 @@ status: in_progress
 ## 0. 当前状态（磁盘实测）
 
 - oas-core `main` = `385d611`（v1.2.3 发布快照）· clean
-- oas-core `dev` = `684834f`（迁移 + polish + UI bootstrap + 干净主界面回归 + 好友守卫结论）· clean
+- oas-core `dev` = `a741e09`（迁移 + polish + UI bootstrap + 好友页 marker）· clean
 - 迁移状态：**1 ✅ (Pets 实机 Done) / 43 🔄 / 9 ⛔ / 8 ⬜**
 - backend docs `dev` = 本卡提交（待记录）
 - `cargo test --workspace` = **350 passed / 0 failed**

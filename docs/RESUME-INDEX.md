@@ -103,3 +103,4 @@
 | 94 | oas-core-v123-round37 | UI批处理 | 51个迁移任务统一加 ui_main_bar_guide bootstrap；Talisman实机Done；friend守卫0.379；dev 959c09f；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 959c09f | 重采页面守卫；继续43🔄 | in_progress |
 | 95 | oas-core-v123-round37 | 干净主界面 | 重置后 DailyTrifles friend_love/store_sign Done；以前很多失败是残留页误判；dev 504c1ec；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 504c1ec | 修 luck 入口；继续43🔄 | in_progress |
 | 96 | oas-core-v123-round37 | 守卫误用 | I_CHECK_FRIENDS 实为主界面精灵图标；好友页0.331；主界面0.746→阈值0.73；dev 684834f；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 684834f | 重采好友页marker；不关机 | in_progress |
+| 97 | oas-core-v123-round37 | 好友marker | 新增 ui_friend_page 替换错误守卫；入口点击仍不稳定0.401；dev a741e09；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev a741e09 | 校准好友入口；不关机 | in_progress |

@@ -1375,7 +1375,7 @@
 | **U-22** | “图片帧类更改添加已有类选项下拉” | 帧面板新增「当前帧分类」下拉（现有分类 + 新建分类），应用到当前帧 | engine `346adba`：CDP `frame-category-set` 有 庭院/探索总界面/御魂页面/式神录/町中/弹窗界面 + 新建分类 | ✅ |
 | **U-23** | “任务里的素材库移到素材里，任务里的素材库只显示当前任务引用的素材集合；当前素材库太臃肿” | 任务面板删除素材库块，移到「画面/素材」面板；新增「当前任务引用的素材」只显示 flow 引用；完整素材库/搜索仍在素材面板 | engine `346adba`：`#panel-task #assets-list` 不存在；`task-ref-assets` 由 `collectFlowAssetIds()` 过滤；素材搜索/集合仍在素材面板 | ✅ |
 | **U-24** | “任务素材/操作区域下拉选择改为搜索，像工作台搜索那样” | builder 素材选择由 `<select>` 改为可搜索 datalist（`builder-asset-search`），所有 asset 字段与结构化 click_target 共用 | engine `346adba`：选中步骤后 CDP `#builder-form .builder-asset-search input` 存在，datalist 绑定 | ✅ |
-| **U-25** | “保存失败 `while` requires max_iters>0；0为无限；loop/while交叉；去除转换为xx” | 解析器接受 0/省略；运行时 0 = 用 step budget 限制；builder `while` 默认 `max_iters:0`；删除 if↔loop 转换按钮/函数；加载时清理 if/loop/while 的非法 args | engine `346adba`：`while_zero_max_iters_is_valid_and_budget_limited`；workspace 339 tests；CDP 新增 while 保存为 `{cond:"true",max_iters:0}` | ✅ |
+| **U-25** | “保存失败 `while` requires max_iters>0；0为无限；loop/while交叉；去除转换为xx” | **最终裁定**：`while` 没有 `max_iters`（数值次数归 `loop`）；`while` 只有 `cond`；数值条件 `0`=不进入循环、非 0=循环（受 step budget 硬保护）；删除 if↔loop 转换按钮/函数；加载时清理 if/loop/while 的非法 args | engine `460ad32`：`while` 只解析 cond/body；`while_numeric_zero_does_not_enter_loop`；`loop_zero_or_negative_runs_zero_iterations`；workspace 341 tests | ✅ |
 | **U-26** | “多行识别保存素材后的识别引擎用多行，似乎用单行；测试庭院识别错误” | **根因在工作台素材“识别”测试**：derived `ocr_line`（ocr_mode=lines）仍走 `/ocr` 单行；改为用 `ocr_source_roi` + `/lines` det+rec，并显示期望文字是否匹配。runtime 本身已有 derived OCR 路径 | engine `346adba`：`testAssetOcr` 分支；stage `庭院` 资产含 `ocr_mode:"lines"` + source ROI；重新测试可看到多行识别结果/期望匹配 | ✅ |
 | **U-27** | “新建的返回庭院为什么没按预期运行，逻辑还是底层代码” | **诊断：任务 flow 本身损坏，不是引擎 bug**。`dist/stage/tasks/回到庭院/flow.json`：`while.args.cond="false"`、`max_iters=1`、多余 `sel:"町中"`；内层 `if` 只有 `sel` 没有 `cond`；`assets.json` 为空。`while` 条件 false → 循环体永远不执行 → 直接 finish。builder 已移除导致此类坏 flow 的转换功能，并在加载时 normalize 掉非法 args；用户需重建/修正该任务条件 | 实文件证据；engine `346adba` normalize + while 修复；不自动改写用户任务 | ✅ 已定位（非底层 bug；任务数据需用户重建/修正） |
 
@@ -1394,11 +1394,12 @@
 
 | U# | 用户原话/要求 | 实现/诊断 | 独立证据 | 状态 |
 |---|---|---|---|---|
-| **U-28** | “while.cond=false，前边不是有选择素材吗，我以为是如果没有该素材，那么循环成立…选择素材和 true 有联系吗…是否有必要优化” | **根因：builder 每个步骤顶部都有通用素材选择器，它直接写 `step.args.sel`；if/while 没有 `sel` 字段，所以用户选素材只是留下无用 `sel`，不会改 `cond`。** 现在：if/while 用条件预设编辑器（素材出现/未出现、文字等于/不等于、自定义），选素材直接生成 `cond` 表达式；顶部通用素材选择器只对真正消费 `sel` 的动作显示；normalize 删除 if/while/loop 的非法 `sel`；while 默认仍 `true`、max_iters 0 | engine `00ac85c`：CDP 条件模式 5 项；选择「素材未出现」+ 保存测试后 flow 为 `{"cond":"not appear('保存测试')","max_iters":0}`，无 `sel`；自动保存成功 | ✅ |
+| **U-28** | “while.cond=false，前边不是有选择素材吗，我以为是如果没有该素材，那么循环成立…选择素材和 true 有联系吗…是否有必要优化” | **根因：builder 每个步骤顶部都有通用素材选择器，它直接写 `step.args.sel`；if/while 没有 `sel` 字段，所以用户选素材只是留下无用 `sel`，不会改 `cond`。** 现在：if/while 用条件预设编辑器（素材出现/未出现、文字等于/不等于、自定义），选素材直接生成 `cond` 表达式；顶部通用素材选择器只对真正消费 `sel` 的动作显示；normalize 删除 if/while/loop 的非法 `sel`；while 默认仍 `true`，且不再有 `max_iters` | engine `00ac85c`：CDP 条件模式 5 项；选择「素材未出现」后 flow 为 `{"cond":"not appear('保存测试')"}`，无 `sel`/无 `max_iters`；自动保存成功 | ✅ |
+| **U-29** | “对于 loop，`<=0` 就是不循环，`>0` 就是循环次数” | `loop` 数值语义：`n <= 0` 执行 0 次（负数按 0），`n > 0` 执行 n 次；runtime 已有 `x.max(0.0) as u32`，本次补测试与 builder 文案「<=0 不循环；>0 循环次数」 | engine `460ad32`：`loop_zero_or_negative_runs_zero_iterations`（0 / -3 均不进入 body）；workspace 341 tests | ✅ |
 
 ## 第五轮结论
 
-- U-28 ✅；条件语义已显式化，不再“选素材以为改条件”。
-- 代码 `00ac85c`；workspace **339 passed**。
+- U-28/U-29 ✅；条件语义显式化；while 只 cond（0=false/非0=true），loop 负责次数（<=0 不循环）。
+- 代码 `460ad32`；workspace **341 passed**。
 - 版本仍 1.2.2，未 tag/release；stage UI/exe 已同步测试构建。
-- 旧任务中的非法 `sel` 会在 builder 加载时清理；`cond=false` 是用户条件本身，不会被 UI 猜改。
+- 旧任务中的非法 `sel`/`max_iters` 会在 builder 加载时清理；`cond=false`/`0` 是用户条件本身，不会被 UI 猜改。

@@ -78,3 +78,4 @@
 | 69 | oas-core-v123-round37 | 实机验证 | Pets 实机：喂食完成但 I_CHECK_MAIN 0.832<0.95 失败；证明 lint≠等价；dev c2c28e1；43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev c2c28e1 | 校准页面守卫；补 43🔄；不关机 | in_progress |
 | 70 | oas-core-v123-round37 | 实机回归 | Pets 三次实机：喂食成功，退出 runtime click 无效但同坐标手工 adb tap 可回庭院；记录输入/时序差异；dev 7752417；43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 7752417 | 排查 input 时序/焦点；补 43🔄；不关机 | in_progress |
 | 71 | oas-core-v123-round37 | 实机通过 | Pets 实机 Done（退出重试修复）；1✅/42🔄/9⛔；其余无实机证据 | `MIGRATION-LEDGER.md` | Pets 实机 Done · dev pending | 继续 42🔄；补实机；不关机 | in_progress |
+| 72 | oas-core-v123-round37 | 实机入口 | TalismanPass 入口修通（splash/or I_CHECK_DAILY）但红点误点成就；dev 2731209；1✅/42🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 2731209 | 重采花合战入口素材；继续 42🔄 | in_progress |

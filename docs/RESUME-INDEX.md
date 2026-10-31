@@ -100,3 +100,4 @@
 | 91 | oas-core-v123-round37 | UI状态 | 右下卷轴 toggle 非幂等，有时显示有时隐藏；自动bootstrap需稳定marker；dev 63c7fcc；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 63c7fcc | 采UI marker；不关机 | in_progress |
 | 92 | oas-core-v123-round37 | 素材裁剪 | 盲裁导航图标全部错位；必须编辑器 ROI 逐图标试识别；dev 56c30bf；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 56c30bf | 编辑器 ROI 重采；不关机 | in_progress |
 | 93 | oas-core-v123-round37 | UI bootstrap | ui_main_bar_guide 实机匹配1.000；Talisman 恢复导航后 Done；dev 50be607；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 50be607 | 重采其余导航；继续43🔄 | in_progress |
+| 94 | oas-core-v123-round37 | UI批处理 | 51个迁移任务统一加 ui_main_bar_guide bootstrap；Talisman实机Done；friend守卫0.379；dev 959c09f；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 959c09f | 重采页面守卫；继续43🔄 | in_progress |

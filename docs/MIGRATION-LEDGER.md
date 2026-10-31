@@ -46,6 +46,8 @@
 | `a08d9b7` | 主界面旧阈值 0.75；Talisman 奖励红点误匹配临时 disabled |
 | `2bae63f` | polish3：12 个任务的死出口/不可达分支/战斗等待/守卫修复 |
 | `1016f95` | polish3 后 ledger 刷新 |
+| `50be607` | `ui_main_bar_guide` bootstrap + Talisman 实机 Done |
+| `b55bc99` | 51 个迁移任务统一加入幂等 UI bootstrap |
 
 ## 3.1 实机验证（非全量）
 

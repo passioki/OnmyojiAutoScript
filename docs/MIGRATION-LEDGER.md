@@ -48,7 +48,7 @@
 - **Pets ✅**：2026-11-01 实机 Done；入口→宠物小屋→快速喂养/已投喂判定→退出重试→庭院。
 - **TalismanPass ✅**：2026-11-01 实机 Done；花合战 splash→I_CHECK_DAILY 0.892→奖励 tab→无奖励 no-op 完成；真实领取分支未触发（0 级）。
 - **DailyTrifles 🔄**：friend_love 与 store_sign **两个已实现子流程均实机 Done**（friend_love 庭院 0.903；store_sign 商店→礼包屋→签到→庭院）；每日召唤/吉闻/买体力仍未迁移，因此整体仍 🔄。
-- **GoryouRealm 🔄**：实机导航 庭院→探索 0.914→御灵入口 1.000→御灵页；修正 4 处 click_target 守卫为 I_CHECK_GORYOU；但选中卡片后 I_GR_FIRE 未出现（0.319），需确认卡片详情/账号解锁。
+- **GoryouRealm 🔄**：实机导航 庭院→探索 0.914→御灵入口 1.000→御灵页；修正 4 处 click_target 守卫为 I_CHECK_GORYOU；卡片点击无详情/挑战入口，页面显示等级/御灵等级解锁要求，当前账号疑似未解锁。
 - 其余 40 个任务尚无实机/回放验证。
 
 ## 4. 已实现的通用抽象

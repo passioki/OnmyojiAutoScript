@@ -98,3 +98,4 @@
 | 89 | oas-core-v123-round37 | UI隐藏 | 主界面重启后底部导航栏不显示；I_MAIN_GOTO_* 模板不可见；ASSET-DRIFT 增补；dev e23e29d；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` §3.2 | dev e23e29d | 补 UI bootstrap/重采；不关机 | in_progress |
 | 90 | oas-core-v123-round37 | UI bootstrap | 右下卷轴(1200,680)恢复底部导航后 Talisman no-op Done；自动bootstrap缺UI-visible marker；dev ff018cc；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` §3.2 | dev ff018cc | 重采 UI marker；不关机 | in_progress |
 | 91 | oas-core-v123-round37 | UI状态 | 右下卷轴 toggle 非幂等，有时显示有时隐藏；自动bootstrap需稳定marker；dev 63c7fcc；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 63c7fcc | 采UI marker；不关机 | in_progress |
+| 92 | oas-core-v123-round37 | 素材裁剪 | 盲裁导航图标全部错位；必须编辑器 ROI 逐图标试识别；dev 56c30bf；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 56c30bf | 编辑器 ROI 重采；不关机 | in_progress |

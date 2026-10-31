@@ -1561,3 +1561,17 @@
 | 若想“排除 A、B 同时存在” | 行用“素材出现”（不勾未出现）A、B，行间“且”，再勾组“非”：`not (appear('A') and appear('B'))` |
 | 若想“直到町中/召唤任一出现” | 行用“素材出现”A、B，行间“或”，再勾组“非”：`not (appear('A') or appear('B'))` |
 | 状态 | ✅ 已定位（用户 flow 条件），非引擎 bug；UI 已加双重取反提示 |
+
+---
+
+# ★ §E-37 ★★★ [10-31 19:38] **Firefox 打不开 127.0.0.1:8787（U-37）**
+
+| 项 | 内容 |
+|---|---|
+| 现象 | Firefox `Unable to connect ... 127.0.0.1:8787` |
+| 实测 | `8787` **无监听**；`8788` 有 `oasd.exe`（stage，pid 12416，19:38 启动，`/state` captured/ocr/det 正常） |
+| 根因 | **端口/书签不对**：`START-HERE` 的 8787 是**开发手动 serve**；`dist\stage\start-editor.bat` 固定 **8788**。用户浏览器仍指向 8787 |
+| 立即处理 | 打开 **http://127.0.0.1:8788/**；stage 关闭/重启用 `start-editor.bat` / `stop-editor.bat` |
+| 注册为程序是否解决 | **不会自动解决端口错误**。服务/开机自启 + 失败重启只能保证“进程在”，若 book mark/启动参数仍是 8787 而服务在 8788，仍会 Unable to connect。需要：①统一端口（配置/launcher/书签）；②服务健康检查；③自动打开正确 URL |
+| 可做改进 | (1) launcher 启动后探测 `/state` 并打印/打开正确 URL；(2) 端口写入 `config/live.json`，所有脚本读同一份；(3) 注册 Windows 服务/计划任务，配置失败重启；(4) 桌面快捷方式指向 canonical URL |
+| 状态 | ✅ 已排查；未改代码，端口说明已补进 START-HERE |

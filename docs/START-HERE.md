@@ -89,6 +89,9 @@ cd D:\OAS-dev\backend
 run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/module/config/test_standby_placeholder.py ... -q
 ```
 
+> ★ **端口不要混**：上面 `8787` 是**开发手动 serve**；`dist\stage\start-editor.bat` 固定启动 **8788**（带 OCR 模型/config）。  
+> 用户版编辑器地址是 **http://127.0.0.1:8788/**；`8787` 没有进程时 Firefox 报 `can't connect` 是端口/书签不对，不是程序崩溃。
+
 ## 1.4 先回报，再动手
 
 ★ 读完、核实完，必须先把 §2 的**引擎版回报模板**发给用户，等确认方向后才改代码。

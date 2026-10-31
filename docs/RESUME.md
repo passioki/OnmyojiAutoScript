@@ -4,83 +4,53 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-round12
-checkpoint_seq: 41
-updated_at: 2026-10-31T19:25:00+08:00
-trigger: 诊断回到庭院 Done 但 while 0 次；等用户修正条件
+task_id: oas-core-v123-round13
+checkpoint_seq: 42
+updated_at: 2026-10-31T19:40:00+08:00
+trigger: 8787 打不开诊断（实际服务在 8788）；等待用户确认是否统一端口/注册服务
 status: in_progress
 ```
 
 ## 0. 当前状态
 
-- 引擎代码 `a9e7703`；workspace **344 passed**。
-- 版本 1.2.2，未 tag/release；stage UI/exe 已同步并重启 8788。
-- U-32b 批量实帧验收仍未闭合。
+- 代码 `a9e7703`；workspace 344 passed；版本 1.2.2 未发布。
+- **stage 当前监听 8788**（pid 12416，OCR/det 正常）；8787 无监听。
+- stage UI/exe 已同步。
 
-## 1. 本轮诊断（U-36）
+## 1. 本轮诊断（U-37）
 
-用户看到：
+- Firefox 打开 `127.0.0.1:8787` → 连接失败；
+- 原因不是程序崩溃，而是**端口不一致**：
+  - `START-HERE` 的开发手动 serve 用 8787；
+  - `dist\stage\start-editor.bat` 固定 8788；
+  - 用户书签/地址还是 8787。
+- 正确 stage 地址：**http://127.0.0.1:8788/**。
 
-```text
-任务运行结束：Done（exit 0）
-step seq=0 op=log ...
-```
+## 2. 注册为程序能否避免
 
-完整 run status 实际为：
+不能自动避免：
 
-```text
-step seq=1 op=while result=ok detail=while 0 iteration(s)
-step seq=2 op=finish result=ok detail=finish Done
-```
+- Windows 服务/计划任务能保证进程启动 + 失败重启；
+- 但若服务端口/启动参数/书签仍是 8787 而服务跑 8788，仍然 connection refused。
+- 要真正稳定需要：
+  1. 端口统一到 `config/live.json`，launcher 读取；
+  2. 启动后健康检查 `/state` 成功再打开正确 URL；
+  3. 服务失败重启；
+  4. 桌面快捷方式用 canonical URL。
 
-当前 flow 条件：
+## 3. 待用户确认
 
-```text
-not (not (appear('町中')) or not (appear('召唤')))
-```
-
-化简：
-
-```text
-A = appear('町中')
-B = appear('召唤')
-not(¬A or ¬B) = A and B
-```
-
-⇒ 只有町中与召唤**同时出现**才循环；当前画面不满足 → 0 次循环 → Done。  
-这不是 run/OCR bug；OCR 日志已是 `ocr=on`。
-
-## 2. UI 改进
-
-条件预览在“行未出现 + 整组非”时显示：
-
-```text
-⚠ 行“未出现”+ 整组“非”是双重取反，请确认
-```
-
-代码 `a9e7703`；stage 已同步。
-
-## 3. 正确写法（给用户）
-
-- 想“排除 A、B 同时存在”：
-  ```text
-  not (appear('A') and appear('B'))
-  ```
-  A/B 行都勾“出现”，行间“且”，组非。
-
-- 想“直到町中/召唤任一出现”：
-  ```text
-  not (appear('A') or appear('B'))
-  ```
-  A/B 行都勾“出现”，行间“或”，组非。
+- 统一端口用 **8788**（保持 stage launcher）还是改回 **8787**（匹配书签）？
+- 是否要我做 Windows 开机自启/服务 + 健康检查 launcher？
 
 ## 4. 下一步
 
-1. 用户按目标改写条件；
-2. U-32b 实帧验收（positions + 匹配帧）；
-3. U-20 多选整组拖动；
-4. 发布时才 bump/tag/release。
+1. 用户先用 8788 打开；
+2. 决定端口后统一脚本/书签/文档；
+3. U-32b 实帧验收、U-20 多选整组拖动仍待办。
 
 ## 5. 证据
 
-- PENDING §E-36；stage `/task/run/status` 完整日志；code `a9e7703`；tests 344。
+- `Get-NetTCPConnection`：8787 down、8788 LISTEN pid 12416；
+- `/state` 8788：captured=true, ocr=true, det=true；
+- PENDING §E-37；START-HERE 端口说明已补。

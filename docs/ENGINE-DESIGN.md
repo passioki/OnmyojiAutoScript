@@ -1967,6 +1967,7 @@ tasks/<任务名>/
 - **U-11~U-21（第三轮 UI/流程）**：✅ `e01d572`：删死下拉；是/否重排；调度清理；提示/叠加 gate；OCR 全屏多行回退；统一识别结果保存；旧素材库 UI 删除；帧分类下拉满高；未勾选保存提示；`&&/||/!` + if↔loop + 拖入子容器 + 勾选批量删 + 图下代码编辑；builder 自动保存。workspace 338 tests。
 - **U-22~U-27（第四轮）**：`346adba`：帧已有分类下拉；任务素材库移到素材面板并只显示 flow 引用；builder 素材选择改搜索；while max_iters=0=预算内无限、移除 if↔loop 转换；多行 derived OCR 的工作台测试改走 `/lines`；回到庭院任务被诊断为 flow 数据损坏（while cond=false/stray sel/空 assets），非引擎 bug。workspace 339 tests。
 - **U-28/U-29（第五轮）**：`00ac85c`/`460ad32`：if/while 条件预设编辑器；条件素材选择写 `cond`（appear/not appear/ocr 比较），不再写非法 `sel`；顶部素材选择器仅对消费 `sel` 的动作显示；`while` 只 cond（`false`/`0` 不循环，`true`/非 0 循环，step budget 兜底），**没有 max_iters**；`loop` 的 `n<=0` 不循环、`n>0` 循环 n 次；normalize 清 sel/max_iters。workspace 341 tests。
-- **U-30~U-32（第六轮）**：`af66179`：任务面板当前 flow 引用素材（raw flow）；素材识别区域缩略图；`appear()` 覆盖所有素材（含 OCR），`text_visible()` 全屏 det+rec；条件候选自定义过滤；`AssetDecl.positions`（u64 帧 id，保存必选、删帧阻止）；集合保存自动把任务引用改为集合 id；`POST /task/assets/batch_test` 按位置帧批量测试（template/region/OCR single；derived OCR det-lines 待补）。workspace 344 tests。
+- **U-30~U-32（第六轮）**：`af66179`：任务面板当前 flow 引用素材（raw flow）；素材识别区域缩略图；`appear()` 覆盖所有素材（含 OCR），`text_visible()` 全屏 det+rec；条件候选自定义过滤；`AssetDecl.positions`（u64 帧 id，保存必选、删帧阻止）；集合保存自动把任务引用改为集合 id；`POST /task/assets/batch_test` 按位置帧批量测试。workspace 344 tests。
+- **U-33（逻辑运算符审计）**：`cdd9dde`：表达式字段（if/while/wait_until/loop/log/set_var/inc_var/click_point）统一支持 `and/or/not` + `&&/||/!`；click_point UI 改表达式输入；文字出现条件用 `text_visible(...) or ...`；数字/结构字段保持字面量；derived OCR det+rec 批量已补；根级单步拖拽已补。workspace 344 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

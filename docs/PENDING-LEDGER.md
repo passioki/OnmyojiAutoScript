@@ -1356,7 +1356,7 @@
 | **U-17** | “素材库和任务都删除了，不需要恢复” | 不做恢复；只做空状态/调度清理 | 无恢复代码；任务删除仅清理目录/调度条目 | ✅ |
 | **U-18** | “帧管理全部展开改为只显示一个类别；分类通过下拉；满高不是独立页” | 帧面板加分类下拉，只渲染选中类别；rail 面板用满高（`height: calc(100vh - 150px)`） | engine `e01d572`：CDP 分类下拉 6 项、帧组数量=1、面板 height 811 / list 565 | ✅ |
 | **U-19** | “全选取消后保存按钮变灰” | 保存按钮只按“有无结果”禁用；有结果未勾选时可点并提示“请勾选”；独立操作区域也进入结果列表 | engine `e01d572`：CDP 2 条未勾选 → 保存按钮 `disabled=false`；保存 handler 提示勾选 | ✅ |
-| **U-20** | “没有 or/and 逻辑符号；if 更适合循环时只能删；无父子级移动；加复选框整体拖动/删除；流程图下放全部代码” | 支持 `and/or/not` + `&&/||/!`；if↔loop 转换保留子动作；步骤拖入 if/loop 子容器；步骤复选框+批量删除；图下 flow.json 代码编辑器 | engine `e01d572`：`parses_symbolic_logic_operators`；CDP 4 个 checkbox、转换按钮、代码区长度；drop handler | 🔄 部分：**根级拖拽/多选整体拖动**尚未完成；其余已实现 |
+| **U-20** | “没有 or/and 逻辑符号；if 更适合循环时只能删；无父子级移动；加复选框整体拖动/删除；流程图下放全部代码” | 支持 `and/or/not` + `&&/||/!`；if↔loop 转换已删除；步骤拖入 if/loop 子容器；**根级拖拽区已补（单步拖回根级）**；步骤复选框+批量删除；图下 flow.json 代码编辑器 | engine `cdd9dde`：`parses_symbolic_logic_operators`；CDP 4 个 checkbox、转换按钮已移除、代码区；drop handler + root drop | 🔄 部分：**多选整组拖动**尚未完成；其余已实现 |
 | **U-21** | “任务构建应该自动保存” | builder 800ms debounce 自动保存；手动按钮改为“立即保存（自动保存已开启）”；状态显示自动保存时间 | engine `e01d572`：CDP 添加动作后 1.4s 内 flow steps 2→3；代码编辑器同步 | ✅ |
 
 ## 第三轮结论
@@ -1421,7 +1421,7 @@
 | **U-31a** | 「返回庭院」修改 `not appear('町中')` 后应能运行 | ✅ 已修：`appear()` 现在覆盖所有素材（OCR 资产用 `ocr_read` 判断文本/多行非空；derived 不匹配=false）；新增 `text_visible()` 全屏 det+rec 文字搜索。release dry-run 已实际执行 while/if/click（dry-run 不点击，所以按设计会跑到预算耗尽） | ✅ |
 | **U-31b** | 条件素材输入文字时显示**所有匹配候选项**，不需输入全称 | ✅ 已修：`assetSearch()` 改自定义子串过滤下拉（含 kind 标签、Enter/点击选择），条件编辑器/动作字段共用 | ✅ |
 | **U-32a** | 所有素材增加**位置属性**（可多个，值=帧 id） | ✅ 已实现：`AssetDecl.positions: Vec<u64>`；保存必须至少 1 个位置帧；素材行「帧」可改多帧；帧删除被引用位置阻止；集合保存后自动把所有任务 flow 的成员引用改写为集合 id；集合本身不加位置（用户 10-31） | ✅ |
-| **U-32b** | 批量 **dry-run 测试**通过帧来跑（每个素材按其位置帧验证） | 🔄 部分：`POST /task/assets/batch_test` + UI「批量帧测试」；template 全帧匹配、region 边界、OCR 单行 rec 已实现；derived `ocr_lines` 的 det+rec 批量分支仍待补。stage 素材尚未设置 positions，需用户在素材行「帧」设置 | 🔄 |
+| **U-32b** | 批量 **dry-run 测试**通过帧来跑（每个素材按其位置帧验证） | ✅ 已实现：`POST /task/assets/batch_test` + UI「批量帧测试」；template 全帧匹配、region 边界、OCR 单行 rec、derived `ocr_line` 的 source-ROI det+rec 均已覆盖；stage 素材需先设置 positions | ✅ |
 
 ## 设计草案（等确认后实施）
 
@@ -1448,8 +1448,29 @@
 
 ## 第六轮结论
 
-- U-30a/U-30b/U-31a/U-31b/U-32a ✅；U-32b 🔄 部分（template/region/OCR single；derived OCR det-lines 待补）。
-- 代码 `af66179`；workspace **344 passed**。
+- U-30a/U-30b/U-31a/U-31b/U-32a/U-32b ✅。
+- 代码 `cdd9dde`；workspace **344 passed**。
 - 版本仍 1.2.2，未 tag/release；stage UI + OCR exe 已同步。
 - 帧位置值 = 帧 id（u64）；保存新素材必须至少 1 个位置帧；删帧时被位置引用会 400 提示先删素材/改位置。
 - 集合不加位置；保存集合后自动把所有任务 flow 中成员引用改成集合 id。
+
+---
+
+# ★ §E-33 ★★★ [10-31 18:17] **逻辑运算符统一审计（U-33）**
+
+> 用户原话：“之前的逻辑运算发似乎没有实现，这里的多个文字其实可以用逻辑运算符来实现的。请检查实现情况。所有的值里其实都可以用到逻辑运算符，请检查统一情况。然后继续实现未完成的台账。”
+
+| U# | 原子要求 | 实现/证据 | 状态 |
+|---|---|---|---|
+| **U-33a** | 表达式 parser 支持逻辑运算符（文本/符号两套） | ✅ `oas-flow::parse_expr` 本来就支持 `and/or/not`；`&&/||/!` 已于 `460ad32` 前加入；`parses_symbolic_logic_operators` 覆盖 `&&/||/!`、优先级；`text_visible('a') or text_visible('b')` 已加测试 | ✅ |
+| **U-33b** | 所有**表达式值**字段统一支持逻辑运算符 | ✅ 审计：`if.cond`、`while.cond`、`wait_until.cond`、`loop.n`、`log.text`、`set_var.value`、`inc_var.by`、`click_point.x/y` 均走 `parse_expr_field`/`parse_coord_value`；builder 对 click_point x/y 由 number 改为表达式输入；这些字段统一显示 `and/or/not、&&/||/!、括号` 提示 | ✅ |
+| **U-33c** | 文字多个值用逻辑运算符，不需要特殊多值语法 | ✅ 条件预设「文字出现/未出现」把输入按 `/、,、或` 拆成多个 `text_visible(...)`，用 `or` 组合；「未出现」用 `not (a or b)`；自定义表达式可直接写 and/or/not | ✅ |
+| **U-33d** | 所有字面量字段是否也要逻辑运算符 | ✅ **审计结论：不强行给字面量数字加逻辑**。`wait.seconds`/`timeout_s`/`timeout_ms`/`swipe.ms`/`stable_frames` 等是数字/结构契约，逻辑表达式返回 bool 无意义；只有 `parse_expr_field`/`parse_coord_value` 的表达式字段接受逻辑运算符。UI 已用「（表达式）」标注避免误解 | ✅ 设计边界 |
+| **U-33e** | 继续未完成台账 | U-32b 的 derived OCR det+rec 批量分支已补 ✅；U-20 根级拖拽补了单步「拖到根级」，多选整组拖动仍未做 🔄 | 🔄 部分（U-20） |
+
+## 第七轮结论
+
+- U-33a~U-33d ✅；U-32b 补完；U-20 仍部分。
+- 代码 `cdd9dde`；workspace **344 passed**。
+- 版本 1.2.2 未发布；stage UI + exe 已同步并重启 8788。
+- **表达式字段范围是显式契约**：判断/取值用表达式；固定数字/秒数/坐标结构保持字面量。若要把数字字段也表达式化，属于新设计（需用户确认），本轮不做静默扩展。

@@ -95,3 +95,4 @@
 | 86 | oas-core-v123-round37 | 入口修复 | DailyTrifles 主界面守卫改 I_CHECK_MAIN；luck OCR 仍无吉闻；dev 6c23c64；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 6c23c64 | 用 I_LUCK_TITLE 重做 luck；继续43🔄 | in_progress |
 | 87 | oas-core-v123-round37 | focused3 | DailyTrifles luck 直接点击路径；Talisman 奖励页签确定路径；入口 I_MAIN_GOTO_DAILY 0.558 失败；dev f2509b6；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev f2509b6 | 重做稳定入口；继续43🔄 | in_progress |
 | 88 | oas-core-v123-round37 | 素材漂移 | 记录当前客户端 ASSET-DRIFT；I_MAIN_GOTO_DAILY 0.558/FRIENDS 0.448/庭院 0.640；自动/手工重采失败；dev eadfed0；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` §3.2 | dev eadfed0 | 按页重采 ROI；不关机 | in_progress |
+| 89 | oas-core-v123-round37 | UI隐藏 | 主界面重启后底部导航栏不显示；I_MAIN_GOTO_* 模板不可见；ASSET-DRIFT 增补；dev e23e29d；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` §3.2 | dev e23e29d | 补 UI bootstrap/重采；不关机 | in_progress |

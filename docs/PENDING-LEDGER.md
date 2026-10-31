@@ -1784,3 +1784,24 @@ CDP stage 验收：
 **U-43b 说明**：旧 OAS annotator 用后台线程 WebSocket 推 JPEG；本实现先取等价的“实时帧请求 + 前端轮询”，不再自动入库。后续若需要 2fps 以上可换后台采集/MJPEG。
 
 **U-43c 标准**：back edge 外绕是分层图常用策略；没有在所有任意图上绝对不交叉的简单标准，当前保证不穿过主节点列。
+
+---
+
+# ★ §E-44 ★★★ [10-31 21:50] **位置编辑/U-20/实时升级（U-44）**
+
+| 项 | 用户要求 | 实现 | 状态 |
+|---|---|---|---|
+| **U-44a** | 素材位置帧设置也要搜索+候选；当前修改没生效/没提示 | `editAssetPositions` 从 `window.prompt` 改为搜索+候选 modal：候选 `分类 / #id 帧名`、可删已选、显式「保存位置」；成功写 result/log、重新读取素材分类，失败显示 `保存失败：…` | ✅ |
+| **U-44b** | U-20 多选整组拖动 | 勾选步骤后拖动任意已勾选行 → `moveStepsGroup` 将顶层勾选步骤整体移到根级/目标容器；自动排除子级重复；状态栏显示移动数量 | ✅ |
+| **U-44c** | 实时升级（旧 OAS WebSocket） | 新增 `GET /ws/live` WebSocket：在树内实现 SHA1/base64 握手 + 后台采集线程，持续推送二进制 PNG 帧；UI 优先 WebSocket，失败回退 1.2s 轮询；仅实时显示，不入库 | ✅ |
+
+## 验证
+
+- stage `ws://127.0.0.1:8788/ws/live` 连接成功，收到 binary PNG（约 1.5MB，PNG signature 校验）；
+- UI `liveSocket.readyState=1`、`__oasErrors=[]`、canvas 1280x720；
+- 位置编辑 modal 实测：候选可选、保存后 `positions=[4]`，接口返回 category=`庭院`；测试后已恢复空 positions；
+- 多选拖动 CDP：2 个勾选步骤，`before=5 after=5`，状态「已移动 2 个勾选步骤到 根级」；
+- workspace 346 tests。
+
+| 状态 | ✅ 三项完成；stage UI/exe 已同步/重启 8788 |
+

@@ -49,7 +49,7 @@
 
 - **Pets ✅**：实机 Done。
 - **TalismanPass 🔄**：no-op 路径实机 Done；但 polish 后奖励分支因 `I_RED_POINT_LEVEL` 误匹配已临时 disabled（cond=false），需重采入口；因此整体降回 🔄。
-- **DailyTrifles 🔄**：friend_love 与 store_sign 实机 Done；今日召唤/吉闻/买体力仍未迁移。
+- **DailyTrifles 🔄**：friend_love 回归实机 Done；store_sign 回归失败——进入礼包屋商品页后 I_GIFT_RECOMMEND 点击未打开签到，I_GIFT_SIGN 0.565<0.8；需按当前商店页重采签到入口/已签到 no-op。新增 4 条分支未实机复测。
 - **GoryouRealm 🔄**：导航修通；账号卡片显示 40 级/御灵等级门槛，疑似未解锁。
 - 其余 41 个任务尚无实机/回放验证。
 

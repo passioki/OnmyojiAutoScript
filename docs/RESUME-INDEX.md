@@ -87,3 +87,4 @@
 | 78 | oas-core-v123-round37 | 实机批次 | DailyTrifles 两子流程 Done；Goryou 守卫修正但 I_GR_FIRE 0.319；dev 8aa62c4；2✅/41🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 8aa62c4 | 御灵卡详情；继续 41🔄 | in_progress |
 | 79 | oas-core-v123-round37 | 账号条件 | Goryou 实机到达御灵页但卡片需40级/御灵等级，疑似未解锁；DailyTrifles 双子流程 Done；dev 8a1fec6；2✅/41🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 8a1fec6 | 换账号/提等级；继续 41🔄 | in_progress |
 | 80 | oas-core-v123-round37 | polish2 | 12 任务守卫/不可达分支修复；主界面阈值0.75；Talisman 红点 disabled；Pets ✅；1✅/43🔄/9⛔；dev a08d9b7 | `MIGRATION-LEDGER.md` | dev a08d9b7 | 继续 43🔄；实机 | in_progress |
+| 81 | oas-core-v123-round37 | 回归 | DailyTrifles friend_love Done；store_sign 回归失败（I_GIFT_SIGN 0.565）；dev 5792f5f；1✅/43🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 5792f5f | 修 store 签到入口；继续 43🔄 | in_progress |

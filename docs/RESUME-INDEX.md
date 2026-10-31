@@ -83,3 +83,4 @@
 | 74 | oas-core-v123-round37 | 实机奖励页 | Talisman 奖励 tab 后当前0级无奖励，应 no-op done；红点误匹配路径已移除；Pets ✅；DailyTrifles 耗尽；dev e610043；1✅/42🔄/9⛔ | `MIGRATION-LEDGER.md` | dev e610043 | 实现 no-op 分支；继续 42🔄 | in_progress |
 | 75 | oas-core-v123-round37 | 实机通过 | TalismanPass no-op 实机 Done；Pets ✅；2✅/41🔄/9⛔；dev 364ccc1 | `MIGRATION-LEDGER.md` | dev 364ccc1 | 继续 41🔄；实机 | in_progress |
 | 76 | oas-core-v123-round37 | 实机失败定位 | DailyTrifles 好友页 I_L_LOVE 0.44 未出现，等待循环降到8仍失败；TalismanPass ✅；dev 2416b18；2✅/41🔄/9⛔ | `MIGRATION-LEDGER.md` | dev 2416b18 | 重采好友页 tab；继续 41🔄 | in_progress |
+| 77 | oas-core-v123-round37 | 实机子流程 | DailyTrifles friend_love 实机 Done；store 守卫改 I_ROOM_GIFT；Pets/Talisman ✅；dev d2e6272；2✅/41🔄/9⛔ | `MIGRATION-LEDGER.md` | dev d2e6272 | store 分支验证；继续 41🔄 | in_progress |

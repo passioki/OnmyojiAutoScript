@@ -4,41 +4,52 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-round8
-checkpoint_seq: 37
-updated_at: 2026-10-31T18:44:00+08:00
-trigger: 逻辑运算符审计 + U-32b/根级拖拽补完；等用户验收
+task_id: oas-core-v123-round9
+checkpoint_seq: 38
+updated_at: 2026-10-31T18:46:00+08:00
+trigger: 素材条件逻辑运算符设计；等用户确认后实施
 status: in_progress
 ```
 
 ## 0. 当前状态
 
-- 引擎代码 `cdd9dde`；workspace **344 passed / 0 failed**。
-- 版本 **1.2.2**，未 tag/release；stage UI + OCR exe 已同步并重启 8788。
-- 未恢复用户删除的任务/素材。
+- 引擎代码 `cdd9dde`；workspace **344 passed**。
+- 版本 1.2.2，未 tag/release；stage 已同步/重启 8788。
+- 本轮**未改代码**，只做审计与计划。
 
-## 1. 本轮完成（U-33）
+## 1. 本轮问题
 
-- **逻辑运算符审计**：
-  - `and/or/not` + `&&/||/!` 在 `parse_expr` 中均支持；
-  - 表达式字段：`if.cond`、`while.cond`、`wait_until.cond`、`loop.n`、`log.text`、`set_var.value`、`inc_var.by`、`click_point.x/y`；
-  - `click_point x/y` UI 从 number 改为表达式输入；
-  - 这些字段统一显示逻辑运算符提示；
-  - 文字出现/未出现用 `text_visible('a') or text_visible('b')` / `not (...)`；
-  - 字面量数字/结构字段（wait.seconds、timeout、swipe/drag 坐标、stable_frames）不强行表达式化。
-- **U-32b 补完**：batch_test 对 derived `ocr_line` 用 source ROI det+rec 比对 `ocr_text`。
-- **U-20**：新增「拖到根级」drop 区，单步可从容器拖回根级；**多选整组拖动仍未做**。
+“素材也应该支持逻辑运算符”。
 
-## 2. 下一步
+现状：
 
-1. 等用户验收逻辑运算符和批量帧测试；
-2. U-20 多选整组拖动（剩余唯一明确未完成项）；
-3. 实机验证「回到庭院」（dry-run 不点击会跑到预算耗尽，属预期）。
-4. 发布时才 bump/tag/release。
+- 后端表达式 parser 已支持 `and/or/not`、`&&/||/!`；
+- 但 builder 条件预设只允许**单个素材**：
+  - `parseConditionPreset()` 返回 `{asset}`：`builder.js:1089`
+  - `condText()` 只生成一个 `appear('A')`：`:1102`
+- 文字条件已能多个 `text_visible(...) or ...`，但和素材条件不是同一组件。
 
-## 3. 证据
+关键边界：
 
-- PENDING §E-32 / §E-33；ENGINE §22.39.4。
-- CDP stage：任务面板 3 个引用素材；23 个缩略图；14 个位置帧选项。
-- release dry-run：`appear('町中')` 不再报 selector 未声明；进入 while/if/click。
-- tests 344 passed。
+- 逻辑运算适用于**布尔条件**（appear/not appear/text_visible）。
+- 不适用于 `click.sel`/`ocr.sel`（目标必须唯一）；点击“任一素材”用现有 `alts` / `click_target.find`。
+
+## 2. 待确认
+
+1. 多素材条件默认连接词：推荐每行可切 `且/或`，默认 `且`；
+2. 组级“非”：推荐 `not (A and B)` 整体取反，而不是逐行取反；
+3. click 是否要暴露“备选素材（alts）”多选 UI；
+4. 文字多值默认 OR 保持不变。
+
+## 3. 下一步（确认后）
+
+1. 条件编辑器抽统一谓词行：素材/文字 + 出现/未出现 + 且/或 + 组非；
+2. 生成 `appear(A) and not appear(B)` 等表达式，实时预览；
+3. click 备选素材用 `alts`；OCR 保持单 ROI；
+4. 旧 flow 条件保持语义；自定义表达式保留；
+5. 测试 + stage + U-20 多选整组拖动。
+
+## 4. 证据
+
+- PENDING §E-34；ENGINE §22.39.4。
+- `builder.js:1089/1102`；`oas-flow` logic tests；`alts` parser `:1152`。

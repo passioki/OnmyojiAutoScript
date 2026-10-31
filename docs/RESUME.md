@@ -4,65 +4,50 @@
 > 就能继续。细节放 `ENGINE-DESIGN.md` / `DELIVERY-PLAN.md`。
 
 ```yaml
-task_id: oas-core-v123-round30
-checkpoint_seq: 59
-updated_at: 2026-11-01T00:00:00+08:00
-trigger: 嵌套流程/多选清理/停止运行/实时日志完成
+task_id: oas-core-v123-round31
+checkpoint_seq: 60
+updated_at: 2026-11-01T00:15:00+08:00
+trigger: while 条件逻辑确认 + 每次迭代日志
 status: in_progress
 ```
 
 ## 0. 当前状态
 
-- 引擎代码 `3eb9fa8`；workspace **348 passed**。
+- 引擎代码 `a4ebbfd`；workspace **348 passed**。
 - 版本 1.2.2，未 tag/release；stage 已部署/重启。
 
-## 1. 本轮完成（U-51）
+## 1. 逻辑确认（U-52）
 
-### U-51a 嵌套 flow 切换
+```text
+while not appear(町中) and not appear(召唤)
+= not (appear(町中) or appear(召唤))
+```
 
-- `flow_model.parseFlow` 不再抛 if/loop/while 嵌套错误；
-- 生成只读占位 + `nested` 标记；
-- `buildFlow` 拒绝从简化面板保存嵌套 flow；
-- 工作台 INFO 提示用任务构建/JSON，引用素材仍显示。
+- 任一出现 → false → 退出；
+- 都不出现 → true → 继续。
+- 用户预期正确。
 
-### U-51b 删除无用的多选/新建集合
+如果没退出，说明该次 `appear('町中')` 和 `appear('召唤')` 都返回 false；不是 `not/and` 解析错误。
 
-- 移除素材行勾选框；
-- 移除「新建集合」按钮和前端创建入口；
-- 已有 collection 数据仍显示/测试/删除。
+## 2. 新日志
 
-### U-51c 结束运行任务
+每次 while 迭代：
 
-- `POST /task/run/stop`；
-- runtime `Interpreter` cancel token，`check_budget` 每步检查；
-- 工作台「结束运行任务」按钮；
-- 停止后 `Failed / cancelled by user`，step log 保留。
+```text
+step seq=... depth=1 op=while_cond result=ok detail=iteration=N value=Bool(true) truthy=true cond=...
+```
 
-### U-51d 死循环与无日志
+- value=true → 继续；
+- value=false → 退出；
+- 配合 `/lines` 的详细日志和 `__oasLogs` 定位哪个 appear 没命中。
 
-根因（「回到庭院」/返回庭院）：
-- `while cond = not appear(町中) and not appear(召唤)`；
-- body 内 if 无匹配时只 log warn，没有 finish/break；
-- 条件一直真 → 无限循环。
+## 3. 下一步
 
-已做：
-- StepObserver 实时把 StepEvent 推进 `/task/run/status`（长循环可见日志）；
-- 结束按钮可停止。
-
-仍需用户：
-- 在 while body 的 else 增加 `finish failed` 或退出条件；这不是引擎自动能推断的业务逻辑。
-
-## 2. 验证
-
-- 临时无限任务：2s 后 status 可见 step 日志；stop 后 running=false、Failed/cancelled；
-- 348 tests。
-
-## 3. 仍待
-
-1. 用户重跑「回到庭院」，确认嵌套 flow 不再报错；按需补退出分支；
-2. U-32b 批量；
-3. 发布前整体验收。
+1. 用户重跑「回到庭院」，看 `while_cond` 值；
+2. 若 value=true 且屏幕已有町中/召唤，用素材行识别检查 OCR ROI/文本；
+3. 若确认业务上“应退出但 OCR 失败”，调整素材 ROI；
+4. 发布前验收。
 
 ## 4. 证据
 
-- PENDING §E-51；代码 `3eb9fa8`；348 tests；stage 8788。
+- PENDING §E-52；代码 `a4ebbfd`；348 tests；stage 8788。

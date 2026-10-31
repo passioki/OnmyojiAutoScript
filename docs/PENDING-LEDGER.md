@@ -2009,6 +2009,72 @@ OCR 测试日志包含：
 
 | 状态 | ✅ 代码完成；「返回庭院」flow 需补 else/finish 才能自然结束 |
 
+---
+
+# ★ §E-52 ★★★ [11-01 00:03] **while 条件为何未退出（U-52）**
+
+> 用户：点击后已回到庭院，理论上出现町中或召唤后 while 应不满足；为什么没退出？
+
+## 逻辑确认
+
+flow 条件：
+
+```text
+while not (appear('町中')) and not (appear('召唤'))
+```
+
+按 De Morgan：
+
+```text
+not A and not B = not (A or B)
+```
+
+所以：
+
+- 町中 **或** 召唤任一出现 → 条件 false → 退出；
+- 两者都不出现 → 条件 true → 继续循环。
+
+用户的预期是正确的。
+
+## 为什么仍不退出
+
+如果 while 继续，说明在该次 `eval(cond)` 时：
+
+```text
+appear('町中') == false
+appear('召唤') == false
+```
+
+两者同时为 false。可能是：
+
+- OCR 资产在庭院画面上未命中（ROI/文字）；
+- 识别用的帧/区域不是用户以为的帧；
+- appear() 读的是 OCR 资产，不是模板图；
+- 点击后画面还没稳定，下一次条件检查过早。
+
+这不是 `not/and` 逻辑错误，而是条件求值结果问题。
+
+## 新增证据日志（`a4ebbfd`）
+
+每次 while 迭代现在输出：
+
+```text
+step seq=... depth=1 op=while_cond result=ok detail=iteration=2 value=Bool(true) truthy=true cond=...
+```
+
+- `value=true` → 继续；
+- `value=false` → 退出；
+- `cond` 是实际表达式。
+- 配合 OCR 的 `/lines` 服务端日志 + `__oasLogs`，可以对照“这次循环时两次 appear 到底返回了什么”。
+
+## 仍要用户处理
+
+若日志显示 `while_cond value=true` 而屏幕已有町中/召唤，说明 OCR 资产本身没识别到；需要用素材行「识别」检查并调大 ROI。  
+若条件值无法区分两个 appear，可在 while 前分别 `log(appear('町中'))` / `log(appear('召唤'))` 做临时诊断。
+
+| 状态 | ✅ 逻辑确认 + 条件日志已加；具体 OCR 命中需用日志继续定位 |
+
+
 
 
 

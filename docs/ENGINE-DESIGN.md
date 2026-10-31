@@ -1985,5 +1985,6 @@ tasks/<任务名>/
 - **U-49（单识别 ROI 统一）**：`8cab6ab`：废弃第二识别区域 `ocr_source_roi`；旧资产加载时迁移 `roi:=source` 并清除 source；新保存只写一个 roi + action_roi；运行期/编辑器/批量只对 roi det+rec；移除双 ROI、source fallback 和 CJK 行合并。348 tests。
 - **U-50（详细日志标准）**：`bdfe3c3`：前端 `[时间][级别] msg | JSON` + `__oasLogs`；OCR 测试记录帧/ROI/action/expected/raw lines/match mode/distance/fallback；服务端 editor.log 记录 /lines /ocr /asset_match /collection_match 的 ROI/task/id/score/pass/elapsed/error。348 tests。
 - **U-51（嵌套流程/停止/实时日志）**：`3eb9fa8`：flow_model 对嵌套 if/loop/while 只读占位不抛错；删除素材多选/新建集合 UI；runtime cancel token + `POST /task/run/stop` + 工作台结束按钮；StepObserver 把 StepEvent 实时推入 run status（长 while 有日志）；定位“返回庭院”死循环为 while body 无退出分支。348 tests。
+- **U-52（while 条件诊断）**：`a4ebbfd`：确认 `not A and not B = not(A or B)`，任一出现即退出；每次 while 迭代新增 `while_cond` StepEvent（iteration/value/truthy/cond），用于证明 appear 两个条件实际返回。348 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

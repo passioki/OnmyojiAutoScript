@@ -1709,3 +1709,57 @@
 2. 该守卫可覆盖 `/task/asset/match`、`/lines`、`/collection/match` 三条编辑器路径。
 
 | 状态 | 🔄 OCR + 模板 + collection 路径已同源；仅缺一致性守护测试 |
+
+---
+
+# ★ §E-42 ★★★ [10-31 21:03] **素材展示统一 + click OCR selector（U-42）**
+
+> 用户补充：
+> 1. 当前任务引用素材 与 素材页素材库 展示实现不一致，要统一，并举一反三排查；
+> 2. `failure=selector `庭院` is not declared in the task's assets`。
+
+## U-42b：selector 报错根因（已修）
+
+| 项 | 内容 |
+|---|---|
+| 现象 | `appear('庭院')` 成功，紧接着 `click sel=庭院` 报 `selector not declared` |
+| 根因 | `Step::Click` 的候选循环只调 `locate()`；`locate_one()` 只查 **模板 map**。OCR 资产存在 `AssetSet.ocr`，不在模板 map，因此被判“未声明”。`appear()` 有显式 OCR 分支，所以两者结果不一致 |
+| 修复 | `Step::Click` 先判断 `assets.ocr_roi(cand)`：是 OCR 资产则 `ocr_read()`，再按 `action_roi` / recognized rect / OCR ROI 点击；审计 locator=`ocr`；stable-frame 模板投票跳过 |
+| 代码 | `9d327bc`、`3321207` |
+| 测试 | 新增 `click_ocr_asset_uses_action_roi_not_template_lookup`；workspace **345 passed** |
+| stage 验证 | `_diag_click`：`DETECTED` → `clicked 庭院 target=(1000,218) point=(1085,269)` → Done（dry-run） |
+
+## U-42a：展示实现不一致（计划）
+
+| 渲染器 | 位置 | 现状 |
+|---|---|---|
+| 工作台「当前任务引用的素材」 | `renderTaskReferencedAssets`（app.js:1677） | 纯文本 `${id} [kind]` |
+| 工作台「素材库」 | `renderAssetList`（app.js:1789） | 缩略图 + 分组 + 勾选 + 测试/改/帧/删/操作区/点测/拖测/步骤 |
+| 任务构建「可用素材」 | `renderAssetPanel`（builder.js:806） | 纯文本 `${id} [kind]` |
+
+**根因**：同一个资产有 3 套独立 DOM 渲染，导致工作台任务页和素材页显示完全不同。
+
+**计划**：
+
+1. 新增共享 `asset_ui.js`（在 app.js/builder.js 之前加载），导出：
+   - `makeAssetThumb(it)`
+   - `createAssetRow(it, { pick, manage, compact, onPick, onTest, ... })`
+   - `renderAssetRows(container, items, opts)`
+2. 工作台「素材库」改为调用 `renderAssetRows`（保留分组/搜索/勾选）。
+3. 工作台「当前任务引用的素材」调用同一 `renderAssetRows`，仅传引用子集与 `manage:false`（仍显示缩略图/kind/ROI/位置帧/测试）。
+4. 任务构建「可用素材」调用同一组件（`compact:true`），点击仍注入到动作参数。
+5. 集合成员展示也复用同一行组件的紧凑模式。
+6. 验收：同一资产在三个位置的缩略图、kind 标签、ROI/位置文案、测试按钮一致；CDP 对比 `outerHTML` 结构；不引入重复渲染函数。
+
+## 举一反三：仍在用模板-only selector 的路径
+
+| 路径 | 现状 | 计划 |
+|---|---|---|
+| `click` | ✅ 已支持 OCR | 已修 |
+| `dismiss_popup` 的 detect/action selector | `locate()` 只查模板 | 抽 `resolve_selector` 支持 template/OCR/collection |
+| `click_target` 的 `Locator::Template` | `locate()` 只查模板 | 同上；OCR 显式用 `ocr_text` 或自动降级 |
+| `verify_stable_frames` | 模板匹配 | OCR click 已跳过；其他 OCR selector 需统一 |
+| `appear/wait_until` | ✅ 有 OCR 分支 | 已支持 |
+| `require_template` | 明确要求模板 | 保持模板-only，文档写明 |
+
+| 状态 | 🔄 U-42b 已修并验证；U-42a 展示统一与剩余 selector 路径按上述计划继续 |

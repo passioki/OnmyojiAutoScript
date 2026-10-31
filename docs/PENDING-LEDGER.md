@@ -1604,3 +1604,58 @@
 | **U-39d** | 父级移动到子级后父子级全消失 | `moveStepTo` 增加对象身份/递归包含检查：父级进自己子级直接拒绝并提示；目标数组异常时用 snapshot 回滚；CDP 对父级拖到自己 child，步骤数保持 7 不变 | ✅ |
 | **U-39e** | 「庭院」素材测试识别成功，任务运行却“没有检测到匹配对象” | 根因：运行期 `OnnxOcr::recognize_lines` 只做正立 rec；编辑器 `/lines` 有低分 90° 旋转兜底。竖排“庭院”正立 rec 得到 `"應"(0.217)`，运行期 derived OCR 匹配失败。已给运行期 provider 补 90° 旋转兜底；诊断日志现输出 found lines。stage 实际运行 `_diag_ocr2`：`ocr=on`，`庭院` 识别成功、Done | ✅ |
 | 验证 | — | workspace **344 passed**；代码 `0f0c293`；stage UI+exe 已同步 | ✅ |
+
+---
+
+# ★ §E-40 ★★★ [10-31 20:55] **多行识别/旋转/单行路径彻查（U-40）**
+
+> 用户：“多行识别为什么要旋转，是不是底层还是用的单行识别？请彻查！”
+
+## 结论（先给答案）
+
+1. **不是回退到单行 OCR 路径**；`庭院` 运的是 **det + 逐行 rec**。
+2. **旋转是“检测框内的逐行方向纠正”**，只作用于 det 出来的每个 box；不是把整个 ROI 交给单行 rec。
+3. 多行 OCR 的底层原语本来就是 **line-level rec**（检测出多行后逐行识别），所有多行引擎都这样；关键是 **det 是否真的执行**。这里 det 执行了：正立 rec 得到 `"應"(0.217)`，旋转后才得到 `"庭院"`。
+4. 编辑器 `/lines` 早就有这个 90° 兜底；runtime provider 之前缺了，所以“素材测试成功、任务运行失败”。补的是 **运行期与编辑器同一套方向纠正**，不是换回单行。
+
+## 代码路径审计
+
+| 路径 | 代码 | 行为 |
+|---|---|---|
+| 单行 OCR 资产 `ocr_line`（`ocr_mode=single`） | `oas-runtime/src/lib.rs:1191` → `provider.recognize(frame, roi)` | 直接对 ROI 做单行 rec |
+| 多行 OCR 资产 `ocr_lines` | `oas-runtime/src/lib.rs:1257` → `provider.recognize_lines` | det 检测多行，再逐 box rec |
+| **多行来源保存的单行资产**（`kind=ocr_line, ocr_mode=lines`） | `oas-task/src/lib.rs:906` 设置 derived；`oas-runtime/src/lib.rs:1226` 用它；`:1228` 调 `recognize_lines(source)` | **不是单行 rec**；重新在原始 source ROI 上 det+rec，再与 `ocr_text` 对比 |
+| 编辑器多行测试 `/lines` | `apps/oasd/src/serve.rs:1463`，`:1535` 低分时 90° 旋转 | det+rec + 方向兜底 |
+| 运行期 provider | `apps/oasd/src/ocr.rs:52` `recognize_lines`；`:59` det；`:66` 逐 box rec；`:72` 低分 90° 旋转 | 与编辑器同一套 det+rec+方向兜底 |
+
+## 「庭院」实际数据
+
+```json
+{
+  "id": "庭院",
+  "kind": "ocr_line",
+  "ocr_mode": "lines",
+  "ocr_source_roi": [999, 219, 111, 87],
+  "ocr_text": "庭院"
+}
+```
+
+运行期发现 `derived_ocr("庭院")` 存在 → `recognize_lines(source ROI)`：
+- det 输出 1 个 box；
+- 正立 rec：`"應" 0.217`（错误）；
+- 旋转后 rec：`"庭院" 0.9668`；
+- 与 `ocr_text="庭院"` 匹配 → 成功。
+
+## 是否还有单行误用
+
+- 没有把 derived `ocr_line` 走 `/ocr` 或 `provider.recognize`；
+- 单行路径仍只用于真正的 `ocr_mode=single` 资产；
+- `text_visible()` 也走 `recognize_lines`（全屏 det+rec），不是单行；
+- 旋转只发生在 `recognize_lines` 的 box rec 内部，不改动 det 结果。
+
+## 仍需注意
+
+- 竖排文字依赖这个 90° 兜底；如果未来某字体旋转后仍低分，需要 **旋转检测模型/框** 或让用户指定竖排，而不是回退单行。
+- 本轮只补了 90° cw/ccw，未做任意角度旋转。
+
+| 状态 | ✅ 已彻查；代码 `0f0c293`；stage `ocr=on` 实测 `庭院` 成功；344 tests |

@@ -1973,5 +1973,6 @@ tasks/<任务名>/
 - **U-35（run OCR provider）**：`3f341a4`：workbench `/task/run` 之前没把 serve 已加载的 `--model`/`--det-model` 传给 `RunOptions`，导致 `appear(ocr_asset)` 报 no OCR provider；现在传路径，临时 serve 日志 `ocr=on` 并正常求值。workspace 344 tests。
 - **U-36（while 0 次诊断）**：`a9e7703`：用户条件 `not(not appear(A) or not appear(B))` 化简为 `A and B`，当前画面不满足 → 0 次循环 → Done；不是引擎 bug。条件预览在“行未出现 + 组非”时加双重取反警告。workspace 344 tests。
 - **U-39（第五轮 UI/OCR）**：`0f0c293`：任务引用素材只在任务页；位置帧分类→帧→添加列表；builder 返回/前进；父级拖入自身子级拒绝+回滚；运行期 OCR provider 对竖排文本补 90° 旋转兜底（`庭院` 可识别）。workspace 344 tests。
+- **U-40（多行 OCR 彻查）**：`0f0c293`：`ocr_mode=lines` 的 `ocr_line` 仍走 source ROI 的 **det + 逐行 rec**，不是单行 `/ocr` 回退；90° 旋转只是逐 box 方向纠正（正立 `"應"` 0.217 → 旋转 `"庭院"` 0.9668）。编辑器 `/lines` 与 runtime provider 现已一致。workspace 344 tests。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

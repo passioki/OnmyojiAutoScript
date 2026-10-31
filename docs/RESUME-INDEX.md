@@ -51,3 +51,4 @@
 | 42 | oas-core-v123-round13 | U-37 | 8787 打不开：服务实际在 8788；端口/书签不一致；注册服务不能自动解决端口错误 | `docs/PENDING-LEDGER.md §E-37` · `docs/START-HERE.md` | 8787 down · 8788 pid12416 /state ok | 用户改用 8788；确认统一端口/是否注册服务 | in_progress |
 | 43 | oas-core-v123-round14 | U-38 | serve 启动后自动打开默认浏览器；--no-open 关闭；stage 8788 双击 launcher 即自动打开 | `docs/PENDING-LEDGER.md §E-38` · `docs/START-HERE.md` | engine `e43c6c1` · 344 tests · stage 8788 200 | 用户验证自动打开；U-32b 实帧验收；U-20 | in_progress |
 | 44 | oas-core-v123-round15 | U-39 | 任务页引用素材/分类+帧位置选择/返回前进/父级拖子级保护/竖排 OCR 运行期 90° 兜底 | `docs/PENDING-LEDGER.md §E-39` · `docs/ENGINE-DESIGN.md §22.39.4` | engine `0f0c293` · 344 tests · stage UI+exe | 用户验收；U-32b positions；U-20 | in_progress |
+| 45 | oas-core-v123-round16 | U-40 | 多行 OCR 彻查：derived 走 det+rec，非单行；90° 是逐 box 方向纠正；编辑器/runtime 已一致 | `docs/PENDING-LEDGER.md §E-40` · `docs/ENGINE-DESIGN.md §22.39.4` | engine `0f0c293` · 344 tests · stage 庭院 Done | 用户验收；U-32b positions；U-20 | in_progress |

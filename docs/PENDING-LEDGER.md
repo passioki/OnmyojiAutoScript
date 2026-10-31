@@ -1317,3 +1317,26 @@
   - **A. 构建时内联**：builder `inlineCallTask` 读取目标任务 flow，复制 steps，去掉目标 `finish`；目标后续改动不会同步；
   - **B. 运行时引用**：flow 保存 `{"op":"call_task","args":{"task":"..."}}`；`oas-task::TaskBundle::load_flow` 在加载时递归展开目标 flow（禁止 cycle，深度上限 8，目标 `finish` 视为返回）。目标修改下次运行生效。
 - 当前边界：无参数映射、无返回值变量、嵌套深度上限 8、禁止递归；后续需要可扩展 `<task>.exit`/vars 映射。
+
+---
+
+# ★ §E-28 ★★★ [10-31] **v1.2.3 二次验收 U-05~U-10**
+
+> 用户 [10-31] 验收：ADB 未连接 / 测试运行冗余 / 模板图删除 / 多图素材集合 / 操作区域归素材。
+> 每条必须有独立证据；不把“改了代码”当验收。
+
+| U# | 用户原话/要求 | 设计/实现 | 独立证据 | 状态 |
+|---|---|---|---|---|
+| **U-05** | “彻底修复adb未连接问题…旧仓库连接多实例，一个实例连接需要两个值…设计如何易于使用，自动检测并选择？参照旧仓库/OAS标注系统下拉” | `Device` 保留 aliases（`127.0.0.1:16384` / `emulator-5554`）；统一 `resolve_device`；配置 serial 缺失时自动 `adb connect`；`adb_path` 按包根/config 目录解析；新增 `GET /instance/devices` + 实例下拉 | engine `4480d05`：adapter/config tests；真实 emulator `probe` 输出 `serial=127.0.0.1:16384 aliases=["127...","emulator-5554"]`；断开 TCP 后再 probe 自动 connect 成功；stage `/instance/devices` 返回 pair；UI 下拉显示 pair | ✅ |
+| **U-06** | “测试运行和运行任务是不是冗余了…测试运行点击没反应” → 删除“⑥ 测试运行”，只留“运行任务 + dry-run 复选框” | 删除死按钮 `btn-wb-run` 与死 handler；单一 `btn-task-run`；dry-run 勾选时按钮文案变“测试运行（dry-run，不点击设备）” | engine `4480d05`：CDP 确认 `#btn-wb-run` 不存在；checkbox change → 文案切换；click 发 `/task/run`（doRunTask） | ✅ |
+| **U-07** | “工作台-任务-模板图里删除未生效…1 阻止并提示” | 被 flow/集合引用时 **400 阻止**，返回引用任务/集合列表；UI alert/结果区/日志明确提示；不静默删除 | engine `4480d05`：`delete_asset_is_blocked_while_flow_references_it` 测试；`collection_expands...` 测试包含集合阻止；中文错误；UI 删除失败 alert | ✅ |
+| **U-08** | “多个图片…去重，或者多个图片一起检索…添加到一个素材集合吗…后续操作针对集合；删除提示引用；集合最少保留一个成员（除非未引用）” | `kind=template_set` 集合：成员模板列表；flow 只引用集合 id；`load_flow` 把 click/click_target 展开到成员；runtime `locate` 按成员最佳匹配、用命中成员 `action_roi`；集合/成员删除规则 | engine `4480d05`：oas-task `collection_expands_into_member_template_locators`；runtime `collection_locates_best_member_and_uses_its_click_box`；UI CDP 创建集合、集合行、builder 下拉；336 tests | ✅ |
+| **U-09** | “之前决策把操作区域放 flow，现在直接存素材更方便…改变决策并更新代码” | 正式改为：`roi`=识别区域、`action_roi`=操作区域，**均归素材/集合成员**；flow 只保存 sel；集合命中成员的操作区域生效；旧 R3 offset 规则保留但不再包含 `action_roi` | 代码：`AssetDecl.action_roi`（oas-task）、`AssetSet.click_back`（runtime）、UI 保存素材写 action_roi；集合测试使用成员 action_roi；docs 更新 | ✅ |
+| **U-10** | 多图“去重” | **不做自动合并删除**：完全重复提示用户；集合本身支持多图一起检索；不同皮肤/动画保留为多个成员 | `save_collection` 拒绝重复成员 id；集合多成员匹配测试；不自动删除图片 | ✅ 设计选择 |
+
+## 二次验收结论
+
+- **U-05~U-10：6/6 已实现/已裁定**。
+- 当前代码 `4480d05`；workspace **336 passed**。
+- 版本仍 **1.2.2**，未 tag/release；stage UI + exe 已同步测试构建（OCR feature）。
+- 已知边界：集合目前对 `click` / `click_target` 的展开和 runtime 集合匹配已支持；`appear` 条件表达式直接写集合 id 仍按普通模板查找（后续可扩展表达式 OR 展开）。

@@ -1899,7 +1899,7 @@ tasks/<任务名>/
 |---|---|---|---|
 | R1 | 任务工作台/流程 | “一个新建任务的流程最好是一条龙的，而不是现在分散的难以新建一个完整的任务” | 任务级构建一条龙；工作台保留单帧识别/测试；流程编辑统一到「任务构建」 |
 | R2 | 完成条件归属 | “任务包括…战斗完成标准的设置…归调度统一设置还是说还未实现？” → 确认“1认同” | `meta.goal` 归任务；调度 `quota` 只表示每天/每周跑几次；两者分离 |
-| R3 | 素材操作存储 | “只存flow里” | AssetDecl 不存 click/drag offset；点击/拖动/区域动作只写在 flow 步骤 |
+| R3 | 素材操作存储 | “只存flow里”（指 click/drag offset）；[10-31] 改判：**操作区域直接存素材** | AssetDecl 不存 click/drag offset；但 `roi`=识别区域、`action_roi`=操作区域均归素材/集合成员；flow 只保存 sel；`kind=region` 仍表示纯操作区域 |
 | R4 | 整屏 OCR 直点 | “整屏区域可以直接点击某个识别到的文字。这样会大大减少维护工作量” | `click_target` 的 `ocr_text` 支持内联 `{roi, text}`，不强制逐行建素材 |
 | R5 | 拖动拟人 | “两次随机坐标和随机速度…方向提前指定：上下左右” | `drag` 方向必填；起终点区域内随机、时长/速度随机、路径抖动；终点方向校验 |
 | R6 | 区域术语 | “操作区域就是点击区域，不要重复造轮子…统一为操作区域” | 只保留「识别区域 / 操作区域」；内部 `roi`=识别，`action_roi`=操作；`kind=region` 纯操作区域；不再有“点击区域/动作区域”并列概念 |
@@ -1930,6 +1930,7 @@ tasks/<任务名>/
 | B1 | 先发 v1.2.1（P0 四项），全局素材/真流程图/工作台删除放 v1.3 | [10-30 23:47]“全做完再发布1.2.1,版本号别跳这么快” | ❌ v1.3 分期取消；全部并入 v1.2.1 |
 | B2 | 迁移遇到重名“阻止并列出清单” | [10-30 23:44]“自动加后缀，引用可以确认下不要被破坏了” | ❌ 不阻止；自动后缀+按任务重写 |
 | B3 | 点击/拖动 offset 字段 | [10-30 20:17]“偏移可以删去…通过独立的区域操作来实现” | ❌ 无 offset；区域操作替代 |
+| B7 | 操作区域只存 flow | [10-31]“发现直接存到素材里更方便且够用，请改变之前的决策” | ✅ 现行：`action_roi` 归素材/集合成员；flow 只引用 sel/集合 id；旧 R3 的 offset 规则保留 |
 | B4 | 帧“磁盘化” | 用户只要求无上限+管理；实现为内存 session；v1.2.2 已补 `frames/` 持久化 | ✅ 已实现（N44，v1.2.2 已发布 `9debc0b`） |
 | B5 | 工作台流程“删除面板/旧编辑器” | 已确认删除 | ✅ 已实现（N49，引擎 `8fa847d`，未发布）：DOM 删除，生成/追加改复制到剪贴板 |
 | B6 | 图片识别“同样可调操作区域/多选” | 用户 [10-31] 选 C：只要单结果 + 操作区域调整，不做多选 | ✅ 已实现（N45-C，引擎 `d104277`，未发布） |
@@ -1957,5 +1958,11 @@ tasks/<任务名>/
 - **R20-a 条件动作说明**：✅ `ed2ae6a`：builder 动作库增加「出现/等到/识别」说明。
 - **R21 布局**：✅ `d455f6e`：`style.css` 增加 `.builder-main > .builder-palette/.builder-inspector { width:auto; flex:none }`；computed rect 验证 palette=220、center.x=244、无重叠。
 - **U-01 任务调用 A/B**：✅ `1ee41d0`：A builder 内联（去目标 finish）；B `call_task` + `oas-task::load_flow` 递归展开（cycle/depth=8，目标 finish 视为返回）；workspace 331 tests。
+- **U-05 ADB 多实例**：✅ `4480d05`：`Device.aliases` 保留 serial 对；`resolve_device` 别名匹配 + 自动 `adb connect`；config `adb_path` 按包根解析；`/instance/devices` + 实例下拉；真实 MuMu probe 验证。
+- **U-06 运行入口**：✅ `4480d05`：删除死按钮 `⑥ 测试运行`；单一 `运行任务`，dry-run 时文案变“测试运行（dry-run）”。
+- **U-07 删除保护**：✅ `4480d05`：被 flow/集合引用时 400 阻止并返回引用列表；UI alert/结果区提示；单测覆盖。
+- **U-08 素材集合**：✅ `4480d05`：`kind=template_set` 集合；flow 只引用集合 id；`load_flow` 展开 click/click_target 到成员；runtime `AssetSet` 按成员最佳匹配并使用命中成员 `action_roi`；集合/成员删除规则；336 tests。
+- **U-09 操作区域归素材**：✅ 代码已有 `AssetDecl.action_roi`/`AssetSet.click_back`；决策已改（B7）；集合成员 action_roi 生效。
+- **U-10 多图去重**：✅ 设计选择：不自动合并；集合支持多图检索；重复图片由用户决定。
 - **U-02/U-03/U-04**：✅ `cbfbab4`：素材统一保存+全选、builder 可拖拽列宽+localStorage、子动作选择器。
 - **N48 签名/APK**：✅ 范围关闭（Windows 继续 unsigned + SHA256；APK/Android 不在 oas-core 仓库，需另立项）。

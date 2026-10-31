@@ -36,3 +36,4 @@
 | 27 | oas-core-v123-r-audit | R21 | 动作库被覆盖修复：全局 aside width 320 覆盖 grid 轨道；computed rect 验证 palette=220/center.x=244 | `docs/PENDING-LEDGER.md §E-26 C7/R21` · `docs/RESUME.md` | engine `d455f6e` | 等用户发布指令；版本 1.2.2 | done |
 | 28 | oas-core-v123-acceptance | U-02/03/04 | 素材统一保存/全选；builder 可拖拽记忆布局+stage 同步；if 子动作选择器 | `docs/PENDING-LEDGER.md §E-27` · `docs/RESUME.md` | engine `cbfbab4`；repo+stage 8788 CDP 验证 | U-01 子流程调用待裁定 A/B | in_progress |
 | 29 | oas-core-v123-acceptance | U-01~U-04 | 任务调用 A/B；素材统一保存/全选；可拖拽记忆布局；if 子动作选择器；stage UI+exe 同步 | `docs/PENDING-LEDGER.md §E-27` · `docs/RESUME.md` | engine `1ee41d0`/`cbfbab4`；331 tests；stage 8796 | 关机 | done |
+| 30 | oas-core-v123-adb-assets | U-05~U-10 | ADB serial pair/auto connect/实例下拉；单一运行入口；删除保护；素材集合（flow 仅集合 id）；action_roi 归素材 | `docs/PENDING-LEDGER.md §E-28` · `docs/ENGINE-DESIGN.md §22.39 B7` | engine `4480d05` · 336 tests · 实机 probe/stage 8798 | 等用户验收/发布指令 | done |

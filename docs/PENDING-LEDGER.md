@@ -1373,7 +1373,7 @@
 | U# | 用户原话/要求 | 实现/诊断 | 独立证据 | 状态 |
 |---|---|---|---|---|
 | **U-22** | “图片帧类更改添加已有类选项下拉” | 帧面板新增「当前帧分类」下拉（现有分类 + 新建分类），应用到当前帧 | engine `346adba`：CDP `frame-category-set` 有 庭院/探索总界面/御魂页面/式神录/町中/弹窗界面 + 新建分类 | ✅ |
-| **U-23** | “任务里的素材库移到素材里，任务里的素材库只显示当前任务引用的素材集合；当前素材库太臃肿” | 任务面板删除素材库块，移到「画面/素材」面板；新增「当前任务引用的素材」只显示 flow 引用；完整素材库/搜索仍在素材面板 | engine `346adba`：`#panel-task #assets-list` 不存在；`task-ref-assets` 由 `collectFlowAssetIds()` 过滤；素材搜索/集合仍在素材面板 | 🔄 **部分**：引用列表只在「素材」面板；「任务」面板没有，用户 10-31 18:00 再次反馈看不到。见 §E-32 U-30 |
+| **U-23** | “任务里的素材库移到素材里，任务里的素材库只显示当前任务引用的素材集合；当前素材库太臃肿” | 任务面板删除全量素材库，移到「画面/素材」面板；**任务面板新增当前 flow 引用列表**（U-30a 补齐）；完整素材库/搜索仍在素材面板 | engine `af66179`：`#task-ref-assets-task` + `renderTaskReferencedAssets` 双容器；CDP stage 回到庭院显示 3 引用；见 §E-32 U-30a | ✅ |
 | **U-24** | “任务素材/操作区域下拉选择改为搜索，像工作台搜索那样” | builder 素材选择由 `<select>` 改为可搜索 datalist（`builder-asset-search`），所有 asset 字段与结构化 click_target 共用 | engine `346adba`：选中步骤后 CDP `#builder-form .builder-asset-search input` 存在，datalist 绑定 | ✅ |
 | **U-25** | “保存失败 `while` requires max_iters>0；0为无限；loop/while交叉；去除转换为xx” | **最终裁定**：`while` 没有 `max_iters`（数值次数归 `loop`）；`while` 只有 `cond`；数值条件 `0`=不进入循环、非 0=循环（受 step budget 硬保护）；删除 if↔loop 转换按钮/函数；加载时清理 if/loop/while 的非法 args | engine `460ad32`：`while` 只解析 cond/body；`while_numeric_zero_does_not_enter_loop`；`loop_zero_or_negative_runs_zero_iterations`；workspace 341 tests | ✅ |
 | **U-26** | “多行识别保存素材后的识别引擎用多行，似乎用单行；测试庭院识别错误” | **根因在工作台素材“识别”测试**：derived `ocr_line`（ocr_mode=lines）仍走 `/ocr` 单行；改为用 `ocr_source_roi` + `/lines` det+rec，并显示期望文字是否匹配。runtime 本身已有 derived OCR 路径 | engine `346adba`：`testAssetOcr` 分支；stage `庭院` 资产含 `ocr_mode:"lines"` + source ROI；重新测试可看到多行识别结果/期望匹配 | ✅ |
@@ -1416,12 +1416,12 @@
 
 | U# | 原子要求 | 设计/现状（证据） | 状态 |
 |---|---|---|---|
-| **U-30a** | 工作台「任务」面板显示**当前任务引用的素材库**（不是全量） | ❌ 当前 `task-ref-assets` 只在 `panel-assets`（`apps/oasd/ui/index.html:91`）；`panel-task`（同文件 176-220）没有引用列表；`renderTaskReferencedAssets()` 只写 `taskRefAssets`（`app.js:1663-1680`）。台账 U-23 只验证了「任务面板删除」，把「任务中有引用列表」漏了，已降级 U-23 为 🔄 | 🔄 |
-| **U-30b** | 素材库每行首列改为**识别区域预览图**（等比例适配），不再纯蓝按钮底色 | ❌ 首列 `button.asset-main` 用全局 `button { background:#2b6cb0 }`（`style.css:18-28`），`.asset-row .asset-main` 未覆盖背景（`style.css:343-351`）；`app.js:1791-1795` 只拼文本 ROI；无 `/task/asset/image` 或缩略图裁剪路由（serve 仅 `/frame.png`，`serve.rs:582-588`） | ⬜ |
-| **U-31a** | 「返回庭院」修改 `not appear('町中')` 后应能运行 | ✅/❌ 已复现：flow 现在语法正确；实际 dry-run 报 `failure=selector 町中 is not declared in the task's assets`。因为 `町中` 是 `ocr_line`，而 `appear()` 只走模板 `locate()`（`oas-runtime/src/lib.rs:2451-2453`，`locate_one` 只查模板 `assets.get`，`:977-984`）。当前条件预设把 OCR 素材也生成 `appear(...)`，运行时必失败 | 🔄 根因已定位 |
-| **U-31b** | 条件素材输入文字时显示**所有匹配候选项**，不需输入全称 | ❌ `assetSearch()` 用原生 `<datalist>` + `change` 事件（`builder.js`），浏览器只在选中/失焦提交；条件编辑器没有自定义过滤下拉；用户输入部分 id 不出现完整候选项 | ⬜ |
-| **U-32a** | 所有素材增加**位置属性**（可多个，值=帧 id） | ❌ `AssetDecl` 无位置字段（`crates/oas-task/src/lib.rs:92-120`）；帧 id/元数据已有 `/frames`（`serve.rs:629-633`），但没有资产→帧关联 | ⬜ |
-| **U-32b** | 批量 **dry-run 测试**通过帧来跑（每个素材按其位置帧验证） | ❌ 无批量测试路由；只有单素材当前帧 `/task/asset/match`、`/ocr`、`/lines`；帧不能按资产批量注入 runtime/识别器 | ⬜ |
+| **U-30a** | 工作台「任务」面板显示**当前任务引用的素材库**（不是全量） | ✅ 已修：新增 `#task-ref-assets-task`；`loadTaskFlow` 不再依赖已删除的 `flowJson`，并保留 raw flow 供引用扫描；任务/素材两个面板共用 `renderTaskReferencedAssets()`。CDP stage「回到庭院」=> refs `["町中","返回庭院","返回上一级"]`，任务面板显示 3 项 | ✅ |
+| **U-30b** | 素材库每行首列改为**识别区域预览图**（等比例适配），不再纯蓝按钮底色 | ✅ 已修：新增 `/task/asset/image` + `/frames/image`；`makeAssetThumb()` 模板显示保存图、OCR/region 按位置帧/当前帧 + ROI canvas 裁剪（letterbox 等比例）；`.asset-main` 改深色 + 缩略图布局。CDP stage 23 行全部有 `.asset-thumb` | ✅ |
+| **U-31a** | 「返回庭院」修改 `not appear('町中')` 后应能运行 | ✅ 已修：`appear()` 现在覆盖所有素材（OCR 资产用 `ocr_read` 判断文本/多行非空；derived 不匹配=false）；新增 `text_visible()` 全屏 det+rec 文字搜索。release dry-run 已实际执行 while/if/click（dry-run 不点击，所以按设计会跑到预算耗尽） | ✅ |
+| **U-31b** | 条件素材输入文字时显示**所有匹配候选项**，不需输入全称 | ✅ 已修：`assetSearch()` 改自定义子串过滤下拉（含 kind 标签、Enter/点击选择），条件编辑器/动作字段共用 | ✅ |
+| **U-32a** | 所有素材增加**位置属性**（可多个，值=帧 id） | ✅ 已实现：`AssetDecl.positions: Vec<u64>`；保存必须至少 1 个位置帧；素材行「帧」可改多帧；帧删除被引用位置阻止；集合保存后自动把所有任务 flow 的成员引用改写为集合 id；集合本身不加位置（用户 10-31） | ✅ |
+| **U-32b** | 批量 **dry-run 测试**通过帧来跑（每个素材按其位置帧验证） | 🔄 部分：`POST /task/assets/batch_test` + UI「批量帧测试」；template 全帧匹配、region 边界、OCR 单行 rec 已实现；derived `ocr_lines` 的 det+rec 批量分支仍待补。stage 素材尚未设置 positions，需用户在素材行「帧」设置 | 🔄 |
 
 ## 设计草案（等确认后实施）
 
@@ -1446,8 +1446,10 @@
   - 返回 `{id, frame_id, pass, score, text, error, elapsed_ms}` 汇总；dry-run 不点设备。
 - UI 在素材库顶部加「批量帧测试」按钮，结果表格显示通过率；与单素材测试共用同一执行函数，不重复造轮子。
 
-## 下一步
+## 第六轮结论
 
-1. 等用户确认 U-31 方案 A/B、U-32 集合是否也要位置、删帧时位置清理策略；
-2. 确认后按 U-30a→U-30b→U-31→U-32 顺序实现，每步测试+断点；
-3. 更新 `ENGINE-DESIGN §22.39.4` 与 `RESUME`。
+- U-30a/U-30b/U-31a/U-31b/U-32a ✅；U-32b 🔄 部分（template/region/OCR single；derived OCR det-lines 待补）。
+- 代码 `af66179`；workspace **344 passed**。
+- 版本仍 1.2.2，未 tag/release；stage UI + OCR exe 已同步。
+- 帧位置值 = 帧 id（u64）；保存新素材必须至少 1 个位置帧；删帧时被位置引用会 400 提示先删素材/改位置。
+- 集合不加位置；保存集合后自动把所有任务 flow 中成员引用改成集合 id。

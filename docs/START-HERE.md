@@ -90,7 +90,8 @@ run-tests.bat tests/test_comment_drift.py tests/test_task_flow_docs.py tests/mod
 ```
 
 > ★ **端口不要混**：上面 `8787` 是**开发手动 serve**；`dist\stage\start-editor.bat` 固定启动 **8788**（带 OCR 模型/config）。  
-> 用户版编辑器地址是 **http://127.0.0.1:8788/**；`8787` 没有进程时 Firefox 报 `can't connect` 是端口/书签不对，不是程序崩溃。
+> 用户版编辑器地址是 **http://127.0.0.1:8788/**；`8787` 没有进程时 Firefox 报 `can't connect` 是端口/书签不对，不是程序崩溃。  
+> ★ [10-31] `oasd serve` 默认在监听成功后**自动打开默认浏览器**；headless/服务用 `--no-open`。Windows 服务在 Session 0 不会自动弹到用户桌面，服务化时应由用户登录任务/launcher 打开。
 
 ## 1.4 先回报，再动手
 

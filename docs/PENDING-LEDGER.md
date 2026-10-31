@@ -1575,3 +1575,19 @@
 | 注册为程序是否解决 | **不会自动解决端口错误**。服务/开机自启 + 失败重启只能保证“进程在”，若 book mark/启动参数仍是 8787 而服务在 8788，仍会 Unable to connect。需要：①统一端口（配置/launcher/书签）；②服务健康检查；③自动打开正确 URL |
 | 可做改进 | (1) launcher 启动后探测 `/state` 并打印/打开正确 URL；(2) 端口写入 `config/live.json`，所有脚本读同一份；(3) 注册 Windows 服务/计划任务，配置失败重启；(4) 桌面快捷方式指向 canonical URL |
 | 状态 | ✅ 已排查；未改代码，端口说明已补进 START-HERE |
+
+---
+
+# ★ §E-38 ★★★ [10-31 19:42] **启动后自动打开浏览器（U-38）**
+
+> 用户：“现有代码改为启动后自动打开浏览器网页。”
+
+| 项 | 内容 |
+|---|---|
+| 实现 | `oasd serve` 监听成功后、首帧抓取后自动打开 `http://127.0.0.1:<port>/`；默认开启 |
+| 平台 | Windows `cmd /C start "" <url>`；macOS `open`；Linux `xdg-open`；打开失败不影响服务 |
+| 开关 | `--no-open` 关闭（服务/CI/headless）；`--open` 显式开启；`dist\stage\start-editor.bat` 不带 `--no-open`，所以双击即自动打开 **8788** |
+| 代码 | `e43c6c1` |
+| 验证 | release 构建 + stage 8788 `/` 200；`--no-open` 参数已接入；workspace 344 tests |
+| 服务化注意 | Windows 服务运行在 Session 0 时浏览器不会出现在用户桌面；要“开机自动打开网页”建议用**当前用户登录触发的计划任务**，或服务只跑后端、用户 launcher 负责打开。端口仍需统一（stage=8788） |
+| 状态 | ✅ 已实现 |

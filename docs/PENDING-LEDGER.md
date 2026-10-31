@@ -1768,3 +1768,19 @@ CDP stage 验收：
 代码 `567917c`；新增 `click_target_template_locator_also_accepts_ocr_assets`；workspace **346 passed**。
 
 | 状态 | ✅ U-42a 展示统一完成；U-42b click OCR 完成；dismiss_popup/click_target selector 已收口 |
+
+---
+
+# ★ §E-43 ★★★ [10-31 21:31] **分类/实时画面/回边路由/搜索候选（U-43）**
+
+| 项 | 用户要求 | 实现 | 状态 |
+|---|---|---|---|
+| **U-43a** | 素材库像帧管理一样按分类显示，分类继承位置帧 | `/task/assets` 为每个 item 增加 `category`（取第一个 position 帧的 category；集合=素材集合）；素材库、任务引用、builder 均按 category 分组；素材库新增分类筛选 | ✅ |
+| **U-43b** | 取消启动自动截取，改实时显示（参照旧 OAS annotator） | 移除 `Server::run` 启动 `do_capture()`；新增 `GET /frame.png?live=1` → `do_live_capture`（只更新当前帧，不入库、不写 frames.json）；UI 默认实时轮询 1.2s，头栏「实时：开/暂停」；截图/选帧/上传自动暂停实时 | ✅ |
+| **U-43c** | 循环回边从最外侧绕回，不跨图 | 回边/continue 走图外侧正交 lane：body 底部 → 外围右边 → loop header 右边；虚线样式；预留 lane 宽高。属于分层图（Sugiyama）back-edge 外绕的常用做法 | ✅ |
+| **U-43d** | 素材添加位置改成搜索+候选，并统一抽象 | 新增 `OASAssetUI.createSearchPicker`；builder 素材字段与素材位置选择共用；位置候选显示 `分类 / #id 帧名`，选中即加入位置列表 | ✅ |
+| 验证 | — | stage：`/frame.png?live=1` 200、frames 数不变；CDP：position 候选可选、回边路径 `M 430 722 V 884 H 579 V 193 H 435`、`__oasErrors=[]`；workspace 346 tests | ✅ |
+
+**U-43b 说明**：旧 OAS annotator 用后台线程 WebSocket 推 JPEG；本实现先取等价的“实时帧请求 + 前端轮询”，不再自动入库。后续若需要 2fps 以上可换后台采集/MJPEG。
+
+**U-43c 标准**：back edge 外绕是分层图常用策略；没有在所有任意图上绝对不交叉的简单标准，当前保证不穿过主节点列。
